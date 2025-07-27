@@ -1,4 +1,3 @@
-import { inArray } from "drizzle-orm";
 import {
   ChannelType,
   ChartDataPoint,
@@ -10,8 +9,6 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
-import { db } from "./db";
-import { broadcast, journey, messageTemplate } from "./db/schema";
 import logger from "./logger";
 import { InternalEventType } from "./types";
 
@@ -150,9 +147,30 @@ export async function getChartData({
     }
 
     if (filters.channels && filters.channels.length > 0) {
-      conditions.push(
-        `(event != '${InternalEventType.MessageSent}' OR JSON_VALUE(properties, '$.variant.type') IN ${qb.addQueryValue(filters.channels, "Array(String)")})`,
-      );
+      const channelConditions: string[] = [];
+
+      filters.channels.forEach((channel) => {
+        if (channel === "Email") {
+          channelConditions.push(`(
+            (event = '${InternalEventType.MessageSent}' AND JSON_VALUE(properties, '$.variant.type') = 'Email') OR
+            event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}', '${InternalEventType.EmailMarkedSpam}', '${InternalEventType.EmailDropped}')
+          )`);
+        } else if (channel === "Sms") {
+          channelConditions.push(`(
+            (event = '${InternalEventType.MessageSent}' AND JSON_VALUE(properties, '$.variant.type') = 'Sms') OR
+            event IN ('${InternalEventType.SmsDelivered}', '${InternalEventType.SmsFailed}')
+          )`);
+        } else {
+          // For other channels, only include sent messages of that type
+          channelConditions.push(
+            `(event = '${InternalEventType.MessageSent}' AND JSON_VALUE(properties, '$.variant.type') = ${qb.addQueryValue(channel, "String")})`,
+          );
+        }
+      });
+
+      if (channelConditions.length > 0) {
+        conditions.push(`(${channelConditions.join(" OR ")})`);
+      }
     }
 
     if (filters.providers && filters.providers.length > 0) {
@@ -304,36 +322,36 @@ export async function getChartData({
       event_type as groupKey,
       sum(count) as count
     FROM (
-      SELECT timestamp, 'sent' as event_type, sum(toUInt64(has_sent)) as count 
-      FROM message_states_per_message 
+      SELECT timestamp, 'sent' as event_type, sum(toUInt64(has_sent)) as count
+      FROM message_states_per_message
       WHERE has_sent = 1
       GROUP BY timestamp
-      
+
       UNION ALL
-      
+
       SELECT timestamp, 'delivered' as event_type, sum(toUInt64(has_delivered)) as count
-      FROM message_states_per_message 
+      FROM message_states_per_message
       WHERE has_delivered = 1
       GROUP BY timestamp
-      
+
       UNION ALL
-      
+
       SELECT timestamp, 'opened' as event_type, sum(toUInt64(has_opened)) as count
-      FROM message_states_per_message 
-      WHERE has_opened = 1  
+      FROM message_states_per_message
+      WHERE has_opened = 1
       GROUP BY timestamp
-      
+
       UNION ALL
-      
+
       SELECT timestamp, 'clicked' as event_type, sum(toUInt64(has_clicked)) as count
-      FROM message_states_per_message 
+      FROM message_states_per_message
       WHERE has_clicked = 1
       GROUP BY timestamp
-      
+
       UNION ALL
-      
+
       SELECT timestamp, 'bounced' as event_type, sum(toUInt64(has_bounced)) as count
-      FROM message_states_per_message 
+      FROM message_states_per_message
       WHERE has_bounced = 1
       GROUP BY timestamp
     ) all_states
@@ -493,34 +511,36 @@ export async function getSummarizedData({
 
   const eventsInClause = eventsToTrack.map((event) => `'${event}'`).join(", ");
 
-  // Build channel-specific summary fields
+  // Build channel-specific summary fields with cascading logic
   let summaryFields: string;
   if (!channel) {
     // Default: only sent messages
     summaryFields = `
-      sumIf(event_count, event = '${InternalEventType.MessageSent}') as sent,
+      sum(toUInt64(has_sent)) as sent,
       0 as deliveries,
       0 as opens,
       0 as clicks,
       0 as bounces`;
   } else if (channel === ChannelType.Email) {
     summaryFields = `
-      sumIf(event_count, event = '${InternalEventType.EmailDelivered}') as deliveries,
-      sumIf(event_count, event = '${InternalEventType.MessageSent}') as sent,
-      sumIf(event_count, event = '${InternalEventType.EmailOpened}') as opens,
-      sumIf(event_count, event = '${InternalEventType.EmailClicked}') as clicks,
-      sumIf(event_count, event = '${InternalEventType.EmailBounced}') as bounces`;
+      -- Cascading logic: clicks count as opens+deliveries, opens count as deliveries
+      sum(toUInt64(has_delivered OR has_opened OR has_clicked)) as deliveries,
+      sum(toUInt64(has_sent)) as sent,
+      sum(toUInt64(has_opened OR has_clicked)) as opens,
+      sum(toUInt64(has_clicked)) as clicks,
+      sum(toUInt64(has_bounced)) as bounces`;
   } else if (channel === ChannelType.Sms) {
     summaryFields = `
-      sumIf(event_count, event = '${InternalEventType.SmsDelivered}') as deliveries,
-      sumIf(event_count, event = '${InternalEventType.MessageSent}') as sent,
+      -- SMS: clicks/opens not applicable, but apply cascading for deliveries
+      sum(toUInt64(has_delivered)) as deliveries,
+      sum(toUInt64(has_sent)) as sent,
       0 as opens,
       0 as clicks,
-      sumIf(event_count, event = '${InternalEventType.SmsFailed}') as bounces`;
+      sum(toUInt64(has_bounced)) as bounces`;
   } else {
     // Other channels: only sent messages
     summaryFields = `
-      sumIf(event_count, event = '${InternalEventType.MessageSent}') as sent,
+      sum(toUInt64(has_sent)) as sent,
       0 as deliveries,
       0 as opens,
       0 as clicks,
@@ -528,29 +548,35 @@ export async function getSummarizedData({
   }
 
   const query = `
-    WITH summary_data AS (
+    WITH message_events AS (
       SELECT
         event,
-        uniqExact(origin_message_id) as event_count
-      FROM (
-        SELECT
-          event,
-          if(event = '${InternalEventType.MessageSent}', message_id, JSON_VALUE(properties, '$.messageId')) as origin_message_id
-        FROM user_events_v2
-        WHERE
-          workspace_id = ${workspaceIdParam}
-          AND event_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
-          AND event_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
-          AND event_type = 'track'
-          AND event IN (${eventsInClause})
-          ${filterClauses}
-      ) AS processed_events
+        if(event = '${InternalEventType.MessageSent}', message_id, JSON_VALUE(properties, '$.messageId')) as origin_message_id
+      FROM user_events_v2
+      WHERE
+        workspace_id = ${workspaceIdParam}
+        AND event_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
+        AND event_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
+        AND event_type = 'track'
+        AND event IN (${eventsInClause})
+        ${filterClauses}
+    ),
+    message_final_states AS (
+      SELECT
+        origin_message_id,
+        -- Track individual states for each message (with cascading logic)
+        countIf(event = '${InternalEventType.MessageSent}') > 0 as has_sent,
+        countIf(event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}')) > 0 as has_delivered,
+        countIf(event = '${InternalEventType.EmailOpened}') > 0 as has_opened,
+        countIf(event = '${InternalEventType.EmailClicked}') > 0 as has_clicked,
+        countIf(event IN ('${InternalEventType.EmailBounced}', '${InternalEventType.SmsFailed}')) > 0 as has_bounced
+      FROM message_events
       WHERE origin_message_id != ''
-      GROUP BY event
+      GROUP BY origin_message_id
     )
     SELECT
       ${summaryFields}
-    FROM summary_data
+    FROM message_final_states
   `;
 
   logger().debug(

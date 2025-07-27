@@ -1556,10 +1556,30 @@ export function createCommands(yargs: Argv): Argv {
               });
             }
 
-            // Users 2, 3, 4: open but no click
+            // Users 2, 3, 4: delivered and open but no click
             for (let i = 2; i <= 4; i++) {
               const userId = userIds[i];
               if (userId) {
+                // Delivery event first
+                events.push({
+                  userId,
+                  timestamp: new Date(
+                    baseTime - (10 - i) * 30000 + 30000,
+                  ).toISOString(), // 30 seconds after send
+                  type: EventType.Track,
+                  messageId: randomUUID(),
+                  event: InternalEventType.EmailDelivered,
+                  properties: {
+                    workspaceId,
+                    journeyId,
+                    nodeId,
+                    runId,
+                    templateId,
+                    messageId: events[i]?.messageId, // Reference the sent message
+                  },
+                });
+
+                // Open event
                 events.push({
                   userId,
                   timestamp: new Date(
@@ -1580,10 +1600,29 @@ export function createCommands(yargs: Argv): Argv {
               }
             }
 
-            // Users 5, 6: open and click
+            // Users 5, 6: delivered, open and click
             for (let i = 5; i <= 6; i++) {
               const userId = userIds[i];
               if (userId) {
+                // Delivery event first
+                events.push({
+                  userId,
+                  timestamp: new Date(
+                    baseTime - (10 - i) * 30000 + 30000,
+                  ).toISOString(), // 30 seconds after send
+                  type: EventType.Track,
+                  messageId: randomUUID(),
+                  event: InternalEventType.EmailDelivered,
+                  properties: {
+                    workspaceId,
+                    journeyId,
+                    nodeId,
+                    runId,
+                    templateId,
+                    messageId: events[i]?.messageId, // Reference the sent message
+                  },
+                });
+
                 // Open event
                 events.push({
                   userId,
@@ -1635,11 +1674,12 @@ export function createCommands(yargs: Argv): Argv {
                 templateId,
                 breakdown: {
                   sent: 10,
+                  delivered: 5, // Users 2,3,4,5,6 have delivery events
                   spam: 1,
                   bounce: 1,
-                  openOnly: 3,
-                  openAndClick: 2,
-                  sentOnly: 3,
+                  openOnly: 3, // Users 2,3,4 have open (and delivery) but no click
+                  openAndClick: 2, // Users 5,6 have open, click (and delivery)
+                  sentOnly: 3, // Users 7,8,9 have only sent events
                 },
               },
               "Created events for basic-email scenario",

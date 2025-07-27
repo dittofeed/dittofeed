@@ -396,6 +396,43 @@ describe("analysis", () => {
       expect(Array.isArray(result.data)).toBe(true);
     });
 
+    it("returns chart data grouped by message state with human-readable labels", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+        displayMode: "absolute",
+        groupBy: "messageState",
+      });
+
+      expect(result).toHaveProperty("data");
+      expect(Array.isArray(result.data)).toBe(true);
+
+      if (result.data.length > 0) {
+        // Verify that groupKeys are human-readable labels, not raw event names
+        const groupKeys = result.data
+          .map((point) => point.groupKey)
+          .filter(Boolean);
+        const expectedLabels = [
+          "sent",
+          "delivered",
+          "opened",
+          "clicked",
+          "bounced",
+        ];
+
+        groupKeys.forEach((key) => {
+          expect(expectedLabels).toContain(key);
+          // Ensure no raw event names like "DFInternalMessageSent" or "DFEmailOpened"
+          expect(key).not.toMatch(/^DF/);
+        });
+      }
+    });
+
     it("returns chart data with provider filter", async () => {
       const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
       const endDate = new Date().toISOString();
@@ -432,6 +469,130 @@ describe("analysis", () => {
 
       expect(result).toHaveProperty("data");
       expect(Array.isArray(result.data)).toBe(true);
+    });
+
+    it("returns zero counts when filtering by SMS channel with only email events", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      // Filter by SMS channel, but all our test data is email events
+      const result = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+        displayMode: "absolute",
+        filters: {
+          channels: ["Sms"],
+        },
+      });
+
+      expect(result).toHaveProperty("data");
+      expect(Array.isArray(result.data)).toBe(true);
+
+      // Should have no data since all events in beforeEach are email events
+      expect(result.data.length).toBe(0);
+    });
+
+    it("correctly includes SMS events when filtering by SMS channel", async () => {
+      // Create SMS events
+      const smsJourneyId = randomUUID();
+      const smsTemplateId = randomUUID();
+      const smsUserId = randomUUID();
+      const smsSentMessageId = randomUUID();
+
+      const smsMessageSentEvent: Omit<MessageSendSuccess, "type"> = {
+        variant: {
+          type: ChannelType.Sms,
+          to: "+1234567890",
+          body: "Test SMS message",
+          provider: {
+            type: SmsProviderType.Twilio,
+            sid: randomUUID(),
+          },
+        },
+      };
+
+      const now = new Date();
+      const smsEvents: BatchItem[] = [
+        {
+          userId: smsUserId,
+          timestamp: new Date(now.getTime() - 3600000).toISOString(), // 1 hour ago
+          type: EventType.Track,
+          messageId: smsSentMessageId,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: smsJourneyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: smsTemplateId,
+            messageId: smsSentMessageId,
+            ...smsMessageSentEvent,
+          },
+        },
+        {
+          userId: smsUserId,
+          timestamp: new Date(now.getTime() - 3590000).toISOString(), // ~1 hour ago
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.SmsDelivered,
+          properties: {
+            workspaceId,
+            journeyId: smsJourneyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: smsTemplateId,
+            messageId: smsSentMessageId,
+          },
+        },
+      ];
+
+      // Submit SMS events
+      for (let i = 0; i < smsEvents.length; i++) {
+        const event = smsEvents[i];
+        if (event) {
+          await submitBatch(
+            {
+              workspaceId,
+              data: {
+                batch: [event],
+              },
+            },
+            {
+              processingTime: now.getTime() - 3600000 + i * 10000, // Slight time offset
+            },
+          );
+        }
+      }
+
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      // Filter by SMS channel - should now include the SMS events
+      const result = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+        displayMode: "absolute",
+        filters: {
+          channels: ["Sms"],
+        },
+      });
+
+      expect(result).toHaveProperty("data");
+      expect(Array.isArray(result.data)).toBe(true);
+
+      // Should have data now since we added SMS events
+      expect(result.data.length).toBeGreaterThan(0);
+
+      // Total count should be 1 (one unique SMS message)
+      const totalCount = result.data.reduce(
+        (sum, point) => sum + point.count,
+        0,
+      );
+      expect(totalCount).toBe(1);
     });
 
     it("returns chart data with default granularity when not specified", async () => {
@@ -733,6 +894,111 @@ describe("analysis", () => {
       expect(result.summary.opens).toBe(1); // 1 email opened
       expect(result.summary.clicks).toBe(1); // 1 email clicked
       expect(result.summary.bounces).toBe(1); // 1 email bounced
+    });
+
+    it("demonstrates cascading logic in getSummarizedData - opens contribute to deliveries", async () => {
+      // Create a message that only has an open event (no explicit delivery)
+      const testJourneyId = randomUUID();
+      const testTemplateId = randomUUID();
+      const testUserId = randomUUID();
+      const testMessageId = randomUUID();
+
+      const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+        variant: {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: {
+            type: EmailProviderType.SendGrid,
+          },
+        },
+      };
+
+      const now = new Date();
+      const events: BatchItem[] = [
+        // Only MessageSent + EmailOpened (no explicit EmailDelivered)
+        {
+          userId: testUserId,
+          timestamp: new Date(now.getTime() - 3600000).toISOString(), // 1 hour ago
+          type: EventType.Track,
+          messageId: testMessageId,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: testJourneyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: testTemplateId,
+            messageId: testMessageId,
+            ...messageSentEvent,
+          },
+        },
+        {
+          userId: testUserId,
+          timestamp: new Date(now.getTime() - 3580000).toISOString(), // ~1 hour ago
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailOpened,
+          properties: {
+            workspaceId,
+            journeyId: testJourneyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: testTemplateId,
+            messageId: testMessageId, // Reference the original sent message
+          },
+        },
+      ];
+
+      // Submit events
+      for (let i = 0; i < events.length; i++) {
+        const event = events[i];
+        if (event) {
+          await submitBatch(
+            {
+              workspaceId,
+              data: {
+                batch: [event],
+              },
+            },
+            {
+              processingTime: now.getTime() - 3600000 + i * 10000,
+            },
+          );
+        }
+      }
+
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getSummarizedData({
+        workspaceId,
+        startDate,
+        endDate,
+        displayMode: "absolute",
+        filters: {
+          channel: ChannelType.Email,
+        },
+      });
+
+      expect(result).toHaveProperty("summary");
+
+      // This message only had MessageSent + EmailOpened (no explicit EmailDelivered)
+      // But with cascading logic:
+      // - deliveries should count this message because it had an open (opens cascade to deliveries)
+      // - opens should count this message
+      // - clicks should be 0
+
+      // Note: This adds to the previous test data, so we expect:
+      // Original: 2 sent, 1 delivery, 1 open, 1 click, 1 bounce
+      // New: +1 sent, +1 delivery (from open cascade), +1 open
+      expect(result.summary.sent).toBe(3); // 2 + 1 new message
+      expect(result.summary.deliveries).toBe(2); // 1 + 1 new delivery (from open cascade)
+      expect(result.summary.opens).toBe(2); // 1 + 1 new open
+      expect(result.summary.clicks).toBe(1); // Same as before
+      expect(result.summary.bounces).toBe(1); // Same as before
     });
 
     it("returns default behavior (sent messages only) when no channel is specified", async () => {
