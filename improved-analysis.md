@@ -186,3 +186,29 @@ For example, the existing date range selector, and channel filters' values shoul
 - move the logic from the backend to the frontend
     - remove the parameter from GetChartDataRequest in packages/isomorphic-lib/src/types.ts and from its reference in packages/backend-lib/src/analysis.ts
 - modify the numbers in packages/dashboard/src/components/analysisChart.tsx and packages/dashboard/src/components/analysisChart/analysisSummaryPanel.tsx to use the new logic when the percentage toggle is selected
+
+### Stage 7 Integrate New Analysis Into Journey Editor
+
+Currently, our journey editor displays the % of messages that have been sent, opened, clicked, etc. below a journey node. However the numbers are not calculated correctly. We'll be addressing this in this stage, as well as adding some additional functionality.
+
+- create a new method in packages/backend-lib/src/analysis.ts called getJourneyEditorStats
+- it should take
+    - a workspace id
+    - a journey id
+    - a start date
+    - an end date
+- it should return an array of objects:
+    - each object should be a Record<NodeId, Record<MessageState, number>>
+    - where NodeId and MessageState are strings and the number represents the count of messages in that state
+- you should use `JSON_VALUE(properties, '$.nodeId')` to get the node id of an event
+- it should implement the cascading logic for recognizing clicks as opens and opens as deliveries etc.
+- we should add tests in packages/backend-lib/src/analysis.test.ts for getJourneyEditorStats
+- we'll add a new endpoint to the api in packages/api/src/controllers/analysisController.ts /journey-stats
+- we'll add a new query hook in packages/dashboard/src/lib/useJourneyStatsQueryV2.ts
+- we'll restyle the contents of packages/dashboard/src/components/journeys/nodeTypes/journeyNode.tsx which show the stats
+    - use smaller versions of the cards used to display the numbers in the style of packages/dashboard/src/components/analysisChart/analysisSummaryPanel.tsx
+    - below the cards, vertically stack two controls
+        - a date range selector
+        - a display switch to toggle between absolute and percentage values
+    - note that this is contrast to the above pages / components where the controls are at the top of the page. the reason for this is there isn't enough space to display the controls at the top of the page.
+
