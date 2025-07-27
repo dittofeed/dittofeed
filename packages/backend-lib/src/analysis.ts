@@ -304,7 +304,7 @@ export async function getChartData({
       event_type as groupKey,
       sum(count) as count
     FROM (
-      SELECT timestamp, '${InternalEventType.MessageSent}' as event_type, sum(toUInt64(has_sent)) as count 
+      SELECT timestamp, 'sent' as event_type, sum(toUInt64(has_sent)) as count 
       FROM message_states_per_message 
       WHERE has_sent = 1
       GROUP BY timestamp
@@ -318,14 +318,14 @@ export async function getChartData({
       
       UNION ALL
       
-      SELECT timestamp, '${InternalEventType.EmailOpened}' as event_type, sum(toUInt64(has_opened)) as count
+      SELECT timestamp, 'opened' as event_type, sum(toUInt64(has_opened)) as count
       FROM message_states_per_message 
       WHERE has_opened = 1  
       GROUP BY timestamp
       
       UNION ALL
       
-      SELECT timestamp, '${InternalEventType.EmailClicked}' as event_type, sum(toUInt64(has_clicked)) as count
+      SELECT timestamp, 'clicked' as event_type, sum(toUInt64(has_clicked)) as count
       FROM message_states_per_message 
       WHERE has_clicked = 1
       GROUP BY timestamp
