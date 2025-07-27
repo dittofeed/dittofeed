@@ -175,6 +175,55 @@ interface State {
   sortDirection: SortDirection;
 }
 
+// Custom Legend component with hover interaction
+function CustomLegend({
+  payload,
+  hoveredGroup,
+  setHoveredGroup,
+}: {
+  payload?: {
+    value: string;
+    color: string;
+    type?: string;
+    id?: string;
+  }[];
+  hoveredGroup: string | null;
+  setHoveredGroup: (group: string | null) => void;
+}) {
+  if (!payload) return null;
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      {payload.map((entry) => (
+        <Box
+          key={entry.value}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            cursor: "pointer",
+            opacity: hoveredGroup && hoveredGroup !== entry.value ? 0.3 : 1,
+            transition: "opacity 0.2s ease",
+          }}
+          onMouseEnter={() => setHoveredGroup(entry.value)}
+          onMouseLeave={() => setHoveredGroup(null)}
+        >
+          <Box
+            sx={{
+              width: "12px",
+              height: "2px",
+              backgroundColor: entry.color,
+              marginRight: 1,
+            }}
+          />
+          <Box component="span" sx={{ fontSize: "14px", color: "#333" }}>
+            {entry.value}
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
 export function AnalysisChart() {
   const initialEndDate = useMemo(() => Date.now(), []);
   const initialStartDate = useMemo(
@@ -389,46 +438,6 @@ export function AnalysisChart() {
     "#0088fe",
   ];
 
-  // Custom Legend component with hover interaction
-  const CustomLegend = ({ payload }: { payload?: Array<{
-    value: string;
-    color: string;
-    type?: string;
-    id?: string;
-  }> }) => {
-    if (!payload) return null;
-
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        {payload.map((entry, index) => (
-          <div
-            key={entry.value}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-              opacity: hoveredGroup && hoveredGroup !== entry.value ? 0.3 : 1,
-              transition: "opacity 0.2s ease",
-            }}
-            onMouseEnter={() => setHoveredGroup(entry.value)}
-            onMouseLeave={() => setHoveredGroup(null)}
-          >
-            <div
-              style={{
-                width: "12px",
-                height: "2px",
-                backgroundColor: entry.color,
-                marginRight: "8px",
-              }}
-            />
-            <span style={{ fontSize: "14px", color: "#333" }}>
-              {entry.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  };
 
   return (
     <Stack spacing={1}>
@@ -608,7 +617,13 @@ export function AnalysisChart() {
                   align="right"
                   verticalAlign="middle"
                   layout="vertical"
-                  content={<CustomLegend />}
+                  content={(props) => (
+                    <CustomLegend
+                      payload={props.payload}
+                      hoveredGroup={hoveredGroup}
+                      setHoveredGroup={setHoveredGroup}
+                    />
+                  )}
                 />
                 {legendData.map((group, index) => (
                   <Line
@@ -617,13 +632,13 @@ export function AnalysisChart() {
                     dataKey={group}
                     stroke={colors[index % colors.length]}
                     strokeWidth={hoveredGroup && hoveredGroup !== group ? 1 : 2}
-                    strokeOpacity={hoveredGroup && hoveredGroup !== group ? 0.3 : 1}
-                    dot={{ 
+                    strokeOpacity={
+                      hoveredGroup && hoveredGroup !== group ? 0.3 : 1
+                    }
+                    dot={{
                       r: hoveredGroup && hoveredGroup !== group ? 2 : 3,
-                      opacity: hoveredGroup && hoveredGroup !== group ? 0.3 : 1
+                      opacity: hoveredGroup && hoveredGroup !== group ? 0.3 : 1,
                     }}
-                    onMouseEnter={() => setHoveredGroup(group)}
-                    onMouseLeave={() => setHoveredGroup(null)}
                   />
                 ))}
               </LineChart>
