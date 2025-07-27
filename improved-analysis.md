@@ -98,6 +98,7 @@ I'm in the process of building a new analysis page for the dashboard. I'd like a
 
 - never use the `any` type, type assertions, or non-null assertions. if you find yourself using these, please ask for clarification.
 - in general, if you find yourself re-writing code 2-3 times and struggling, please ask for assistance.
+- you should not leave any comments *inside* sql queries (as to not clutter our system logs). Instead leave them in the code above the query.
 
 ## Additional Relevant References
 
@@ -178,3 +179,10 @@ For example, the existing date range selector, and channel filters' values shoul
 - Refactor the deliveries table body into this new component
 - Use this component in packages/dashboard/src/components/deliveriesTableV2.tsx
 - Use this component in packages/dashboard/src/components/analysisChart.tsx
+
+### Stage 6 Implement Percentages vs Absolute Values
+
+- implement the absolute vs percentage toggle in packages/dashboard/src/components/analysisChart.tsx
+- move the logic from the backend to the frontend
+    - remove the parameter from GetChartDataRequest in packages/isomorphic-lib/src/types.ts and from its reference in packages/backend-lib/src/analysis.ts
+- modify the numbers in packages/dashboard/src/components/analysisChart.tsx and packages/dashboard/src/components/analysisChart/analysisSummaryPanel.tsx to use the new logic when the percentage toggle is selected

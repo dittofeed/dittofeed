@@ -523,7 +523,6 @@ export async function getSummarizedData({
       0 as bounces`;
   } else if (channel === ChannelType.Email) {
     summaryFields = `
-      -- Cascading logic: clicks count as opens+deliveries, opens count as deliveries
       sum(toUInt64(has_delivered OR has_opened OR has_clicked)) as deliveries,
       sum(toUInt64(has_sent)) as sent,
       sum(toUInt64(has_opened OR has_clicked)) as opens,
@@ -531,7 +530,6 @@ export async function getSummarizedData({
       sum(toUInt64(has_bounced)) as bounces`;
   } else if (channel === ChannelType.Sms) {
     summaryFields = `
-      -- SMS: clicks/opens not applicable, but apply cascading for deliveries
       sum(toUInt64(has_delivered)) as deliveries,
       sum(toUInt64(has_sent)) as sent,
       0 as opens,
@@ -564,7 +562,6 @@ export async function getSummarizedData({
     message_final_states AS (
       SELECT
         origin_message_id,
-        -- Track individual states for each message (with cascading logic)
         countIf(event = '${InternalEventType.MessageSent}') > 0 as has_sent,
         countIf(event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}')) > 0 as has_delivered,
         countIf(event = '${InternalEventType.EmailOpened}') > 0 as has_opened,
