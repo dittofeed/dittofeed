@@ -588,7 +588,11 @@ export function AnalysisChart({}: AnalysisChartProps) {
                 <RechartsTooltip
                   labelFormatter={(value) => new Date(value).toLocaleString()}
                 />
-                <Legend align="right" verticalAlign="middle" layout="vertical" />
+                <Legend
+                  align="right"
+                  verticalAlign="middle"
+                  layout="vertical"
+                />
                 {legendData.map((group, index) => (
                   <Line
                     key={group}
@@ -606,13 +610,11 @@ export function AnalysisChart({}: AnalysisChartProps) {
       </Box>
 
       {/* Summary Panel - Separate Container */}
-      <Paper>
-        <AnalysisSummaryPanel
-          dateRange={state.dateRange}
-          filtersState={filtersState}
-          onChannelSelect={handleChannelSelect}
-        />
-      </Paper>
+      <AnalysisSummaryPanel
+        dateRange={state.dateRange}
+        filtersState={filtersState}
+        onChannelSelect={handleChannelSelect}
+      />
 
       {/* Deliveries Table */}
       <DeliveriesBody
