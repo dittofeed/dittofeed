@@ -407,7 +407,7 @@ export function NewUserEventsFilterButton({
                 case "journeyId": {
                   const journeyOptions = journeys?.journeys || [];
                   const children: SelectItemCommand[] = journeyOptions.map(
-                    (journey: any) => ({
+                    (journey: { id: string; name: string }) => ({
                       label: journey.name,
                       type: UserEventsFilterCommandType.SelectItem,
                       id: journey.id,

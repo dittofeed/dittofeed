@@ -34,7 +34,10 @@ function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
 interface DeliveriesSortButtonProps {
   sortBy: SearchDeliveriesRequestSortBy;
   sortDirection: SortDirection;
-  onSortChange: (sortBy: SearchDeliveriesRequestSortBy, sortDirection: SortDirection) => void;
+  onSortChange: (
+    sortBy: SearchDeliveriesRequestSortBy,
+    sortDirection: SortDirection,
+  ) => void;
 }
 
 export function DeliveriesSortButton({
@@ -52,15 +55,23 @@ export function DeliveriesSortButton({
     setAnchorEl(null);
   }, []);
 
-  const handleSortByChange = useCallback((newSortBy: SearchDeliveriesRequestSortBy) => {
-    onSortChange(newSortBy, sortDirection);
-  }, [onSortChange, sortDirection]);
+  const handleSortByChange = useCallback(
+    (newSortBy: SearchDeliveriesRequestSortBy) => {
+      onSortChange(newSortBy, sortDirection);
+    },
+    [onSortChange, sortDirection],
+  );
 
-  const handleSortDirectionChange = useCallback((newSortDirection: SortDirection) => {
-    onSortChange(sortBy, newSortDirection);
-  }, [onSortChange, sortBy]);
+  const handleSortDirectionChange = useCallback(
+    (newSortDirection: SortDirection) => {
+      onSortChange(sortBy, newSortDirection);
+    },
+    [onSortChange, sortBy],
+  );
 
-  const isDefaultSort = sortBy === SearchDeliveriesRequestSortByEnum.sentAt && sortDirection === SortDirectionEnum.Desc;
+  const isDefaultSort =
+    sortBy === SearchDeliveriesRequestSortByEnum.sentAt &&
+    sortDirection === SortDirectionEnum.Desc;
 
   return (
     <>
@@ -78,11 +89,7 @@ export function DeliveriesSortButton({
             height: "36px",
           }}
         >
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={1}
-          >
+          <Stack direction="row" alignItems="center" spacing={1}>
             {getSortByLabel(sortBy)}
             {sortDirection === SortDirectionEnum.Asc ? (
               <ArrowUpwardIcon fontSize="small" />
@@ -93,7 +100,10 @@ export function DeliveriesSortButton({
           <IconButton
             size="small"
             onClick={() => {
-              onSortChange(SearchDeliveriesRequestSortByEnum.sentAt, SortDirectionEnum.Desc);
+              onSortChange(
+                SearchDeliveriesRequestSortByEnum.sentAt,
+                SortDirectionEnum.Desc,
+              );
             }}
           >
             <ClearIcon />
@@ -145,7 +155,9 @@ export function DeliveriesSortButton({
             value={sortBy}
             sx={greySelectStyles}
             onChange={(e) => {
-              handleSortByChange(e.target.value as SearchDeliveriesRequestSortBy);
+              handleSortByChange(
+                e.target.value as SearchDeliveriesRequestSortBy,
+              );
             }}
             MenuProps={{
               sx: greyMenuItemStyles,

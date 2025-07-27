@@ -1,5 +1,5 @@
 import { DownloadForOffline } from "@mui/icons-material";
-import { Tooltip } from "@mui/material";
+import { Snackbar, Tooltip } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 import { omit } from "remeda";
 
@@ -7,7 +7,7 @@ import { useDownloadDeliveriesMutation } from "../../lib/useDownloadDeliveriesMu
 import { GreyButton } from "../greyButtonStyle";
 
 interface DeliveriesDownloadButtonProps {
-  resolvedQueryParams: Record<string, any> | null;
+  resolvedQueryParams: Record<string, unknown> | null;
 }
 
 export function DeliveriesDownloadButton({
@@ -39,14 +39,22 @@ export function DeliveriesDownloadButton({
   }, [downloadParams, downloadMutation]);
 
   return (
-    <Tooltip title="Download deliveries as CSV" placement="bottom-start">
-      <GreyButton
-        onClick={handleDownload}
-        startIcon={<DownloadForOffline />}
-        disabled={!downloadParams}
-      >
-        Download Deliveries
-      </GreyButton>
-    </Tooltip>
+    <>
+      <Tooltip title="Download deliveries as CSV" placement="bottom-start">
+        <GreyButton
+          onClick={handleDownload}
+          startIcon={<DownloadForOffline />}
+          disabled={!downloadParams}
+        >
+          Download Deliveries
+        </GreyButton>
+      </Tooltip>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+      />
+    </>
   );
 }

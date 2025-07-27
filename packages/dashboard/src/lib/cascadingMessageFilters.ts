@@ -8,7 +8,9 @@ import { InternalEventType } from "isomorphic-lib/src/types";
  * - Delivery events remain as-is
  * - Bounced/Failed events remain as-is
  */
-export function expandCascadingMessageFilters(selectedStatuses: string[]): string[] {
+export function expandCascadingMessageFilters(
+  selectedStatuses: string[],
+): string[] {
   if (!selectedStatuses || selectedStatuses.length === 0) {
     return [];
   }
@@ -23,19 +25,19 @@ export function expandCascadingMessageFilters(selectedStatuses: string[]): strin
         expandedStatuses.add(InternalEventType.EmailOpened);
         expandedStatuses.add(InternalEventType.EmailDelivered);
         break;
-      
+
       case InternalEventType.EmailOpened:
         // Opened emails should also qualify as delivered
         expandedStatuses.add(InternalEventType.EmailOpened);
         expandedStatuses.add(InternalEventType.EmailDelivered);
         break;
-      
+
       case InternalEventType.EmailDelivered:
       case InternalEventType.SmsDelivered:
         // Delivery events remain as-is
         expandedStatuses.add(status);
         break;
-      
+
       case InternalEventType.MessageSent:
       case InternalEventType.EmailBounced:
       case InternalEventType.EmailMarkedSpam:
@@ -44,7 +46,7 @@ export function expandCascadingMessageFilters(selectedStatuses: string[]): strin
         // These events don't cascade - they remain as selected
         expandedStatuses.add(status);
         break;
-      
+
       default:
         // Unknown status types remain as-is
         expandedStatuses.add(status);

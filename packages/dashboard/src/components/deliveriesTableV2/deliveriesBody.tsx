@@ -6,7 +6,6 @@ import {
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
   OpenInNew,
-  Refresh as RefreshIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";

@@ -21,7 +21,7 @@ import {
   SortDirection,
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import {
   Legend,
   Line,
@@ -31,7 +31,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Updater, useImmer } from "use-immer";
+import { useImmer } from "use-immer";
 
 import { expandCascadingMessageFilters } from "../lib/cascadingMessageFilters";
 import { toCalendarDate } from "../lib/dates";
@@ -48,28 +48,11 @@ import {
   GroupByOption,
 } from "./analysisChart/analysisChartGroupBy";
 import { AnalysisSummaryPanel } from "./analysisChart/analysisSummaryPanel";
-import {
-  createDownloadParams,
-  DeliveriesBody,
-} from "./deliveriesTableV2/deliveriesBody";
+import { DeliveriesBody } from "./deliveriesTableV2/deliveriesBody";
 import { DeliveriesDownloadButton } from "./deliveriesTableV2/deliveriesDownloadButton";
 import { DeliveriesSortButton } from "./deliveriesTableV2/deliveriesSortButton";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
-import { RangeCalendar } from "./rangeCalendar";
 import { SharedFilterContainer } from "./shared/filterStyles";
-
-const TimeOptionId = {
-  Last15Minutes: "last-15-minutes",
-  Last30Minutes: "last-30-minutes",
-  LastHour: "last-hour",
-  Last24Hours: "last-24-hours",
-  LastSevenDays: "last-7-days",
-  LastThirtyDays: "last-30-days",
-  LastNinetyDays: "last-90-days",
-  Custom: "custom",
-} as const;
-
-type TimeOptionId = (typeof TimeOptionId)[keyof typeof TimeOptionId];
 
 interface MinuteTimeOption {
   type: "minutes";
@@ -139,12 +122,6 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-function formatCalendarDate(date: CalendarDate) {
-  return formatDate(
-    date.toDate(Intl.DateTimeFormat().resolvedOptions().timeZone),
-  );
-}
-
 function formatTimestampForGranularity(timestamp: string, granularity: string) {
   const date = new Date(timestamp);
 
@@ -198,11 +175,7 @@ interface State {
   sortDirection: SortDirection;
 }
 
-type SetState = Updater<State>;
-
-interface AnalysisChartProps {}
-
-export function AnalysisChart({}: AnalysisChartProps) {
+export function AnalysisChart() {
   const initialEndDate = useMemo(() => Date.now(), []);
   const initialStartDate = useMemo(
     () => subMinutes(initialEndDate, defaultTimeOption.minutes).getTime(),
@@ -372,8 +345,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
 
     chartQuery.data.data.forEach((point: ChartDataPoint) => {
       const timestamp = new Date(point.timestamp).toISOString();
-      const groupKey = point.groupKey || "default";
-      const groupLabel = point.groupLabel || "Total";
+      const groupLabel = point.groupLabel ?? "Total";
 
       groups.add(groupLabel);
 
@@ -381,8 +353,10 @@ export function AnalysisChart({}: AnalysisChartProps) {
         grouped.set(timestamp, { timestamp });
       }
 
-      const entry = grouped.get(timestamp)!;
-      entry[groupLabel] = point.count;
+      const entry = grouped.get(timestamp);
+      if (entry) {
+        entry[groupLabel] = point.count;
+      }
     });
 
     return Array.from(grouped.values()).sort(
@@ -397,7 +371,7 @@ export function AnalysisChart({}: AnalysisChartProps) {
 
     const groups = new Set<string>();
     chartQuery.data.data.forEach((point: ChartDataPoint) => {
-      const groupLabel = point.groupLabel || "Total";
+      const groupLabel = point.groupLabel ?? "Total";
       groups.add(groupLabel);
     });
 

@@ -4,9 +4,7 @@ import {
   Box,
   Button,
   Paper,
-  SxProps,
   TextField,
-  Theme,
   Typography,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
@@ -73,7 +71,7 @@ export function AnalysisChartGroupBy({
   }, []);
 
   const handleCommandSelect = useCallback(
-    (_event: any, selectedValue: GroupByCommand | null) => {
+    (_event: unknown, selectedValue: GroupByCommand | null) => {
       if (selectedValue) {
         onChange(selectedValue.value);
         setOpen(false);
