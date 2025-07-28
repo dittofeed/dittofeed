@@ -15,6 +15,12 @@ const RawConfig = Type.Object(
     maxConcurrentWorkflowTaskExecutions: Type.Optional(
       Type.String({ format: "naturalNumber" }),
     ),
+    maxConcurrentActivityTaskExecutions: Type.Optional(
+      Type.String({ format: "naturalNumber" }),
+    ),
+    maxConcurrentLocalActivityExecutions: Type.Optional(
+      Type.String({ format: "naturalNumber" }),
+    ),
     maxConcurrentActivityTaskPolls: Type.Optional(
       Type.String({ format: "naturalNumber" }),
     ),
@@ -38,6 +44,8 @@ type Config = Overwrite<
     maxConcurrentWorkflowTaskExecutions?: number;
     maxConcurrentActivityTaskPolls?: number;
     maxConcurrentWorkflowTaskPolls?: number;
+    maxConcurrentActivityTaskExecutions?: number;
+    maxConcurrentLocalActivityExecutions?: number;
   }
 >;
 
@@ -67,6 +75,13 @@ function parseRawConfig(raw: RawConfig): Config {
     maxConcurrentWorkflowTaskPolls: raw.maxConcurrentWorkflowTaskPolls
       ? parseInt(raw.maxConcurrentWorkflowTaskPolls)
       : undefined,
+    maxConcurrentActivityTaskExecutions: raw.maxConcurrentActivityTaskExecutions
+      ? parseInt(raw.maxConcurrentActivityTaskExecutions)
+      : undefined,
+    maxConcurrentLocalActivityExecutions:
+      raw.maxConcurrentLocalActivityExecutions
+        ? parseInt(raw.maxConcurrentLocalActivityExecutions)
+        : undefined,
   };
 }
 
