@@ -114,6 +114,19 @@ export function getUserJourneyWorkflowId({
 export enum UserJourneyWorkflowVersion {
   V1 = 1,
   V2 = 2,
+  V3 = 3,
+}
+
+export interface UserJourneyWorkflowPropsV3 {
+  version: UserJourneyWorkflowVersion.V3;
+  workspaceId: string;
+  userId: string;
+  definition: JourneyDefinition;
+  journeyId: string;
+  eventKey?: string;
+  messageId: string;
+  hidden?: boolean;
+  shouldContinueAsNew?: boolean;
 }
 
 export interface UserJourneyWorkflowPropsV2 {
@@ -139,7 +152,8 @@ export interface UserJourneyWorkflowPropsV1 {
 
 export type UserJourneyWorkflowProps =
   | UserJourneyWorkflowPropsV1
-  | UserJourneyWorkflowPropsV2;
+  | UserJourneyWorkflowPropsV2
+  | UserJourneyWorkflowPropsV3;
 
 const LONG_RUNNING_NODE_TYPES = new Set<JourneyNodeType>([
   JourneyNodeType.WaitForNode,
