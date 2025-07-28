@@ -4,6 +4,7 @@ import { find as findTz } from "geo-tz";
 
 import logger from "./logger";
 import { LocalTimeDelayVariantFields, UserWorkflowTrackEvent } from "./types";
+import { getEventsById } from "./userEvents";
 import {
   findAllUserPropertyAssignments,
   findAllUserPropertyAssignmentsById,
@@ -83,6 +84,30 @@ export async function findNextLocalizedTime({
   });
 }
 
+export interface BaseGetUserPropertyDelayParams {
+  workspaceId: string;
+  userId: string;
+  userProperty: string;
+  now: number;
+  offsetSeconds?: number;
+  offsetDirection?: "before" | "after";
+}
+
+export interface GetUserPropertyDelayParamsV1
+  extends BaseGetUserPropertyDelayParams {
+  events?: UserWorkflowTrackEvent[];
+}
+
+export interface GetUserPropertyDelayParamsV2
+  extends BaseGetUserPropertyDelayParams {
+  eventIds: string[];
+  version: "v2";
+}
+
+export type GetUserPropertyDelayParams =
+  | GetUserPropertyDelayParamsV1
+  | GetUserPropertyDelayParamsV2;
+
 /**
  * Returns the delay in milliseconds to wait for a user property delay.
  * Returns null if the user property is not a date.
@@ -101,16 +126,34 @@ export async function getUserPropertyDelay({
   now,
   offsetSeconds = 0,
   offsetDirection = "after",
-  events,
-}: {
-  workspaceId: string;
-  userId: string;
-  userProperty: string;
-  now: number;
-  events?: UserWorkflowTrackEvent[];
-  offsetSeconds?: number;
-  offsetDirection?: "before" | "after";
-}): Promise<number | null> {
+  ...rest
+}: GetUserPropertyDelayParams): Promise<number | null> {
+  logger().debug(
+    {
+      workspaceId,
+      userId,
+      userProperty,
+      version: "version" in rest ? rest.version : "v1",
+    },
+    "getUserPropertyDelay called",
+  );
+  let events: UserWorkflowTrackEvent[] | undefined;
+  if ("version" in rest) {
+    events = await getEventsById({
+      workspaceId,
+      eventIds: rest.eventIds,
+    });
+    logger().debug(
+      { events, eventIds: rest.eventIds },
+      "getUserPropertyDelay fetched events for v2",
+    );
+  } else {
+    events = rest.events;
+    logger().debug(
+      { events },
+      "getUserPropertyDelay using provided events for v1",
+    );
+  }
   const assignments = await findAllUserPropertyAssignmentsById({
     workspaceId,
     userId,
@@ -119,6 +162,16 @@ export async function getUserPropertyDelay({
   });
 
   const assignment = assignments[userProperty];
+  logger().debug(
+    {
+      workspaceId,
+      userId,
+      userProperty,
+      assignment,
+      allAssignments: assignments,
+    },
+    "getUserPropertyDelay assignment check",
+  );
   if (!assignment) {
     logger().debug(
       {

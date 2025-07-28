@@ -1,15 +1,14 @@
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
-import {
-  JourneyNodeType,
-  MakeRequired,
-  UserWorkflowTrackEvent,
-} from "isomorphic-lib/src/types";
+import { JourneyNodeType, MakeRequired } from "isomorphic-lib/src/types";
 
+import { jsonValue } from "../../jsonPath";
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
 import {
   getKeyedUserJourneyWorkflowId,
   trackSignal,
+  TrackSignalParams,
+  TrackSignalParamsVersion,
   userJourneyWorkflow,
   UserJourneyWorkflowPropsV2,
   UserJourneyWorkflowVersion,
@@ -53,22 +52,44 @@ export async function startKeyedUserJourney({
   }
 
   try {
+    const eventKeyName = definition.entryNode.key;
+    const eventKey: string | undefined = eventKeyName
+      ? jsonValue({
+          data: event.properties,
+          path: eventKeyName,
+        })
+          .map((v) => {
+            if (typeof v === "string" || typeof v === "number") {
+              return v.toString();
+            }
+            return undefined;
+          })
+          .unwrapOr(undefined)
+      : undefined;
+
     await workflowClient.signalWithStart<
       typeof userJourneyWorkflow,
-      [UserWorkflowTrackEvent]
+      [TrackSignalParams]
     >(userJourneyWorkflow, {
       taskQueue: "default",
       workflowId,
       signal: trackSignal,
-      signalArgs: [event],
+      signalArgs: [
+        {
+          version: TrackSignalParamsVersion.V2,
+          messageId: event.messageId,
+        },
+      ],
       args: [
         {
           journeyId,
           definition,
           workspaceId,
           userId,
-          event,
-          version: UserJourneyWorkflowVersion.V2,
+          eventKey,
+          hidden: event.context?.hidden === true,
+          messageId: event.messageId,
+          version: UserJourneyWorkflowVersion.V3,
         },
       ],
     });

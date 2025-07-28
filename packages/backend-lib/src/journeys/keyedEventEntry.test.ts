@@ -5,17 +5,21 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
+import { submitBatch } from "../apps/batch";
 import { insert } from "../db";
 import {
   journey as dbJourney,
   segment as dbSegment,
   userProperty as dbUserProperty,
 } from "../db/schema";
+import logger from "../logger";
 import {
+  BatchItem,
   ChannelType,
   CursorDirectionEnum,
   DelayVariantType,
   EmailProviderType,
+  EventType,
   GroupUserPropertyDefinition,
   InternalEventType,
   Journey,
@@ -31,6 +35,7 @@ import {
   UserPropertyDefinitionType,
   UserPropertyDelayVariant,
   UserPropertyOperatorType,
+  UserWorkflowTrackEvent,
   Workspace,
 } from "../types";
 import {
@@ -40,6 +45,7 @@ import {
 import { createWorkspace } from "../workspaces";
 import {
   trackSignal,
+  TrackSignalParamsVersion,
   userJourneyWorkflow,
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
@@ -94,7 +100,8 @@ describe("keyedEventEntry journeys", () => {
     await testEnv.teardown();
   });
 
-  describe("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
+  // FIXME existing test now fails
+  describe.only("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
     let journey: Journey;
     let journeyDefinition: JourneyDefinition;
     let dateUserPropertyId: string;
@@ -538,4 +545,704 @@ describe("keyedEventEntry journeys", () => {
       });
     });
   });
+
+  describe("when two journeys are triggered concurrently for the same user with different appointmentIds but only one is cancelled with new style args", () => {
+    let journey: Journey;
+    let journeyDefinition: JourneyDefinition;
+    let dateUserPropertyId: string;
+    const oneDaySeconds = 60 * 60 * 24;
+    let userId: string;
+    let appointmentId1: string;
+    let appointmentId2: string;
+    let event1: UserWorkflowTrackEvent;
+    let event2: UserWorkflowTrackEvent;
+
+    beforeEach(async () => {
+      userId = randomUUID();
+      appointmentId1 = randomUUID();
+      appointmentId2 = randomUUID();
+
+      const appointmentCancelledSegmentId = randomUUID();
+      const templateId = randomUUID();
+      dateUserPropertyId = randomUUID();
+
+      journeyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.EventEntryNode,
+          event: "APPOINTMENT_UPDATE",
+          key: "appointmentId",
+          child: "delay-for-appointment-date",
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            type: JourneyNodeType.DelayNode,
+            id: "delay-for-appointment-date",
+            variant: {
+              type: DelayVariantType.UserProperty,
+              userProperty: dateUserPropertyId,
+              offsetDirection: CursorDirectionEnum.Before,
+              offsetSeconds: oneDaySeconds,
+            } satisfies UserPropertyDelayVariant,
+            child: "send-reminder",
+          },
+          {
+            type: JourneyNodeType.SegmentSplitNode,
+            id: "check-cancellation",
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: appointmentCancelledSegmentId,
+              trueChild: JourneyNodeType.ExitNode,
+              falseChild: "send-reminder",
+            },
+          } satisfies SegmentSplitNode,
+          {
+            type: JourneyNodeType.MessageNode,
+            id: "send-reminder",
+            variant: {
+              type: ChannelType.Email,
+              templateId,
+            },
+            child: "wait-for-cancellation",
+          },
+          {
+            type: JourneyNodeType.WaitForNode,
+            id: "wait-for-cancellation",
+            timeoutSeconds: oneDaySeconds,
+            timeoutChild: JourneyNodeType.ExitNode,
+            segmentChildren: [
+              {
+                id: "send-message",
+                segmentId: appointmentCancelledSegmentId,
+              },
+            ],
+          },
+          {
+            type: JourneyNodeType.MessageNode,
+            id: "send-message",
+            variant: {
+              type: ChannelType.Email,
+              templateId,
+            },
+            child: JourneyNodeType.ExitNode,
+          },
+        ],
+      };
+      const segmentDefinition: SegmentDefinition = {
+        entryNode: {
+          type: SegmentNodeType.KeyedPerformed,
+          id: "segment-entry",
+          event: "APPOINTMENT_UPDATE",
+          key: "appointmentId",
+          properties: [
+            {
+              path: "operation",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "CANCELLED",
+              },
+            },
+          ],
+        } satisfies KeyedPerformedSegmentNode,
+        nodes: [],
+      };
+      const keyedUserPropertyDefinition: UserPropertyDefinition = {
+        type: UserPropertyDefinitionType.KeyedPerformed,
+        event: "APPOINTMENT_UPDATE",
+        key: "appointmentId",
+        path: "appointmentId",
+        id: randomUUID(),
+      };
+      [journey] = await Promise.all([
+        insert({
+          table: dbJourney,
+          values: {
+            id: randomUUID(),
+            name: "appointment-cancelled-journey",
+            definition: journeyDefinition,
+            workspaceId: workspace.id,
+            status: "Running",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        }).then(unwrap),
+        insert({
+          table: dbSegment,
+          values: {
+            id: appointmentCancelledSegmentId,
+            name: "appointment-cancelled",
+            definition: segmentDefinition,
+            workspaceId: workspace.id,
+            updatedAt: new Date(),
+          },
+        }).then(unwrap),
+        insert({
+          table: dbUserProperty,
+          values: {
+            id: randomUUID(),
+            name: "appointmentId",
+            definition: keyedUserPropertyDefinition,
+            workspaceId: workspace.id,
+            updatedAt: new Date(),
+          },
+        }).then(unwrap),
+      ]);
+
+      const dateUserPropertyDefinition: UserPropertyDefinition = {
+        type: UserPropertyDefinitionType.KeyedPerformed,
+        event: "APPOINTMENT_UPDATE",
+        id: randomUUID(),
+        key: "appointmentId",
+        path: "appointmentDate",
+        properties: [
+          {
+            path: "operation",
+            operator: {
+              type: UserPropertyOperatorType.Equals,
+              value: "STARTED",
+            },
+          },
+        ],
+      };
+      await insert({
+        table: dbUserProperty,
+        values: {
+          id: dateUserPropertyId,
+          workspaceId: workspace.id,
+          definition: dateUserPropertyDefinition,
+          name: "appointmentDate",
+          updatedAt: new Date(),
+        },
+      }).then(unwrap);
+
+      const now = await testEnv.currentTimeMs();
+      const timestamp1 = new Date(now).toISOString();
+      const timestamp2 = new Date(now + 1000).toISOString();
+
+      const appointmentDate = new Date(
+        now + 1000 * oneDaySeconds * 2,
+      ).toISOString();
+
+      const eventFull1: BatchItem = {
+        type: EventType.Track,
+        event: "APPOINTMENT_UPDATE",
+        userId,
+        messageId: randomUUID(),
+        properties: {
+          operation: "STARTED",
+          appointmentId: appointmentId1,
+          appointmentDate,
+        },
+        timestamp: timestamp1,
+      } as const;
+      event1 = eventFull1;
+
+      const eventFull2: BatchItem = {
+        type: EventType.Track,
+        event: "APPOINTMENT_UPDATE",
+        userId,
+        messageId: randomUUID(),
+        properties: {
+          operation: "STARTED",
+          appointmentId: appointmentId2,
+          appointmentDate,
+        },
+        timestamp: timestamp2,
+      } as const;
+      event2 = eventFull2;
+
+      logger().debug(
+        {
+          event1MessageId: event1.messageId,
+          event2MessageId: event2.messageId,
+        },
+        "Submitting events",
+      );
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [eventFull1, eventFull2],
+        },
+      });
+    });
+
+    it("only the cancelled journey should send a message", async () => {
+      await worker.runUntil(async () => {
+        logger().debug("Events submitted successfully");
+
+        const handle1 = await testEnv.client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: "workflow1",
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V3,
+                eventKey: appointmentId1,
+                messageId: event1.messageId,
+              },
+            ],
+          },
+        );
+        const handle2 = await testEnv.client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: "workflow2",
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V3,
+                eventKey: appointmentId2,
+                messageId: event2.messageId,
+              },
+            ],
+          },
+        );
+
+        await testEnv.sleep(5000);
+
+        expect(
+          senderMock,
+          "should not have sent any messages before waiting for day before appointment date",
+        ).toHaveBeenCalledTimes(0);
+
+        await testEnv.sleep(1000 * oneDaySeconds);
+
+        expect(senderMock).toHaveBeenCalledTimes(2);
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId1,
+          ),
+          "should have sent a reminder message for appointment 1",
+        ).toHaveLength(1);
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId2,
+          ),
+          "should have sent a reminder message for appointment 2",
+        ).toHaveLength(1);
+
+        const cancelledEvent = {
+          type: EventType.Track,
+          event: "APPOINTMENT_UPDATE",
+          userId,
+          messageId: randomUUID(),
+          properties: {
+            operation: "CANCELLED",
+            appointmentId: appointmentId1,
+          },
+          timestamp: new Date().toISOString(),
+        } as const;
+
+        await submitBatch({
+          workspaceId: workspace.id,
+          data: {
+            batch: [cancelledEvent],
+          },
+        });
+
+        await handle1.signal(trackSignal, {
+          version: TrackSignalParamsVersion.V2,
+          messageId: cancelledEvent.messageId,
+        });
+        await testEnv.sleep(5000);
+        await handle1.result();
+
+        await testEnv.sleep(oneDaySeconds * 1000);
+        await handle2.result();
+
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId1,
+          ),
+          "should have sent a reminder and cancellation message for appointment 1",
+        ).toHaveLength(2);
+
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId2,
+          ),
+          "should have sent a reminder message for appointment 2 but not a cancellation message",
+        ).toHaveLength(1);
+        expect(senderMock).toHaveBeenCalledTimes(3);
+      });
+    });
+  });
+
+  describe("when two journeys are triggered concurrently for the same user with different appointmentIds but only one is cancelled with mixed V2 workflow args and V2 signal args", () => {
+    let journey: Journey;
+    let journeyDefinition: JourneyDefinition;
+    let dateUserPropertyId: string;
+    const oneDaySeconds = 60 * 60 * 24;
+    let userId: string;
+    let appointmentId1: string;
+    let appointmentId2: string;
+    let event1: UserWorkflowTrackEvent;
+    let event2: UserWorkflowTrackEvent;
+
+    beforeEach(async () => {
+      userId = randomUUID();
+      appointmentId1 = randomUUID();
+      appointmentId2 = randomUUID();
+
+      const appointmentCancelledSegmentId = randomUUID();
+      const templateId = randomUUID();
+      dateUserPropertyId = randomUUID();
+
+      journeyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.EventEntryNode,
+          event: "APPOINTMENT_UPDATE",
+          key: "appointmentId",
+          child: "delay-for-appointment-date",
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            type: JourneyNodeType.DelayNode,
+            id: "delay-for-appointment-date",
+            variant: {
+              type: DelayVariantType.UserProperty,
+              userProperty: dateUserPropertyId,
+              offsetDirection: CursorDirectionEnum.Before,
+              offsetSeconds: oneDaySeconds,
+            } satisfies UserPropertyDelayVariant,
+            child: "send-reminder",
+          },
+          {
+            type: JourneyNodeType.SegmentSplitNode,
+            id: "check-cancellation",
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: appointmentCancelledSegmentId,
+              trueChild: JourneyNodeType.ExitNode,
+              falseChild: "send-reminder",
+            },
+          } satisfies SegmentSplitNode,
+          {
+            type: JourneyNodeType.MessageNode,
+            id: "send-reminder",
+            variant: {
+              type: ChannelType.Email,
+              templateId,
+            },
+            child: "wait-for-cancellation",
+          },
+          {
+            type: JourneyNodeType.WaitForNode,
+            id: "wait-for-cancellation",
+            timeoutSeconds: oneDaySeconds,
+            timeoutChild: JourneyNodeType.ExitNode,
+            segmentChildren: [
+              {
+                id: "send-message",
+                segmentId: appointmentCancelledSegmentId,
+              },
+            ],
+          },
+          {
+            type: JourneyNodeType.MessageNode,
+            id: "send-message",
+            variant: {
+              type: ChannelType.Email,
+              templateId,
+            },
+            child: JourneyNodeType.ExitNode,
+          },
+        ],
+      };
+      const segmentDefinition: SegmentDefinition = {
+        entryNode: {
+          type: SegmentNodeType.KeyedPerformed,
+          id: "segment-entry",
+          event: "APPOINTMENT_UPDATE",
+          key: "appointmentId",
+          properties: [
+            {
+              path: "operation",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "CANCELLED",
+              },
+            },
+          ],
+        } satisfies KeyedPerformedSegmentNode,
+        nodes: [],
+      };
+      const keyedUserPropertyDefinition: UserPropertyDefinition = {
+        type: UserPropertyDefinitionType.KeyedPerformed,
+        event: "APPOINTMENT_UPDATE",
+        key: "appointmentId",
+        path: "appointmentId",
+        id: randomUUID(),
+      };
+      [journey] = await Promise.all([
+        insert({
+          table: dbJourney,
+          values: {
+            id: randomUUID(),
+            name: "appointment-cancelled-journey",
+            definition: journeyDefinition,
+            workspaceId: workspace.id,
+            status: "Running",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        }).then(unwrap),
+        insert({
+          table: dbSegment,
+          values: {
+            id: appointmentCancelledSegmentId,
+            name: "appointment-cancelled",
+            definition: segmentDefinition,
+            workspaceId: workspace.id,
+            updatedAt: new Date(),
+          },
+        }).then(unwrap),
+        insert({
+          table: dbUserProperty,
+          values: {
+            id: randomUUID(),
+            name: "appointmentId",
+            definition: keyedUserPropertyDefinition,
+            workspaceId: workspace.id,
+            updatedAt: new Date(),
+          },
+        }).then(unwrap),
+      ]);
+
+      const dateUserPropertyDefinition: UserPropertyDefinition = {
+        type: UserPropertyDefinitionType.KeyedPerformed,
+        event: "APPOINTMENT_UPDATE",
+        id: randomUUID(),
+        key: "appointmentId",
+        path: "appointmentDate",
+        properties: [
+          {
+            path: "operation",
+            operator: {
+              type: UserPropertyOperatorType.Equals,
+              value: "STARTED",
+            },
+          },
+        ],
+      };
+      await insert({
+        table: dbUserProperty,
+        values: {
+          id: dateUserPropertyId,
+          workspaceId: workspace.id,
+          definition: dateUserPropertyDefinition,
+          name: "appointmentDate",
+          updatedAt: new Date(),
+        },
+      }).then(unwrap);
+
+      const now = await testEnv.currentTimeMs();
+      const timestamp1 = new Date(now).toISOString();
+      const timestamp2 = new Date(now + 1000).toISOString();
+
+      const appointmentDate = new Date(
+        now + 1000 * oneDaySeconds * 2,
+      ).toISOString();
+
+      const eventFull1: BatchItem = {
+        type: EventType.Track,
+        event: "APPOINTMENT_UPDATE",
+        userId,
+        messageId: randomUUID(),
+        properties: {
+          operation: "STARTED",
+          appointmentId: appointmentId1,
+          appointmentDate,
+        },
+        timestamp: timestamp1,
+      } as const;
+      event1 = eventFull1;
+
+      const eventFull2: BatchItem = {
+        type: EventType.Track,
+        event: "APPOINTMENT_UPDATE",
+        userId,
+        messageId: randomUUID(),
+        properties: {
+          operation: "STARTED",
+          appointmentId: appointmentId2,
+          appointmentDate,
+        },
+        timestamp: timestamp2,
+      } as const;
+      event2 = eventFull2;
+
+      logger().debug(
+        {
+          event1MessageId: event1.messageId,
+          event2MessageId: event2.messageId,
+        },
+        "Submitting events for mixed V2 workflow/V2 signal test",
+      );
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [eventFull1, eventFull2],
+        },
+      });
+    });
+
+    it("only the cancelled journey should send a message", async () => {
+      await worker.runUntil(async () => {
+        logger().debug("Events submitted successfully for mixed V2 test");
+
+        const handle1 = await testEnv.client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: "workflow1-mixed",
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+                event: {
+                  event: "APPOINTMENT_UPDATE",
+                  properties: {
+                    operation: "STARTED",
+                    appointmentId: appointmentId1,
+                    appointmentDate: event1.properties?.appointmentDate,
+                  },
+                  messageId: event1.messageId,
+                  timestamp: event1.timestamp,
+                },
+              },
+            ],
+          },
+        );
+        const handle2 = await testEnv.client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: "workflow2-mixed",
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+                event: {
+                  event: "APPOINTMENT_UPDATE",
+                  properties: {
+                    operation: "STARTED",
+                    appointmentId: appointmentId2,
+                    appointmentDate: event2.properties?.appointmentDate,
+                  },
+                  messageId: event2.messageId,
+                  timestamp: event2.timestamp,
+                },
+              },
+            ],
+          },
+        );
+
+        await testEnv.sleep(5000);
+
+        expect(
+          senderMock,
+          "should not have sent any messages before waiting for day before appointment date",
+        ).toHaveBeenCalledTimes(0);
+
+        await testEnv.sleep(1000 * oneDaySeconds);
+
+        expect(senderMock).toHaveBeenCalledTimes(2);
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId1,
+          ),
+          "should have sent a reminder message for appointment 1",
+        ).toHaveLength(1);
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId2,
+          ),
+          "should have sent a reminder message for appointment 2",
+        ).toHaveLength(1);
+
+        const cancelledEvent = {
+          type: EventType.Track,
+          event: "APPOINTMENT_UPDATE",
+          userId,
+          messageId: randomUUID(),
+          properties: {
+            operation: "CANCELLED",
+            appointmentId: appointmentId1,
+          },
+          timestamp: new Date().toISOString(),
+        } as const;
+
+        await submitBatch({
+          workspaceId: workspace.id,
+          data: {
+            batch: [cancelledEvent],
+          },
+        });
+
+        // Use V2 signal args (new style) with V2 workflow args (old style)
+        await handle1.signal(trackSignal, {
+          version: TrackSignalParamsVersion.V2,
+          messageId: cancelledEvent.messageId,
+        });
+        await testEnv.sleep(5000);
+        await handle1.result();
+
+        await testEnv.sleep(oneDaySeconds * 1000);
+        await handle2.result();
+
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId1,
+          ),
+          "should have sent a reminder and cancellation message for appointment 1",
+        ).toHaveLength(2);
+
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId2,
+          ),
+          "should have sent a reminder message for appointment 2 but not a cancellation message",
+        ).toHaveLength(1);
+        expect(senderMock).toHaveBeenCalledTimes(3);
+      });
+    });
+  });
+  // FIXME run a test that starts a worker with the previous workflow and activity definitions and then signals the workflow with the new args
 });

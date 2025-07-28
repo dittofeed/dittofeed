@@ -1493,6 +1493,7 @@ export const GetEventsResponseItem = Type.Object({
   processingTime: Type.String(),
   eventTime: Type.String(),
   traits: Type.String(),
+  context: Type.Optional(Type.String()),
 });
 
 export type GetEventsResponseItem = Static<typeof GetEventsResponseItem>;
