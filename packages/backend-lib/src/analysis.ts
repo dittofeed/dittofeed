@@ -3,6 +3,8 @@ import {
   ChartDataPoint,
   GetChartDataRequest,
   GetChartDataResponse,
+  GetJourneyEditorStatsRequest,
+  GetJourneyEditorStatsResponse,
   GetSummarizedDataRequest,
   GetSummarizedDataResponse,
   ResolvedChartGranularity,
@@ -636,4 +638,178 @@ export async function getSummarizedData({
   };
 
   return { summary };
+}
+
+/**
+ * Get journey editor statistics for a specific journey
+ *
+ * Returns counts for each node in the journey, with cascading logic:
+ * - Click events count as: click + open + delivery
+ * - Open events count as: open + delivery  
+ * - Delivery events count as: delivery
+ * - Each message can only be counted once per state type per node
+ */
+export async function getJourneyEditorStats({
+  workspaceId,
+  journeyId,
+  startDate,
+  endDate,
+}: GetJourneyEditorStatsRequest): Promise<GetJourneyEditorStatsResponse> {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const journeyIdParam = qb.addQueryValue(journeyId, "String");
+
+  const query = `
+    WITH message_events AS (
+      SELECT
+        event,
+        if(event = '${InternalEventType.MessageSent}', message_id, JSON_VALUE(properties, '$.messageId')) as origin_message_id,
+        JSON_VALUE(properties, '$.nodeId') as node_id
+      FROM user_events_v2
+      WHERE
+        workspace_id = ${workspaceIdParam}
+        AND processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
+        AND processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
+        AND event_type = 'track'
+        AND JSONExtractString(properties, 'journeyId') = ${journeyIdParam}
+        AND event IN (
+          '${InternalEventType.MessageSent}',
+          '${InternalEventType.EmailDelivered}',
+          '${InternalEventType.SmsDelivered}',
+          '${InternalEventType.EmailOpened}',
+          '${InternalEventType.EmailClicked}',
+          '${InternalEventType.EmailBounced}',
+          '${InternalEventType.SmsFailed}'
+        )
+        AND JSON_VALUE(properties, '$.nodeId') != ''
+    ),
+    message_states_per_node AS (
+      SELECT
+        origin_message_id,
+        node_id,
+        countIf(event = '${InternalEventType.MessageSent}') > 0 as has_sent,
+        countIf(event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}')) > 0 as has_delivered,
+        countIf(event = '${InternalEventType.EmailOpened}') > 0 as has_opened,
+        countIf(event = '${InternalEventType.EmailClicked}') > 0 as has_clicked,
+        countIf(event IN ('${InternalEventType.EmailBounced}', '${InternalEventType.SmsFailed}')) > 0 as has_bounced
+      FROM message_events
+      WHERE origin_message_id != '' AND node_id != ''
+      GROUP BY origin_message_id, node_id
+    ),
+    node_stats AS (
+      SELECT
+        node_id,
+        'sent' as state,
+        sum(toUInt64(has_sent)) as count
+      FROM message_states_per_node
+      WHERE has_sent = 1
+      GROUP BY node_id
+
+      UNION ALL
+
+      SELECT
+        node_id,
+        'delivered' as state,
+        sum(toUInt64(has_delivered OR has_opened OR has_clicked)) as count
+      FROM message_states_per_node
+      WHERE has_delivered = 1 OR has_opened = 1 OR has_clicked = 1
+      GROUP BY node_id
+
+      UNION ALL
+
+      SELECT
+        node_id,
+        'opened' as state,
+        sum(toUInt64(has_opened OR has_clicked)) as count
+      FROM message_states_per_node
+      WHERE has_opened = 1 OR has_clicked = 1
+      GROUP BY node_id
+
+      UNION ALL
+
+      SELECT
+        node_id,
+        'clicked' as state,
+        sum(toUInt64(has_clicked)) as count
+      FROM message_states_per_node
+      WHERE has_clicked = 1
+      GROUP BY node_id
+
+      UNION ALL
+
+      SELECT
+        node_id,
+        'bounced' as state,
+        sum(toUInt64(has_bounced)) as count
+      FROM message_states_per_node
+      WHERE has_bounced = 1
+      GROUP BY node_id
+    )
+    SELECT
+      node_id,
+      state,
+      count
+    FROM node_stats
+    ORDER BY node_id, state
+  `;
+
+  logger().debug(
+    {
+      query,
+      workspaceId,
+      journeyId,
+      startDate,
+      endDate,
+    },
+    "Executing journey editor stats query",
+  );
+
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+    format: "JSONEachRow",
+    clickhouse_settings: {
+      date_time_output_format: "iso",
+      function_json_value_return_type_allow_complex: 1,
+    },
+  });
+
+  const rows = await result.json<{
+    node_id: string;
+    state: string;
+    count: string | number;
+  }>();
+
+  // Transform rows into the required format: Record<NodeId, Record<MessageState, number>>
+  const nodeStats: Record<string, Record<string, number>> = {};
+
+  // First, collect all unique node IDs from the raw results
+  const nodeIds = new Set<string>();
+  for (const row of rows) {
+    nodeIds.add(row.node_id);
+  }
+
+  // Initialize all nodes with all possible states set to 0
+  for (const nodeId of nodeIds) {
+    nodeStats[nodeId] = {
+      sent: 0,
+      delivered: 0,
+      opened: 0,
+      clicked: 0,
+      bounced: 0,
+    };
+  }
+
+  // Populate with actual data
+  for (const row of rows) {
+    const nodeId = row.node_id;
+    const state = row.state;
+    const count = typeof row.count === "string" ? parseInt(row.count, 10) : row.count;
+
+    if (nodeStats[nodeId]) {
+      nodeStats[nodeId][state] = count;
+    }
+  }
+
+  return { nodeStats };
 }

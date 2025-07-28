@@ -8,8 +8,17 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
+  Button,
+  Card,
+  CardContent,
   ClickAwayListener,
+  FormControl,
+  FormControlLabel,
+  MenuItem,
+  Select,
+  Skeleton,
   Stack,
+  Switch,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -27,7 +36,7 @@ import {
   SavedSegmentResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
 import {
@@ -35,6 +44,7 @@ import {
   JourneyUiNodeDefinition,
   JourneyUiNodeTypeProps,
 } from "../../../lib/types";
+import { useJourneyStatsQueryV2 } from "../../../lib/useJourneyStatsQueryV2";
 import { useMessageTemplatesQuery } from "../../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
 import DurationDescription from "../../durationDescription";
@@ -311,6 +321,37 @@ function StatCategory({
   );
 }
 
+interface SmallMetricCardProps {
+  title: string;
+  value: number;
+  isLoading?: boolean;
+  isPercentage?: boolean;
+}
+
+function SmallMetricCard({
+  title,
+  value,
+  isLoading = false,
+  isPercentage = false,
+}: SmallMetricCardProps) {
+  return (
+    <Card sx={{ minWidth: 60, textAlign: "center", flex: 1 }}>
+      <CardContent sx={{ p: 0.25, "&:last-child": { pb: 0.25 } }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem" }}>
+          {title}
+        </Typography>
+        {isLoading ? (
+          <Skeleton variant="text" width={30} height={16} sx={{ mx: "auto" }} />
+        ) : (
+          <Typography variant="caption" component="div" sx={{ fontWeight: "bold", fontSize: "0.7rem" }}>
+            {isPercentage ? `${value.toFixed(1)}%` : value.toLocaleString()}
+          </Typography>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
   const path = useRouter();
   const theme = useTheme();
@@ -330,6 +371,18 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
     resourceType: "Declarative",
   });
 
+  // State for date range and display mode
+  const [dateRange, setDateRange] = useState(() => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 7); // Default to last 7 days
+    return {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    };
+  });
+  const [displayMode, setDisplayMode] = useState<"absolute" | "percentage">("percentage");
+
   const { id: journeyId } = path.query;
   const config = useMemo(
     () => journNodeTypeToConfig(data.nodeTypeProps),
@@ -340,6 +393,18 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
   }, [id, setSelectedNodeId]);
 
   const isSelected = selectedNodeId === id;
+
+  // New journey stats query
+  const { data: journeyStatsData, isLoading: isStatsLoading } = useJourneyStatsQueryV2(
+    {
+      journeyId: typeof journeyId === "string" ? journeyId : "",
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+    },
+    {
+      enabled: typeof journeyId === "string" && isSelected,
+    }
+  );
 
   const clickOutsideHandler = useCallback(
     (event: MouseEvent | TouchEvent) => {
@@ -372,18 +437,40 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
     [data.nodeTypeProps, messagesResult, segmentsResult],
   );
 
-  const channelStats = useMemo(() => {
-    if (!journeyId || typeof journeyId !== "string") {
+  // Process the new journey stats data
+  const nodeStats = useMemo(() => {
+    if (!isSelected || !journeyStatsData?.nodeStats) {
       return null;
     }
-    const stats = journeyStats[journeyId]?.nodeStats[id];
-    return isSelected &&
-      stats?.type === NodeStatsType.MessageNodeStats &&
-      stats.sendRate &&
-      stats.channelStats
-      ? { ...stats.channelStats, sendRate: stats.sendRate }
-      : null;
-  }, [id, isSelected, journeyId, journeyStats]);
+    const rawStats = journeyStatsData.nodeStats[id];
+    if (!rawStats) {
+      return null;
+    }
+
+    const sent = rawStats.sent || 0;
+    const delivered = rawStats.delivered || 0;
+    const opened = rawStats.opened || 0;
+    const clicked = rawStats.clicked || 0;
+    const bounced = rawStats.bounced || 0;
+
+    if (displayMode === "percentage" && sent > 0) {
+      return {
+        sent,
+        delivered: (delivered / sent) * 100,
+        opened: (opened / sent) * 100,
+        clicked: (clicked / sent) * 100,
+        bounced: (bounced / sent) * 100,
+      };
+    }
+
+    return {
+      sent,
+      delivered,
+      opened,
+      clicked,
+      bounced,
+    };
+  }, [id, isSelected, journeyStatsData, displayMode]);
 
   const borderColor: string = isSelected
     ? theme.palette.blue[200]
@@ -465,11 +552,9 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
         </Stack>
       </Box>
       <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
+        direction="column"
         sx={{
-          padding: channelStats ? 1 : 0,
+          padding: nodeStats ? 1 : 0,
           backgroundColor: "white",
           borderStyle: "solid",
           width: JOURNEY_NODE_WIDTH,
@@ -477,47 +562,94 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
           borderBottomRightRadius: 8,
           borderColor,
           borderWidth: "0 2px 2px 2px",
-          opacity: channelStats ? 1 : 0,
-          visibility: channelStats ? "visible" : "hidden",
+          opacity: nodeStats ? 1 : 0,
+          visibility: nodeStats ? "visible" : "hidden",
           transition:
             "height .2s ease, padding-top .2s ease, padding-bottom .2s ease, opacity .2s ease",
-          height: channelStats ? undefined : 0,
+          height: nodeStats ? undefined : 0,
         }}
       >
-        {channelStats ? (
+        {nodeStats ? (
           <>
-            <StatCategory label="Sent" rate={channelStats.sendRate} />
-            <StatCategory
-              label="Delivered"
-              rate={
-                "deliveryRate" in channelStats
-                  ? channelStats.deliveryRate
-                  : "N/A"
+            {/* Metric Cards Row */}
+            <Stack direction="row" spacing={0.5} sx={{ mb: 1 }}>
+              <SmallMetricCard
+                title="SENT"
+                value={nodeStats.sent}
+                isLoading={isStatsLoading}
+                isPercentage={false}
+              />
+              <SmallMetricCard
+                title="DELIVERED"
+                value={nodeStats.delivered}
+                isLoading={isStatsLoading}
+                isPercentage={displayMode === "percentage"}
+              />
+              <SmallMetricCard
+                title="OPENED"
+                value={nodeStats.opened}
+                isLoading={isStatsLoading}
+                isPercentage={displayMode === "percentage"}
+              />
+              <SmallMetricCard
+                title="CLICKED"
+                value={nodeStats.clicked}
+                isLoading={isStatsLoading}
+                isPercentage={displayMode === "percentage"}
+              />
+            </Stack>
+
+            {/* Date Range Selector */}
+            <FormControl size="small" sx={{ mb: 0.5 }}>
+              <Select
+                value={dateRange.startDate === new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() ? "7d" : "custom"}
+                onChange={(e) => {
+                  if (e.target.value === "7d") {
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(endDate.getDate() - 7);
+                    setDateRange({
+                      startDate: startDate.toISOString(),
+                      endDate: endDate.toISOString(),
+                    });
+                  } else if (e.target.value === "30d") {
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(endDate.getDate() - 30);
+                    setDateRange({
+                      startDate: startDate.toISOString(),
+                      endDate: endDate.toISOString(),
+                    });
+                  }
+                }}
+                sx={{ 
+                  fontSize: "0.7rem",
+                  "& .MuiSelect-select": {
+                    py: 0.25,
+                    px: 0.5,
+                  }
+                }}
+              >
+                <MenuItem value="7d" sx={{ fontSize: "0.7rem" }}>Last 7 days</MenuItem>
+                <MenuItem value="30d" sx={{ fontSize: "0.7rem" }}>Last 30 days</MenuItem>
+              </Select>
+            </FormControl>
+
+            {/* Display Mode Toggle */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={displayMode === "percentage"}
+                  onChange={(e) => setDisplayMode(e.target.checked ? "percentage" : "absolute")}
+                  size="small"
+                />
               }
-            />
-            <StatCategory
-              label="Opened"
-              rate={
-                channelStats.type === ChannelType.Email
-                  ? channelStats.openRate
-                  : "N/A"
+              label={
+                <Typography sx={{ fontSize: "0.7rem" }}>
+                  {displayMode === "percentage" ? "%" : "#"}
+                </Typography>
               }
-            />
-            <StatCategory
-              label="Clicked"
-              rate={
-                channelStats.type === ChannelType.Email
-                  ? channelStats.clickRate
-                  : "N/A"
-              }
-            />
-            <StatCategory
-              label="Spam"
-              rate={
-                channelStats.type === ChannelType.Email
-                  ? channelStats.spamRate
-                  : "N/A"
-              }
+              sx={{ m: 0, justifyContent: "space-between", width: "100%" }}
             />
           </>
         ) : null}

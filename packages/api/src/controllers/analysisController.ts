@@ -1,9 +1,11 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { getChartData, getSummarizedData } from "backend-lib/src/analysis";
+import { getChartData, getJourneyEditorStats, getSummarizedData } from "backend-lib/src/analysis";
 import { FastifyInstance } from "fastify";
 import {
   GetChartDataRequest,
   GetChartDataResponse,
+  GetJourneyEditorStatsRequest,
+  GetJourneyEditorStatsResponse,
   GetSummarizedDataRequest,
   GetSummarizedDataResponse,
 } from "isomorphic-lib/src/types";
@@ -42,6 +44,24 @@ export default async function analysisController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const result = await getSummarizedData(request.query);
+      return reply.status(200).send(result);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/journey-stats",
+    {
+      schema: {
+        description: "Get journey editor statistics for a specific journey.",
+        tags: ["Analysis"],
+        querystring: GetJourneyEditorStatsRequest,
+        response: {
+          200: GetJourneyEditorStatsResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const result = await getJourneyEditorStats(request.query);
       return reply.status(200).send(result);
     },
   );

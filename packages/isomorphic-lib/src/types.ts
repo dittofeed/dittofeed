@@ -5795,3 +5795,26 @@ export const GetSummarizedDataResponse = Type.Object({
 export type GetSummarizedDataResponse = Static<
   typeof GetSummarizedDataResponse
 >;
+
+export const GetJourneyEditorStatsRequest = Type.Object({
+  workspaceId: Type.String(),
+  journeyId: Type.String(),
+  startDate: Type.String(),
+  endDate: Type.String(),
+});
+
+export type GetJourneyEditorStatsRequest = Static<
+  typeof GetJourneyEditorStatsRequest
+>;
+
+export const JourneyNodeStats = Type.Record(Type.String(), Type.Number());
+
+export type JourneyNodeStats = Static<typeof JourneyNodeStats>;
+
+export const GetJourneyEditorStatsResponse = Type.Object({
+  nodeStats: Type.Record(Type.String(), JourneyNodeStats),
+});
+
+export type GetJourneyEditorStatsResponse = Static<
+  typeof GetJourneyEditorStatsResponse
+>;

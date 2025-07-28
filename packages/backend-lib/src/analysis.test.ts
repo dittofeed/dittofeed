@@ -2,7 +2,7 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { getChartData, getSummarizedData } from "./analysis";
+import { getChartData, getJourneyEditorStats, getSummarizedData } from "./analysis";
 import { submitBatch } from "./apps/batch";
 import {
   BatchItem,
@@ -1184,6 +1184,367 @@ describe("analysis", () => {
       expect(result.summary.opens).toBe(0); // SMS doesn't have opens
       expect(result.summary.clicks).toBe(0); // SMS doesn't have clicks
       expect(result.summary.bounces).toBe(1); // 1 SMS failed (treated as bounce)
+    });
+  });
+
+  describe("getJourneyEditorStats", () => {
+    let journeyId: string;
+    let templateId: string;
+    let userId1: string;
+    let userId2: string;
+    let nodeId1: string;
+    let nodeId2: string;
+
+    beforeEach(async () => {
+      journeyId = randomUUID();
+      templateId = randomUUID();
+      userId1 = randomUUID();
+      userId2 = randomUUID();
+      nodeId1 = randomUUID();
+      nodeId2 = randomUUID();
+
+      const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+        variant: {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: {
+            type: EmailProviderType.SendGrid,
+          },
+        },
+      };
+
+      const now = new Date();
+
+      // Create message IDs for sent messages
+      const sentMessageId1 = randomUUID();
+      const sentMessageId2 = randomUUID();
+      const sentMessageId3 = randomUUID();
+
+      const events: BatchItem[] = [
+        // Node 1: Message sent + delivered + opened
+        {
+          userId: userId1,
+          timestamp: new Date(now.getTime() - 3600000).toISOString(), // 1 hour ago
+          type: EventType.Track,
+          messageId: sentMessageId1,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: nodeId1,
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId1,
+            ...messageSentEvent,
+          },
+        },
+        {
+          userId: userId1,
+          timestamp: new Date(now.getTime() - 3590000).toISOString(), // ~1 hour ago
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailDelivered,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: nodeId1,
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId1, // Reference the original sent message
+          },
+        },
+        {
+          userId: userId1,
+          timestamp: new Date(now.getTime() - 3580000).toISOString(), // ~1 hour ago
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailOpened,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: nodeId1,
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId1, // Reference the original sent message
+          },
+        },
+        // Node 1: Second message sent + clicked (should cascade to opened and delivered)
+        {
+          userId: userId2,
+          timestamp: new Date(now.getTime() - 1800000).toISOString(), // 30 minutes ago
+          type: EventType.Track,
+          messageId: sentMessageId2,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: nodeId1,
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId2,
+            ...messageSentEvent,
+          },
+        },
+        {
+          userId: userId2,
+          timestamp: new Date(now.getTime() - 1790000).toISOString(), // ~30 minutes ago
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailClicked,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: nodeId1,
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId2, // Reference the original sent message
+          },
+        },
+        // Node 2: Message sent + bounced
+        {
+          userId: randomUUID(),
+          timestamp: new Date(now.getTime() - 2700000).toISOString(), // 45 minutes ago
+          type: EventType.Track,
+          messageId: sentMessageId3,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: nodeId2,
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId3,
+            ...messageSentEvent,
+          },
+        },
+        {
+          userId: randomUUID(),
+          timestamp: new Date(now.getTime() - 2690000).toISOString(), // ~45 minutes ago
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailBounced,
+          properties: {
+            workspaceId,
+            journeyId,
+            nodeId: nodeId2,
+            runId: randomUUID(),
+            templateId,
+            messageId: sentMessageId3, // Reference the original sent message
+          },
+        },
+      ];
+
+      // Submit events with specific processing times
+      const baseTime = new Date();
+      const eventTimes = [
+        baseTime.getTime() - 3600000, // 1 hour ago
+        baseTime.getTime() - 3590000, // ~1 hour ago (for delivered)
+        baseTime.getTime() - 3580000, // ~1 hour ago (for opened)
+        baseTime.getTime() - 1800000, // 30 minutes ago
+        baseTime.getTime() - 1790000, // ~30 minutes ago (for clicked)
+        baseTime.getTime() - 2700000, // 45 minutes ago
+        baseTime.getTime() - 2690000, // ~45 minutes ago (for bounced)
+      ];
+
+      for (let i = 0; i < events.length; i++) {
+        const event = events[i];
+        if (event) {
+          await submitBatch(
+            {
+              workspaceId,
+              data: {
+                batch: [event],
+              },
+            },
+            {
+              processingTime: eventTimes[i],
+            },
+          );
+        }
+      }
+    });
+
+    it("returns journey editor stats with proper node-level aggregation and cascading logic", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getJourneyEditorStats({
+        workspaceId,
+        journeyId,
+        startDate,
+        endDate,
+      });
+
+      expect(result).toHaveProperty("nodeStats");
+      expect(typeof result.nodeStats).toBe("object");
+
+      // Verify node 1 stats (2 messages: 1 with open, 1 with click)
+      expect(result.nodeStats[nodeId1]).toBeDefined();
+      const node1Stats = result.nodeStats[nodeId1];
+      if (!node1Stats) throw new Error("Node1 stats should be defined");
+      
+      expect(node1Stats.sent).toBe(2); // 2 messages sent
+      expect(node1Stats.delivered).toBe(2); // Both messages delivered (1 explicit + 1 from click cascade)
+      expect(node1Stats.opened).toBe(2); // Both messages opened (1 explicit + 1 from click cascade)
+      expect(node1Stats.clicked).toBe(1); // 1 message clicked
+      expect(node1Stats.bounced).toBe(0); // No bounces in node 1
+
+      // Verify node 2 stats (1 message: bounced)
+      expect(result.nodeStats[nodeId2]).toBeDefined();
+      const node2Stats = result.nodeStats[nodeId2];
+      if (!node2Stats) throw new Error("Node2 stats should be defined");
+      
+      expect(node2Stats.sent).toBe(1); // 1 message sent
+      expect(node2Stats.delivered).toBe(0); // No deliveries (bounced message doesn't count as delivered)
+      expect(node2Stats.opened).toBe(0); // No opens
+      expect(node2Stats.clicked).toBe(0); // No clicks
+      expect(node2Stats.bounced).toBe(1); // 1 bounce
+    });
+
+    it("returns empty stats for non-existent journey", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getJourneyEditorStats({
+        workspaceId,
+        journeyId: randomUUID(), // Non-existent journey
+        startDate,
+        endDate,
+      });
+
+      expect(result).toHaveProperty("nodeStats");
+      expect(Object.keys(result.nodeStats)).toHaveLength(0);
+    });
+
+    it("returns zero stats for date range with no events", async () => {
+      const startDate = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
+      const endDate = new Date(Date.now() + 7200000).toISOString(); // 2 hours from now
+
+      const result = await getJourneyEditorStats({
+        workspaceId,
+        journeyId,
+        startDate,
+        endDate,
+      });
+
+      expect(result).toHaveProperty("nodeStats");
+      expect(Object.keys(result.nodeStats)).toHaveLength(0);
+    });
+
+    it("correctly deduplicates multiple events for the same message in the same node", async () => {
+      // Create a test case where the same message has multiple opens/clicks
+      const testJourneyId = randomUUID();
+      const testNodeId = randomUUID();
+      const testTemplateId = randomUUID();
+      const testUserId = randomUUID();
+      const testMessageId = randomUUID();
+
+      const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+        variant: {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: {
+            type: EmailProviderType.SendGrid,
+          },
+        },
+      };
+
+      const now = new Date();
+      const events: BatchItem[] = [
+        // Message sent
+        {
+          userId: testUserId,
+          timestamp: new Date(now.getTime() - 3600000).toISOString(),
+          type: EventType.Track,
+          messageId: testMessageId,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: testJourneyId,
+            nodeId: testNodeId,
+            runId: randomUUID(),
+            templateId: testTemplateId,
+            messageId: testMessageId,
+            ...messageSentEvent,
+          },
+        },
+        // Multiple open events for the same message (should be deduplicated)
+        {
+          userId: testUserId,
+          timestamp: new Date(now.getTime() - 3590000).toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailOpened,
+          properties: {
+            workspaceId,
+            journeyId: testJourneyId,
+            nodeId: testNodeId,
+            runId: randomUUID(),
+            templateId: testTemplateId,
+            messageId: testMessageId,
+          },
+        },
+        {
+          userId: testUserId,
+          timestamp: new Date(now.getTime() - 3580000).toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailOpened,
+          properties: {
+            workspaceId,
+            journeyId: testJourneyId,
+            nodeId: testNodeId,
+            runId: randomUUID(),
+            templateId: testTemplateId,
+            messageId: testMessageId, // Same message ID
+          },
+        },
+      ];
+
+      // Submit events
+      for (let i = 0; i < events.length; i++) {
+        const event = events[i];
+        if (event) {
+          await submitBatch(
+            {
+              workspaceId,
+              data: {
+                batch: [event],
+              },
+            },
+            {
+              processingTime: now.getTime() - 3600000 + i * 10000,
+            },
+          );
+        }
+      }
+
+      const startDate = new Date(Date.now() - 7200000).toISOString();
+      const endDate = new Date().toISOString();
+
+      const result = await getJourneyEditorStats({
+        workspaceId,
+        journeyId: testJourneyId,
+        startDate,
+        endDate,
+      });
+
+      expect(result.nodeStats[testNodeId]).toBeDefined();
+      const nodeStats = result.nodeStats[testNodeId];
+      if (!nodeStats) throw new Error("Node stats should be defined");
+      
+      // Despite multiple open events, should only count as 1 opened message
+      expect(nodeStats.sent).toBe(1);
+      expect(nodeStats.delivered).toBe(1); // From open cascade
+      expect(nodeStats.opened).toBe(1); // Should be deduplicated
+      expect(nodeStats.clicked).toBe(0);
+      expect(nodeStats.bounced).toBe(0);
     });
   });
 });
