@@ -38,6 +38,8 @@ export async function buildWorker(otel?: OpenTelemetry) {
     maxCachedWorkflows,
     reuseContext: reuseV8Context,
     useTemporalVersioning,
+    maxConcurrentActivityTaskExecutions,
+    maxConcurrentLocalActivityExecutions,
   } = config();
 
   const sinks: WorkerOptions["sinks"] = {
@@ -87,6 +89,16 @@ export async function buildWorker(otel?: OpenTelemetry) {
 
   if (maxCachedWorkflows) {
     opts.maxCachedWorkflows = maxCachedWorkflows;
+  }
+
+  if (maxConcurrentActivityTaskExecutions) {
+    opts.maxConcurrentActivityTaskExecutions =
+      maxConcurrentActivityTaskExecutions;
+  }
+
+  if (maxConcurrentLocalActivityExecutions) {
+    opts.maxConcurrentLocalActivityExecutions =
+      maxConcurrentLocalActivityExecutions;
   }
 
   const { appVersion } = backendConfig();
