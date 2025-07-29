@@ -300,7 +300,7 @@ export interface BaseGetSegmentAssignmentParams {
   userId: string;
 }
 
-export interface GetSegmentAssignmentParamsV1
+export interface KeyedGetSegmentAssignmentParamsV1
   extends BaseGetSegmentAssignmentParams {
   keyValue: string;
   nowMs: number;
@@ -308,7 +308,18 @@ export interface GetSegmentAssignmentParamsV1
   version: GetSegmentAssignmentVersion.V1;
 }
 
-export type GetSegmentAssignmentParams = GetSegmentAssignmentParamsV1;
+export interface KeyedGetSegmentAssignmentParamsV2
+  extends BaseGetSegmentAssignmentParams {
+  keyValue: string;
+  nowMs: number;
+  eventIds: string[];
+  version: GetSegmentAssignmentVersion.V2;
+}
+
+export type GetSegmentAssignmentParams =
+  | BaseGetSegmentAssignmentParams
+  | KeyedGetSegmentAssignmentParamsV1
+  | KeyedGetSegmentAssignmentParamsV2;
 
 export async function getSegmentAssignment(
   params: GetSegmentAssignmentParams,

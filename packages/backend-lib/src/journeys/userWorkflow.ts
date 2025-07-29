@@ -25,6 +25,7 @@ import {
   JSONValue,
   MessageVariant,
   RenameKey,
+  SegmentAssignment,
   SegmentAssignment as SegmentAssignmentDb,
   SegmentUpdate,
   SmsMessageVariant,
@@ -76,7 +77,7 @@ const {
   startToCloseTimeout: "2 minutes",
 });
 
-type SegmentAssignment = Pick<
+type ReceivedSegmentUpdate = Pick<
   SegmentUpdate,
   "currentlyInSegment" | "segmentVersion"
 >;
@@ -299,7 +300,7 @@ export async function userJourneyWorkflow(
   }
 
   const journeyStartedAt = Date.now();
-  const segmentAssignments = new Map<string, SegmentAssignment>();
+  const segmentAssignments = new Map<string, ReceivedSegmentUpdate>();
   const nodes = new Map<string, JourneyNode>();
   const { runId } = workflowInfo();
 
@@ -308,6 +309,43 @@ export async function userJourneyWorkflow(
   }
   nodes.set(definition.exitNode.type, definition.exitNode);
   let waitForSegmentIds: WaitForSegmentChild[] | null = null;
+
+  async function getSegmentAssignmentHandler({
+    segmentId,
+    now: nowInner,
+  }: {
+    segmentId: string;
+    now: number;
+  }): Promise<SegmentAssignment | null> {
+    if (eventKey) {
+      // deprecated, now passing by id rather than by value
+      if (keyedEvents) {
+        return getSegmentAssignment({
+          workspaceId,
+          userId,
+          segmentId,
+          events: keyedEvents,
+          keyValue: eventKey,
+          nowMs: nowInner,
+          version: GetSegmentAssignmentVersion.V1,
+        });
+      }
+      return getSegmentAssignment({
+        workspaceId,
+        userId,
+        segmentId,
+        eventIds: Array.from(keyedEventIds),
+        nowMs: nowInner,
+        version: GetSegmentAssignmentVersion.V2,
+      });
+    }
+
+    return getSegmentAssignment({
+      workspaceId,
+      userId,
+      segmentId,
+    });
+  }
 
   wf.setHandler(trackSignal, async (event) => {
     logger.info("keyed event signal", {
@@ -357,14 +395,9 @@ export async function userJourneyWorkflow(
     await Promise.all(
       waitForSegmentIds.map(async ({ segmentId }) => {
         const nowMs = Date.now();
-        const assignment = await getSegmentAssignment({
-          workspaceId,
-          userId,
+        const assignment = await getSegmentAssignmentHandler({
           segmentId,
-          events: keyedEvents,
-          keyValue: eventKey,
-          nowMs,
-          version: GetSegmentAssignmentVersion.V1,
+          now: nowMs,
         });
         logger.debug("segment assignment from keyed event", {
           workspaceId,
@@ -436,14 +469,9 @@ export async function userJourneyWorkflow(
         const cn = currentNode;
         const initialSegmentAssignment =
           (
-            await getSegmentAssignment({
-              workspaceId,
-              userId,
+            await getSegmentAssignmentHandler({
               segmentId: cn.segment,
-              events: keyedEvents,
-              keyValue: eventKey,
-              nowMs: Date.now(),
-              version: GetSegmentAssignmentVersion.V1,
+              now: Date.now(),
             })
           )?.inSegment === true;
         if (!initialSegmentAssignment) {
@@ -541,20 +569,14 @@ export async function userJourneyWorkflow(
         const initialSegmentAssignments: SegmentAssignmentDb[] = (
           await Promise.all(
             segmentChildren.map(async ({ segmentId }) => {
-              const assignment: SegmentAssignmentDb | null =
-                await getSegmentAssignment({
-                  workspaceId,
-                  userId,
-                  segmentId,
-                  events: keyedEvents,
-                  keyValue: eventKey,
-                  nowMs: Date.now(),
-                  version: GetSegmentAssignmentVersion.V1,
-                });
+              const assignment = await getSegmentAssignmentHandler({
+                segmentId,
+                now: Date.now(),
+              });
               if (assignment === null) {
                 return [];
               }
-              if (assignment.inSegment) {
+              if (assignment.inSegment === true) {
                 segmentAssignments.set(segmentId, {
                   currentlyInSegment: assignment.inSegment,
                   segmentVersion: Date.now(),
@@ -611,18 +633,10 @@ export async function userJourneyWorkflow(
       case JourneyNodeType.SegmentSplitNode: {
         const cn = currentNode;
 
-        let segmentAssignment: SegmentAssignment | null = null;
-        if (keyedEvents) {
-          segmentAssignment = await getSegmentAssignment({
-            workspaceId,
-            userId,
-            segmentId: cn.variant.segment,
-            events: keyedEvents,
-            keyValue: eventKey,
-            nowMs: Date.now(),
-            version: GetSegmentAssignmentVersion.V1,
-          });
-        }
+        const segmentAssignment = await getSegmentAssignmentHandler({
+          segmentId: cn.variant.segment,
+          now: Date.now(),
+        });
 
         const nextNodeId: string = segmentAssignment?.inSegment
           ? currentNode.variant.trueChild
