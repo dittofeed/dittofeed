@@ -42,7 +42,23 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 export const segmentUpdateSignal =
   wf.defineSignal<[SegmentUpdate]>("segmentUpdate");
 
-export const trackSignal = wf.defineSignal<[UserWorkflowTrackEvent]>("track");
+export enum TrackSignalParamsVersion {
+  V1 = 1,
+  V2 = 2,
+}
+
+export type TrackSignalParamsV1 = UserWorkflowTrackEvent & {
+  version?: TrackSignalParamsVersion.V1;
+};
+
+export interface TrackSignalParamsV2 {
+  version: TrackSignalParamsVersion.V2;
+  messageId: string;
+}
+
+export type TrackSignalParams = TrackSignalParamsV1 | TrackSignalParamsV2;
+
+export const trackSignal = wf.defineSignal<[TrackSignalParams]>("track");
 
 const WORKFLOW_NAME = "userJourneyWorkflow";
 
@@ -171,52 +187,65 @@ export async function userJourneyWorkflow(
     journeyId,
     shouldContinueAsNew = true,
   } = props;
-  const entryEventProperties =
-    props.version === UserJourneyWorkflowVersion.V2
-      ? props.event?.properties
-      : props.context;
-  const isHidden =
-    props.version === UserJourneyWorkflowVersion.V2 &&
-    props.event?.context?.hidden === true;
+
+  let entryEventProperties: Record<string, JSONValue> | undefined;
+  let isHidden: boolean;
+  let eventKey: string | undefined;
+
   const eventKeyName =
     props.definition.entryNode.type === JourneyNodeType.EventEntryNode
       ? props.definition.entryNode.key
       : undefined;
 
-  let eventKey: string | undefined;
-  if (props.version === UserJourneyWorkflowVersion.V2) {
-    if (props.event) {
-      if (eventKeyName) {
-        logger.debug("event key from name", {
-          eventKeyName,
-          event: props.event,
-        });
-        const keyValueFromProps = jsonValue({
-          data: props.event.properties,
-          path: eventKeyName,
-        });
-        if (
-          keyValueFromProps.isOk() &&
-          (typeof keyValueFromProps.value === "string" ||
-            typeof keyValueFromProps.value === "number")
-        ) {
-          eventKey = keyValueFromProps.value.toString();
-        } else {
-          logger.debug("unable to generate event key", {
-            workspaceId,
-            journeyId,
-            userId,
+  switch (props.version) {
+    case UserJourneyWorkflowVersion.V3: {
+      // not setting entry event properties for v3
+      isHidden = props.hidden ?? false;
+      eventKey = props.eventKey;
+      break;
+    }
+    case UserJourneyWorkflowVersion.V2: {
+      entryEventProperties = props.event?.properties;
+      isHidden = props.event?.context?.hidden === true;
+      if (props.event) {
+        if (eventKeyName) {
+          logger.debug("event key from name", {
             eventKeyName,
             event: props.event,
-            eventKey,
           });
+          const keyValueFromProps = jsonValue({
+            data: props.event.properties,
+            path: eventKeyName,
+          });
+          if (
+            keyValueFromProps.isOk() &&
+            (typeof keyValueFromProps.value === "string" ||
+              typeof keyValueFromProps.value === "number")
+          ) {
+            eventKey = keyValueFromProps.value.toString();
+          } else {
+            logger.debug("unable to generate event key", {
+              workspaceId,
+              journeyId,
+              userId,
+              eventKeyName,
+              event: props.event,
+              eventKey,
+            });
+          }
+        } else {
+          eventKey = props.event.messageId;
         }
-      } else {
-        eventKey = props.event.messageId;
       }
+      break;
     }
-  } else {
-    eventKey = props.eventKey;
+    case UserJourneyWorkflowVersion.V1:
+    default: {
+      entryEventProperties = props.context;
+      isHidden = false;
+      eventKey = props.eventKey;
+      break;
+    }
   }
 
   if (
@@ -238,11 +267,21 @@ export async function userJourneyWorkflow(
     return null;
   }
 
-  const keyedEvents: UserWorkflowTrackEvent[] = [];
+  // deprecated because inflates the size of the workflow state
+  let keyedEvents: UserWorkflowTrackEvent[] | undefined;
   const keyedEventIds = new Set<string>();
-  if (props.version === UserJourneyWorkflowVersion.V2 && props.event) {
-    keyedEvents.push(props.event);
-    keyedEventIds.add(props.event.messageId);
+  switch (props.version) {
+    case UserJourneyWorkflowVersion.V3: {
+      keyedEventIds.add(props.messageId);
+      break;
+    }
+    case UserJourneyWorkflowVersion.V2: {
+      if (props.event) {
+        keyedEvents = [props.event];
+        keyedEventIds.add(props.event.messageId);
+      }
+      break;
+    }
   }
 
   // event entry journeys can't be started from segment signals
@@ -287,9 +326,26 @@ export async function userJourneyWorkflow(
       });
       return;
     }
-    keyedEvents.push(event);
-    keyedEventIds.add(event.messageId);
-
+    switch (event.version) {
+      case TrackSignalParamsVersion.V2: {
+        keyedEventIds.add(event.messageId);
+        break;
+      }
+      case TrackSignalParamsVersion.V1: {
+        if (keyedEvents) {
+          keyedEvents.push(event);
+        } else {
+          logger.error("keyed events not set", {
+            journeyId,
+            userId,
+            workspaceId,
+            event,
+          });
+        }
+        keyedEventIds.add(event.messageId);
+        break;
+      }
+    }
     if (!waitForSegmentIds) {
       logger.debug("no wait for segments, skipping", {
         workflow: WORKFLOW_NAME,
