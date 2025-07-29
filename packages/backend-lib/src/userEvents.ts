@@ -1,7 +1,7 @@
 import { ClickHouseSettings, Row } from "@clickhouse/client";
 import { writeToString } from "@fast-csv/format";
-import { and, eq } from "drizzle-orm";
 import { format } from "date-fns";
+import { and, eq } from "drizzle-orm";
 import { arrayDefault } from "isomorphic-lib/src/arrays";
 import { ok, Result } from "neverthrow";
 
@@ -506,9 +506,7 @@ export async function findUserIdsByUserProperty({
   return result;
 }
 
-export async function buildEventsFile(
-  params: DownloadEventsRequest,
-): Promise<{
+export async function buildEventsFile(params: DownloadEventsRequest): Promise<{
   fileName: string;
   fileContent: string;
 }> {
