@@ -992,4 +992,12 @@
 
     <!-- Uncomment to disable ClickHouse internal DNS caching. -->
     <!-- <disable_internal_dns_cache>1</disable_internal_dns_cache> -->
+
+    <!-- Kafka configuration for SASL authentication -->
+    <kafka>
+        <security_protocol>sasl_plaintext</security_protocol>
+        <sasl_mechanism>PLAIN</sasl_mechanism>
+        <sasl_username>admin</sasl_username>
+        <sasl_password>password</sasl_password>
+    </kafka>
 </yandex>
