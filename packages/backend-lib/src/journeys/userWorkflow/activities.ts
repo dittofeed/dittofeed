@@ -294,20 +294,24 @@ export async function onNodeProcessedV2(params: RecordNodeProcessedParams) {
   await recordNodeProcessed(params);
 }
 
+export interface BaseGetSegmentAssignmentParams {
+  workspaceId: string;
+  segmentId: string;
+  userId: string;
+}
+
+export interface GetSegmentAssignmentParamsV1
+  extends BaseGetSegmentAssignmentParams {
+  keyValue: string;
+  nowMs: number;
+  events: UserWorkflowTrackEvent[];
+  version: GetSegmentAssignmentVersion.V1;
+}
+
+export type GetSegmentAssignmentParams = GetSegmentAssignmentParamsV1;
+
 export async function getSegmentAssignment(
-  params: OptionalAllOrNothing<
-    {
-      workspaceId: string;
-      segmentId: string;
-      userId: string;
-    },
-    {
-      keyValue: string;
-      nowMs: number;
-      events: UserWorkflowTrackEvent[];
-      version: GetSegmentAssignmentVersion.V1;
-    }
-  >,
+  params: GetSegmentAssignmentParams,
 ): Promise<SegmentAssignment | null> {
   return withSpan({ name: "get-segment-assignment" }, async (span) => {
     span.setAttributes({

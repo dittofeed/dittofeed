@@ -201,7 +201,7 @@ export async function userJourneyWorkflow(
     case UserJourneyWorkflowVersion.V3: {
       // not setting entry event properties for v3
       isHidden = props.hidden ?? false;
-      eventKey = props.eventKey;
+      eventKey = props.eventKey ?? props.messageId;
       break;
     }
     case UserJourneyWorkflowVersion.V2: {
@@ -230,7 +230,6 @@ export async function userJourneyWorkflow(
               userId,
               eventKeyName,
               event: props.event,
-              eventKey,
             });
           }
         } else {
@@ -612,15 +611,19 @@ export async function userJourneyWorkflow(
       case JourneyNodeType.SegmentSplitNode: {
         const cn = currentNode;
 
-        const segmentAssignment = await getSegmentAssignment({
-          workspaceId,
-          userId,
-          segmentId: cn.variant.segment,
-          events: keyedEvents,
-          keyValue: eventKey,
-          nowMs: Date.now(),
-          version: GetSegmentAssignmentVersion.V1,
-        });
+        let segmentAssignment: SegmentAssignment | null = null;
+        if (keyedEvents) {
+          segmentAssignment = await getSegmentAssignment({
+            workspaceId,
+            userId,
+            segmentId: cn.variant.segment,
+            events: keyedEvents,
+            keyValue: eventKey,
+            nowMs: Date.now(),
+            version: GetSegmentAssignmentVersion.V1,
+          });
+        }
+
         const nextNodeId: string = segmentAssignment?.inSegment
           ? currentNode.variant.trueChild
           : currentNode.variant.falseChild;
