@@ -348,14 +348,7 @@ export async function getSegmentAssignment(
       });
       return null;
     }
-    if (
-      !(
-        "version" in params &&
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        params.version === GetSegmentAssignmentVersion.V1
-      )
-    ) {
-      span.setAttribute("version", GetSegmentAssignmentVersion.V1);
+    if (!("version" in params)) {
       const assignment =
         (await getSegmentAssignmentDb({
           workspaceId,
@@ -375,7 +368,6 @@ export async function getSegmentAssignment(
         inSegment: assignment,
       };
     }
-
     const definitionResult = schemaValidateWithErr(
       segment.definition,
       SegmentDefinition,
