@@ -2889,6 +2889,13 @@ export const BlobStorageFile = Type.Object(
 
 export type BlobStorageFile = Static<typeof BlobStorageFile>;
 
+export const AppDataFileInternal = Type.Union([
+  Base64EncodedFile,
+  BlobStorageFile,
+]);
+
+export type AppDataFileInternal = Static<typeof AppDataFileInternal>;
+
 export const AppDataFile = Type.Union([Base64EncodedFile], {
   description: "File associated with user event.",
 });

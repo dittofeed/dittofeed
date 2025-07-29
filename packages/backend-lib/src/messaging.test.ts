@@ -3,7 +3,9 @@ import { randomUUID } from "crypto";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
+  AppFileType,
   BadWorkspaceConfigurationType,
+  Base64EncodedFile,
   ParsedWebhookBody,
   WebhookTemplateResource,
   WorkspaceTypeAppEnum,
@@ -563,6 +565,84 @@ describe("messaging", () => {
           UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
         );
       });
+    });
+  });
+
+  describe("when sending email with base64 encoded attachments", () => {
+    let template: MessageTemplate;
+
+    beforeEach(async () => {
+      // First create the email provider
+      await upsertEmailProvider({
+        workspaceId: workspace.id,
+        config: { type: EmailProviderType.Test },
+        setDefault: true,
+      });
+
+      // Then create the template
+      template = await insert({
+        table: dbMessageTemplate,
+        values: {
+          id: randomUUID(),
+          workspaceId: workspace.id,
+          name: `template-${randomUUID()}`,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "Hello with attachment",
+            body: "<mjml><mj-body><mj-section><mj-column><mj-text>Please find the attached file.</mj-text></mj-column></mj-section></mj-body></mjml>",
+            attachmentUserProperties: ["myFile"],
+          } satisfies EmailTemplateResource,
+        },
+      }).then(unwrap);
+    });
+
+    it("should handle base64 encoded file attachments", async () => {
+      const userId = 1234;
+      const email = "test@email.com";
+
+      // Sample base64 encoded file (a simple text file)
+      const base64FileData = "SGVsbG8gV29ybGQ="; // "Hello World" in base64
+      const attachmentFile: Base64EncodedFile = {
+        type: AppFileType.Base64Encoded,
+        name: "test.txt",
+        mimeType: "text/plain",
+        data: base64FileData,
+      };
+
+      const result = await sendEmail({
+        workspaceId: workspace.id,
+        templateId: template.id,
+        messageTags: {
+          workspaceId: workspace.id,
+          templateId: template.id,
+          runId: "run-id-1",
+          messageId: randomUUID(),
+        },
+        userPropertyAssignments: {
+          email,
+          myFile: attachmentFile,
+        },
+        userId: userId.toString(),
+        useDraft: false,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.type).toBe(InternalEventType.MessageSent);
+        if (result.value.type === InternalEventType.MessageSent) {
+          expect(result.value.variant.type).toBe(ChannelType.Email);
+          if (result.value.variant.type === ChannelType.Email) {
+            expect(result.value.variant.attachments).toHaveLength(1);
+            expect(result.value.variant.attachments?.[0]).toEqual({
+              name: "test.txt",
+              mimeType: "text/plain",
+            });
+          }
+        }
+      }
     });
   });
 });

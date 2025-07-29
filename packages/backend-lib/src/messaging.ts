@@ -71,9 +71,10 @@ import {
   SubscriptionGroupDetails,
 } from "./subscriptionGroups";
 import {
+  AppDataFileInternal,
+  AppFileType,
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
-  BlobStorageFile,
   ChannelType,
   EmailProviderSecret,
   EmailProviderType,
@@ -908,7 +909,7 @@ export async function sendEmail({
       messageTemplateDefinition.attachmentUserProperties.map(
         async (attachmentProperty) => {
           const assignment = userPropertyAssignments[attachmentProperty];
-          const file = schemaValidateWithErr(assignment, BlobStorageFile);
+          const file = schemaValidateWithErr(assignment, AppDataFileInternal);
           if (file.isErr()) {
             logger().error(
               {
@@ -923,26 +924,44 @@ export async function sendEmail({
             return [];
           }
 
-          const { name, key, mimeType } = file.value;
-          const object = await getObject(s, {
-            key,
-          });
-          if (!object) {
-            logger().error(
-              {
-                key,
-                workspaceId,
-                mimeType,
-                name,
-                templateId,
-              },
-              "error getting attachment object",
-            );
-            return [];
+          const { name, mimeType } = file.value;
+          let data: string;
+
+          switch (file.value.type) {
+            case AppFileType.Base64Encoded: {
+              // For Base64EncodedFile, use the data directly
+              data = file.value.data;
+              break;
+            }
+            case AppFileType.BlobStorage: {
+              // For BlobStorageFile, fetch from storage
+              const object = await getObject(s, {
+                key: file.value.key,
+              });
+              if (!object) {
+                logger().error(
+                  {
+                    key: file.value.key,
+                    workspaceId,
+                    mimeType,
+                    name,
+                    templateId,
+                  },
+                  "error getting attachment object",
+                );
+                return [];
+              }
+              data = object.text;
+              break;
+            }
+            default: {
+              assertUnreachable(file.value);
+            }
           }
+
           const attachment: Attachment = {
             mimeType,
-            data: object.text,
+            data,
             name,
           };
           return attachment;
@@ -2152,7 +2171,10 @@ export async function testTemplate(
         id: firstSubscriptionGroup.id,
         name: firstSubscriptionGroup.name,
         action: SubscriptionChange.Subscribe,
-        type: firstSubscriptionGroup.type === "OptIn" ? SubscriptionGroupType.OptIn : SubscriptionGroupType.OptOut,
+        type:
+          firstSubscriptionGroup.type === "OptIn"
+            ? SubscriptionGroupType.OptIn
+            : SubscriptionGroupType.OptOut,
       },
     }),
   };
