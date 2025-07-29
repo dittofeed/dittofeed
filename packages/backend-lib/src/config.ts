@@ -35,6 +35,7 @@ const BaseRawConfigProps = {
   kafkaBrokers: Type.Optional(Type.String()),
   kafkaUsername: Type.Optional(Type.String()),
   kafkaPassword: Type.Optional(Type.String()),
+  kafkaEnableAdminSasl: Type.Optional(BoolStr),
   kafkaSsl: Type.Optional(BoolStr),
   kafkaSaslMechanism: Type.Optional(KafkaSaslMechanism),
   kafkaUserEventsPartitions: Type.Optional(Type.String()),
@@ -246,6 +247,7 @@ export type Config = Overwrite<
     globalCronTaskQueue: string;
     googleOps: boolean;
     kafkaBrokers: string[];
+    kafkaEnableAdminSasl: boolean;
     kafkaSaslMechanism: KafkaSaslMechanism;
     kafkaSsl: boolean;
     kafkaUserEventsPartitions: number;
@@ -500,6 +502,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     kafkaBrokers: rawConfig.kafkaBrokers
       ? rawConfig.kafkaBrokers.split(",")
       : ["localhost:9092"],
+    kafkaEnableAdminSasl:
+      rawConfig.kafkaEnableAdminSasl !== undefined
+        ? rawConfig.kafkaEnableAdminSasl === "true"
+        : !!(rawConfig.kafkaUsername && rawConfig.kafkaPassword),
     kafkaSsl: rawConfig.kafkaSsl === "true",
     kafkaSaslMechanism: rawConfig.kafkaSaslMechanism ?? "plain",
     kafkaUserEventsPartitions: parseToNumber({

@@ -88,11 +88,7 @@ export async function insertProcessedComputedProperties({
   });
 }
 
-export async function createUserEventsTables({
-  ingressTopic,
-}: {
-  ingressTopic?: string;
-} = {}) {
+export async function createUserEventsTables() {
   logger().info("Creating user events tables");
   const queries: string[] = [
     // This is the primary table for user events, which serves as the source of truth for user traits and behaviors.
@@ -321,41 +317,6 @@ export async function createUserEventsTables({
     ...GROUP_TABLES,
   ];
 
-  if (ingressTopic && config().writeMode === "kafka") {
-    const kafkaBrokers =
-      config().nodeEnv === NodeEnvEnum.Test ||
-      config().nodeEnv === NodeEnvEnum.Development
-        ? "kafka:29092"
-        : config().kafkaBrokers.join(",");
-
-    const { kafkaUsername, kafkaPassword } = config();
-    
-    // Build kafka settings with optional SASL authentication
-    let kafkaSettings = `
-                  kafka_thread_per_consumer = 0,
-                  kafka_num_consumers = 1,
-                  date_time_input_format = 'best_effort',
-                  input_format_skip_unknown_fields = 1`;
-
-    if (kafkaUsername && kafkaPassword) {
-      kafkaSettings += `,
-                  kafka_security_protocol = 'sasl_plaintext',
-                  kafka_sasl_mechanism = 'PLAIN',
-                  kafka_sasl_username = '${kafkaUsername}',
-                  kafka_sasl_password = '${kafkaPassword}'`;
-    }
-
-    // This table is used in the kafka write mode to buffer messages from kafka
-    // to clickhouse. It's useful for processing a high volume of messages
-    // without burdening clickhouse with excessive memory usage.
-    queries.push(`
-        CREATE TABLE IF NOT EXISTS user_events_queue_v2
-        (message_raw String, workspace_id String, message_id String)
-        ENGINE = Kafka('${kafkaBrokers}', '${ingressTopic}', '${ingressTopic}-clickhouse',
-                  'JSONEachRow') settings${kafkaSettings};
-      `);
-  }
-
   await Promise.all(
     queries.map((query) =>
       clickhouseClient().exec({
@@ -404,14 +365,6 @@ export async function createUserEventsTables({
     `,
     ...GROUP_MATERIALIZED_VIEWS,
   ];
-  if (ingressTopic && config().writeMode === "kafka") {
-    mvQueries.push(`
-      CREATE MATERIALIZED VIEW IF NOT EXISTS user_events_mv_v2
-      TO user_events_v2 AS
-      SELECT *
-      FROM user_events_queue_v2;
-    `);
-  }
 
   await Promise.all(
     mvQueries.map((query) =>
@@ -432,14 +385,71 @@ export async function dropKafkaTables() {
 
   for (const query of dropQueries) {
     try {
+      // eslint-disable-next-line no-await-in-loop
       await clickhouseClient().exec({
         query,
         clickhouse_settings: { wait_end_of_query: 1 },
       });
-      logger().info(`Successfully executed: ${query}`);
+      logger().info({ query }, "Successfully executed query");
     } catch (error) {
-      logger().warn(`Failed to execute: ${query}`, { error });
+      logger().error({ err: error, query }, "Failed to execute query");
       // Continue with next query even if this one fails
     }
   }
+}
+
+export async function createKafkaTables({
+  ingressTopic,
+}: {
+  ingressTopic?: string;
+} = {}) {
+  if (!ingressTopic || config().writeMode !== "kafka") {
+    logger().info("Skipping Kafka table creation - not in kafka write mode");
+    return;
+  }
+
+  logger().info("Creating Kafka tables");
+
+  const kafkaBrokers =
+    config().nodeEnv === NodeEnvEnum.Test ||
+    config().nodeEnv === NodeEnvEnum.Development
+      ? "kafka:29092"
+      : config().kafkaBrokers.join(",");
+
+  // Build kafka settings - SASL authentication is configured globally in ClickHouse config.xml
+  const kafkaSettings = `
+                kafka_thread_per_consumer = 0,
+                kafka_num_consumers = 1,
+                date_time_input_format = 'best_effort',
+                input_format_skip_unknown_fields = 1`;
+
+  const queries = [
+    // This table is used in the kafka write mode to buffer messages from kafka
+    // to clickhouse. It's useful for processing a high volume of messages
+    // without burdening clickhouse with excessive memory usage.
+    `
+      CREATE TABLE IF NOT EXISTS user_events_queue_v2
+      (message_raw String, workspace_id String, message_id String)
+      ENGINE = Kafka('${kafkaBrokers}', '${ingressTopic}', '${ingressTopic}-clickhouse',
+                'JSONEachRow') settings${kafkaSettings};
+    `,
+    // Materialized view to move data from Kafka queue to main table
+    `
+      CREATE MATERIALIZED VIEW IF NOT EXISTS user_events_mv_v2
+      TO user_events_v2 AS
+      SELECT *
+      FROM user_events_queue_v2;
+    `,
+  ];
+
+  await Promise.all(
+    queries.map((query) =>
+      clickhouseClient().exec({
+        query,
+        clickhouse_settings: { wait_end_of_query: 1 },
+      }),
+    ),
+  );
+
+  logger().info("Successfully created Kafka tables");
 }

@@ -9,6 +9,7 @@ x-backend-app-env: &backend-app-env
   KAFKA_BROKERS: "kafka:29092"
   KAFKA_USERNAME: "admin"
   KAFKA_PASSWORD: "password"
+  KAFKA_ENABLE_ADMIN_SASL: "false"
   CLICKHOUSE_HOST: "http://clickhouse-server:8123"
   TEMPORAL_ADDRESS: "temporal:7233"
   API_HOST: "0.0.0.0"
@@ -98,6 +99,15 @@ services:
       - clickhouse-server
     environment:
       <<: *backend-app-env
+    volumes:
+      - ./packages/admin-cli/src:/service/packages/admin-cli/src
+      - ./packages/api/src:/service/packages/api/src
+      - ./packages/backend-lib/src:/service/packages/backend-lib/src
+      - ./packages/dashboard/src:/service/packages/dashboard/src
+      - ./packages/emailo/src:/service/packages/emailo/src
+      - ./packages/isomorphic-lib/src:/service/packages/isomorphic-lib/src
+      - ./packages/lite/src:/service/packages/lite/src
+      - ./packages/worker/src:/service/packages/worker/src
     networks:
       - dittofeed-network-dev
   temporal:
