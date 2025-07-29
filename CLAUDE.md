@@ -1,5 +1,0 @@
-- modify my docker-compose.yaml to enable sasl / basic auth for redpandas (kafka equivalent)
-- modify packages/backend-lib/src/bootstrap.ts to be idempotent by ensuring that if the the topic already exists, that the operation is a no-op
-- create a new method `dropKafkaTables`in packages/backend-lib/src/userEvents/clickhouse.ts for dropping user_events_mv_v2 and user_events_queue_v2 (in that order)
-- have the bootstrap kafka script call `dropKafkaTables` (should continue if this fails due to the tables not existing)
-- modify `createUserEventsTables` so that if `kafkaUsername` and `kafkaPassword` are defined in packages/backend-lib/src/config.ts then the kafka table engine is configured to use sasl / basic auth with these credentials.

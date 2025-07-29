@@ -55,7 +55,7 @@ import {
   WorkspaceTypeApp,
   WorkspaceTypeAppEnum,
 } from "./types";
-import { createUserEventsTables } from "./userEvents/clickhouse";
+import { createUserEventsTables, dropKafkaTables } from "./userEvents/clickhouse";
 import { upsertWorkspace } from "./workspaces/createWorkspace";
 
 const DOMAIN_REGEX =
@@ -366,16 +366,24 @@ export async function bootstrapKafka() {
   } = config();
   await kafkaAdmin().connect();
 
-  await kafkaAdmin().createTopics({
-    waitForLeaders: true,
-    topics: [
-      {
-        topic: userEventsTopicName,
-        numPartitions: kafkaUserEventsPartitions,
-        replicationFactor: kafkaUserEventsReplicationFactor,
-      },
-    ],
-  });
+  // Check if topics already exist to make operation idempotent
+  const existingTopics = await kafkaAdmin().listTopics();
+  const topicsToCreate = [];
+
+  if (!existingTopics.includes(userEventsTopicName)) {
+    topicsToCreate.push({
+      topic: userEventsTopicName,
+      numPartitions: kafkaUserEventsPartitions,
+      replicationFactor: kafkaUserEventsReplicationFactor,
+    });
+  }
+
+  if (topicsToCreate.length > 0) {
+    await kafkaAdmin().createTopics({
+      waitForLeaders: true,
+      topics: topicsToCreate,
+    });
+  }
 
   await kafkaAdmin().disconnect();
 }
@@ -383,6 +391,13 @@ export async function bootstrapKafka() {
 export async function bootstrapClickhouse() {
   logger().info("Bootstrapping clickhouse.");
   await createClickhouseDb();
+
+  // Drop kafka tables if they exist before recreating
+  try {
+    await dropKafkaTables();
+  } catch (error) {
+    logger().warn("Failed to drop kafka tables, continuing anyway", { error });
+  }
 
   await createUserEventsTables({
     ingressTopic: config().userEventsTopicName,

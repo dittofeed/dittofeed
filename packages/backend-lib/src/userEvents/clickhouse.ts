@@ -328,7 +328,23 @@ export async function createUserEventsTables({
         ? "kafka:29092"
         : config().kafkaBrokers.join(",");
 
-    // TODO modify kafka consumer settings
+    const { kafkaUsername, kafkaPassword } = config();
+    
+    // Build kafka settings with optional SASL authentication
+    let kafkaSettings = `
+                  kafka_thread_per_consumer = 0,
+                  kafka_num_consumers = 1,
+                  date_time_input_format = 'best_effort',
+                  input_format_skip_unknown_fields = 1`;
+
+    if (kafkaUsername && kafkaPassword) {
+      kafkaSettings += `,
+                  kafka_security_protocol = 'sasl_plaintext',
+                  kafka_sasl_mechanism = 'PLAIN',
+                  kafka_sasl_username = '${kafkaUsername}',
+                  kafka_sasl_password = '${kafkaPassword}'`;
+    }
+
     // This table is used in the kafka write mode to buffer messages from kafka
     // to clickhouse. It's useful for processing a high volume of messages
     // without burdening clickhouse with excessive memory usage.
@@ -336,11 +352,7 @@ export async function createUserEventsTables({
         CREATE TABLE IF NOT EXISTS user_events_queue_v2
         (message_raw String, workspace_id String, message_id String)
         ENGINE = Kafka('${kafkaBrokers}', '${ingressTopic}', '${ingressTopic}-clickhouse',
-                  'JSONEachRow') settings
-                  kafka_thread_per_consumer = 0,
-                  kafka_num_consumers = 1,
-                  date_time_input_format = 'best_effort',
-                  input_format_skip_unknown_fields = 1;
+                  'JSONEachRow') settings${kafkaSettings};
       `);
   }
 
@@ -409,4 +421,25 @@ export async function createUserEventsTables({
       }),
     ),
   );
+}
+
+export async function dropKafkaTables() {
+  logger().info("Dropping kafka tables");
+  const dropQueries = [
+    "DROP TABLE IF EXISTS user_events_mv_v2",
+    "DROP TABLE IF EXISTS user_events_queue_v2",
+  ];
+
+  for (const query of dropQueries) {
+    try {
+      await clickhouseClient().exec({
+        query,
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+      logger().info(`Successfully executed: ${query}`);
+    } catch (error) {
+      logger().warn(`Failed to execute: ${query}`, { error });
+      // Continue with next query even if this one fails
+    }
+  }
 }

@@ -7,6 +7,8 @@ x-backend-app-env: &backend-app-env
   NODE_ENV: development
   DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed?connect_timeout=60"
   KAFKA_BROKERS: "kafka:29092"
+  KAFKA_USERNAME: "admin"
+  KAFKA_PASSWORD: "password"
   CLICKHOUSE_HOST: "http://clickhouse-server:8123"
   TEMPORAL_ADDRESS: "temporal:7233"
   API_HOST: "0.0.0.0"
@@ -87,7 +89,7 @@ services:
       context: .
       dockerfile: ./packages/admin-cli/Dockerfile
     entrypoint: []
-    profiles: ["apps"]
+    profiles: ["apps", "admin-cli"]
     command: tail -f /dev/null
     tty: true
     depends_on:
@@ -180,6 +182,15 @@ services:
       - --mode dev-container
       # enable logs for debugging.
       - --default-log-level=debug
+      # Enable SASL authentication
+      - --set redpanda.enable_sasl=true
+      # Configure SASL mechanism
+      - --set redpanda.kafka_api[0].authentication_method=sasl
+      # Set up admin user credentials
+      - --set redpanda.superusers=["admin"]
+    environment:
+      REDPANDA_SUPERUSER_NAME: admin
+      REDPANDA_SUPERUSER_PASSWORD: password
     volumes:
       - kafka:/var/lib/redpanda/data
     networks:
