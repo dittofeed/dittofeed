@@ -569,7 +569,7 @@ describe("messaging", () => {
     });
   });
 
-  describe.only("when sending email with base64 encoded attachments", () => {
+  describe("when sending email with base64 encoded attachments", () => {
     let template: MessageTemplate;
 
     beforeEach(async () => {
@@ -616,6 +616,12 @@ describe("messaging", () => {
       const result = await sendEmail({
         workspaceId: workspace.id,
         templateId: template.id,
+        messageTags: {
+          workspaceId: workspace.id,
+          templateId: template.id,
+          runId: "run-id-1",
+          messageId: randomUUID(),
+        },
         userPropertyAssignments: {
           email,
           myFile: attachmentFile,
@@ -624,12 +630,6 @@ describe("messaging", () => {
         useDraft: false,
       });
 
-      if (result.isErr()) {
-        logger().error(
-          { err: result.error },
-          "Test error sending email with base64 attachment",
-        );
-      }
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         expect(result.value.type).toBe(InternalEventType.MessageSent);
