@@ -18,7 +18,6 @@ import {
   subscriptionGroup as dbSubscriptionGroup,
   workspace as dbWorkspace,
 } from "./db/schema";
-import logger from "./logger";
 import {
   sendEmail,
   sendSms,

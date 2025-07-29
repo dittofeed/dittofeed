@@ -75,8 +75,6 @@ import {
   AppFileType,
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
-  Base64EncodedFile,
-  BlobStorageFile,
   ChannelType,
   EmailProviderSecret,
   EmailProviderType,
@@ -929,39 +927,36 @@ export async function sendEmail({
           const { name, mimeType } = file.value;
           let data: string;
 
-          if (file.value.type === AppFileType.Base64Encoded) {
-            // For Base64EncodedFile, use the data directly
-            data = file.value.data;
-          } else if (file.value.type === AppFileType.BlobStorage) {
-            // For BlobStorageFile, fetch from storage
-            const object = await getObject(s, {
-              key: file.value.key,
-            });
-            if (!object) {
-              logger().error(
-                {
-                  key: file.value.key,
-                  workspaceId,
-                  mimeType,
-                  name,
-                  templateId,
-                },
-                "error getting attachment object",
-              );
-              return [];
+          switch (file.value.type) {
+            case AppFileType.Base64Encoded: {
+              // For Base64EncodedFile, use the data directly
+              data = file.value.data;
+              break;
             }
-            data = object.text;
-          } else {
-            logger().error(
-              {
-                fileType: (file.value as any).type,
-                attachmentProperty,
-                templateId,
-                workspaceId,
-              },
-              "unsupported file type for attachment",
-            );
-            return [];
+            case AppFileType.BlobStorage: {
+              // For BlobStorageFile, fetch from storage
+              const object = await getObject(s, {
+                key: file.value.key,
+              });
+              if (!object) {
+                logger().error(
+                  {
+                    key: file.value.key,
+                    workspaceId,
+                    mimeType,
+                    name,
+                    templateId,
+                  },
+                  "error getting attachment object",
+                );
+                return [];
+              }
+              data = object.text;
+              break;
+            }
+            default: {
+              assertUnreachable(file.value);
+            }
           }
 
           const attachment: Attachment = {
