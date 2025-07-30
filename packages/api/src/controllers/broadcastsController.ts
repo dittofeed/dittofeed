@@ -194,15 +194,11 @@ export default async function broadcastsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const { workspaceId, broadcastId } = request.body;
       const occupant = getOccupantFromRequest(request);
-      if (!occupant) {
-        return reply.status(401).send();
-      }
-      const { workspaceOccupantId, workspaceOccupantType } = occupant;
       await startBroadcastWorkflow({
         workspaceId,
         broadcastId,
-        workspaceOccupantId,
-        workspaceOccupantType,
+        workspaceOccupantId: occupant?.workspaceOccupantId,
+        workspaceOccupantType: occupant?.workspaceOccupantType,
       });
       return reply.status(200).send({ message: "Broadcast started" });
     },
