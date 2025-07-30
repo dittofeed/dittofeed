@@ -87,6 +87,7 @@ import {
 } from "../lib/useTestTemplateMutation";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
 import { useUserPropertiesQuery } from "../lib/useUserPropertiesQuery";
+import { useUsersQuery } from "../lib/useUsersQuery";
 import { EditableTitle } from "./editableName/v2";
 import ErrorBoundary from "./errorBoundary";
 import { SubtleHeader } from "./headers";
@@ -305,14 +306,16 @@ function getUserPropertyValues({
   return userPropertyAssignments;
 }
 
-function buildTags({
+export function buildTags({
   workspaceId,
   templateId,
   userId,
+  userSegments,
 }: {
   workspaceId: string;
   templateId: string;
   userId?: string;
+  userSegments?: { id: string; name: string }[];
 }): Record<string, string> {
   return {
     journeyId: "sample-journey-id",
@@ -322,6 +325,7 @@ function buildTags({
     templateId,
     userId: userId ?? "sample-user-id",
     workspaceId,
+    userSegments: userSegments ? JSON.stringify(userSegments) : "[]",
   };
 }
 
@@ -591,6 +595,29 @@ export default function TemplateEditor({
 
   const [debouncedUserProperties] = useDebounce(state.userProperties, 300);
 
+  // Fetch user segments for the current user
+  const { data: usersData } = useUsersQuery(
+    {
+      userIds: debouncedUserProperties.id
+        ? [debouncedUserProperties.id as string]
+        : undefined,
+      limit: 1,
+    },
+    {
+      enabled:
+        !!debouncedUserProperties.id &&
+        typeof debouncedUserProperties.id === "string",
+    },
+  );
+
+  // Extract user segments from the fetched data
+  const userSegments = useMemo(() => {
+    if (!usersData?.users || usersData.users.length === 0) {
+      return [];
+    }
+    return usersData.users[0]?.segments ?? [];
+  }, [usersData]);
+
   const draftToRender = useMemo(() => {
     if (debouncedDraft) {
       return debouncedDraft;
@@ -623,6 +650,7 @@ export default function TemplateEditor({
         workspaceId: workspace.id,
         templateId,
         userId: debouncedUserProperties.id,
+        userSegments,
       }),
       contents: draftToPreview(draftToRender),
     };
@@ -634,6 +662,7 @@ export default function TemplateEditor({
     channel,
     templateId,
     draftToPreview,
+    userSegments,
   ]);
 
   const renderQuery = useRenderTemplateQuery(renderHookParams, {
@@ -871,6 +900,7 @@ export default function TemplateEditor({
       workspaceId: workspace.id,
       templateId,
       userId: debouncedUserProperties.id,
+      userSegments,
     }),
   };
   let submitTestDataVariables: TestTemplateVariables;
