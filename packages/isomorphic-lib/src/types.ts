@@ -5729,10 +5729,21 @@ export const BaseBatchMessageUsersRequest = {
   workspaceId: Type.String(),
   providerOverride: Type.Optional(Type.String()),
   templateId: Type.String(),
+  subscriptionGroupId: Type.Optional(Type.String()),
   users: Type.Array(
     Type.Object({
       id: Type.String(),
-      properties: Type.Object(Type.Record(Type.String(), Type.Any())),
+      messageId: Type.Optional(
+        Type.String({
+          description:
+            "Message Id to set on the tracked event. If not provided, a message id will be generated.",
+        }),
+      ),
+      context: Type.Optional(Type.Record(Type.String(), Type.Any())),
+      properties: Type.Record(Type.String(), Type.Any(), {
+        description:
+          "User property values to be rendered in the message, keyed by name. Will override values present on the user.",
+      }),
     }),
   ),
 };
@@ -5774,3 +5785,66 @@ export const BatchMessageUsersRequest = Type.Union([
 ]);
 
 export type BatchMessageUsersRequest = Static<typeof BatchMessageUsersRequest>;
+
+export const BatchMessageUsersResultTypeEnum = {
+  Success: "Success",
+  Skipped: "Skipped",
+  RetryableError: "RetryableError",
+  NonRetryableError: "NonRetryableError",
+} as const;
+
+export const BatchMessageUsersResultType = Type.KeyOf(
+  Type.Const(BatchMessageUsersResultTypeEnum),
+);
+
+export type BatchMessageUsersResultType = Static<
+  typeof BatchMessageUsersResultType
+>;
+
+export const BaseBatchMessageUsersResult = {
+  userId: Type.String(),
+};
+
+export const BatchMessageUsersResultRetryableError = Type.Object({
+  ...BaseBatchMessageUsersResult,
+  type: Type.Literal(BatchMessageUsersResultTypeEnum.RetryableError),
+  messageId: Type.String(),
+  error: Type.Composite([
+    Type.Record(Type.String(), Type.Any()),
+    Type.Object({
+      message: Type.String(),
+    }),
+  ]),
+});
+
+export type BatchMessageUsersResultRetryableError = Static<
+  typeof BatchMessageUsersResultRetryableError
+>;
+
+export const BatchMessageUsersResult = Type.Union([
+  Type.Object({
+    ...BaseBatchMessageUsersResult,
+    type: Type.Literal(BatchMessageUsersResultTypeEnum.Success),
+    messageId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseBatchMessageUsersResult,
+    type: Type.Literal(BatchMessageUsersResultTypeEnum.Skipped),
+    reason: Type.String(),
+    messageId: Type.String(),
+  }),
+  BatchMessageUsersResultRetryableError,
+  Type.Object({
+    ...BaseBatchMessageUsersResult,
+    type: Type.Literal(BatchMessageUsersResultTypeEnum.NonRetryableError),
+    error: MessageServiceFailureVariant,
+  }),
+]);
+
+export const BatchMessageUsersResponse = Type.Object({
+  results: Type.Array(BatchMessageUsersResult),
+});
+
+export type BatchMessageUsersResponse = Static<
+  typeof BatchMessageUsersResponse
+>;
