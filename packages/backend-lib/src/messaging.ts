@@ -73,6 +73,8 @@ import {
 import {
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
+  BatchMessageUsersRequest,
+  BatchMessageUsersResponse,
   BlobStorageFile,
   ChannelType,
   EmailProviderSecret,
@@ -2197,4 +2199,27 @@ export async function testTemplate(
       assertUnreachable(request);
   }
   return sendMessage(sendMessageParams);
+}
+
+export async function batchMessageUsers(
+  params: BatchMessageUsersRequest,
+): Promise<BatchMessageUsersResponse> {
+  try {
+    // lookup subscription details from subscription group id and user ids
+    // lookup user property assignments for user ids
+    // override user property assignments with properties from request for each user
+    // send message to each user
+    // submit track event for each message result in batch using submitBatch method
+  } catch (e) {
+    logger().info(
+      {
+        err: e,
+        workspaceId: params.workspaceId,
+      },
+      "Batch message users failed",
+    );
+    // make this a return rather than a throw
+    // return a retryable error
+    throw new Error("unimplemented");
+  }
 }
