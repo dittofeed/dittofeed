@@ -2152,7 +2152,10 @@ export async function testTemplate(
         id: firstSubscriptionGroup.id,
         name: firstSubscriptionGroup.name,
         action: SubscriptionChange.Subscribe,
-        type: firstSubscriptionGroup.type === "OptIn" ? SubscriptionGroupType.OptIn : SubscriptionGroupType.OptOut,
+        type:
+          firstSubscriptionGroup.type === "OptIn"
+            ? SubscriptionGroupType.OptIn
+            : SubscriptionGroupType.OptOut,
       },
     }),
   };

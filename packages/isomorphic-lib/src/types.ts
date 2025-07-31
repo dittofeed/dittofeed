@@ -5724,3 +5724,53 @@ export interface UserEventV2 {
   message_raw: string;
   workspace_id: string;
 }
+
+export const BaseBatchMessageUsersRequest = {
+  workspaceId: Type.String(),
+  providerOverride: Type.Optional(Type.String()),
+  templateId: Type.String(),
+  users: Type.Array(
+    Type.Object({
+      id: Type.String(),
+      properties: Type.Object(Type.Record(Type.String(), Type.Any())),
+    }),
+  ),
+};
+
+export const EmailBatchMessageUsersRequest = Type.Object({
+  ...BaseBatchMessageUsersRequest,
+  channel: Type.Literal(ChannelType.Email),
+  provider: Type.Optional(Type.Enum(EmailProviderType)),
+});
+
+export type EmailBatchMessageUsersRequest = Static<
+  typeof EmailBatchMessageUsersRequest
+>;
+
+export const SmsBatchMessageUsersRequest = Type.Object({
+  ...BaseBatchMessageUsersRequest,
+  channel: Type.Literal(ChannelType.Sms),
+  provider: Type.Optional(Type.Enum(SmsProviderType)),
+});
+
+export type SmsBatchMessageUsersRequest = Static<
+  typeof SmsBatchMessageUsersRequest
+>;
+
+export const WebBatchMessageUsersRequest = Type.Object({
+  ...BaseBatchMessageUsersRequest,
+  channel: Type.Literal(ChannelType.Webhook),
+  provider: Type.Optional(Type.Null()),
+});
+
+export type WebBatchMessageUsersRequest = Static<
+  typeof WebBatchMessageUsersRequest
+>;
+
+export const BatchMessageUsersRequest = Type.Union([
+  EmailBatchMessageUsersRequest,
+  SmsBatchMessageUsersRequest,
+  WebBatchMessageUsersRequest,
+]);
+
+export type BatchMessageUsersRequest = Static<typeof BatchMessageUsersRequest>;
