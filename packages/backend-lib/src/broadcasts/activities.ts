@@ -33,7 +33,6 @@ import {
   GetUsersResponseItem,
   InternalEventType,
   JSONValue,
-  MessageSendFailure,
   MessageTags,
   SavedSegmentResource,
   TrackData,

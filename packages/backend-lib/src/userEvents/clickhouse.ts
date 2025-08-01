@@ -342,6 +342,13 @@ export async function createUserEventsTables({
                   date_time_input_format = 'best_effort',
                   input_format_skip_unknown_fields = 1;
       `);
+
+    queries.push(`
+      CREATE MATERIALIZED VIEW IF NOT EXISTS user_events_mv_v2
+      TO user_events_v2 AS
+      SELECT *
+      FROM user_events_queue_v2;
+    `);
   }
 
   await Promise.all(
@@ -392,14 +399,6 @@ export async function createUserEventsTables({
     `,
     ...GROUP_MATERIALIZED_VIEWS,
   ];
-  if (ingressTopic && config().writeMode === "kafka") {
-    mvQueries.push(`
-      CREATE MATERIALIZED VIEW IF NOT EXISTS user_events_mv_v2
-      TO user_events_v2 AS
-      SELECT *
-      FROM user_events_queue_v2;
-    `);
-  }
 
   await Promise.all(
     mvQueries.map((query) =>

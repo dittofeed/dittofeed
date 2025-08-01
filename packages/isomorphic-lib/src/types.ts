@@ -5742,7 +5742,6 @@ export const BaseBatchMessageUsersRequestUser = Type.Object({
         "Message Id to set on the tracked event. If not provided, a message id will be generated.",
     }),
   ),
-  context: Type.Optional(Type.Record(Type.String(), Type.Any())),
   properties: Type.Record(Type.String(), Type.Any(), {
     description:
       "User property values to be rendered in the message, keyed by name. Will override values present on the user.",
@@ -5759,6 +5758,7 @@ export const BaseBatchMessageUsersRequest = {
   templateId: Type.String(),
   subscriptionGroupId: Type.Optional(Type.String()),
   users: Type.Array(BaseBatchMessageUsersRequestUser),
+  context: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const EmailBatchMessageUsersRequest = Type.Object({
@@ -5850,6 +5850,7 @@ export const BatchMessageUsersResult = Type.Union([
   Type.Object({
     ...BaseBatchMessageUsersResult,
     type: Type.Literal(BatchMessageUsersResultTypeEnum.NonRetryableError),
+    messageId: Type.String(),
     error: NonRetryableMessageSendFailure,
   }),
 ]);

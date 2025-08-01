@@ -87,6 +87,7 @@ import {
   EmailProviderTypeSchema,
   EventType,
   InternalEventType,
+  KnownBatchTrackData,
   MessageSendFailure,
   MessageSkippedType,
   MessageTags,
@@ -108,6 +109,7 @@ import {
   SmsProviderType,
   SubscriptionChange,
   SubscriptionGroupType,
+  TrackData,
   TwilioSecret,
   TwilioSenderOverrideType,
   UpsertMessageTemplateResource,
@@ -122,6 +124,7 @@ import {
   UserPropertyAssignments,
 } from "./userProperties";
 import { isWorkspaceOccupantType } from "./workspaceOccupantSettings";
+import { omit } from "remeda";
 
 export function enrichMessageTemplate({
   id,
@@ -2235,7 +2238,6 @@ export async function batchMessageUsers(
   params: BatchMessageUsersRequest,
 ): Promise<BatchMessageUsersResponse> {
   const { workspaceId, templateId, subscriptionGroupId, users } = params;
-  const results: BatchMessageUsersResponse["results"] = [];
 
   try {
     // Collect all user IDs for bulk operations
@@ -2329,7 +2331,6 @@ export async function batchMessageUsers(
             workspaceId,
             templateId,
             userId: user.id,
-            ...user.context,
           };
 
           // Prepare send message parameters based on channel type
@@ -2417,6 +2418,7 @@ export async function batchMessageUsers(
                 {
                   userId: user.id,
                   type: BatchMessageUsersResultTypeEnum.NonRetryableError,
+                  messageId,
                   error,
                 },
                 messageResult,
@@ -2476,32 +2478,56 @@ export async function batchMessageUsers(
 
     // Wait for all messages to be processed
     const messageResults = await Promise.all(messagePromises);
-    results.push(...messageResults);
 
-    // Submit track events for all message results in batch
-    const trackEvents = messageResults.map((result) => ({
-      type: EventType.Track,
-      messageId: randomUUID(),
-      userId: result.userId,
-      event: "Message Sent",
-      properties: {
-        templateId,
-        messageId: "messageId" in result ? result.messageId : undefined,
-        channel: params.channel,
-        result:
-          result.type === BatchMessageUsersResultTypeEnum.Success
-            ? "success"
-            : "error",
-        resultType: result.type,
+    const results: BatchMessageUsersResponse["results"] = messageResults.map(
+      (r) => r[0],
+    );
+
+    const baseProperties: TrackData["properties"] = {
+      templateId,
+      workspaceId,
+    };
+    const trackEvents: KnownBatchTrackData[] = messageResults.flatMap(
+      ([responseResult, backendMessageSendResult]) => {
+        if (!backendMessageSendResult) {
+          return [];
+        }
+        if (
+          responseResult.type === BatchMessageUsersResultTypeEnum.RetryableError
+        ) {
+          return [];
+        }
+        let event: InternalEventType;
+        let trackingProperties: TrackData["properties"];
+        const { messageId, userId } = responseResult;
+        if (backendMessageSendResult.isOk()) {
+          event = backendMessageSendResult.value.type;
+          trackingProperties = {
+            ...baseProperties,
+            ...omit(backendMessageSendResult.value, ["type"]),
+          };
+        } else {
+          event = backendMessageSendResult.error.type;
+          trackingProperties = {
+            ...baseProperties,
+            ...omit(backendMessageSendResult.error, ["type"]),
+          };
+        }
+        return {
+          type: EventType.Track,
+          properties: trackingProperties,
+          messageId,
+          userId,
+          event,
+        };
       },
-      timestamp: new Date().toISOString(),
-    }));
+    );
 
     await submitBatch({
       workspaceId,
       data: {
         batch: trackEvents,
-        context: {},
+        context: params.context,
       },
     });
 
