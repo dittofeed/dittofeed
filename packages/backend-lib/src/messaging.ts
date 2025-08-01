@@ -2246,7 +2246,8 @@ export async function batchMessageUsers(
   const [subscriptionGroupData, userPropertyAssignmentsMap] = await Promise.all(
     [
       subscriptionGroupId
-        ? Promise.all(
+        ? // FIXME make batch
+          Promise.all(
             userIds.map(async (userId) => {
               const subscriptionGroupWithAssignment =
                 await getSubscriptionGroupWithAssignment({
@@ -2261,6 +2262,7 @@ export async function batchMessageUsers(
           )
         : Promise.resolve([]),
 
+      // FIXME make batch
       // Get user property assignments for all users
       Promise.all(
         userIds.map(async (userId) => {
