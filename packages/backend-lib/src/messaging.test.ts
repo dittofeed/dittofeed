@@ -27,7 +27,10 @@ import {
 } from "./messaging";
 import { upsertEmailProvider } from "./messaging/email";
 import { upsertSmsProvider } from "./messaging/sms";
-import { upsertSubscriptionGroup, upsertSubscriptionSecret } from "./subscriptionGroups";
+import {
+  upsertSubscriptionGroup,
+  upsertSubscriptionSecret,
+} from "./subscriptionGroups";
 import {
   BatchMessageUsersResultTypeEnum,
   ChannelType,
@@ -656,7 +659,7 @@ describe("messaging", () => {
             },
           },
           {
-            id: "user2", 
+            id: "user2",
             properties: {
               email: "user2@test.com",
               firstName: "User2",

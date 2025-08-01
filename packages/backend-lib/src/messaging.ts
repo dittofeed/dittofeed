@@ -70,7 +70,6 @@ import {
 import { withSpan } from "./openTelemetry";
 import {
   getSubscriptionGroupDetails,
-  getSubscriptionGroupWithAssignment,
   getSubscriptionGroupWithAssignments,
   inSubscriptionGroup,
   SubscriptionGroupDetails,
@@ -122,10 +121,7 @@ import {
   WebhookResponse,
   WebhookSecret,
 } from "./types";
-import {
-  findAllUserPropertyAssignments,
-  UserPropertyAssignments,
-} from "./userProperties";
+import { UserPropertyAssignments } from "./userProperties";
 import { getUsers } from "./users";
 import { isWorkspaceOccupantType } from "./workspaceOccupantSettings";
 
@@ -2299,6 +2295,7 @@ export async function batchMessageUsers(
       // Convert properties from getUsers format to UserPropertyAssignments format
       const assignments: UserPropertyAssignments = {};
       for (const [propertyId, property] of Object.entries(user.properties)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         assignments[propertyId] = property.value;
       }
       return [user.id, assignments];
@@ -2333,7 +2330,7 @@ export async function batchMessageUsers(
 
         // Get base user property assignments and merge with request properties
         const baseUserPropertyAssignments =
-          userPropertiesMap.get(user.id) || {};
+          userPropertiesMap.get(user.id) ?? {};
         const combinedUserPropertyAssignments = {
           ...baseUserPropertyAssignments,
           ...user.properties,
