@@ -30,6 +30,42 @@ KAFKA_USER_EVENTS_REPLICATION_FACTOR=1
 USER_EVENTS_TOPIC_NAME=dittofeed-user-events
 ```
 
+## ClickHouse Kafka SASL Configuration
+
+When using Kafka with SASL authentication, ClickHouse requires additional configuration in its config file. Create or modify the ClickHouse configuration file to include SASL settings:
+
+```xml
+<!-- clickhouse_config.xml -->
+<clickhouse>
+    <kafka>
+        <security_protocol>sasl_plaintext</security_protocol>
+        <sasl_mechanism>PLAIN</sasl_mechanism>
+        <sasl_username>your-kafka-username</sasl_username>
+        <sasl_password>your-kafka-password</sasl_password>
+    </kafka>
+</clickhouse>
+```
+
+For SSL-enabled Kafka connections, use:
+
+```xml
+<!-- clickhouse_config.xml -->
+<clickhouse>
+    <kafka>
+        <security_protocol>sasl_ssl</security_protocol>
+        <sasl_mechanism>PLAIN</sasl_mechanism>
+        <sasl_username>your-kafka-username</sasl_username>
+        <sasl_password>your-kafka-password</sasl_password>
+    </kafka>
+</clickhouse>
+```
+
+<Warning>
+SASL authentication settings cannot be configured at the table level in ClickHouse and must be set in the server configuration file. ClickHouse requires a restart when SASL configuration changes.
+</Warning>
+
+## Bootstrap
+
 Finally, you can run the bootstrap script to create the necessary Kafka topic:
 
 ```bash

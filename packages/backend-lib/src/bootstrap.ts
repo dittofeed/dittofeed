@@ -55,7 +55,11 @@ import {
   WorkspaceTypeApp,
   WorkspaceTypeAppEnum,
 } from "./types";
-import { createUserEventsTables } from "./userEvents/clickhouse";
+import {
+  createKafkaTables,
+  createUserEventsTables,
+  dropKafkaTables,
+} from "./userEvents/clickhouse";
 import { upsertWorkspace } from "./workspaces/createWorkspace";
 
 const DOMAIN_REGEX =
@@ -364,29 +368,62 @@ export async function bootstrapKafka() {
     kafkaUserEventsPartitions,
     kafkaUserEventsReplicationFactor,
   } = config();
-  await kafkaAdmin().connect();
 
-  await kafkaAdmin().createTopics({
-    waitForLeaders: true,
-    topics: [
-      {
-        topic: userEventsTopicName,
-        numPartitions: kafkaUserEventsPartitions,
-        replicationFactor: kafkaUserEventsReplicationFactor,
-      },
-    ],
-  });
+  const admin = kafkaAdmin();
+  await admin.connect();
 
-  await kafkaAdmin().disconnect();
+  try {
+    // Check if topic already exists to make operation idempotent
+    const existingTopics = await admin.listTopics();
+    const topicExists = existingTopics.includes(userEventsTopicName);
+
+    if (!topicExists) {
+      // Set waitForLeaders: false to avoid KafkaJS hanging bug
+      // Add timeout to prevent indefinite hanging
+      await admin.createTopics({
+        waitForLeaders: false,
+        timeout: 30000,
+        topics: [
+          {
+            topic: userEventsTopicName,
+            numPartitions: kafkaUserEventsPartitions,
+            replicationFactor: kafkaUserEventsReplicationFactor,
+          },
+        ],
+      });
+
+      logger().info({ topic: userEventsTopicName }, "Created Kafka topic");
+    } else {
+      logger().info(
+        { topic: userEventsTopicName },
+        "Kafka topic already exists",
+      );
+    }
+
+    // Drop and recreate Kafka tables if using Kafka write mode
+    try {
+      logger().info("Dropping Kafka clickhouse tables");
+      await dropKafkaTables();
+    } catch (error) {
+      logger().warn("Failed to drop kafka tables, continuing anyway", {
+        err: error,
+      });
+    }
+
+    logger().info("Creating Kafka clickhouse tables");
+    await createKafkaTables({
+      ingressTopic: userEventsTopicName,
+    });
+  } finally {
+    await admin.disconnect();
+  }
 }
 
 export async function bootstrapClickhouse() {
   logger().info("Bootstrapping clickhouse.");
   await createClickhouseDb();
 
-  await createUserEventsTables({
-    ingressTopic: config().userEventsTopicName,
-  });
+  await createUserEventsTables();
 }
 
 async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {

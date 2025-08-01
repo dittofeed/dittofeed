@@ -7,6 +7,9 @@ x-backend-app-env: &backend-app-env
   NODE_ENV: development
   DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed?connect_timeout=60"
   KAFKA_BROKERS: "kafka:29092"
+  KAFKA_USERNAME: "admin"
+  KAFKA_PASSWORD: "password"
+  KAFKA_ENABLE_ADMIN_SASL: "false"
   CLICKHOUSE_HOST: "http://clickhouse-server:8123"
   TEMPORAL_ADDRESS: "temporal:7233"
   API_HOST: "0.0.0.0"
@@ -87,7 +90,7 @@ services:
       context: .
       dockerfile: ./packages/admin-cli/Dockerfile
     entrypoint: []
-    profiles: ["apps"]
+    profiles: ["apps", "admin-cli"]
     command: tail -f /dev/null
     tty: true
     depends_on:
@@ -96,6 +99,15 @@ services:
       - clickhouse-server
     environment:
       <<: *backend-app-env
+    volumes:
+      - ./packages/admin-cli/src:/service/packages/admin-cli/src
+      - ./packages/api/src:/service/packages/api/src
+      - ./packages/backend-lib/src:/service/packages/backend-lib/src
+      - ./packages/dashboard/src:/service/packages/dashboard/src
+      - ./packages/emailo/src:/service/packages/emailo/src
+      - ./packages/isomorphic-lib/src:/service/packages/isomorphic-lib/src
+      - ./packages/lite/src:/service/packages/lite/src
+      - ./packages/worker/src:/service/packages/worker/src
     networks:
       - dittofeed-network-dev
   temporal:
@@ -155,33 +167,114 @@ services:
       - 18081:18081
       - 18082:18082
       - 19644:9644
-    command:
-      - redpanda
-      - start
-      - --kafka-addr internal://0.0.0.0:29092,external://0.0.0.0:9092
-      # Address the broker advertises to clients that connect to the Kafka API.
-      # Use the internal addresses to connect to the Redpanda brokers'
-      # from inside the same Docker network.
-      # Use the external addresses to connect to the Redpanda brokers'
-      # from outside the Docker network.
-      - --advertise-kafka-addr internal://kafka:29092,external://localhost:9092
-      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
-      # Address the broker advertises to clients that connect to the HTTP Proxy.
-      - --advertise-pandaproxy-addr internal://kafka:8082,external://localhost:18082
-      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
-      # Redpanda brokers use the RPC API to communicate with eachother internally.
-      - --rpc-addr kafka:33145
-      - --advertise-rpc-addr kafka:33145
-      # Tells Seastar (the framework Redpanda uses under the hood) to use 1 core on the system.
-      - --smp 1
-      # The amount of memory to make available to Redpanda.
-      - --memory 1G
-      # Mode dev-container uses well-known configuration properties for development in containers.
-      - --mode dev-container
-      # enable logs for debugging.
-      - --default-log-level=debug
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -ex
+        /usr/local/bin/supervisord -d
+        
+        # Create Redpanda configuration with SASL
+        cat > /etc/redpanda/redpanda.yaml <<EOF
+        redpanda:
+          data_directory: /var/lib/redpanda/data
+          node_id: 0
+          seed_servers: []
+          rpc_server:
+            address: 0.0.0.0
+            port: 33145
+          advertised_rpc_api:
+            address: kafka
+            port: 33145
+          kafka_api:
+            - address: 0.0.0.0
+              port: 29092
+              name: internal
+            - address: 0.0.0.0
+              port: 9092
+              name: external
+              authentication_method: sasl
+          advertised_kafka_api:
+            - address: kafka
+              port: 29092
+              name: internal
+            - address: localhost
+              port: 9092
+              name: external
+          admin:
+            - address: 0.0.0.0
+              port: 9644
+          superusers:
+            - admin
+        
+        pandaproxy:
+          pandaproxy_api:
+            - address: 0.0.0.0
+              port: 8082
+              name: internal
+            - address: 0.0.0.0
+              port: 18082
+              name: external
+          advertised_pandaproxy_api:
+            - address: kafka
+              port: 8082
+              name: internal
+            - address: localhost
+              port: 18082
+              name: external
+        
+        schema_registry:
+          schema_registry_api:
+            - address: 0.0.0.0
+              port: 8081
+              name: internal
+            - address: 0.0.0.0
+              port: 18081
+              name: external
+        
+        rpk:
+          kafka_api:
+            brokers:
+              - kafka:29092
+              - localhost:9092
+          admin_api:
+            addresses:
+              - kafka:9644
+              - localhost:19644
+        EOF
+        
+        # Start Redpanda
+        exec /usr/bin/rpk redpanda start \
+          --advertise-kafka-addr internal://kafka:29092,external://localhost:9092 \
+          --advertise-pandaproxy-addr internal://kafka:8082,external://localhost:18082 \
+          --advertise-rpc-addr kafka:33145 \
+          --smp 1 \
+          --memory 1G \
+          --mode dev-container \
+          --default-log-level=debug
     volumes:
       - kafka:/var/lib/redpanda/data
+    networks:
+      - dittofeed-network-dev
+  
+  kafka-setup:
+    image: redpandadata/redpanda:v23.1.1
+    profiles: ["kafka"]
+    depends_on:
+      - kafka
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -ex
+        # Wait for Redpanda to be ready
+        timeout 60 bash -c 'until rpk cluster info --brokers kafka:29092; do sleep 1; done'
+        
+        # Create admin user
+        rpk acl user create admin --password password --mechanism SCRAM-SHA-256 --brokers kafka:29092 --api-urls http://kafka:9644
+        
+        # Set superusers (this enables authorization)
+        rpk cluster config set superusers '["admin"]' --brokers kafka:29092 --api-urls http://kafka:9644
     networks:
       - dittofeed-network-dev
   clickhouse-server:

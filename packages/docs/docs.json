@@ -228,6 +228,7 @@
               "api-reference/auto/content/get-apiadmincontenttemplates",
               "api-reference/auto/content/put-apiadmincontenttemplates",
               "api-reference/auto/content/delete-apiadmincontenttemplates",
+              "api-reference/auto/content/post-apiadmincontenttemplatestest",
               "api-reference/auto/segments/get-apiadminsegments",
               "api-reference/auto/segments/put-apiadminsegments",
               "api-reference/auto/segments/delete-apiadminsegments",
@@ -251,8 +252,8 @@
               "api-reference/auto/groups/get-apiadmingroupsuser-groups",
               "api-reference/auto/groups/get-apiadmingroupsusers",
               "api-reference/auto/deliveries/get-apiadmindeliveries",
-              "api-reference/auto/settings/put-apisettingsemail-providers",
-              "api-reference/auto/settings/put-apisettingssms-providers",
+              "api-reference/auto/settings/put-apiadminsettingsemail-providers",
+              "api-reference/auto/settings/put-apiadminsettingssms-providers",
               "api-reference/auto/segments/post-apiadminsegmentsmanual-segmentupdate",
               "api-reference/auto/segments/post-apiadminsegmentsmanual-segmentclear",
               "api-reference/auto/segments/get-apiadminsegmentsmanual-segmentstatus"
