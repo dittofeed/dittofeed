@@ -560,7 +560,8 @@ export default async function contentController(fastify: FastifyInstance) {
     "/templates/batch-send",
     {
       schema: {
-        description: "Send messages to a batch of users using a message template.",
+        description:
+          "Send messages to a batch of users using a message template.",
         tags: ["Content"],
         body: BatchMessageUsersRequest,
         response: {
