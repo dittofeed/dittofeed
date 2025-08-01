@@ -4113,6 +4113,15 @@ export const MessageSkippedFailure = Type.Object({
 
 export type MessageSkippedFailure = Static<typeof MessageSkippedFailure>;
 
+export const NonRetryableMessageSendFailure = Type.Union([
+  MessageSendBadConfiguration,
+  MessageServiceFailure,
+]);
+
+export type NonRetryableMessageSendFailure = Static<
+  typeof NonRetryableMessageSendFailure
+>;
+
 export const MessageSendFailure = Type.Union([
   MessageSendBadConfiguration,
   MessageServiceFailure,
@@ -5731,3 +5740,134 @@ export interface UserEventV2 {
   message_raw: string;
   workspace_id: string;
 }
+
+export const BaseBatchMessageUsersRequestUser = Type.Object({
+  id: Type.String(),
+  messageId: Type.Optional(
+    Type.String({
+      description:
+        "Message Id to set on the tracked event. If not provided, a message id will be generated.",
+    }),
+  ),
+  properties: Type.Record(Type.String(), Type.Any(), {
+    description:
+      "User property values to be rendered in the message, keyed by name. Will override values present on the user.",
+  }),
+});
+
+export type BaseBatchMessageUsersRequestUser = Static<
+  typeof BaseBatchMessageUsersRequestUser
+>;
+
+export const BaseBatchMessageUsersRequest = {
+  workspaceId: Type.String(),
+  providerOverride: Type.Optional(Type.String()),
+  templateId: Type.String(),
+  subscriptionGroupId: Type.Optional(Type.String()),
+  users: Type.Array(BaseBatchMessageUsersRequestUser),
+  context: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const EmailBatchMessageUsersRequest = Type.Object({
+  ...BaseBatchMessageUsersRequest,
+  channel: Type.Literal(ChannelType.Email),
+  provider: Type.Optional(Type.Enum(EmailProviderType)),
+});
+
+export type EmailBatchMessageUsersRequest = Static<
+  typeof EmailBatchMessageUsersRequest
+>;
+
+export const SmsBatchMessageUsersRequest = Type.Object({
+  ...BaseBatchMessageUsersRequest,
+  channel: Type.Literal(ChannelType.Sms),
+  provider: Type.Optional(Type.Enum(SmsProviderType)),
+});
+
+export type SmsBatchMessageUsersRequest = Static<
+  typeof SmsBatchMessageUsersRequest
+>;
+
+export const WebBatchMessageUsersRequest = Type.Object({
+  ...BaseBatchMessageUsersRequest,
+  channel: Type.Literal(ChannelType.Webhook),
+  provider: Type.Optional(Type.Null()),
+});
+
+export type WebBatchMessageUsersRequest = Static<
+  typeof WebBatchMessageUsersRequest
+>;
+
+export const BatchMessageUsersRequest = Type.Union([
+  EmailBatchMessageUsersRequest,
+  SmsBatchMessageUsersRequest,
+  WebBatchMessageUsersRequest,
+]);
+
+export type BatchMessageUsersRequest = Static<typeof BatchMessageUsersRequest>;
+
+export const BatchMessageUsersResultTypeEnum = {
+  Success: "Success",
+  Skipped: "Skipped",
+  RetryableError: "RetryableError",
+  NonRetryableError: "NonRetryableError",
+} as const;
+
+export const BatchMessageUsersResultType = Type.KeyOf(
+  Type.Const(BatchMessageUsersResultTypeEnum),
+);
+
+export type BatchMessageUsersResultType = Static<
+  typeof BatchMessageUsersResultType
+>;
+
+export const BaseBatchMessageUsersResult = {
+  userId: Type.String(),
+};
+
+export const BatchMessageUsersResultRetryableError = Type.Object({
+  ...BaseBatchMessageUsersResult,
+  type: Type.Literal(BatchMessageUsersResultTypeEnum.RetryableError),
+  messageId: Type.String(),
+  error: Type.Composite([
+    Type.Record(Type.String(), Type.Any()),
+    Type.Object({
+      message: Type.String(),
+    }),
+  ]),
+});
+
+export type BatchMessageUsersResultRetryableError = Static<
+  typeof BatchMessageUsersResultRetryableError
+>;
+
+export const BatchMessageUsersResult = Type.Union([
+  Type.Object({
+    ...BaseBatchMessageUsersResult,
+    type: Type.Literal(BatchMessageUsersResultTypeEnum.Success),
+    messageId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseBatchMessageUsersResult,
+    type: Type.Literal(BatchMessageUsersResultTypeEnum.Skipped),
+    reason: Type.String(),
+    messageId: Type.String(),
+  }),
+  BatchMessageUsersResultRetryableError,
+  Type.Object({
+    ...BaseBatchMessageUsersResult,
+    type: Type.Literal(BatchMessageUsersResultTypeEnum.NonRetryableError),
+    messageId: Type.String(),
+    error: NonRetryableMessageSendFailure,
+  }),
+]);
+
+export type BatchMessageUsersResult = Static<typeof BatchMessageUsersResult>;
+
+export const BatchMessageUsersResponse = Type.Object({
+  results: Type.Array(BatchMessageUsersResult),
+});
+
+export type BatchMessageUsersResponse = Static<
+  typeof BatchMessageUsersResponse
+>;

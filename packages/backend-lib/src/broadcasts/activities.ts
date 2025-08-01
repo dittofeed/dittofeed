@@ -2,7 +2,6 @@ import { zonedTimeToUtc } from "date-fns-tz";
 import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { omit } from "remeda";
 import { v5 as uuidV5 } from "uuid";
 
@@ -14,6 +13,7 @@ import * as schema from "../db/schema";
 import { searchDeliveries } from "../deliveries";
 import logger from "../logger";
 import {
+  isNonRetryableError,
   Sender,
   sendMessage,
   SendMessageParameters,
@@ -33,7 +33,6 @@ import {
   GetUsersResponseItem,
   InternalEventType,
   JSONValue,
-  MessageSendFailure,
   MessageTags,
   SavedSegmentResource,
   TrackData,
@@ -189,19 +188,6 @@ async function getUnmessagedUsers(
     ),
     nextCursor,
   };
-}
-
-function isNonRetryableError(error: MessageSendFailure): boolean {
-  switch (error.type) {
-    case InternalEventType.MessageFailure:
-      return true;
-    case InternalEventType.BadWorkspaceConfiguration:
-      return true;
-    case InternalEventType.MessageSkipped:
-      return false;
-    default:
-      assertUnreachable(error);
-  }
 }
 
 export function sendMessagesFactory(sender: Sender) {
