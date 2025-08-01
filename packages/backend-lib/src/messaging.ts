@@ -2337,6 +2337,7 @@ export async function batchMessageUsers(
         const combinedUserPropertyAssignments = {
           ...baseUserPropertyAssignments,
           ...user.properties,
+          id: user.id, // Ensure the user ID is always available for liquid templates
         };
 
         // Create message tags
