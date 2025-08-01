@@ -1,7 +1,0 @@
-- our goal is to improve the batchMessageUsers method in marketing-automation/dittofeed-public/packages/backend-lib/src/messaging.ts
-- use getUsers in marketing-automation/dittofeed-public/packages/backend-lib/src/users.ts to lookup the users in batch
-- update getSubscriptionGroupWithAssignment to accept userIds: string[] | string to get user assignments in batch
-- update the call to getSubscriptionGroupWithAssignment in batchMessageUsers to use the new batched params
-- commands
-    - yarn jest marketing-automation/dittofeed-public/packages/backend-lib/src/messaging.test.ts to run the tests
-    - yarn workspace backend-lib check to run type checker
