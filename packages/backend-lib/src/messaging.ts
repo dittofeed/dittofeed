@@ -126,6 +126,7 @@ import {
   findAllUserPropertyAssignments,
   UserPropertyAssignments,
 } from "./userProperties";
+import { getUsers } from "./users";
 import { isWorkspaceOccupantType } from "./workspaceOccupantSettings";
 
 export function enrichMessageTemplate({
@@ -2262,29 +2263,27 @@ export async function batchMessageUsers(
   // Collect all user IDs for bulk operations
   const userIds = users.map((user) => user.id);
 
-  // Get subscription group details and assignments for all users in parallel
-  const [subscriptionGroupData, userPropertyAssignmentsMap] = await Promise.all(
-    [
-      subscriptionGroupId
-        ? getSubscriptionGroupWithAssignments({
-            subscriptionGroupId,
-            userIds,
-          })
-        : Promise.resolve([]),
+  // Get subscription group details and user property assignments for all users in parallel
+  const [subscriptionGroupData, usersResult] = await Promise.all([
+    subscriptionGroupId
+      ? getSubscriptionGroupWithAssignments({
+          subscriptionGroupId,
+          userIds,
+        })
+      : Promise.resolve([]),
 
-      // FIXME make batch
-      // Get user property assignments for all users
-      Promise.all(
-        userIds.map(async (userId) => {
-          const assignments = await findAllUserPropertyAssignments({
-            userId,
-            workspaceId,
-          });
-          return { userId, assignments };
-        }),
-      ),
-    ],
-  );
+    // Use batched getUsers to get user property assignments for all users at once
+    getUsers({
+      workspaceId,
+      userIds,
+      limit: userIds.length, // Get all users in one batch
+    }),
+  ]);
+
+  // Handle the result from getUsers
+  if (usersResult.isErr()) {
+    throw usersResult.error;
+  }
 
   // Create lookup maps
   const subscriptionGroupMap = new Map(
@@ -2294,11 +2293,16 @@ export async function batchMessageUsers(
     ]),
   );
 
+  // Convert getUsers response to UserPropertyAssignments format
   const userPropertiesMap = new Map(
-    userPropertyAssignmentsMap.map(({ userId, assignments }) => [
-      userId,
-      assignments,
-    ]),
+    usersResult.value.users.map((user) => {
+      // Convert properties from getUsers format to UserPropertyAssignments format
+      const assignments: UserPropertyAssignments = {};
+      for (const [propertyId, property] of Object.entries(user.properties)) {
+        assignments[propertyId] = property.value;
+      }
+      return [user.id, assignments];
+    }),
   );
 
   // Process each user and send messages

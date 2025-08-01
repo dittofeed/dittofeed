@@ -29,7 +29,6 @@ import {
 import logger from "./logger";
 import {
   findAllSegmentAssignments,
-  findAllSegmentAssignmentsByIds,
   findAllSegmentAssignmentsByIdsForUsers,
   insertSegmentAssignments,
   SegmentBulkUpsertItem,

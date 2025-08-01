@@ -154,7 +154,10 @@ export async function findAllSegmentAssignmentsByIdsForUsers({
   }>();
 
   // Initialize results safely for all users
-  const resultsByUser: Record<string, { segmentId: string; inSegment: boolean }[]> = {};
+  const resultsByUser: Record<
+    string,
+    { segmentId: string; inSegment: boolean }[]
+  > = {};
   userIds.forEach((userId) => {
     resultsByUser[userId] = [];
   });
