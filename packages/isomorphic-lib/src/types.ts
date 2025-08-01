@@ -5761,7 +5761,6 @@ export type BaseBatchMessageUsersRequestUser = Static<
 
 export const BaseBatchMessageUsersRequest = {
   workspaceId: Type.String(),
-  providerOverride: Type.Optional(Type.String()),
   templateId: Type.String(),
   subscriptionGroupId: Type.Optional(Type.String()),
   users: Type.Array(BaseBatchMessageUsersRequestUser),
