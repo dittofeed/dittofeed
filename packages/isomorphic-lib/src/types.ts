@@ -5734,27 +5734,31 @@ export interface UserEventV2 {
   workspace_id: string;
 }
 
+export const BaseBatchMessageUsersRequestUser = Type.Object({
+  id: Type.String(),
+  messageId: Type.Optional(
+    Type.String({
+      description:
+        "Message Id to set on the tracked event. If not provided, a message id will be generated.",
+    }),
+  ),
+  context: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  properties: Type.Record(Type.String(), Type.Any(), {
+    description:
+      "User property values to be rendered in the message, keyed by name. Will override values present on the user.",
+  }),
+});
+
+export type BaseBatchMessageUsersRequestUser = Static<
+  typeof BaseBatchMessageUsersRequestUser
+>;
+
 export const BaseBatchMessageUsersRequest = {
   workspaceId: Type.String(),
   providerOverride: Type.Optional(Type.String()),
   templateId: Type.String(),
   subscriptionGroupId: Type.Optional(Type.String()),
-  users: Type.Array(
-    Type.Object({
-      id: Type.String(),
-      messageId: Type.Optional(
-        Type.String({
-          description:
-            "Message Id to set on the tracked event. If not provided, a message id will be generated.",
-        }),
-      ),
-      context: Type.Optional(Type.Record(Type.String(), Type.Any())),
-      properties: Type.Record(Type.String(), Type.Any(), {
-        description:
-          "User property values to be rendered in the message, keyed by name. Will override values present on the user.",
-      }),
-    }),
-  ),
+  users: Type.Array(BaseBatchMessageUsersRequestUser),
 };
 
 export const EmailBatchMessageUsersRequest = Type.Object({
@@ -5849,6 +5853,8 @@ export const BatchMessageUsersResult = Type.Union([
     error: NonRetryableMessageSendFailure,
   }),
 ]);
+
+export type BatchMessageUsersResult = Static<typeof BatchMessageUsersResult>;
 
 export const BatchMessageUsersResponse = Type.Object({
   results: Type.Array(BatchMessageUsersResult),

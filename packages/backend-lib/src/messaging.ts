@@ -78,6 +78,7 @@ import {
   BadWorkspaceConfigurationType,
   BatchMessageUsersRequest,
   BatchMessageUsersResponse,
+  BatchMessageUsersResult,
   BatchMessageUsersResultTypeEnum,
   BlobStorageFile,
   ChannelType,
@@ -2225,6 +2226,11 @@ export function isNonRetryableError(
   }
 }
 
+type MessageSendResultWithResponseItem = [
+  BatchMessageUsersResult,
+  BackendMessageSendResult | null,
+];
+
 export async function batchMessageUsers(
   params: BatchMessageUsersRequest,
 ): Promise<BatchMessageUsersResponse> {
@@ -2284,170 +2290,189 @@ export async function batchMessageUsers(
     );
 
     // Process each user and send messages
-    const messagePromises = users.map(async (user) => {
-      const messageId = user.messageId ?? randomUUID();
+    const messagePromises: Promise<MessageSendResultWithResponseItem>[] =
+      users.map(async (user) => {
+        const messageId = user.messageId ?? randomUUID();
 
-      try {
-        // Get subscription group details for this user
-        let subscriptionGroupDetails:
-          | (SubscriptionGroupDetails & { name: string })
-          | undefined;
+        try {
+          // Get subscription group details for this user
+          let subscriptionGroupDetails:
+            | (SubscriptionGroupDetails & { name: string })
+            | undefined;
 
-        if (subscriptionGroupId) {
-          const subscriptionGroupWithAssignment = subscriptionGroupMap.get(
-            user.id,
-          );
-          if (subscriptionGroupWithAssignment) {
-            const details = getSubscriptionGroupDetails(
-              subscriptionGroupWithAssignment,
+          if (subscriptionGroupId) {
+            const subscriptionGroupWithAssignment = subscriptionGroupMap.get(
+              user.id,
             );
-            subscriptionGroupDetails = {
-              name: subscriptionGroupWithAssignment.name,
-              ...details,
-            };
-          }
-        }
-
-        // Get base user property assignments and merge with request properties
-        const baseUserPropertyAssignments =
-          userPropertiesMap.get(user.id) || {};
-        const combinedUserPropertyAssignments = {
-          ...baseUserPropertyAssignments,
-          ...user.properties,
-        };
-
-        // Create message tags
-        const messageTags: MessageTags = {
-          messageId,
-          workspaceId,
-          templateId,
-          userId: user.id,
-          ...user.context,
-        };
-
-        // Prepare send message parameters based on channel type
-        let sendMessageParams: SendMessageParameters;
-
-        switch (params.channel) {
-          case ChannelType.Email: {
-            sendMessageParams = {
-              workspaceId,
-              templateId,
-              userId: user.id,
-              userPropertyAssignments: combinedUserPropertyAssignments,
-              subscriptionGroupDetails,
-              messageTags,
-              useDraft: false,
-              channel: params.channel,
-              providerOverride: params.provider,
-            };
-            break;
-          }
-          case ChannelType.Sms: {
-            sendMessageParams = {
-              workspaceId,
-              templateId,
-              userId: user.id,
-              userPropertyAssignments: combinedUserPropertyAssignments,
-              subscriptionGroupDetails,
-              messageTags,
-              useDraft: false,
-              channel: params.channel,
-              providerOverride: params.provider,
-            };
-            break;
-          }
-          case ChannelType.Webhook: {
-            sendMessageParams = {
-              workspaceId,
-              templateId,
-              userId: user.id,
-              userPropertyAssignments: combinedUserPropertyAssignments,
-              subscriptionGroupDetails,
-              messageTags,
-              useDraft: false,
-              channel: params.channel,
-            };
-            break;
-          }
-          default:
-            assertUnreachable(params);
-        }
-
-        // Send the message
-        const messageResult = await sendMessage(sendMessageParams);
-
-        // Process the result
-        if (messageResult.isOk()) {
-          switch (messageResult.value.type) {
-            case InternalEventType.MessageSent:
-              return {
-                userId: user.id,
-                type: BatchMessageUsersResultTypeEnum.Success,
-                messageId,
+            if (subscriptionGroupWithAssignment) {
+              const details = getSubscriptionGroupDetails(
+                subscriptionGroupWithAssignment,
+              );
+              subscriptionGroupDetails = {
+                name: subscriptionGroupWithAssignment.name,
+                ...details,
               };
-            case InternalEventType.MessageSkipped:
-              return {
-                userId: user.id,
-                type: BatchMessageUsersResultTypeEnum.Skipped,
-                messageId,
-                reason: messageResult.value.message || "Message was skipped",
-              };
-            default:
-              assertUnreachable(messageResult.value);
+            }
           }
-        } else {
-          const { error } = messageResult;
-          if (isNonRetryableError(error)) {
-            return {
-              userId: user.id,
-              type: BatchMessageUsersResultTypeEnum.NonRetryableError,
-              error: error.variant,
-            };
-          }
-          let errorMessage: string;
-          switch (error.variant.type) {
-            case MessageSkippedType.MissingIdentifier:
-              errorMessage = `Missing identifier: ${error.variant.identifierKey}`;
-              break;
-            case MessageSkippedType.SubscriptionState:
-              errorMessage =
-                "User does not satisfy subscription group requirements";
-              break;
-            default:
-              assertUnreachable(error.variant);
-          }
-          return {
-            userId: user.id,
-            type: BatchMessageUsersResultTypeEnum.RetryableError,
-            messageId,
-            error: {
-              message: errorMessage,
-            },
+
+          // Get base user property assignments and merge with request properties
+          const baseUserPropertyAssignments =
+            userPropertiesMap.get(user.id) || {};
+          const combinedUserPropertyAssignments = {
+            ...baseUserPropertyAssignments,
+            ...user.properties,
           };
-        }
-      } catch (userError) {
-        logger().error(
-          {
-            err: userError,
-            userId: user.id,
+
+          // Create message tags
+          const messageTags: MessageTags = {
+            messageId,
             workspaceId,
             templateId,
-          },
-          "Failed to send message to user",
-        );
+            userId: user.id,
+            ...user.context,
+          };
 
-        return {
-          userId: user.id,
-          type: BatchMessageUsersResultTypeEnum.RetryableError,
-          messageId,
-          error: {
-            message:
-              userError instanceof Error ? userError.message : "Unknown error",
-          },
-        };
-      }
-    });
+          // Prepare send message parameters based on channel type
+          let sendMessageParams: SendMessageParameters;
+
+          switch (params.channel) {
+            case ChannelType.Email: {
+              sendMessageParams = {
+                workspaceId,
+                templateId,
+                userId: user.id,
+                userPropertyAssignments: combinedUserPropertyAssignments,
+                subscriptionGroupDetails,
+                messageTags,
+                useDraft: false,
+                channel: params.channel,
+                providerOverride: params.provider,
+              };
+              break;
+            }
+            case ChannelType.Sms: {
+              sendMessageParams = {
+                workspaceId,
+                templateId,
+                userId: user.id,
+                userPropertyAssignments: combinedUserPropertyAssignments,
+                subscriptionGroupDetails,
+                messageTags,
+                useDraft: false,
+                channel: params.channel,
+                providerOverride: params.provider,
+              };
+              break;
+            }
+            case ChannelType.Webhook: {
+              sendMessageParams = {
+                workspaceId,
+                templateId,
+                userId: user.id,
+                userPropertyAssignments: combinedUserPropertyAssignments,
+                subscriptionGroupDetails,
+                messageTags,
+                useDraft: false,
+                channel: params.channel,
+              };
+              break;
+            }
+            default:
+              assertUnreachable(params);
+          }
+
+          // Send the message
+          const messageResult = await sendMessage(sendMessageParams);
+
+          // Process the result
+          if (messageResult.isOk()) {
+            switch (messageResult.value.type) {
+              case InternalEventType.MessageSent:
+                return [
+                  {
+                    userId: user.id,
+                    type: BatchMessageUsersResultTypeEnum.Success,
+                    messageId,
+                  },
+                  messageResult,
+                ];
+              case InternalEventType.MessageSkipped:
+                return [
+                  {
+                    userId: user.id,
+                    type: BatchMessageUsersResultTypeEnum.Skipped,
+                    messageId,
+                    reason:
+                      messageResult.value.message || "Message was skipped",
+                  },
+                  messageResult,
+                ];
+              default:
+                assertUnreachable(messageResult.value);
+            }
+          } else {
+            const { error } = messageResult;
+            if (isNonRetryableError(error)) {
+              return [
+                {
+                  userId: user.id,
+                  type: BatchMessageUsersResultTypeEnum.NonRetryableError,
+                  error: error.variant,
+                },
+                messageResult,
+              ];
+            }
+            let errorMessage: string;
+            switch (error.variant.type) {
+              case MessageSkippedType.MissingIdentifier:
+                errorMessage = `Missing identifier: ${error.variant.identifierKey}`;
+                break;
+              case MessageSkippedType.SubscriptionState:
+                errorMessage =
+                  "User does not satisfy subscription group requirements";
+                break;
+              default:
+                assertUnreachable(error.variant);
+            }
+            return [
+              {
+                userId: user.id,
+                type: BatchMessageUsersResultTypeEnum.RetryableError,
+                messageId,
+                error: {
+                  message: errorMessage,
+                },
+              },
+              messageResult,
+            ];
+          }
+        } catch (userError) {
+          logger().error(
+            {
+              err: userError,
+              userId: user.id,
+              workspaceId,
+              templateId,
+            },
+            "Failed to send message to user",
+          );
+
+          return [
+            {
+              userId: user.id,
+              type: BatchMessageUsersResultTypeEnum.RetryableError,
+              messageId,
+              error: {
+                message:
+                  userError instanceof Error
+                    ? userError.message
+                    : "Unknown error",
+              },
+            },
+            null,
+          ];
+        }
+      });
 
     // Wait for all messages to be processed
     const messageResults = await Promise.all(messagePromises);
