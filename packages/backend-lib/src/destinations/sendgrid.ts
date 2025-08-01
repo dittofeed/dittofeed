@@ -25,6 +25,8 @@ function guardResponseError(e: unknown): sendgridMail.ResponseError {
   throw e;
 }
 
+export const SENDGRID_ID_HEADER = "smtp-id";
+
 export async function sendMail({
   apiKey,
   mailData,
