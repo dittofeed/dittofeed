@@ -229,6 +229,7 @@
               "api-reference/auto/content/put-apiadmincontenttemplates",
               "api-reference/auto/content/delete-apiadmincontenttemplates",
               "api-reference/auto/content/post-apiadmincontenttemplatestest",
+              "api-reference/auto/content/post-apiadmincontenttemplatesbatch-send",
               "api-reference/auto/segments/get-apiadminsegments",
               "api-reference/auto/segments/put-apiadminsegments",
               "api-reference/auto/segments/delete-apiadminsegments",
