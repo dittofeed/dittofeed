@@ -111,6 +111,68 @@ export async function findAllSegmentAssignmentsByIds({
   }));
 }
 
+export async function findAllSegmentAssignmentsByIdsForUsers({
+  workspaceId,
+  segmentIds,
+  userIds,
+}: {
+  workspaceId: string;
+  segmentIds: string[];
+  userIds: string[];
+}): Promise<Record<string, { segmentId: string; inSegment: boolean }[]>> {
+  if (userIds.length === 0 || segmentIds.length === 0) {
+    return {};
+  }
+
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const query = `
+    SELECT
+      user_id,
+      computed_property_id,
+      argMax(segment_value, assigned_at) as latest_segment_value
+    FROM computed_property_assignments_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND type = 'segment'
+      AND user_id IN ${qb.addQueryValue(userIds, "Array(String)")}
+      AND computed_property_id IN ${qb.addQueryValue(segmentIds, "Array(String)")}
+    GROUP BY user_id, computed_property_id
+  `;
+
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
+  });
+  const rows = await result.json<{
+    user_id: string;
+    computed_property_id: string;
+    latest_segment_value: boolean;
+  }>();
+
+  // Initialize results safely for all users
+  const resultsByUser: Record<string, { segmentId: string; inSegment: boolean }[]> = {};
+  userIds.forEach((userId) => {
+    resultsByUser[userId] = [];
+  });
+
+  // Populate results safely without non-null assertions
+  rows.forEach((row) => {
+    const userResults = resultsByUser[row.user_id];
+    if (userResults) {
+      userResults.push({
+        segmentId: row.computed_property_id,
+        inSegment: row.latest_segment_value,
+      });
+    }
+  });
+
+  return resultsByUser;
+}
+
 export async function findAllSegmentAssignments({
   workspaceId,
   userId,

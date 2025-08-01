@@ -71,6 +71,7 @@ import { withSpan } from "./openTelemetry";
 import {
   getSubscriptionGroupDetails,
   getSubscriptionGroupWithAssignment,
+  getSubscriptionGroupWithAssignments,
   inSubscriptionGroup,
   SubscriptionGroupDetails,
 } from "./subscriptionGroups";
@@ -2265,20 +2266,10 @@ export async function batchMessageUsers(
   const [subscriptionGroupData, userPropertyAssignmentsMap] = await Promise.all(
     [
       subscriptionGroupId
-        ? // FIXME make batch
-          Promise.all(
-            userIds.map(async (userId) => {
-              const subscriptionGroupWithAssignment =
-                await getSubscriptionGroupWithAssignment({
-                  subscriptionGroupId,
-                  userId,
-                });
-              return {
-                userId,
-                subscriptionGroupWithAssignment,
-              };
-            }),
-          )
+        ? getSubscriptionGroupWithAssignments({
+            subscriptionGroupId,
+            userIds,
+          })
         : Promise.resolve([]),
 
       // FIXME make batch
@@ -2297,8 +2288,8 @@ export async function batchMessageUsers(
 
   // Create lookup maps
   const subscriptionGroupMap = new Map(
-    subscriptionGroupData.map(({ userId, subscriptionGroupWithAssignment }) => [
-      userId,
+    subscriptionGroupData.map((subscriptionGroupWithAssignment) => [
+      subscriptionGroupWithAssignment.userId,
       subscriptionGroupWithAssignment,
     ]),
   );
