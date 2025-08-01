@@ -2395,7 +2395,7 @@ export async function batchMessageUsers(
                     messageId,
                   },
                   messageResult,
-                ];
+                ] satisfies MessageSendResultWithResponseItem;
               case InternalEventType.MessageSkipped:
                 return [
                   {
@@ -2406,7 +2406,7 @@ export async function batchMessageUsers(
                       messageResult.value.message || "Message was skipped",
                   },
                   messageResult,
-                ];
+                ] satisfies MessageSendResultWithResponseItem;
               default:
                 assertUnreachable(messageResult.value);
             }
@@ -2417,10 +2417,10 @@ export async function batchMessageUsers(
                 {
                   userId: user.id,
                   type: BatchMessageUsersResultTypeEnum.NonRetryableError,
-                  error: error.variant,
+                  error,
                 },
                 messageResult,
-              ];
+              ] satisfies MessageSendResultWithResponseItem;
             }
             let errorMessage: string;
             switch (error.variant.type) {
@@ -2444,10 +2444,10 @@ export async function batchMessageUsers(
                 },
               },
               messageResult,
-            ];
+            ] satisfies MessageSendResultWithResponseItem;
           }
         } catch (userError) {
-          logger().error(
+          logger().info(
             {
               err: userError,
               userId: user.id,
@@ -2470,7 +2470,7 @@ export async function batchMessageUsers(
               },
             },
             null,
-          ];
+          ] satisfies MessageSendResultWithResponseItem;
         }
       });
 
