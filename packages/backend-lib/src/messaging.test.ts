@@ -17,6 +17,7 @@ import {
   workspace as dbWorkspace,
 } from "./db/schema";
 import {
+  batchMessageUsers,
   sendEmail,
   sendSms,
   sendWebhook,
@@ -26,6 +27,7 @@ import { upsertEmailProvider } from "./messaging/email";
 import { upsertSmsProvider } from "./messaging/sms";
 import { upsertSubscriptionSecret } from "./subscriptionGroups";
 import {
+  BatchMessageUsersResultTypeEnum,
   ChannelType,
   EmailProviderType,
   EmailTemplateResource,
@@ -562,6 +564,74 @@ describe("messaging", () => {
         ).toEqual(
           UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
         );
+      });
+    });
+  });
+
+  describe("batchMessageUsers", () => {
+    describe("when sending email messages to multiple users", () => {
+      let template: MessageTemplate;
+      let subscriptionGroup: SubscriptionGroup;
+      
+      beforeEach(async () => {
+        ({ template, subscriptionGroup } = await setupEmailTemplate(workspace));
+      });
+
+      it("should send messages to all users and return success results", async () => {
+        const users = [
+          {
+            id: "user1",
+            properties: {
+              email: "user1@test.com",
+              firstName: "User1",
+            },
+          },
+          {
+            id: "user2", 
+            properties: {
+              email: "user2@test.com",
+              firstName: "User2",
+            },
+          },
+        ];
+
+        const result = await batchMessageUsers({
+          workspaceId: workspace.id,
+          templateId: template.id,
+          subscriptionGroupId: subscriptionGroup.id,
+          channel: ChannelType.Email,
+          users,
+        });
+
+        expect(result.results).toHaveLength(2);
+        expect(result.results[0]?.type).toBe(BatchMessageUsersResultTypeEnum.Success);
+        expect(result.results[0]?.userId).toBe("user1");
+        expect(result.results[1]?.type).toBe(BatchMessageUsersResultTypeEnum.Success);
+        expect(result.results[1]?.userId).toBe("user2");
+      });
+
+      it("should handle users with missing email identifiers", async () => {
+        const users = [
+          {
+            id: "user1",
+            properties: {
+              firstName: "User1",
+              // Missing email
+            },
+          },
+        ];
+
+        const result = await batchMessageUsers({
+          workspaceId: workspace.id,
+          templateId: template.id,
+          subscriptionGroupId: subscriptionGroup.id,
+          channel: ChannelType.Email,
+          users,
+        });
+
+        expect(result.results).toHaveLength(1);
+        expect(result.results[0]?.type).toBe(BatchMessageUsersResultTypeEnum.Skipped);
+        expect(result.results[0]?.userId).toBe("user1");
       });
     });
   });

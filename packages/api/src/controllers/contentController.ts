@@ -5,6 +5,7 @@ import { deleteMessageTemplate } from "backend-lib/src/journeys";
 import { renderLiquid, RenderLiquidOptions } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import {
+  batchMessageUsers,
   enrichMessageTemplate,
   testTemplate,
   upsertMessageTemplate,
@@ -24,6 +25,8 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BadWorkspaceConfigurationType,
   BaseMessageResponse,
+  BatchMessageUsersRequest,
+  BatchMessageUsersResponse,
   ChannelType,
   DefaultEmailProviderResource,
   DeleteMessageTemplateRequest,
@@ -550,6 +553,38 @@ export default async function contentController(fastify: FastifyInstance) {
         return reply.status(404).send();
       }
       return reply.status(204).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/templates/batch-send",
+    {
+      schema: {
+        description: "Send messages to a batch of users using a message template.",
+        tags: ["Content"],
+        body: BatchMessageUsersRequest,
+        response: {
+          200: BatchMessageUsersResponse,
+          500: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const result = await batchMessageUsers(request.body);
+        return reply.status(200).send(result);
+      } catch (error) {
+        logger().error(
+          {
+            err: error,
+            workspaceId: request.body.workspaceId,
+          },
+          "Failed to send batch messages",
+        );
+        return reply.status(500).send({
+          message: "Failed to send batch messages",
+        });
+      }
     },
   );
 }

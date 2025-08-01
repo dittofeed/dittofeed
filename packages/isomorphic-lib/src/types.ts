@@ -4106,6 +4106,15 @@ export const MessageSkippedFailure = Type.Object({
 
 export type MessageSkippedFailure = Static<typeof MessageSkippedFailure>;
 
+export const NonRetryableMessageSendFailure = Type.Union([
+  MessageSendBadConfiguration,
+  MessageServiceFailure,
+]);
+
+export type NonRetryableMessageSendFailure = Static<
+  typeof NonRetryableMessageSendFailure
+>;
+
 export const MessageSendFailure = Type.Union([
   MessageSendBadConfiguration,
   MessageServiceFailure,
@@ -5837,7 +5846,7 @@ export const BatchMessageUsersResult = Type.Union([
   Type.Object({
     ...BaseBatchMessageUsersResult,
     type: Type.Literal(BatchMessageUsersResultTypeEnum.NonRetryableError),
-    error: MessageServiceFailureVariant,
+    error: NonRetryableMessageSendFailure,
   }),
 ]);
 

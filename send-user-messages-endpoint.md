@@ -15,3 +15,8 @@
 
 - Run type checking on the api and backend-lib packages: `yarn workspace api check`
 - Run the messaging test: `LOG_LEVEL=debug yarn jest packages/backend-lib/src/messaging.test.ts`
+
+## Useful File References
+
+- packages/backend-lib/src/journeys/userWorkflow/activities.ts: provides an example of how we get subscription details, and user property assignments for messaging.
+- packages/backend-lib/src/broadcasts/activities.ts: another example of how we get subscription details, and user property assignments for messaging.
