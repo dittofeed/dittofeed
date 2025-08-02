@@ -1426,7 +1426,9 @@ export const GetEventsRequest = Type.Object({
   userId: Type.Optional(UserId),
   offset: Type.Optional(Type.Number()),
   limit: Type.Optional(Type.Number()),
-  messageId: Type.Optional(Type.String()),
+  messageId: Type.Optional(
+    Type.Union([Type.String(), Type.Array(Type.String())]),
+  ),
   // unix timestamp units ms
   startDate: Type.Optional(Type.Number()),
   endDate: Type.Optional(Type.Number()),
@@ -1434,6 +1436,7 @@ export const GetEventsRequest = Type.Object({
   broadcastId: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
   eventType: Type.Optional(Type.String()),
+  includeContext: Type.Optional(Type.Boolean()),
 });
 
 export type GetEventsRequest = Static<typeof GetEventsRequest>;

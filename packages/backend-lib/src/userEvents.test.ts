@@ -122,5 +122,111 @@ describe("userEvents", () => {
 
       expect(processingTimes).toEqual(expected);
     });
+
+    describe("with includeContext parameter", () => {
+      beforeEach(async () => {
+        // Insert events with context data
+        await insertUserEvents({
+          workspaceId: workspace.id,
+          events: [
+            {
+              messageId: randomUUID(),
+              messageRaw: JSON.stringify({
+                type: "track",
+                event: "Test Event",
+                userId: "user-with-context",
+                context: {
+                  page: {
+                    path: "/dashboard",
+                    title: "Dashboard",
+                  },
+                  userAgent: "Mozilla/5.0",
+                },
+                properties: {
+                  category: "engagement",
+                },
+                timestamp: new Date().toISOString(),
+              }),
+            },
+            {
+              messageId: randomUUID(),
+              messageRaw: JSON.stringify({
+                type: "identify",
+                userId: "user-without-context",
+                traits: {
+                  email: "test@example.com",
+                },
+                timestamp: new Date().toISOString(),
+              }),
+            },
+          ],
+        });
+      });
+
+      it("includes context field when includeContext is true", async () => {
+        const { events } = await findManyEventsWithCount({
+          workspaceId: workspace.id,
+          includeContext: true,
+        });
+
+        const eventWithContext = events.find(
+          (e) => e.user_id === "user-with-context",
+        );
+        const eventWithoutContext = events.find(
+          (e) => e.user_id === "user-without-context",
+        );
+
+        expect(eventWithContext).toBeDefined();
+        expect(eventWithoutContext).toBeDefined();
+
+        // Check that context field exists in response when includeContext is true
+        expect("context" in eventWithContext!).toBe(true);
+        expect("context" in eventWithoutContext!).toBe(true);
+
+        // Verify context content for event that has context
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const contextData = eventWithContext?.context
+          ? JSON.parse(eventWithContext.context)
+          : null;
+        expect(contextData).toEqual({
+          page: {
+            path: "/dashboard",
+            title: "Dashboard",
+          },
+          userAgent: "Mozilla/5.0",
+        });
+
+        // Verify context is empty string for event without context (ClickHouse JSONExtractString behavior)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        expect(eventWithoutContext?.context).toBe("");
+      });
+
+      it("excludes context field when includeContext is false", async () => {
+        const { events } = await findManyEventsWithCount({
+          workspaceId: workspace.id,
+          includeContext: false,
+        });
+
+        const eventWithContext = events.find(
+          (e) => e.user_id === "user-with-context",
+        );
+
+        expect(eventWithContext).toBeDefined();
+        expect("context" in eventWithContext!).toBe(false);
+      });
+
+      it("excludes context field when includeContext is undefined", async () => {
+        const { events } = await findManyEventsWithCount({
+          workspaceId: workspace.id,
+        });
+
+        const eventWithContext = events.find(
+          (e) => e.user_id === "user-with-context",
+        );
+
+        expect(eventWithContext).toBeDefined();
+        expect("context" in eventWithContext!).toBe(false);
+      });
+    });
   });
 });
