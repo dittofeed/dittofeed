@@ -150,6 +150,14 @@ export async function handleSendgridEvents({
   webhookTimestamp: string;
   rawBody: string;
 }): Result<void, { message: string }> {
+  let workspaceId: string | undefined;
+  for (const event of sendgridEvents) {
+    if (event.workspaceId) {
+      workspaceId = event.workspaceId;
+      break;
+    }
+  }
+  const priorEventsBySmtpId = new Map<string>();
   // - find first workspaceId in custom args of events
   // - if no workspace id is present, lookup all events by their smtp-id as
   // messageId. there should be processed events which contain the critical
