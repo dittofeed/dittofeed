@@ -175,15 +175,16 @@ export async function handleSendgridEvents({
     }
   }
   const priorEventsBySmtpId = new Map<string, RelevantSendgridFields>();
-  const eventPromises: Promise<void>[] = [];
+  const missingCustomArgs = new Set<string>();
   for (const event of sendgridEvents) {
     if (event.workspaceId && event.userId) {
       priorEventsBySmtpId.set(event["smtp-id"], event);
       continue;
     }
-    eventPromises.push((async () => {})());
+    missingCustomArgs.add(event["smtp-id"]);
   }
 
+  const eventPromises: Promise<void>[] = [];
   await Promise.all(eventPromises);
 
   // - find first workspaceId in custom args of events
