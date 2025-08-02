@@ -17,12 +17,16 @@ import {
   workspace as dbWorkspace,
 } from "./db/schema";
 import { kafkaProducer } from "./kafka";
+import logger from "./logger";
 import {
   DownloadEventsRequest,
+  EventType,
   GetEventsRequest,
   GetPropertiesResponse,
   InternalEventType,
+  JSONValue,
   UserEvent,
+  UserWorkflowTrackEvent,
 } from "./types";
 
 export interface InsertUserEvent {
@@ -136,6 +140,7 @@ export async function insertUserEvents({
 type UserEventsWithTraits = UserEvent & {
   traits: string;
   properties: string;
+  context?: string;
 };
 
 // TODO implement pagination
@@ -297,42 +302,24 @@ export async function findTrackProperties({
 
 export type UserIdsByPropertyValue = Record<string, string[]>;
 
-export async function findManyEventsWithCount({
-  workspaceId,
-  limit = 100,
-  offset = 0,
-  startDate,
-  endDate,
-  userId,
-  searchTerm,
-  event,
-  broadcastId,
-  journeyId,
-  eventType,
-  messageId,
-}: GetEventsRequest): Promise<{
-  events: UserEventsWithTraits[];
-  count: number;
-}> {
-  const qb = new ClickHouseQueryBuilder();
+function buildUserEventQueryClauses(
+  params: GetEventsRequest,
+  qb: ClickHouseQueryBuilder,
+) {
+  const {
+    workspaceId,
+    startDate,
+    endDate,
+    userId,
+    searchTerm,
+    event,
+    broadcastId,
+    journeyId,
+    eventType,
+    messageId,
+  } = params;
 
-  const childWorkspaceIds = (
-    await db()
-      .select({ id: dbWorkspace.id })
-      .from(dbWorkspace)
-      .where(eq(dbWorkspace.parentWorkspaceId, workspaceId))
-  ).map((o) => o.id);
-
-  const workspaceIdClause = childWorkspaceIds.length
-    ? `workspace_id IN ${qb.addQueryValue(childWorkspaceIds, "Array(String)")}`
-    : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
-
-  const paginationClause = limit
-    ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
-        limit,
-        "Int32",
-      )}`
-    : "";
+  const workspaceIdClause = `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
 
   const startDateClause = startDate
     ? `AND processing_time >= ${qb.addQueryValue(startDate, "DateTime64(3)")}`
@@ -346,9 +333,14 @@ export async function findManyEventsWithCount({
     ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
     : "";
 
-  const messageIdClause = messageId
-    ? `AND message_id = ${qb.addQueryValue(messageId, "String")}`
-    : "";
+  let messageIdClause = "";
+  if (messageId) {
+    if (typeof messageId === "string") {
+      messageIdClause = `AND message_id = ${qb.addQueryValue(messageId, "String")}`;
+    } else {
+      messageIdClause = `AND message_id IN ${qb.addQueryValue(messageId, "Array(String)")}`;
+    }
+  }
 
   const searchClause = searchTerm
     ? `AND (CAST(event_type AS String) LIKE ${qb.addQueryValue(
@@ -377,7 +369,60 @@ export async function findManyEventsWithCount({
     ? `AND event_type = ${qb.addQueryValue(eventType, "String")}`
     : "";
 
-  const innerQuery = `
+  return {
+    workspaceIdClause,
+    startDateClause,
+    endDateClause,
+    userIdClause,
+    messageIdClause,
+    searchClause,
+    eventClause,
+    broadcastIdClause,
+    journeyIdClause,
+    eventTypeClause,
+  };
+}
+
+async function buildWorkspaceIdClause(
+  workspaceId: string,
+  qb: ClickHouseQueryBuilder,
+): Promise<string> {
+  const childWorkspaceIds = (
+    await db()
+      .select({ id: dbWorkspace.id })
+      .from(dbWorkspace)
+      .where(eq(dbWorkspace.parentWorkspaceId, workspaceId))
+  ).map((o) => o.id);
+
+  return childWorkspaceIds.length
+    ? `workspace_id IN ${qb.addQueryValue(childWorkspaceIds, "Array(String)")}`
+    : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
+}
+
+function buildUserEventInnerQuery(
+  clauses: ReturnType<typeof buildUserEventQueryClauses> & {
+    workspaceIdClause: string;
+  },
+  includeContext?: boolean,
+) {
+  const {
+    workspaceIdClause,
+    startDateClause,
+    endDateClause,
+    userIdClause,
+    searchClause,
+    eventClause,
+    broadcastIdClause,
+    journeyIdClause,
+    eventTypeClause,
+    messageIdClause,
+  } = clauses;
+
+  const contextField = includeContext
+    ? `,\n        JSONExtractString(message_raw, 'context') AS context`
+    : "";
+
+  return `
     SELECT
         workspace_id,
         user_id,
@@ -389,7 +434,7 @@ export async function findManyEventsWithCount({
         event_type,
         processing_time,
         JSONExtractRaw(message_raw, 'traits') AS traits,
-        JSONExtractRaw(message_raw, 'properties') AS properties
+        JSONExtractRaw(message_raw, 'properties') AS properties${contextField}
     FROM user_events_v2
     WHERE
       ${workspaceIdClause}
@@ -404,37 +449,183 @@ export async function findManyEventsWithCount({
       ${messageIdClause}
     ORDER BY processing_time DESC
   `;
+}
+
+export async function findUserEvents({
+  workspaceId,
+  limit = 100,
+  offset = 0,
+  startDate,
+  endDate,
+  userId,
+  searchTerm,
+  event,
+  broadcastId,
+  journeyId,
+  eventType,
+  messageId,
+  includeContext,
+}: GetEventsRequest): Promise<UserEventsWithTraits[]> {
+  const qb = new ClickHouseQueryBuilder();
+
+  const workspaceIdClause = await buildWorkspaceIdClause(workspaceId, qb);
+  const queryClauses = buildUserEventQueryClauses(
+    {
+      workspaceId,
+      startDate,
+      endDate,
+      userId,
+      searchTerm,
+      event,
+      broadcastId,
+      journeyId,
+      eventType,
+      messageId,
+    },
+    qb,
+  );
+
+  const paginationClause = limit
+    ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
+        limit,
+        "Int32",
+      )}`
+    : "";
+
+  const innerQuery = buildUserEventInnerQuery(
+    {
+      ...queryClauses,
+      workspaceIdClause,
+    },
+    includeContext,
+  );
 
   const eventsQuery = `
     ${innerQuery}
     ${paginationClause}
   `;
+
+  const eventsResultSet = await chQuery({
+    query: eventsQuery,
+    format: "JSONEachRow",
+    query_params: qb.getQueries(),
+  });
+  logger().debug(
+    { eventsQuery, queryParams: qb.getQueries() },
+    "findUserEvents query",
+  );
+
+  return await eventsResultSet.json<UserEventsWithTraits>();
+}
+
+export async function findUserEventCount({
+  workspaceId,
+  startDate,
+  endDate,
+  userId,
+  searchTerm,
+  event,
+  broadcastId,
+  journeyId,
+  eventType,
+  messageId,
+  includeContext,
+}: Omit<GetEventsRequest, "limit" | "offset">): Promise<number> {
+  const qb = new ClickHouseQueryBuilder();
+
+  const workspaceIdClause = await buildWorkspaceIdClause(workspaceId, qb);
+  const queryClauses = buildUserEventQueryClauses(
+    {
+      workspaceId,
+      startDate,
+      endDate,
+      userId,
+      searchTerm,
+      event,
+      broadcastId,
+      journeyId,
+      eventType,
+      messageId,
+      includeContext,
+    },
+    qb,
+  );
+
+  const innerQuery = buildUserEventInnerQuery(
+    {
+      ...queryClauses,
+      workspaceIdClause,
+    },
+    includeContext,
+  );
+
   const countQuery = `
     SELECT count() AS count
     FROM (${innerQuery}) AS inner_query
   `;
 
-  const [eventsResultSet, countResultSet] = await Promise.all([
-    chQuery({
-      query: eventsQuery,
-      format: "JSONEachRow",
-      query_params: qb.getQueries(),
-    }),
-    chQuery({
-      query: countQuery,
-      format: "JSONEachRow",
-      query_params: qb.getQueries(),
-    }),
-  ]);
+  const countResultSet = await chQuery({
+    query: countQuery,
+    format: "JSONEachRow",
+    query_params: qb.getQueries(),
+  });
 
-  const [eventResults, countResults] = await Promise.all([
-    eventsResultSet.json<UserEventsWithTraits>(),
-    countResultSet.json<{ count: number }>(),
+  const countResults = await countResultSet.json<{ count: number }>();
+  return countResults[0]?.count ?? 0;
+}
+
+export async function findManyEventsWithCount({
+  workspaceId,
+  limit = 100,
+  offset = 0,
+  startDate,
+  endDate,
+  userId,
+  searchTerm,
+  event,
+  broadcastId,
+  journeyId,
+  eventType,
+  messageId,
+  includeContext,
+}: GetEventsRequest): Promise<{
+  events: UserEventsWithTraits[];
+  count: number;
+}> {
+  const [events, count] = await Promise.all([
+    findUserEvents({
+      workspaceId,
+      limit,
+      offset,
+      startDate,
+      endDate,
+      userId,
+      searchTerm,
+      event,
+      broadcastId,
+      journeyId,
+      eventType,
+      messageId,
+      includeContext,
+    }),
+    findUserEventCount({
+      workspaceId,
+      startDate,
+      endDate,
+      userId,
+      searchTerm,
+      event,
+      broadcastId,
+      journeyId,
+      eventType,
+      messageId,
+      includeContext,
+    }),
   ]);
 
   return {
-    events: eventResults,
-    count: countResults[0]?.count ?? 0,
+    events,
+    count,
   };
 }
 
@@ -551,4 +742,47 @@ export async function buildEventsFile(params: DownloadEventsRequest): Promise<{
     fileName,
     fileContent,
   };
+}
+
+export async function getEventsById({
+  workspaceId,
+  eventIds,
+}: {
+  workspaceId: string;
+  eventIds: string[];
+}): Promise<UserWorkflowTrackEvent[]> {
+  logger().debug({ workspaceId, eventIds }, "getEventsById called");
+  const events = await findUserEvents({
+    workspaceId,
+    messageId: eventIds,
+    includeContext: true,
+  });
+  logger().debug({ events, eventIds }, "getEventsById found events");
+  return events.flatMap((event) => {
+    if (event.event_type !== EventType.Track) {
+      logger().error(
+        {
+          messageId: event.message_id,
+          eventType: event.event_type,
+        },
+        "getEventsById found non-track event",
+      );
+      return [];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const context: Record<string, JSONValue> = event.context
+      ? JSON.parse(event.context)
+      : {};
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const properties: Record<string, JSONValue> = event.properties
+      ? JSON.parse(event.properties)
+      : {};
+    return {
+      event: event.event,
+      timestamp: event.event_time,
+      properties,
+      context,
+      messageId: event.message_id,
+    };
+  });
 }
