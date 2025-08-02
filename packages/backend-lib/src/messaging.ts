@@ -1084,13 +1084,6 @@ export async function sendEmail({
             name: attachment.name,
           }),
         }));
-      const sendgridHeaders: Record<string, string> = {
-        ...headers,
-      };
-      // Used for correlation with async webhook events like bounces and spam complaints
-      if (messageTags?.messageId) {
-        sendgridHeaders[SENDGRID_ID_HEADER] = messageTags.messageId;
-      }
       const mailData: MailDataRequired = {
         to,
         from: {
@@ -1100,7 +1093,7 @@ export async function sendEmail({
         subject,
         html: body,
         replyTo,
-        headers: sendgridHeaders,
+        headers,
         cc,
         bcc,
         attachments: sendgridAttachments,

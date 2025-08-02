@@ -157,7 +157,7 @@ export async function handleSendgridEvents({
       break;
     }
   }
-  const priorEventsBySmtpId = new Map<string>();
+  // const priorEventsBySmtpId = new Map<string>();
   // - find first workspaceId in custom args of events
   // - if no workspace id is present, lookup all events by their smtp-id as
   // messageId. there should be processed events which contain the critical

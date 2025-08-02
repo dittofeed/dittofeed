@@ -137,7 +137,7 @@ export async function insertUserEvents({
   }
 }
 
-type UserEventsWithTraits = UserEvent & {
+export type UserEventsWithTraits = UserEvent & {
   traits: string;
   properties: string;
   context?: string;
