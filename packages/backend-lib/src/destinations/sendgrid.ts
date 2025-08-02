@@ -205,7 +205,7 @@ export async function handleSendgridEvents({
   sendgridEvents: SendgridEvent[];
   webhookSignature: string;
   webhookTimestamp: string;
-  rawBody?: string;
+  rawBody?: string | Buffer;
 }): Promise<Result<void, { message: string }>> {
   // - find first workspaceId in custom args of events
   // - if no workspace id is present, lookup all events by their smtp-id as
