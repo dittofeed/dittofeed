@@ -15,6 +15,7 @@ import {
   InternalEventType,
   SendgridEvent,
 } from "../types";
+import { findUserEvents } from "../userEvents";
 
 // README the typescript types on this are wrong, body is not of type string,
 // it's a parsed JSON object
@@ -180,6 +181,7 @@ export async function handleSendgridEvents({
       priorEventsBySmtpId.set(event["smtp-id"], event);
       continue;
     }
+    eventPromises.push((async () => {})());
   }
 
   await Promise.all(eventPromises);
