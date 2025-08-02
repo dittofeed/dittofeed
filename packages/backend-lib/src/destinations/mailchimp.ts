@@ -18,6 +18,51 @@ import {
   MailChimpEvent,
 } from "../types";
 
+function isRetryableError(error: AxiosError): boolean {
+  if (!error.response) {
+    return true;
+  }
+
+  const statusCode = error.response.status;
+
+  if (statusCode >= 500) {
+    return true;
+  }
+
+  if (statusCode === 429) {
+    return true;
+  }
+
+  return false;
+}
+
+function isRetryableRejectReason(reason: string | null | undefined): boolean {
+  if (!reason) {
+    return false;
+  }
+
+  const retryableReasons = ["unsigned", "soft-bounce", "spam", "unsub"];
+
+  const nonRetryableReasons = [
+    "hard-bounce",
+    "invalid-sender",
+    "invalid",
+    "test-mode-limit",
+    "rule",
+    "custom",
+  ];
+
+  if (nonRetryableReasons.includes(reason)) {
+    return false;
+  }
+
+  if (retryableReasons.includes(reason)) {
+    return true;
+  }
+
+  return false;
+}
+
 export async function sendMail({
   apiKey,
   message,
@@ -31,28 +76,106 @@ export async function sendMail({
   >
 > {
   const mailchimpClient = mailchimp(apiKey);
-  const response = await mailchimpClient.messages.send({ message });
-  if (response instanceof AxiosError) {
-    logger().error(
-      {
-        err: response,
-        message,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        workspaceId: message.metadata?.workspaceId,
-      },
-      "Error sending mailchimp email",
-    );
-    return err(response);
-  }
-  const [firstResponse] = response;
-  if (!firstResponse) {
-    throw new Error("No response from Mailchimp");
-  }
-  switch (firstResponse.status) {
-    case "rejected":
-      return err(firstResponse);
-    default:
-      return ok(firstResponse);
+
+  try {
+    const response = await mailchimpClient.messages.send({ message });
+
+    if (response instanceof AxiosError) {
+      const isRetryable = isRetryableError(response);
+
+      if (isRetryable) {
+        logger().info(
+          {
+            err: response,
+            message,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            workspaceId: message.metadata?.workspaceId,
+          },
+          "Retryable error sending mailchimp email",
+        );
+        throw response;
+      } else {
+        logger().info(
+          {
+            err: response,
+            message,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            workspaceId: message.metadata?.workspaceId,
+          },
+          "Non-retryable error sending mailchimp email",
+        );
+        return err(response);
+      }
+    }
+
+    const [firstResponse] = response;
+    if (!firstResponse) {
+      throw new Error("No response from Mailchimp");
+    }
+
+    switch (firstResponse.status) {
+      case "rejected": {
+        const isRetryable = isRetryableRejectReason(
+          firstResponse.reject_reason,
+        );
+
+        if (isRetryable) {
+          logger().info(
+            {
+              response: firstResponse,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              workspaceId: message.metadata?.workspaceId,
+            },
+            "Retryable rejection sending mailchimp email",
+          );
+          throw new Error(
+            `Retryable rejection: ${firstResponse.reject_reason}`,
+          );
+        } else {
+          logger().info(
+            {
+              response: firstResponse,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              workspaceId: message.metadata?.workspaceId,
+            },
+            "Non-retryable rejection sending mailchimp email",
+          );
+          return err(firstResponse);
+        }
+      }
+      default:
+        return ok(firstResponse);
+    }
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      const isRetryable = isRetryableError(error);
+
+      if (isRetryable) {
+        logger().info(
+          {
+            err: error,
+            message,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            workspaceId: message.metadata?.workspaceId,
+          },
+          "Retryable network error sending mailchimp email",
+        );
+        throw error;
+      } else {
+        logger().info(
+          {
+            err: error,
+            message,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            workspaceId: message.metadata?.workspaceId,
+          },
+          "Non-retryable network error sending mailchimp email",
+        );
+        return err(error);
+      }
+    }
+
+    throw error;
   }
 }
 
