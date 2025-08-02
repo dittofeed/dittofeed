@@ -46,7 +46,10 @@ import {
   ResendRequiredData,
   sendMail as sendMailResend,
 } from "./destinations/resend";
-import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
+import {
+  SENDGRID_ID_HEADER,
+  sendMail as sendMailSendgrid,
+} from "./destinations/sendgrid";
 import {
   sendMail as sendMailSmtp,
   SendSmtpMailParams,

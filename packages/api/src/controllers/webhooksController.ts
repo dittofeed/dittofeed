@@ -3,10 +3,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { SpanStatusCode } from "@opentelemetry/api";
 import { Type } from "@sinclair/typebox";
 import backendConfig from "backend-lib/src/config";
-import {
-  generateDigest,
-  verifyTimestampedSignature,
-} from "backend-lib/src/crypto";
+import { generateDigest } from "backend-lib/src/crypto";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import {
@@ -17,7 +14,7 @@ import {
 import { submitMailChimpEvents } from "backend-lib/src/destinations/mailchimp";
 import { submitPostmarkEvents } from "backend-lib/src/destinations/postmark";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
-import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
+import { handleSendgridEvents } from "backend-lib/src/destinations/sendgrid";
 import { submitTwilioEvents } from "backend-lib/src/destinations/twilio";
 import logger from "backend-lib/src/logger";
 import { withSpan } from "backend-lib/src/openTelemetry";
@@ -44,7 +41,6 @@ import {
   MailChimpSecret,
   PostMarkSecret,
   ResendSecret,
-  SendgridSecret,
   TwilioSecret,
   TwilioWebhookRequest,
   WorkspaceId,
@@ -91,72 +87,25 @@ export default async function webhookController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       logger().debug({ body: request.body }, "Received sendgrid events.");
-      // TODO allow for multiple workspaces on a single sendgrid account
-      const firstEvent = request.body[0];
-      const workspaceId = firstEvent?.workspaceId;
-
-      if (!workspaceId) {
-        logger().error("Missing workspaceId on sendgrid events.");
-        return reply.status(400).send({
-          error: "Missing workspaceId custom arg.",
-        });
-      }
-
-      const secret = await db().query.secret.findFirst({
-        where: and(
-          eq(schema.secret.workspaceId, workspaceId),
-          eq(schema.secret.name, SecretNames.SendGrid),
-        ),
+      const result = await handleSendgridEvents({
+        sendgridEvents: request.body,
+        webhookSignature:
+          request.headers["x-twilio-email-event-webhook-signature"],
+        webhookTimestamp:
+          request.headers["x-twilio-email-event-webhook-timestamp"],
+        rawBody: request.rawBody,
       });
-      const webhookKey = schemaValidateWithErr(
-        secret?.configValue,
-        SendgridSecret,
-      )
-        .map((val) => val.webhookKey)
-        .unwrapOr(null);
-
-      if (!webhookKey) {
+      if (result.isErr()) {
         logger().info(
           {
-            workspaceId,
+            error: result.error,
           },
-          "Missing sendgrid webhook secret.",
+          "Error handling sendgrid webhook.",
         );
         return reply.status(400).send({
-          error: "Missing secret.",
+          message: result.error.message,
         });
       }
-
-      const publicKey = `-----BEGIN PUBLIC KEY-----\n${webhookKey}\n-----END PUBLIC KEY-----`;
-
-      if (!request.rawBody || typeof request.rawBody !== "string") {
-        logger().error({ workspaceId }, "Missing rawBody on sendgrid webhook.");
-        return reply.status(500).send();
-      }
-
-      const verified = verifyTimestampedSignature({
-        signature: request.headers["x-twilio-email-event-webhook-signature"],
-        timestamp: request.headers["x-twilio-email-event-webhook-timestamp"],
-        payload: request.rawBody,
-        publicKey,
-      });
-
-      if (!verified) {
-        logger().error(
-          {
-            workspaceId,
-          },
-          "Invalid signature for sendgrid webhook.",
-        );
-        return reply.status(401).send({
-          message: "Invalid signature.",
-        });
-      }
-
-      await submitSendgridEvents({
-        workspaceId,
-        events: request.body,
-      });
       return reply.status(200).send();
     },
   );

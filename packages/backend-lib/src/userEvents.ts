@@ -137,7 +137,7 @@ export async function insertUserEvents({
   }
 }
 
-type UserEventsWithTraits = UserEvent & {
+export type UserEventsWithTraits = UserEvent & {
   traits: string;
   properties: string;
   context?: string;
@@ -419,7 +419,7 @@ function buildUserEventInnerQuery(
   } = clauses;
 
   const contextField = includeContext
-    ? `,\n        JSONExtractString(message_raw, 'context') AS context`
+    ? ", JSONExtractString(message_raw, 'context') AS context"
     : "";
 
   return `
@@ -742,6 +742,45 @@ export async function buildEventsFile(params: DownloadEventsRequest): Promise<{
     fileName,
     fileContent,
   };
+}
+
+export async function findUserEventsById({
+  messageIds,
+}: {
+  messageIds: string[];
+}): Promise<UserEventsWithTraits[]> {
+  const qb = new ClickHouseQueryBuilder();
+
+  const messageIdClause =
+    messageIds.length > 0
+      ? `message_id IN ${qb.addQueryValue(messageIds, "Array(String)")}`
+      : "1=0";
+
+  const query = `
+    SELECT
+        workspace_id,
+        user_id,
+        user_or_anonymous_id,
+        event_time,
+        anonymous_id,
+        message_id,
+        event,
+        event_type,
+        processing_time,
+        JSONExtractRaw(message_raw, 'traits') AS traits,
+        JSONExtractRaw(message_raw, 'properties') AS properties
+    FROM user_events_v2
+    WHERE ${messageIdClause}
+    ORDER BY processing_time DESC
+  `;
+
+  const resultSet = await chQuery({
+    query,
+    format: "JSONEachRow",
+    query_params: qb.getQueries(),
+  });
+
+  return await resultSet.json<UserEventsWithTraits>();
 }
 
 export async function getEventsById({

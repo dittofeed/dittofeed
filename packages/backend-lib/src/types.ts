@@ -582,6 +582,7 @@ export const MessageMetadataFields = Type.Object({
   templateId: Type.Optional(Type.String()),
   nodeId: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
+  broadcastId: Type.Optional(Type.String()),
 });
 
 export type MessageMetadataFields = Static<typeof MessageMetadataFields>;
@@ -591,8 +592,9 @@ export const SendgridEvent = Type.Composite([
     email: Type.String(),
     timestamp: Type.Integer(),
     event: Type.Enum(SendgridEventType),
+    "smtp-id": Type.String(),
     sg_event_id: Type.String(),
-    sg_message_id: Type.String(),
+    sg_message_id: Type.Optional(Type.String()),
     ip: Type.Optional(Type.String()),
     reason: Type.Optional(Type.String()),
     pool: Type.Optional(
