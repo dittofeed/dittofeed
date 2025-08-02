@@ -592,7 +592,7 @@ export const SendgridEvent = Type.Composite([
     email: Type.String(),
     timestamp: Type.Integer(),
     event: Type.Enum(SendgridEventType),
-    "smtp-id": Type.String(),
+    "smtp-id": Type.Optional(Type.String()),
     sg_event_id: Type.String(),
     sg_message_id: Type.Optional(Type.String()),
     ip: Type.Optional(Type.String()),
