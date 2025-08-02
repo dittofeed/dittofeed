@@ -87,6 +87,7 @@ export enum InternalEventType {
   EmailDropped = "DFEmailDropped",
   EmailDelivered = "DFEmailDelivered",
   EmailOpened = "DFEmailOpened",
+  EmailProcessed = "DFEmailProcessed",
   EmailClicked = "DFEmailClicked",
   EmailBounced = "DFEmailBounced",
   EmailMarkedSpam = "DFEmailMarkedSpam",

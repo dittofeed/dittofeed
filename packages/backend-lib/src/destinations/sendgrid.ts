@@ -45,24 +45,27 @@ export async function sendMail({
 }
 
 export function sendgridEventToDF({
-  workspaceId,
   sendgridEvent,
 }: {
-  workspaceId: string;
   sendgridEvent: SendgridEvent;
 }): Result<BatchItem, Error> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { email, event, timestamp, sg_message_id } = sendgridEvent;
+  const { email, event, timestamp, "smtp-id": smtpId } = sendgridEvent;
 
   const { userId } = sendgridEvent;
   if (!userId) {
     return err(new Error("Missing userId or anonymousId."));
   }
-  const messageId = uuidv5(sg_message_id, workspaceId);
+  // We have migrated to using the smtp-id as the messageId for two reasons:
+  // 1. the sg message id is not present for all events, particularly async
+  // events like spam and bounces
+  // 2. we need to be able to lookup prior processed events by their smtp-id
+  // when we receive async events
+  const messageId = smtpId;
 
   let eventName: InternalEventType;
   const properties: Record<string, string> = R.merge(
-    { email },
+    { email, smtpId },
     R.pick(sendgridEvent, MESSAGE_METADATA_FIELDS),
   );
 
@@ -84,6 +87,9 @@ export function sendgridEventToDF({
       break;
     case "delivered":
       eventName = InternalEventType.EmailDelivered;
+      break;
+    case "processed":
+      eventName = InternalEventType.EmailProcessed;
       break;
     default:
       return err(new Error(`Unhandled event type: ${event}`));
@@ -116,7 +122,7 @@ export async function submitSendgridEvents({
 }) {
   const data: BatchAppData = {
     batch: events.flatMap((e) =>
-      sendgridEventToDF({ workspaceId, sendgridEvent: e })
+      sendgridEventToDF({ sendgridEvent: e })
         .mapErr((error) => {
           logger().error(
             { err: error },
@@ -131,4 +137,29 @@ export async function submitSendgridEvents({
     workspaceId,
     data,
   });
+}
+
+export async function handleSendgridEvents({
+  sendgridEvents,
+  webhookSignature,
+  webhookTimestamp,
+  rawBody,
+}: {
+  sendgridEvents: SendgridEvent[];
+  webhookSignature: string;
+  webhookTimestamp: string;
+  rawBody: string;
+}): Result<void, { message: string }> {
+  // - find first workspaceId in custom args of events
+  // - if no workspace id is present, lookup all events by their smtp-id as
+  // messageId. there should be processed events which contain the critical
+  // custom args
+  // - if the events aren't found or none have a workspace id, return an error
+  // - for those events without the custom args set, set their values
+  // - lookup the webhook secret for the workspace id
+  // - use the webhook signature and timestamp to verify the request
+  // - if not verified, return an error
+  // - translate events to DF events, with the custom args backfilled from shared smtp-id events
+  // - submit the DF events to the batch API
+  throw new Error("Not implemented");
 }
