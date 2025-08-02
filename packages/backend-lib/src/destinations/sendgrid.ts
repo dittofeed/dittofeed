@@ -1,11 +1,20 @@
 import responseError from "@sendgrid/helpers/classes/response-error";
 import sendgridMail from "@sendgrid/mail";
+import { and, eq } from "drizzle-orm";
+import { SecretNames } from "isomorphic-lib/src/constants";
+import {
+  jsonParseSafeWithSchema,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
 import { MESSAGE_METADATA_FIELDS } from "../constants";
+import { verifyTimestampedSignature } from "../crypto";
+import { db } from "../db";
+import * as schema from "../db/schema";
 import logger from "../logger";
 import {
   BatchAppData,
@@ -15,9 +24,9 @@ import {
   InternalEventType,
   MessageMetadataFields,
   SendgridEvent,
+  SendgridSecret,
 } from "../types";
-import { findUserEvents, findUserEventsById } from "../userEvents";
-import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { findUserEventsById } from "../userEvents";
 
 // README the typescript types on this are wrong, body is not of type string,
 // it's a parsed JSON object
@@ -196,7 +205,7 @@ export async function handleSendgridEvents({
   sendgridEvents: SendgridEvent[];
   webhookSignature: string;
   webhookTimestamp: string;
-  rawBody: string;
+  rawBody?: string;
 }): Promise<Result<void, { message: string }>> {
   // - find first workspaceId in custom args of events
   // - if no workspace id is present, lookup all events by their smtp-id as
@@ -279,9 +288,44 @@ export async function handleSendgridEvents({
   }
 
   // - lookup the webhook secret for the workspace id
+  const secret = await db().query.secret.findFirst({
+    where: and(
+      eq(schema.secret.workspaceId, workspaceId),
+      eq(schema.secret.name, SecretNames.SendGrid),
+    ),
+  });
+  const webhookKey = schemaValidateWithErr(secret?.configValue, SendgridSecret)
+    .map((val) => val.webhookKey)
+    .unwrapOr(null);
+
+  if (!webhookKey) {
+    return err({ message: "Missing secret." });
+  }
+
   // - use the webhook signature and timestamp to verify the request
-  // - if not verified, return an error
-  // - translate events to DF events, with the custom args backfilled from shared smtp-id events
-  // - submit the DF events to the batch API
-  throw new Error("Not implemented");
+  const publicKey = `-----BEGIN PUBLIC KEY-----\n${webhookKey}\n-----END PUBLIC KEY-----`;
+
+  if (!rawBody || typeof rawBody !== "string") {
+    logger().error({ workspaceId }, "Missing rawBody on sendgrid webhook.");
+    throw new Error("Missing rawBody on sendgrid webhook.");
+  }
+
+  const verified = verifyTimestampedSignature({
+    signature: webhookSignature,
+    timestamp: webhookTimestamp,
+    payload: rawBody,
+    publicKey,
+  });
+
+  if (!verified) {
+    return err({ message: "Invalid signature." });
+  }
+
+  // - translate events to DF events and write them
+  await submitSendgridEvents({
+    workspaceId,
+    events: [...immediateEvents, ...backfilledDelayedEvents],
+  });
+
+  return ok(undefined);
 }
