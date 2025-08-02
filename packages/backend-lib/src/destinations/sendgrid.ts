@@ -15,7 +15,7 @@ import {
   InternalEventType,
   SendgridEvent,
 } from "../types";
-import { findUserEvents } from "../userEvents";
+import { findUserEvents, findUserEventsById } from "../userEvents";
 
 // README the typescript types on this are wrong, body is not of type string,
 // it's a parsed JSON object
@@ -59,6 +59,7 @@ type RelevantSendgridFields = Pick<
   | "messageId"
   | "templateId"
   | "nodeId"
+  | "sg_message_id"
 >;
 
 export function sendgridEventToDF({
@@ -67,18 +68,46 @@ export function sendgridEventToDF({
   sendgridEvent: RelevantSendgridFields;
 }): Result<BatchItem, Error> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { email, event, timestamp, "smtp-id": smtpId } = sendgridEvent;
+  const {
+    email,
+    event,
+    timestamp,
+    "smtp-id": smtpId,
+    sg_message_id,
+  } = sendgridEvent;
 
   const { userId } = sendgridEvent;
   if (!userId) {
     return err(new Error("Missing userId or anonymousId."));
   }
-  // We have migrated to using the smtp-id as the messageId for two reasons:
+  // We have need to use the smtp-id as the messageId for two reasons:
   // 1. the sg message id is not present for all events, particularly async
   // events like spam and bounces
   // 2. we need to be able to lookup prior processed events by their smtp-id
   // when we receive async events
-  const messageId = smtpId;
+  let messageId: string;
+  switch (event) {
+    case "processed":
+      messageId = `processed:${smtpId}`;
+      break;
+    case "bounce":
+      messageId = `bounce:${smtpId}`;
+      break;
+    case "spamreport":
+      messageId = `spamreport:${smtpId}`;
+      break;
+    default: {
+      if (!sendgridEvent.workspaceId || !sg_message_id) {
+        return err(
+          new Error(
+            `Missing workspaceId or sg_message_id for event: ${event}.`,
+          ),
+        );
+      }
+      messageId = uuidv5(sg_message_id, sendgridEvent.workspaceId);
+      break;
+    }
+  }
 
   let eventName: InternalEventType;
   const properties: Record<string, string> = R.merge(
@@ -184,8 +213,9 @@ export async function handleSendgridEvents({
     missingCustomArgs.add(event["smtp-id"]);
   }
 
-  const eventPromises: Promise<void>[] = [];
-  await Promise.all(eventPromises);
+  const events = await findUserEventsById({
+    messageIds: Array.from(missingCustomArgs).map((id) => `processed:${id}`),
+  });
 
   // - find first workspaceId in custom args of events
   // - if no workspace id is present, lookup all events by their smtp-id as
