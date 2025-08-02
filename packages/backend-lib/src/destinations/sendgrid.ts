@@ -198,6 +198,12 @@ export async function handleSendgridEvents({
   webhookTimestamp: string;
   rawBody: string;
 }): Promise<Result<void, { message: string }>> {
+  // - find first workspaceId in custom args of events
+  // - if no workspace id is present, lookup all events by their smtp-id as
+  // messageId. there should be processed events which contain the critical
+  // custom args
+  // - if the events aren't found skip them.
+  // - if none have a workspace id, return an error
   let workspaceId: string | undefined;
   for (const event of sendgridEvents) {
     if (event.workspaceId) {
@@ -247,21 +253,31 @@ export async function handleSendgridEvents({
     if (!processedWorkspaceId || !userId) {
       continue;
     }
+    if (!workspaceId) {
+      workspaceId = processedWorkspaceId;
+    }
     if (workspaceId !== processedWorkspaceId) {
       continue;
     }
+
+    // - for those events without the custom args set, set their values
     backfilledDelayedEvents.push({
       ...delayedEvent,
       ...parsedProperties.value,
     });
   }
 
-  // - find first workspaceId in custom args of events
-  // - if no workspace id is present, lookup all events by their smtp-id as
-  // messageId. there should be processed events which contain the critical
-  // custom args
-  // - if the events aren't found or none have a workspace id, return an error
-  // - for those events without the custom args set, set their values
+  // If there are no events to process, return early.
+  if (immediateEvents.length === 0 && backfilledDelayedEvents.length === 0) {
+    return ok(undefined);
+  }
+
+  // If there are events to process, but no workspaceId, that means that we're
+  // missing the critical custom args on an immediate event.
+  if (!workspaceId) {
+    return err({ message: "No workspaceId found in events." });
+  }
+
   // - lookup the webhook secret for the workspace id
   // - use the webhook signature and timestamp to verify the request
   // - if not verified, return an error
