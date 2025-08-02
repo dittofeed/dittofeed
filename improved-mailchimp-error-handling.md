@@ -24,3 +24,5 @@ Useful commands:
 - run type checking: yarn workspace backend-lib check
 - run tests: yarn jest packages/backend-lib/src/destinations/mailchimp.ts 
 
+Please make sure to use the web to search for the error codes and generally find useful information about how mailchimp / mandrill distinguishes between different types of errors using its api and sdk.
+
