@@ -13,9 +13,11 @@ import {
   BatchTrackData,
   EventType,
   InternalEventType,
+  MessageMetadataFields,
   SendgridEvent,
 } from "../types";
 import { findUserEvents, findUserEventsById } from "../userEvents";
+import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 // README the typescript types on this are wrong, body is not of type string,
 // it's a parsed JSON object
@@ -67,12 +69,12 @@ export function sendgridEventToDF({
 }: {
   sendgridEvent: RelevantSendgridFields;
 }): Result<BatchItem, Error> {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const {
     email,
     event,
     timestamp,
     "smtp-id": smtpId,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     sg_message_id,
   } = sendgridEvent;
 
@@ -203,19 +205,56 @@ export async function handleSendgridEvents({
       break;
     }
   }
-  const priorEventsBySmtpId = new Map<string, RelevantSendgridFields>();
-  const missingCustomArgs = new Set<string>();
+  const immediateEvents: SendgridEvent[] = [];
+  const delayedEvents = new Map<string, SendgridEvent>();
+
   for (const event of sendgridEvents) {
-    if (event.workspaceId && event.userId) {
-      priorEventsBySmtpId.set(event["smtp-id"], event);
-      continue;
+    switch (event.event) {
+      case "spamreport":
+      case "bounce":
+        delayedEvents.set(event["smtp-id"], event);
+        break;
+      default:
+        immediateEvents.push(event);
+        break;
     }
-    missingCustomArgs.add(event["smtp-id"]);
   }
 
-  const events = await findUserEventsById({
-    messageIds: Array.from(missingCustomArgs).map((id) => `processed:${id}`),
+  const processedForDelayedEvents = await findUserEventsById({
+    messageIds: Array.from(delayedEvents.keys()).map((id) => `processed:${id}`),
   });
+
+  const backfilledDelayedEvents: SendgridEvent[] = [];
+
+  for (const event of processedForDelayedEvents) {
+    const smtpId = event.message_id.split(":")[1];
+    if (!smtpId) {
+      continue;
+    }
+    const delayedEvent = delayedEvents.get(smtpId);
+    if (!delayedEvent) {
+      continue;
+    }
+    const parsedProperties = jsonParseSafeWithSchema(
+      event.properties,
+      MessageMetadataFields,
+    );
+    if (parsedProperties.isErr()) {
+      continue;
+    }
+    const { workspaceId: processedWorkspaceId, userId } =
+      parsedProperties.value;
+    if (!processedWorkspaceId || !userId) {
+      continue;
+    }
+    if (workspaceId !== processedWorkspaceId) {
+      continue;
+    }
+    backfilledDelayedEvents.push({
+      ...delayedEvent,
+      ...parsedProperties.value,
+    });
+  }
 
   // - find first workspaceId in custom args of events
   // - if no workspace id is present, lookup all events by their smtp-id as
