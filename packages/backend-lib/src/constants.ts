@@ -21,6 +21,7 @@ export const WORKSPACE_COMPUTE_LATENCY_METRIC =
 
 export const MESSAGE_METADATA_FIELDS = [
   "workspaceId",
+  "broadcastId",
   "journeyId",
   "runId",
   "messageId",

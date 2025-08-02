@@ -582,6 +582,7 @@ export const MessageMetadataFields = Type.Object({
   templateId: Type.Optional(Type.String()),
   nodeId: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
+  broadcastId: Type.Optional(Type.String()),
 });
 
 export type MessageMetadataFields = Static<typeof MessageMetadataFields>;

@@ -44,10 +44,26 @@ export async function sendMail({
   ).map((resultArray) => resultArray[0]);
 }
 
+type RelevantSendgridFields = Pick<
+  SendgridEvent,
+  | "email"
+  | "event"
+  | "timestamp"
+  | "userId"
+  | "smtp-id"
+  | "workspaceId"
+  | "broadcastId"
+  | "journeyId"
+  | "runId"
+  | "messageId"
+  | "templateId"
+  | "nodeId"
+>;
+
 export function sendgridEventToDF({
   sendgridEvent,
 }: {
-  sendgridEvent: SendgridEvent;
+  sendgridEvent: RelevantSendgridFields;
 }): Result<BatchItem, Error> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const { email, event, timestamp, "smtp-id": smtpId } = sendgridEvent;
@@ -157,7 +173,17 @@ export async function handleSendgridEvents({
       break;
     }
   }
-  // const priorEventsBySmtpId = new Map<string>();
+  const priorEventsBySmtpId = new Map<string, RelevantSendgridFields>();
+  const eventPromises: Promise<void>[] = [];
+  for (const event of sendgridEvents) {
+    if (event.workspaceId && event.userId) {
+      priorEventsBySmtpId.set(event["smtp-id"], event);
+      continue;
+    }
+  }
+
+  await Promise.all(eventPromises);
+
   // - find first workspaceId in custom args of events
   // - if no workspace id is present, lookup all events by their smtp-id as
   // messageId. there should be processed events which contain the critical
