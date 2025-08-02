@@ -419,7 +419,7 @@ function buildUserEventInnerQuery(
   } = clauses;
 
   const contextField = includeContext
-    ? `,\n        JSONExtractString(message_raw, 'context') AS context`
+    ? ", JSONExtractString(message_raw, 'context') AS context"
     : "";
 
   return `
@@ -750,10 +750,11 @@ export async function findUserEventsById({
   messageIds: string[];
 }): Promise<UserEventsWithTraits[]> {
   const qb = new ClickHouseQueryBuilder();
-  
-  const messageIdClause = messageIds.length > 0
-    ? `message_id IN ${qb.addQueryValue(messageIds, "Array(String)")}`
-    : "1=0";
+
+  const messageIdClause =
+    messageIds.length > 0
+      ? `message_id IN ${qb.addQueryValue(messageIds, "Array(String)")}`
+      : "1=0";
 
   const query = `
     SELECT

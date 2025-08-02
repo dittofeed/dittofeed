@@ -166,7 +166,7 @@ export async function handleSendgridEvents({
   webhookSignature: string;
   webhookTimestamp: string;
   rawBody: string;
-}): Result<void, { message: string }> {
+}): Promise<Result<void, { message: string }>> {
   let workspaceId: string | undefined;
   for (const event of sendgridEvents) {
     if (event.workspaceId) {
