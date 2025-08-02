@@ -96,15 +96,26 @@ export function sendgridEventToDF({
   // events like spam and bounces
   // 2. we need to be able to lookup prior processed events by their smtp-id
   // when we receive async events
+  // Note that smtp-id is not present for all events, particularly immediate
+  // events.
   let messageId: string;
   switch (event) {
     case "processed":
+      if (!smtpId) {
+        return err(new Error("Missing smtp-id for processed event."));
+      }
       messageId = `processed:${smtpId}`;
       break;
     case "bounce":
+      if (!smtpId) {
+        return err(new Error("Missing smtp-id for bounce event."));
+      }
       messageId = `bounce:${smtpId}`;
       break;
     case "spamreport":
+      if (!smtpId) {
+        return err(new Error("Missing smtp-id for spamreport event."));
+      }
       messageId = `spamreport:${smtpId}`;
       break;
     default: {
@@ -122,9 +133,12 @@ export function sendgridEventToDF({
 
   let eventName: InternalEventType;
   const properties: Record<string, string> = R.merge(
-    { email, smtpId },
+    { email },
     R.pick(sendgridEvent, MESSAGE_METADATA_FIELDS),
   );
+  if (smtpId) {
+    properties.smtpId = smtpId;
+  }
 
   switch (event) {
     case "open":
@@ -227,6 +241,17 @@ export async function handleSendgridEvents({
     switch (event.event) {
       case "spamreport":
       case "bounce":
+        if (!event["smtp-id"]) {
+          logger().error(
+            {
+              event: event.event,
+              workspaceId: workspaceId ?? event.workspaceId,
+              sgMessageId: event.sg_message_id,
+            },
+            "Missing smtp-id for bounce or spamreport event.",
+          );
+          continue;
+        }
         delayedEvents.set(event["smtp-id"], event);
         break;
       default:
