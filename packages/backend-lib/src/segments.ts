@@ -671,6 +671,29 @@ async function getWorkspaceSegmentAssignments({
   }));
 }
 
+export async function getSegmentAssignmentsAndIdentifiers({
+  workspaceId,
+  cursor,
+  pageSize = 300,
+  segmentIds,
+}: {
+  workspaceId: string;
+  cursor?: string;
+  pageSize: number;
+  segmentIds?: string[];
+}): Promise<{
+  users: {
+    id: string;
+    email?: string;
+    phone?: string;
+    // segment name -> in segment
+    segments: Record<string, boolean>;
+  }[];
+  cursor?: string;
+}> {
+  throw new Error("Not implemented");
+}
+
 // TODO use pagination, and blob store
 export async function buildSegmentsFile({
   workspaceId,
