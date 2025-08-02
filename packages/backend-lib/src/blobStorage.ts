@@ -4,6 +4,8 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { Readable } from "stream";
 
 import config from "./config";
 
@@ -75,4 +77,57 @@ export async function createBucket(
     Bucket: bucketName,
   });
   await client.send(command);
+}
+
+export async function putObjectStream(
+  client: S3Client,
+  {
+    stream,
+    key,
+    contentType,
+  }: {
+    stream: Readable;
+    key: string;
+    contentType?: string;
+  },
+) {
+  // Convert stream to buffer for S3 upload
+  const chunks: Uint8Array[] = [];
+  
+  stream.on("data", (chunk: Uint8Array) => {
+    chunks.push(chunk);
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    stream.on("end", () => resolve());
+    stream.on("error", (error) => reject(error));
+  });
+
+  const body = Buffer.concat(chunks);
+  
+  const command = new PutObjectCommand({
+    Bucket: config().blobStorageBucket,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  });
+  await client.send(command);
+}
+
+export async function generatePresignedUrl(
+  client: S3Client,
+  {
+    key,
+    expiresIn = 24 * 60 * 60, // 24 hours default
+  }: {
+    key: string;
+    expiresIn?: number;
+  },
+): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: config().blobStorageBucket,
+    Key: key,
+  });
+
+  return getSignedUrl(client, command, { expiresIn });
 }

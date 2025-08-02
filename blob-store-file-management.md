@@ -129,3 +129,5 @@ Specialized Activities will contain the core business logic for generating diffe
 
 - Run type checking for both the `api` and `backend-lib` packages: `yarn workspace api check`
 - Run a particular test: `LOG_LEVEL=debug yarn jest packages/backend-lib/src/myTest.test.ts`
+- Create migrations: `yarn workspace backend-lib drizzle-kit generate`
+- Run migrations: `yarn workspace backend-lib drizzle-kit migrate`

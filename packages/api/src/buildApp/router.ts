@@ -10,6 +10,7 @@ import computedPropertiesController from "../controllers/computedPropertiesContr
 import contentController from "../controllers/contentController";
 import debugController from "../controllers/debugController";
 import deliveriesController from "../controllers/deliveriesController";
+import downloadsController from "../controllers/downloadsController";
 import eventsController from "../controllers/eventsController";
 import groupsController from "../controllers/groupsController";
 import indexController from "../controllers/indexController";
@@ -48,6 +49,7 @@ export default async function router(
 
       await Promise.all([
         f.register(contentController, { prefix: "/content" }),
+        f.register(downloadsController, { prefix: "/downloads" }),
         f.register(eventsController, { prefix: "/events" }),
         f.register(journeysController, { prefix: "/journeys" }),
         f.register(secretsController, { prefix: "/secrets" }),

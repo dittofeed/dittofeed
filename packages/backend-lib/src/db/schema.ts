@@ -88,6 +88,12 @@ export const workspaceType = pgEnum("WorkspaceType", [
   "Child",
   "Parent",
 ]);
+export const downloadStatus = pgEnum("DownloadStatus", [
+  "PENDING",
+  "PROCESSING",
+  "COMPLETE",
+  "FAILED",
+]);
 
 export const workspace = pgTable(
   "Workspace",
@@ -1074,5 +1080,45 @@ export const workspaceOccupantSetting = pgTable(
     })
       .onUpdate("cascade")
       .onDelete("set null"),
+  ],
+);
+
+export const download = pgTable(
+  "Download",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    workspaceMemberId: uuid().notNull(),
+    name: text().notNull(),
+    status: downloadStatus().default("PENDING").notNull(),
+    blobStorageKey: text(),
+    downloadUrl: text(),
+    error: text(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("Download_workspaceId_workspaceMemberId_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.workspaceMemberId.asc().nullsLast().op("uuid_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "Download_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.workspaceMemberId],
+      foreignColumns: [workspaceMember.id],
+      name: "Download_workspaceMemberId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
   ],
 );

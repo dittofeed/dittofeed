@@ -31,6 +31,8 @@ import {
   componentConfiguration as dbComponentConfiguration,
   computedPropertyPeriod as dbComputedPropertyPeriod,
   DBWorkspaceOccupantType,
+  download as dbDownload,
+  downloadStatus as dbDownloadStatus,
   emailProvider as dbEmailProvider,
   integration as dbIntegration,
   journey as dbJourney,
@@ -109,7 +111,13 @@ export type ComponentConfiguration = InferSelectModel<
 
 export type SubscriptionGroup = InferSelectModel<typeof dbSubscriptionGroup>;
 
-export { dbJourneyStatus as JourneyStatus, dbWorkspaceType as WorkspaceType };
+export type Download = InferSelectModel<typeof dbDownload>;
+
+export { 
+  dbJourneyStatus as JourneyStatus, 
+  dbWorkspaceType as WorkspaceType,
+  dbDownloadStatus as DownloadStatus,
+};
 
 export type JourneyInsert = typeof dbJourney.$inferInsert;
 

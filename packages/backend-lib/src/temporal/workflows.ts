@@ -4,6 +4,7 @@ export * from "../computedProperties/broadcastWorkflow";
 export * from "../computedProperties/computePropertiesQueueWorkflow";
 export * from "../computedProperties/computePropertiesWorkflow";
 export * from "../computedProperties/comutePropertiesSchedulerWorkflow";
+export * from "../downloads/csvDownloadWorkflow";
 export { globalCronWorkflow } from "../globalCronWorkflow";
 export * from "../integrations/hubspotUserWorkflow";
 export * from "../integrations/hubspotWorkflow";

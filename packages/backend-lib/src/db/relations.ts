@@ -7,6 +7,7 @@ import {
   computedPropertyPeriod,
   defaultEmailProvider,
   defaultSmsProvider,
+  download,
   emailProvider,
   emailTemplate,
   feature,
@@ -73,6 +74,7 @@ export const workspaceRelations = relations(workspace, ({ many }) => ({
   }),
   componentConfigurations: many(componentConfiguration),
   workspaceOccupantSettings: many(workspaceOccupantSetting),
+  downloads: many(download),
 }));
 
 export const userPropertyRelations = relations(
@@ -247,6 +249,7 @@ export const workspaceMemberRelations = relations(
       fields: [workspaceMember.lastWorkspaceId],
       references: [workspace.id],
     }),
+    downloads: many(download),
   }),
 );
 
@@ -368,3 +371,14 @@ export const workspaceOccupantSettingRelations = relations(
     }),
   }),
 );
+
+export const downloadRelations = relations(download, ({ one }) => ({
+  workspace: one(workspace, {
+    fields: [download.workspaceId],
+    references: [workspace.id],
+  }),
+  workspaceMember: one(workspaceMember, {
+    fields: [download.workspaceMemberId],
+    references: [workspaceMember.id],
+  }),
+}));
