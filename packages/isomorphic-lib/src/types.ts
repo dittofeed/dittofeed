@@ -101,6 +101,11 @@ export enum InternalEventType {
   UserGroupAssignment = "DFUserGroupAssignment",
 }
 
+export enum CursorDirectionEnum {
+  After = "after",
+  Before = "before",
+}
+
 export enum SubscriptionGroupType {
   OptIn = "OptIn",
   OptOut = "OptOut",
@@ -214,6 +219,7 @@ export enum SegmentOperatorType {
   NotExists = "NotExists",
   GreaterThanOrEqual = "GreaterThanOrEqual",
   LessThan = "LessThan",
+  AbsoluteTimestamp = "AbsoluteTimestamp",
 }
 
 export enum SegmentHasBeenOperatorComparator {
@@ -236,6 +242,16 @@ export const SegmentWithinOperator = Type.Object({
 });
 
 export type SegmentWithinOperator = Static<typeof SegmentWithinOperator>;
+
+export const SegmentAbsoluteTimestampOperator = Type.Object({
+  type: Type.Literal(SegmentOperatorType.AbsoluteTimestamp),
+  absoluteTimestamp: Type.String(),
+  direction: Type.Enum(CursorDirectionEnum),
+});
+
+export type SegmentAbsoluteTimestampOperator = Static<
+  typeof SegmentAbsoluteTimestampOperator
+>;
 
 export const ExistsOperator = Type.Object({
   type: Type.Literal(SegmentOperatorType.Exists),
@@ -281,6 +297,7 @@ export type SegmentLessThanOperator = Static<typeof SegmentLessThanOperator>;
 
 export const SegmentOperator = Type.Union([
   SegmentWithinOperator,
+  SegmentAbsoluteTimestampOperator,
   SegmentEqualsOperator,
   SegmentNotEqualsOperator,
   SegmentHasBeenOperator,
@@ -344,13 +361,21 @@ export enum RelationalOperators {
   LessThan = "<",
 }
 
+export enum TimeOperator {
+  Within = "Within",
+  AfterAbsolute = "AfterAbsolute",
+  BeforeAbsolute = "BeforeAbsolute",
+}
+
 export const PerformedSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Performed),
   id: Type.String(),
   event: Type.String(),
   times: Type.Optional(Type.Number()),
   timesOperator: Type.Optional(Type.Enum(RelationalOperators)),
+  timeOperator: Type.Optional(Type.Enum(TimeOperator)),
   withinSeconds: Type.Optional(Type.Number()),
+  absoluteTimestamp: Type.Optional(Type.String()),
   properties: Type.Optional(
     Type.Array(
       Type.Object({
@@ -898,11 +923,6 @@ export const SortDirectionEnum = {
 export const SortDirection = Type.KeyOf(Type.Const(SortDirectionEnum));
 
 export type SortDirection = Static<typeof SortDirection>;
-
-export enum CursorDirectionEnum {
-  After = "after",
-  Before = "before",
-}
 
 export enum DelayVariantType {
   Second = "Second",
