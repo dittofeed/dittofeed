@@ -376,14 +376,7 @@ function segmentToIndexed({
       }
 
       switch (node.operator.type) {
-        case SegmentOperatorType.AbsoluteTimestamp: {
-          return [
-            {
-              stateId,
-              expression: `toUnixTimestamp(parseDateTimeBestEffortOrZero(argMaxMerge(last_value)))`,
-            },
-          ];
-        }
+        case SegmentOperatorType.AbsoluteTimestamp:
         case SegmentOperatorType.Within: {
           return [
             {
@@ -1727,12 +1720,18 @@ export function segmentNodeToStateSubQuery({
           },
         ];
       }
-      // FIXME use absolute timestamp
-      const eventTimeExpression: string | undefined =
+      let eventTimeExpression: string | undefined;
+      if (
         node.operator.type === SegmentOperatorType.HasBeen ||
         node.operator.type === SegmentOperatorType.Within
-          ? truncateEventTimeExpression(node.operator.windowSeconds)
-          : undefined;
+      ) {
+        eventTimeExpression = truncateEventTimeExpression(
+          node.operator.windowSeconds,
+        );
+      } else if (node.operator.type === SegmentOperatorType.AbsoluteTimestamp) {
+        // Using precision / interval of 1 hour
+        eventTimeExpression = `toDateTime64(toStartOfInterval(event_time, toIntervalSecond(3600)), 3)`;
+      }
 
       return [
         {
