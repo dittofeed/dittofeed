@@ -66,8 +66,6 @@ import {
   PeriodByComputedPropertyId,
 } from "./periods";
 
-const THREE_MINUTES_IN_MS = 180000;
-
 type AsyncWrapper = <T>(fn: () => Promise<T>) => Promise<T>;
 
 let READ_LIMIT: AsyncWrapper | null = null;
@@ -617,6 +615,7 @@ function segmentToResolvedState({
         return [];
       }
 
+      // FIXME use absolute timestamp
       if (node.withinSeconds && node.withinSeconds > 0) {
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
@@ -1220,6 +1219,10 @@ function segmentToResolvedState({
             }),
           ];
         }
+        case SegmentOperatorType.AbsoluteTimestamp: {
+          // FIXME
+          throw new Error("Not implemented");
+        }
         default:
           assertUnreachable(operator);
           break;
@@ -1782,11 +1785,15 @@ export function segmentNodeToStateSubQuery({
               `Unimplemented segment operator for performed node ${operator.type} for segment: ${segment.id} and node: ${node.id}`,
             );
           }
+          case SegmentOperatorType.AbsoluteTimestamp: {
+            throw new Error("Not implemented");
+          }
           default:
             assertUnreachable(operator);
             return [];
         }
       });
+      // FIXME use absolute timestamp
       const eventTimeExpression: string | undefined = node.withinSeconds
         ? truncateEventTimeExpression(node.withinSeconds)
         : undefined;
