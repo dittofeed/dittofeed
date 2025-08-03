@@ -5874,20 +5874,3 @@ export const BatchMessageUsersResponse = Type.Object({
 export type BatchMessageUsersResponse = Static<
   typeof BatchMessageUsersResponse
 >;
-
-export const ListSubscriptionGroupsRequest = Type.Object({
-  workspaceId: Type.String(),
-  ids: Type.Optional(Type.Array(Type.String())),
-});
-
-export type ListSubscriptionGroupsRequest = Static<
-  typeof ListSubscriptionGroupsRequest
->;
-
-export const ListSubscriptionGroupsResponse = Type.Object({
-  subscriptionGroups: Type.Array(SubscriptionGroupResource),
-});
-
-export type ListSubscriptionGroupsResponse = Static<
-  typeof ListSubscriptionGroupsResponse
->;
