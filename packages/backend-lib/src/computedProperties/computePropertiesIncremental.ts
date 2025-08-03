@@ -617,7 +617,7 @@ function segmentToResolvedState({
         return [];
       }
 
-      // FIXME use absolute timestamp
+      // TODO: support absolute timestamp
       if (node.withinSeconds && node.withinSeconds > 0) {
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
@@ -1813,7 +1813,7 @@ export function segmentNodeToStateSubQuery({
             return [];
         }
       });
-      // FIXME use absolute timestamp
+      // TODO: support absolute timestamp
       const eventTimeExpression: string | undefined = node.withinSeconds
         ? truncateEventTimeExpression(node.withinSeconds)
         : undefined;
