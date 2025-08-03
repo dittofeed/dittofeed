@@ -242,6 +242,7 @@
               "api-reference/endpoints/subscription-management/user-subscriptions",
               "api-reference/auto/users/get-apiadminuserssubscriptions",
               "api-reference/auto/subscription-groups/put-apiadminsubscription-groupsassignments",
+              "api-reference/auto/subscription-groups/get-apiadminsubscription-groups",
               "api-reference/auto/users/post-apiadminusers",
               "api-reference/auto/users/delete-apiadminusers",
               "api-reference/auto/events/get-apiadminevents",
