@@ -37,6 +37,8 @@ import {
   EventType,
   GetUserSubscriptionsRequest,
   InternalEventType,
+  ListSubscriptionGroupsRequest,
+  ListSubscriptionGroupsResponse,
   SavedSubscriptionGroupResource,
   Segment,
   SegmentDefinition,
@@ -708,4 +710,20 @@ export async function upsertSubscriptionSecret({
       value: generateSecureKey(8),
     },
   }).then(unwrap);
+}
+
+export async function listSubscriptionGroups({
+  workspaceId,
+  ids,
+}: ListSubscriptionGroupsRequest): Promise<ListSubscriptionGroupsResponse> {
+  const subscriptionGroups = await db().query.subscriptionGroup.findMany({
+    where: and(
+      eq(dbSubscriptionGroup.workspaceId, workspaceId),
+      ids ? inArray(dbSubscriptionGroup.id, ids) : undefined,
+    ),
+    orderBy: (sg, { asc }) => [asc(sg.name)],
+  });
+  return {
+    subscriptionGroups: subscriptionGroups.map(subscriptionGroupToResource),
+  };
 }
