@@ -33,6 +33,7 @@ import {
   BlobStorageFile,
   ComputedPropertyStep,
   ComputedPropertyStepEnum,
+  CursorDirectionEnum,
   EventType,
   InternalEventType,
   JourneyDefinition,
@@ -2197,6 +2198,33 @@ describe("computeProperties", () => {
       segments: [],
       steps: [
         {
+          type: EventsStepType.UpdateComputedProperty,
+          updater: (ctx) => {
+            return {
+              segments: [
+                {
+                  name: "newUsers",
+                  definition: {
+                    entryNode: {
+                      type: SegmentNodeType.Trait,
+                      id: "1",
+                      path: "createdAt",
+                      operator: {
+                        type: SegmentOperatorType.AbsoluteTimestamp,
+                        absoluteTimestamp: new Date(
+                          ctx.now + 5000,
+                        ).toISOString(),
+                        direction: CursorDirectionEnum.After,
+                      },
+                    },
+                    nodes: [],
+                  },
+                },
+              ],
+            };
+          },
+        },
+        {
           type: EventsStepType.SubmitEvents,
           events: [
             ({ now }) => ({
@@ -2214,73 +2242,7 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          description: "user is initially within segment window",
-          indexedStates: [
-            ({ now }) => ({
-              type: "segment",
-              userId: "user-1",
-              name: "newUsers",
-              nodeId: "1",
-              indexedValue: Math.floor((now - 100) / 1000),
-            }),
-          ],
-          users: [
-            {
-              id: "user-1",
-              segments: {
-                newUsers: true,
-              },
-            },
-          ],
-          states: [
-            ({ now }) => ({
-              type: "segment",
-              userId: "user-1",
-              name: "newUsers",
-              nodeId: "1",
-              lastValue: new Date(now - 100).toISOString(),
-            }),
-          ],
-        },
-        {
-          type: EventsStepType.Sleep,
-          timeMs: 50,
-        },
-        {
-          type: EventsStepType.ComputeProperties,
-        },
-        {
-          type: EventsStepType.Assert,
-          description:
-            "user continues to be within the segment window after waiting for a short period",
-          users: [
-            {
-              id: "user-1",
-              segments: {
-                newUsers: true,
-              },
-            },
-          ],
-          states: [
-            ({ now }) => ({
-              type: "segment",
-              userId: "user-1",
-              name: "newUsers",
-              nodeId: "1",
-              lastValue: new Date(now - 50 - 100).toISOString(),
-            }),
-          ],
-        },
-        {
-          type: EventsStepType.Sleep,
-          timeMs: 1200000,
-        },
-        {
-          type: EventsStepType.ComputeProperties,
-        },
-        {
-          type: EventsStepType.Assert,
-          description: "user falls outside of segment window after waiting",
+          description: "first user is not in the segment",
           users: [
             {
               id: "user-1",
@@ -2289,14 +2251,43 @@ describe("computeProperties", () => {
               },
             },
           ],
-          states: [
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 6000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
             ({ now }) => ({
-              type: "segment",
-              userId: "user-1",
-              name: "newUsers",
-              nodeId: "1",
-              lastValue: new Date(now - 100 - 50 - 1200000).toISOString(),
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                createdAt: new Date(now - 100).toISOString(),
+              },
             }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "next user is in the segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                newUsers: true,
+              },
+            },
           ],
         },
       ],
