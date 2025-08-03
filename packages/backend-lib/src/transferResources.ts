@@ -194,6 +194,8 @@ function mapSegmentOperator({
       return operator;
     case SegmentOperatorType.NotExists:
       return operator;
+    case SegmentOperatorType.AbsoluteTimestamp:
+      return operator;
     default:
       assertUnreachable(operator);
   }
