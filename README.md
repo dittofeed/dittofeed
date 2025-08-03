@@ -81,7 +81,7 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 Click **Deploy on Railway** below and follow the prompts to deploy Dittofeed on Railway in one-click.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/KH_QSO)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/dittofeed-1)
 
 ## Roadmap
 
