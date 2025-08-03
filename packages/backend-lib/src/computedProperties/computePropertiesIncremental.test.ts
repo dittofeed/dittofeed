@@ -2193,7 +2193,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes absolute timestamp operator trait segment",
-      only: true,
       userProperties: [],
       segments: [],
       steps: [
@@ -2212,7 +2211,8 @@ describe("computeProperties", () => {
                       operator: {
                         type: SegmentOperatorType.AbsoluteTimestamp,
                         absoluteTimestamp: new Date(
-                          ctx.now + 5000,
+                          // 5 hours from now
+                          ctx.now + 1000 * 60 * 60 * 5,
                         ).toISOString(),
                         direction: CursorDirectionEnum.After,
                       },
@@ -2254,7 +2254,8 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Sleep,
-          timeMs: 6000,
+          // 7 hours from now
+          timeMs: 1000 * 60 * 60 * 7,
         },
         {
           type: EventsStepType.SubmitEvents,
