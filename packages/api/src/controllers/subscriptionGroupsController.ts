@@ -5,6 +5,7 @@ import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
 import {
   buildSubscriptionChangeEvent,
+  listSubscriptionGroups,
   subscriptionGroupToResource,
   updateUserSubscriptions,
   upsertSubscriptionGroup,
@@ -13,6 +14,8 @@ import {
   CsvUploadValidationError,
   DeleteSubscriptionGroupRequest,
   EmptyResponse,
+  ListSubscriptionGroupsRequest,
+  ListSubscriptionGroupsResponse,
   SavedSubscriptionGroupResource,
   SubscriptionChange,
   SubscriptionGroupUpsertValidationError,
@@ -65,6 +68,24 @@ export default async function subscriptionGroupsController(
       }
       const resource = subscriptionGroupToResource(result.value);
       return reply.status(200).send(resource);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        description: "List subscription groups",
+        tags: ["Subscription Groups"],
+        querystring: ListSubscriptionGroupsRequest,
+        response: {
+          200: ListSubscriptionGroupsResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const result = await listSubscriptionGroups(request.query);
+      return reply.status(200).send(result);
     },
   );
 
