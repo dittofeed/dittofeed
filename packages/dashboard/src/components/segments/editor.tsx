@@ -7,6 +7,7 @@ import {
   IconButton,
   InputLabel,
   MenuItem,
+  Popover,
   Select,
   SelectChangeEvent,
   SelectProps,
@@ -16,6 +17,12 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import {
+  CalendarDate,
+  parseDateTime,
+  toCalendarDateTime,
+  toZoned,
+} from "@internationalized/date";
 import { formatInTimeZone } from "date-fns-tz";
 import { Draft } from "immer";
 import { isEmailEvent } from "isomorphic-lib/src/email";
@@ -68,11 +75,14 @@ import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { toCalendarDate } from "../../lib/dates";
 import { GroupedOption } from "../../lib/types";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUploadCsvMutation } from "../../lib/useUploadCsvMutation";
+import { Calendar } from "../calendar";
 import { CsvUploader } from "../csvUploader";
 import DurationSelect from "../durationSelect";
+import { GreyButton } from "../greyButtonStyle";
 import {
   EventNamesAutocomplete,
   PropertiesAutocomplete,
@@ -2085,27 +2095,48 @@ function AbsoluteTimestampValueSelect({
 }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
+  const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(
+    null,
+  );
 
   // Get user's current timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  // Convert ISO string to datetime-local format in user's timezone
-  const dateTimeLocalValue = operator.absoluteTimestamp
-    ? formatInTimeZone(
-        new Date(operator.absoluteTimestamp),
-        userTimezone,
-        "yyyy-MM-dd'T'HH:mm:ss",
-      )
-    : "";
+  // Convert stored timestamp to user's timezone for display
+  const [selectedDate, setSelectedDate] = React.useState<CalendarDate | null>(
+    operator.absoluteTimestamp
+      ? toCalendarDate(new Date(operator.absoluteTimestamp))
+      : null,
+  );
 
-  const handleDateTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dateTimeLocalValue = e.target.value;
-    if (!dateTimeLocalValue) return;
+  const [timeValue, setTimeValue] = React.useState(
+    operator.absoluteTimestamp
+      ? formatInTimeZone(
+          new Date(operator.absoluteTimestamp),
+          userTimezone,
+          "HH:mm",
+        )
+      : "00:00",
+  );
 
-    // datetime-local input provides a string like "2024-01-15T14:30:00"
-    // This represents the local time in the user's timezone
-    // We need to create a Date object that represents this exact moment in the user's timezone
-    const date = new Date(dateTimeLocalValue);
+  const handleDateChange = (date: CalendarDate) => {
+    setSelectedDate(date);
+    updateTimestamp(date, timeValue);
+  };
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = e.target.value;
+    setTimeValue(newTime);
+    if (selectedDate) {
+      updateTimestamp(selectedDate, newTime);
+    }
+  };
+
+  const updateTimestamp = (date: CalendarDate, time: string) => {
+    // Convert CalendarDate to a Date object in user's timezone
+    const dateObj = date.toDate(userTimezone);
+    const [hours = 0, minutes = 0] = time.split(":").map(Number);
+    dateObj.setHours(hours, minutes, 0); // Always set seconds to 0
 
     updateEditableSegmentNodeData(setState, nodeId, (node) => {
       if (
@@ -2113,7 +2144,7 @@ function AbsoluteTimestampValueSelect({
         node.operator.type === SegmentOperatorType.AbsoluteTimestamp
       ) {
         // Store as ISO string (UTC) - Date.toISOString() automatically converts to UTC
-        node.operator.absoluteTimestamp = date.toISOString();
+        node.operator.absoluteTimestamp = dateObj.toISOString();
       }
     });
   };
@@ -2129,22 +2160,30 @@ function AbsoluteTimestampValueSelect({
     });
   };
 
+  const displayValue = operator.absoluteTimestamp
+    ? formatInTimeZone(
+        new Date(operator.absoluteTimestamp),
+        userTimezone,
+        "MMM d, yyyy 'at' HH:mm",
+      )
+    : "Select Date & Time";
+
   return (
     <>
       <Stack direction="column" spacing={1} sx={{ width: selectorWidth }}>
-        <TextField
+        <Button
           disabled={disabled}
-          label="Date & Time"
-          type="datetime-local"
-          value={dateTimeLocalValue}
-          onChange={handleDateTimeChange}
-          InputLabelProps={{
-            shrink: true,
+          variant="outlined"
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+          sx={{
+            width: "100%",
+            justifyContent: "flex-start",
+            textTransform: "none",
+            color: "text.primary",
           }}
-          inputProps={{
-            step: 1, // Allow seconds precision
-          }}
-        />
+        >
+          {displayValue}
+        </Button>
         <Typography
           variant="caption"
           color="text.secondary"
@@ -2165,6 +2204,54 @@ function AbsoluteTimestampValueSelect({
           <MenuItem value={CursorDirectionEnum.Before}>Before</MenuItem>
         </Select>
       </Box>
+
+      <Popover
+        open={Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={() => setAnchorEl(null)}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: "grey.50",
+            },
+          },
+        }}
+      >
+        <Box sx={{ p: 2 }}>
+          <Stack spacing={2}>
+            <Calendar value={selectedDate} onChange={handleDateChange} />
+            <TextField
+              label="Time (HH:MM)"
+              type="time"
+              value={timeValue.slice(0, 5)} // Show only HH:MM
+              onChange={handleTimeChange}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              inputProps={{
+                step: 3600, // 1 hour precision
+              }}
+            />
+            <GreyButton 
+              onClick={() => setAnchorEl(null)}
+              sx={{
+                border: "1px solid",
+                borderColor: "grey.400",
+              }}
+            >
+              Apply
+            </GreyButton>
+          </Stack>
+        </Box>
+      </Popover>
     </>
   );
 }
