@@ -702,6 +702,7 @@ export async function getSegmentAssignmentsAndIdentifiers({
   const userProperties = await db()
     .select({
       id: dbUserProperty.id,
+      name: dbUserProperty.name,
     })
     .from(dbUserProperty)
     .where(
@@ -717,7 +718,7 @@ export async function getSegmentAssignmentsAndIdentifiers({
       : "";
   const query = `
     SELECT
-      computed_property_type,
+      type,
       computed_property_id,
       user_id,
       argMax(segment_value, assigned_at) as latest_segment_value,
@@ -725,21 +726,112 @@ export async function getSegmentAssignmentsAndIdentifiers({
     FROM computed_property_assignments_v2
     WHERE
       workspace_id = ${workspaceIdParam}
-      AND (type = 'user_property' ${userPropertyIdsClause})
-      OR (type = 'segment' ${segmentIdsClause})
-      AND user_id in (
-        SELECT
-          user_id
+      AND ((type = 'user_property' ${userPropertyIdsClause})
+      OR (type = 'segment' ${segmentIdsClause}))
+      AND user_id IN (
+        SELECT DISTINCT user_id
         FROM computed_property_assignments_v2
         WHERE
           workspace_id = ${workspaceIdParam}
           ${cursorClause}
+        ORDER BY user_id
         LIMIT ${limitParam}
       )
-    GROUP BY computed_property_type, computed_property_id, user_id
+    GROUP BY type, computed_property_id, user_id
   `;
 
-  throw new Error("Not implemented");
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
+  });
+
+  const rows = await result.json<{
+    type: "segment" | "user_property";
+    computed_property_id: string;
+    user_id: string;
+    latest_segment_value: boolean | null;
+    latest_user_property_value: string | null;
+  }>();
+
+  // Get segments metadata to map segment IDs to names
+  const segmentConditions: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
+  if (segmentIds && segmentIds.length > 0) {
+    segmentConditions.push(inArray(dbSegment.id, segmentIds));
+  }
+  const segments = await db()
+    .select({
+      id: dbSegment.id,
+      name: dbSegment.name,
+    })
+    .from(dbSegment)
+    .where(and(...segmentConditions));
+
+  // Create mappings
+  const segmentIdToName = new Map<string, string>();
+  segments.forEach((segment) => {
+    segmentIdToName.set(segment.id, segment.name);
+  });
+
+  const userPropertyIdToName = new Map<string, string>();
+  userProperties.forEach((prop) => {
+    userPropertyIdToName.set(prop.id, prop.name);
+  });
+
+  // Group results by user_id
+  const userMap = new Map<
+    string,
+    {
+      id: string;
+      email?: string;
+      phone?: string;
+      segments: Record<string, boolean>;
+    }
+  >();
+
+  for (const row of rows) {
+    if (!userMap.has(row.user_id)) {
+      userMap.set(row.user_id, {
+        id: row.user_id,
+        segments: {},
+      });
+    }
+
+    const user = userMap.get(row.user_id)!;
+
+    if (row.type === "segment" && row.latest_segment_value !== null) {
+      const segmentName = segmentIdToName.get(row.computed_property_id);
+      if (segmentName) {
+        user.segments[segmentName] = row.latest_segment_value;
+      }
+    } else if (
+      row.type === "user_property" &&
+      row.latest_user_property_value !== null
+    ) {
+      const propertyName = userPropertyIdToName.get(row.computed_property_id);
+      if (propertyName === "email") {
+        user.email = row.latest_user_property_value;
+      } else if (propertyName === "phone") {
+        user.phone = row.latest_user_property_value;
+      }
+    }
+  }
+
+  const users = Array.from(userMap.values());
+
+  // Determine next cursor
+  let nextCursor: string | undefined;
+  if (users.length === limit) {
+    const lastUser = users[users.length - 1];
+    nextCursor = lastUser?.id;
+  }
+
+  return {
+    users,
+    cursor: nextCursor,
+  };
 }
 
 // TODO use pagination, and blob store
