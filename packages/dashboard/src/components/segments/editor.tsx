@@ -22,6 +22,7 @@ import {
   parseDateTime,
   toCalendarDateTime,
   toZoned,
+  Time,
 } from "@internationalized/date";
 import { formatInTimeZone } from "date-fns-tz";
 import { Draft } from "immer";
@@ -80,6 +81,12 @@ import { GroupedOption } from "../../lib/types";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUploadCsvMutation } from "../../lib/useUploadCsvMutation";
 import { Calendar } from "../calendar";
+import {
+  TimeField,
+  Label,
+  DateInput,
+  DateSegment,
+} from "react-aria-components";
 import { CsvUploader } from "../csvUploader";
 import DurationSelect from "../durationSelect";
 import { GreyButton } from "../greyButtonStyle";
@@ -2109,34 +2116,33 @@ function AbsoluteTimestampValueSelect({
       : null,
   );
 
-  const [timeValue, setTimeValue] = React.useState(
+  const [timeValue, setTimeValue] = React.useState<Time | null>(
     operator.absoluteTimestamp
-      ? formatInTimeZone(
-          new Date(operator.absoluteTimestamp),
-          userTimezone,
-          "HH:mm",
-        )
-      : "00:00",
+      ? (() => {
+          const date = new Date(operator.absoluteTimestamp);
+          return new Time(date.getHours(), 0); // Only hours, no minutes
+        })()
+      : new Time(0, 0),
   );
 
   const handleDateChange = (date: CalendarDate) => {
     setSelectedDate(date);
-    updateTimestamp(date, timeValue);
-  };
-
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = e.target.value;
-    setTimeValue(newTime);
-    if (selectedDate) {
-      updateTimestamp(selectedDate, newTime);
+    if (timeValue) {
+      updateTimestamp(date, timeValue);
     }
   };
 
-  const updateTimestamp = (date: CalendarDate, time: string) => {
+  const handleTimeChange = (time: Time | null) => {
+    setTimeValue(time);
+    if (selectedDate && time) {
+      updateTimestamp(selectedDate, time);
+    }
+  };
+
+  const updateTimestamp = (date: CalendarDate, time: Time) => {
     // Convert CalendarDate to a Date object in user's timezone
     const dateObj = date.toDate(userTimezone);
-    const [hours = 0, minutes = 0] = time.split(":").map(Number);
-    dateObj.setHours(hours, minutes, 0); // Always set seconds to 0
+    dateObj.setHours(time.hour, 0, 0); // Set to hour precision, no minutes or seconds
 
     updateEditableSegmentNodeData(setState, nodeId, (node) => {
       if (
@@ -2170,13 +2176,28 @@ function AbsoluteTimestampValueSelect({
 
   return (
     <>
-      <Stack direction="column" spacing={1} sx={{ width: selectorWidth }}>
+      <style>
+        {`
+          .time-field-input[data-focus-within] {
+            border-color: #1976d2 !important;
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2) !important;
+          }
+          .time-segment:focus,
+          .time-segment[data-focused] {
+            background: #1976d2 !important;
+            color: white !important;
+            outline: none !important;
+          }
+        `}
+      </style>
+      <Box sx={{ width: selectorWidth }}>
         <Button
           disabled={disabled}
           variant="outlined"
           onClick={(e) => setAnchorEl(e.currentTarget)}
           sx={{
             width: "100%",
+            height: "100%",
             justifyContent: "flex-start",
             textTransform: "none",
             color: "text.primary",
@@ -2184,14 +2205,7 @@ function AbsoluteTimestampValueSelect({
         >
           {displayValue}
         </Button>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ fontSize: "0.75rem" }}
-        >
-          {userTimezone}
-        </Typography>
-      </Stack>
+      </Box>
 
       <Box sx={{ width: secondarySelectorWidth }}>
         <Select
@@ -2228,18 +2242,49 @@ function AbsoluteTimestampValueSelect({
         <Box sx={{ p: 2 }}>
           <Stack spacing={2}>
             <Calendar value={selectedDate} onChange={handleDateChange} />
-            <TextField
-              label="Time (HH:MM)"
-              type="time"
-              value={timeValue.slice(0, 5)} // Show only HH:MM
-              onChange={handleTimeChange}
-              InputLabelProps={{
-                shrink: true,
-              }}
-              inputProps={{
-                step: 3600, // 1 hour precision
-              }}
-            />
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body1">Time (Hour):</Typography>
+              <TimeField
+                value={timeValue}
+                onChange={handleTimeChange}
+                granularity="hour"
+                shouldForceLeadingZeros
+                style={{ flex: 1 }}
+              >
+                <DateInput
+                  className="time-field-input"
+                  style={{
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    padding: '8px 12px',
+                    background: '#fff',
+                    minHeight: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {(segment) => (
+                    <DateSegment
+                      segment={segment}
+                      className="time-segment"
+                      style={{
+                        padding: '2px 4px',
+                        borderRadius: '2px',
+                        minWidth: '24px',
+                        textAlign: 'center',
+                      }}
+                    />
+                  )}
+                </DateInput>
+              </TimeField>
+            </Stack>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: "0.75rem", textAlign: "center" }}
+            >
+              {userTimezone}
+            </Typography>
             <GreyButton 
               onClick={() => setAnchorEl(null)}
               sx={{
