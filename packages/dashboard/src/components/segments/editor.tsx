@@ -2106,15 +2106,22 @@ function AbsoluteTimestampValueSelect({
   // Convert stored timestamp to user's timezone for display
   const [selectedDate, setSelectedDate] = React.useState<CalendarDate | null>(
     operator.absoluteTimestamp
-      ? toCalendarDate(new Date(operator.absoluteTimestamp))
+      ? (() => {
+          // Create date in user's timezone, not UTC
+          const utcDate = new Date(operator.absoluteTimestamp);
+          const localDate = new Date(utcDate.toLocaleString("en-US", { timeZone: userTimezone }));
+          return toCalendarDate(localDate);
+        })()
       : null,
   );
 
   const [timeValue, setTimeValue] = React.useState<Time | null>(
     operator.absoluteTimestamp
       ? (() => {
-          const date = new Date(operator.absoluteTimestamp);
-          return new Time(date.getHours(), 0); // Only hours, no minutes
+          // Create date in user's timezone, not UTC
+          const utcDate = new Date(operator.absoluteTimestamp);
+          const localDate = new Date(utcDate.toLocaleString("en-US", { timeZone: userTimezone }));
+          return new Time(localDate.getHours(), 0); // Only hours, no minutes
         })()
       : new Time(0, 0),
   );
@@ -2164,13 +2171,13 @@ function AbsoluteTimestampValueSelect({
     ? formatInTimeZone(
         new Date(operator.absoluteTimestamp),
         userTimezone,
-        "MMM d, yyyy 'at' HH:mm",
+        "MMM d, yyyy 'at' HH:mm zzz",
       )
     : "Select Date & Time";
 
   return (
     <>
-      <Box sx={{ width: selectorWidth }}>
+      <Box sx={{ width: "220px" }}>
         <Button
           disabled={disabled}
           variant="outlined"
@@ -2472,9 +2479,13 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                     break;
                   }
                   case SegmentOperatorType.AbsoluteTimestamp: {
+                    // Create tomorrow at current hour with minutes/seconds set to 0
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    tomorrow.setMinutes(0, 0, 0); // Set minutes, seconds, milliseconds to 0
                     nodeOperator = {
                       type: SegmentOperatorType.AbsoluteTimestamp,
-                      absoluteTimestamp: new Date().toISOString(),
+                      absoluteTimestamp: tomorrow.toISOString(),
                       direction: CursorDirectionEnum.After,
                     };
                     break;
