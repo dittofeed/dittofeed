@@ -16,10 +16,8 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { CalendarDate } from "@internationalized/date";
-import { Draft } from "immer";
-import { format, parse } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
+import { Draft } from "immer";
 import { isEmailEvent } from "isomorphic-lib/src/email";
 import { round } from "isomorphic-lib/src/numbers";
 import {
@@ -70,7 +68,6 @@ import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
-import { toCalendarDate } from "../../lib/dates";
 import { GroupedOption } from "../../lib/types";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUploadCsvMutation } from "../../lib/useUploadCsvMutation";
@@ -602,7 +599,7 @@ const greaterThanOrEqualOperatorOption = {
 
 const absoluteTimestampOperatorOption = {
   id: SegmentOperatorType.AbsoluteTimestamp,
-  label: "Absolute Timestamp",
+  label: "Absolute Date & Time",
 };
 
 const notExistsOperatorOption = {
@@ -2088,24 +2085,28 @@ function AbsoluteTimestampValueSelect({
 }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
-  
+
   // Get user's current timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  
+
   // Convert ISO string to datetime-local format in user's timezone
-  const dateTimeLocalValue = operator.absoluteTimestamp 
-    ? formatInTimeZone(new Date(operator.absoluteTimestamp), userTimezone, "yyyy-MM-dd'T'HH:mm:ss")
+  const dateTimeLocalValue = operator.absoluteTimestamp
+    ? formatInTimeZone(
+        new Date(operator.absoluteTimestamp),
+        userTimezone,
+        "yyyy-MM-dd'T'HH:mm:ss",
+      )
     : "";
 
   const handleDateTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dateTimeLocalValue = e.target.value;
     if (!dateTimeLocalValue) return;
-    
+
     // datetime-local input provides a string like "2024-01-15T14:30:00"
     // This represents the local time in the user's timezone
     // We need to create a Date object that represents this exact moment in the user's timezone
     const date = new Date(dateTimeLocalValue);
-    
+
     updateEditableSegmentNodeData(setState, nodeId, (node) => {
       if (
         node.type === SegmentNodeType.Trait &&
@@ -2144,11 +2145,15 @@ function AbsoluteTimestampValueSelect({
             step: 1, // Allow seconds precision
           }}
         />
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ fontSize: "0.75rem" }}
+        >
           {userTimezone}
         </Typography>
       </Stack>
-      
+
       <Box sx={{ width: secondarySelectorWidth }}>
         <Select
           disabled={disabled}
@@ -2257,7 +2262,10 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
     }
     case SegmentOperatorType.AbsoluteTimestamp: {
       valueSelect = (
-        <AbsoluteTimestampValueSelect nodeId={node.id} operator={node.operator} />
+        <AbsoluteTimestampValueSelect
+          nodeId={node.id}
+          operator={node.operator}
+        />
       );
       break;
     }
