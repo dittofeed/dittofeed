@@ -2170,20 +2170,6 @@ function AbsoluteTimestampValueSelect({
 
   return (
     <>
-      <style>
-        {`
-          .time-field-input[data-focus-within] {
-            border-color: #1976d2 !important;
-            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2) !important;
-          }
-          .time-segment:focus,
-          .time-segment[data-focused] {
-            background: #1976d2 !important;
-            color: white !important;
-            outline: none !important;
-          }
-        `}
-      </style>
       <Box sx={{ width: selectorWidth }}>
         <Button
           disabled={disabled}
