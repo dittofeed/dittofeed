@@ -25,6 +25,7 @@ import { db, TxQueryError, txQueryResult } from "./db";
 import {
   segment as dbSegment,
   subscriptionGroup as dbSubscriptionGroup,
+  userProperty as dbUserProperty,
 } from "./db/schema";
 import { jsonValue } from "./jsonPath";
 import logger from "./logger";
@@ -674,12 +675,12 @@ async function getWorkspaceSegmentAssignments({
 export async function getSegmentAssignmentsAndIdentifiers({
   workspaceId,
   cursor,
-  pageSize = 300,
+  limit = 300,
   segmentIds,
 }: {
   workspaceId: string;
   cursor?: string;
-  pageSize: number;
+  limit: number;
   segmentIds?: string[];
 }): Promise<{
   users: {
@@ -691,6 +692,53 @@ export async function getSegmentAssignmentsAndIdentifiers({
   }[];
   cursor?: string;
 }> {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const limitParam = qb.addQueryValue(limit, "UInt64");
+  const cursorClause = cursor ? `AND user_id > ${cursor}` : "";
+  const segmentIdsClause = segmentIds
+    ? `AND computed_property_id IN (${qb.addQueryValue(segmentIds, "Array(String)")})`
+    : "";
+  const userProperties = await db()
+    .select({
+      id: dbUserProperty.id,
+    })
+    .from(dbUserProperty)
+    .where(
+      and(
+        eq(dbUserProperty.workspaceId, workspaceId),
+        inArray(dbUserProperty.name, ["email", "phone"]),
+      ),
+    );
+  const userPropertyIds = userProperties.map((p) => p.id);
+  const userPropertyIdsClause =
+    userPropertyIds.length > 0
+      ? `AND computed_property_id in (${qb.addQueryValue(userPropertyIds, "Array(String)")})`
+      : "";
+  const query = `
+    SELECT
+      computed_property_type,
+      computed_property_id,
+      user_id,
+      argMax(segment_value, assigned_at) as latest_segment_value,
+      argMax(user_property_value, assigned_at) as latest_user_property_value
+    FROM computed_property_assignments_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND (type = 'user_property' ${userPropertyIdsClause})
+      OR (type = 'segment' ${segmentIdsClause})
+      AND user_id in (
+        SELECT
+          user_id
+        FROM computed_property_assignments_v2
+        WHERE
+          workspace_id = ${workspaceIdParam}
+          ${cursorClause}
+        LIMIT ${limitParam}
+      )
+    GROUP BY computed_property_type, computed_property_id, user_id
+  `;
+
   throw new Error("Not implemented");
 }
 

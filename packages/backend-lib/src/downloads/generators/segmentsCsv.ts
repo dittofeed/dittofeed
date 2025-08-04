@@ -1,7 +1,7 @@
 import { format } from "@fast-csv/format";
 import { eq } from "drizzle-orm";
-import { Readable } from "stream";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
+import { Readable } from "stream";
 
 import {
   clickhouseClient,
