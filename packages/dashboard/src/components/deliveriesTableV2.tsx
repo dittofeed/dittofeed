@@ -598,6 +598,7 @@ interface DeliveriesTableV2Props {
   broadcastId?: string;
   journeyId?: string;
   triggeringProperties?: SearchDeliveriesRequest["triggeringProperties"];
+  contextValues?: SearchDeliveriesRequest["contextValues"];
   autoReloadByDefault?: boolean;
   reloadPeriodMs?: number;
   defaultTimeOption?: TimeOptionId;
@@ -669,6 +670,7 @@ export function DeliveriesTableV2({
   columnAllowList,
   journeyId,
   triggeringProperties,
+  contextValues,
   broadcastId,
   autoReloadByDefault = false,
   reloadPeriodMs = 30000,
@@ -770,6 +772,7 @@ export function DeliveriesTableV2({
       statuses,
       from,
       triggeringProperties,
+      contextValues,
       sortBy: state.query.sortBy,
       sortDirection: state.query.sortDirection,
       userId,
@@ -782,6 +785,7 @@ export function DeliveriesTableV2({
     deliveriesFilterState,
     state.query,
     triggeringProperties,
+    contextValues,
     userId,
     groupId,
     journeyId,
@@ -802,6 +806,7 @@ export function DeliveriesTableV2({
       groupId,
       journeyId,
       triggeringProperties,
+      contextValues,
       workspace,
     ],
     queryFn: async () => {
