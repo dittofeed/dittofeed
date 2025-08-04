@@ -16,7 +16,10 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { CalendarDate } from "@internationalized/date";
 import { Draft } from "immer";
+import { format, parse } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { isEmailEvent } from "isomorphic-lib/src/email";
 import { round } from "isomorphic-lib/src/numbers";
 import {
@@ -28,6 +31,7 @@ import {
   BodySegmentNode,
   ChannelType,
   CompletionStatus,
+  CursorDirectionEnum,
   EmailSegmentNode,
   InternalEventType,
   KeyedPerformedPropertiesOperator,
@@ -37,6 +41,7 @@ import {
   PerformedSegmentNode,
   RandomBucketSegmentNode,
   RelationalOperators,
+  SegmentAbsoluteTimestampOperator,
   SegmentDefinition,
   SegmentEqualsOperator,
   SegmentGreaterThanOrEqualOperator,
@@ -65,6 +70,7 @@ import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { toCalendarDate } from "../../lib/dates";
 import { GroupedOption } from "../../lib/types";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUploadCsvMutation } from "../../lib/useUploadCsvMutation";
@@ -594,6 +600,11 @@ const greaterThanOrEqualOperatorOption = {
   label: "Greater Than Or Equal",
 };
 
+const absoluteTimestampOperatorOption = {
+  id: SegmentOperatorType.AbsoluteTimestamp,
+  label: "Absolute Timestamp",
+};
+
 const notExistsOperatorOption = {
   id: SegmentOperatorType.NotExists,
   label: "Not Exists",
@@ -608,6 +619,7 @@ const traitOperatorOptions: Option[] = [
   notExistsOperatorOption,
   lessThanOperatorOption,
   greaterThanOrEqualOperatorOption,
+  absoluteTimestampOperatorOption,
 ];
 
 const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
@@ -619,6 +631,7 @@ const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
   [SegmentOperatorType.NotEquals]: notEqualsOperatorOption,
   [SegmentOperatorType.LessThan]: lessThanOperatorOption,
   [SegmentOperatorType.GreaterThanOrEqual]: greaterThanOrEqualOperatorOption,
+  [SegmentOperatorType.AbsoluteTimestamp]: absoluteTimestampOperatorOption,
 };
 const relationalOperatorNames: [RelationalOperators, string][] = [
   [RelationalOperators.GreaterThanOrEqual, "At least (>=)"],
@@ -2066,6 +2079,91 @@ function SubscriptionGroupSelect({
   );
 }
 
+function AbsoluteTimestampValueSelect({
+  nodeId,
+  operator,
+}: {
+  nodeId: string;
+  operator: SegmentAbsoluteTimestampOperator;
+}) {
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
+  
+  // Get user's current timezone
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  
+  // Convert ISO string to datetime-local format in user's timezone
+  const dateTimeLocalValue = operator.absoluteTimestamp 
+    ? formatInTimeZone(new Date(operator.absoluteTimestamp), userTimezone, "yyyy-MM-dd'T'HH:mm:ss")
+    : "";
+
+  const handleDateTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dateTimeLocalValue = e.target.value;
+    if (!dateTimeLocalValue) return;
+    
+    // datetime-local input provides a string like "2024-01-15T14:30:00"
+    // This represents the local time in the user's timezone
+    // We need to create a Date object that represents this exact moment in the user's timezone
+    const date = new Date(dateTimeLocalValue);
+    
+    updateEditableSegmentNodeData(setState, nodeId, (node) => {
+      if (
+        node.type === SegmentNodeType.Trait &&
+        node.operator.type === SegmentOperatorType.AbsoluteTimestamp
+      ) {
+        // Store as ISO string (UTC) - Date.toISOString() automatically converts to UTC
+        node.operator.absoluteTimestamp = date.toISOString();
+      }
+    });
+  };
+
+  const handleDirectionChange = (e: SelectChangeEvent<CursorDirectionEnum>) => {
+    updateEditableSegmentNodeData(setState, nodeId, (node) => {
+      if (
+        node.type === SegmentNodeType.Trait &&
+        node.operator.type === SegmentOperatorType.AbsoluteTimestamp
+      ) {
+        node.operator.direction = e.target.value as CursorDirectionEnum;
+      }
+    });
+  };
+
+  return (
+    <>
+      <Stack direction="column" spacing={1} sx={{ width: selectorWidth }}>
+        <TextField
+          disabled={disabled}
+          label="Date & Time"
+          type="datetime-local"
+          value={dateTimeLocalValue}
+          onChange={handleDateTimeChange}
+          InputLabelProps={{
+            shrink: true,
+          }}
+          inputProps={{
+            step: 1, // Allow seconds precision
+          }}
+        />
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+          {userTimezone}
+        </Typography>
+      </Stack>
+      
+      <Box sx={{ width: secondarySelectorWidth }}>
+        <Select
+          disabled={disabled}
+          value={operator.direction}
+          onChange={handleDirectionChange}
+          displayEmpty
+        >
+          <MenuItem value={CursorDirectionEnum.After}>After</MenuItem>
+          <MenuItem value={CursorDirectionEnum.Before}>Before</MenuItem>
+        </Select>
+      </Box>
+    </>
+  );
+}
+
 function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const traitPath = node.path;
   const { state, setState } = useSegmentEditorContext();
@@ -2157,6 +2255,12 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       );
       break;
     }
+    case SegmentOperatorType.AbsoluteTimestamp: {
+      valueSelect = (
+        <AbsoluteTimestampValueSelect nodeId={node.id} operator={node.operator} />
+      );
+      break;
+    }
     default: {
       assertUnreachable(node.operator);
     }
@@ -2244,6 +2348,14 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                     nodeOperator = {
                       type: SegmentOperatorType.GreaterThanOrEqual,
                       value: 0,
+                    };
+                    break;
+                  }
+                  case SegmentOperatorType.AbsoluteTimestamp: {
+                    nodeOperator = {
+                      type: SegmentOperatorType.AbsoluteTimestamp,
+                      absoluteTimestamp: new Date().toISOString(),
+                      direction: CursorDirectionEnum.After,
                     };
                     break;
                   }
