@@ -2967,6 +2967,7 @@ export const BaseBatchIdentifyData = {
   ...BaseAppData,
   type: Type.Literal(EventType.Identify),
   traits: Type.Optional(Traits),
+  context: AppDataContext,
 };
 
 const KnownIdentifyData = Type.Object({
@@ -3045,6 +3046,7 @@ export const BaseBatchTrackData = {
   files: AppDataFiles,
   event: TrackEventName,
   properties: Type.Optional(TrackEventProperties),
+  context: AppDataContext,
   type: Type.Literal(EventType.Track),
 };
 
@@ -3108,6 +3110,7 @@ export const BaseBatchGroupData = {
   groupId: Type.String(),
   assigned: Type.Optional(Type.Boolean()),
   traits: Type.Optional(GroupEventTraits),
+  context: AppDataContext,
   type: Type.Literal(EventType.Group),
 };
 
@@ -3181,6 +3184,7 @@ export const BaseBatchPageData = {
   ...BaseAppData,
   name: Type.Optional(PageName),
   properties: Type.Optional(PageProperties),
+  context: AppDataContext,
   type: Type.Literal(EventType.Page),
 };
 
@@ -3244,6 +3248,7 @@ export const BaseBatchScreenData = {
   ...BaseAppData,
   name: Type.Optional(ScreenName),
   properties: Type.Optional(ScreenProperties),
+  context: AppDataContext,
   type: Type.Literal(EventType.Screen),
 };
 
@@ -5393,6 +5398,14 @@ export const SearchDeliveriesRequest = Type.Object({
   groupId: Type.Optional(
     Type.Union([Type.String(), Type.Array(Type.String())]),
   ),
+  contextValues: Type.Optional(
+    Type.Array(
+      Type.Object({
+        key: Type.String(),
+        value: Type.Union([Type.String(), Type.Number()]),
+      }),
+    )
+  ),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
@@ -5777,6 +5790,10 @@ export const BaseBatchMessageUsersRequestUser = Type.Object({
     description:
       "User property values to be rendered in the message, keyed by name. Will override values present on the user.",
   }),
+  context: Type.Optional(Type.Record(Type.String(), Type.Any(), {
+    description:
+      "Context values for this specific user's events. Will override batch-level context values.",
+  })),
 });
 
 export type BaseBatchMessageUsersRequestUser = Static<
