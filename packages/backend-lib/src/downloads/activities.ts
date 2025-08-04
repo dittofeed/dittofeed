@@ -1,16 +1,13 @@
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { eq } from "drizzle-orm";
-import { Readable } from "stream";
 
 import { storage } from "../blobStorage";
 import config from "../config";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import logger from "../logger";
-import { generateEventsCsv } from "./generators/eventsCsv";
 import { generateSegmentsCsv } from "./generators/segmentsCsv";
-import { generateUsersCsv } from "./generators/usersCsv";
 
 export interface UpdateDownloadStatusParams {
   downloadId: string;
@@ -63,58 +60,33 @@ export async function generateDownloadFile({
 }: GenerateDownloadFileParams): Promise<GenerateDownloadFileResult> {
   const blobStorageKey = `downloads/${downloadType}/${downloadId}.csv`;
 
-  logger().info("Starting download file generation", {
+  logger().info("Starting download file generation with S3 streaming", {
     downloadId,
     workspaceId,
     downloadType,
     blobStorageKey,
   });
 
-  let csvStream: Readable;
-
+  // Generate CSV and upload directly to S3 using streaming
   switch (downloadType) {
     case "segments":
-      csvStream = await generateSegmentsCsv({ workspaceId });
+      await generateSegmentsCsv({ workspaceId, blobStorageKey });
       break;
     case "users":
-      csvStream = await generateUsersCsv({ workspaceId });
-      break;
+      // TODO: Update to use streaming approach
+      throw new Error("Users CSV streaming not yet implemented");
     case "events":
-      csvStream = await generateEventsCsv({ workspaceId });
-      break;
+      // TODO: Update to use streaming approach  
+      throw new Error("Events CSV streaming not yet implemented");
     default:
       throw new Error(`Unknown download type: ${downloadType}`);
   }
 
-  const s3Client = storage();
-  const chunks: Uint8Array[] = [];
-
-  csvStream.on("data", (chunk: Uint8Array) => {
-    chunks.push(chunk);
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    csvStream.on("end", () => resolve());
-    csvStream.on("error", (error) => reject(error));
-  });
-
-  const csvBuffer = Buffer.concat(chunks);
-
-  const command = new PutObjectCommand({
-    Bucket: config().blobStorageBucket,
-    Key: blobStorageKey,
-    Body: csvBuffer,
-    ContentType: "text/csv",
-  });
-
-  await s3Client.send(command);
-
-  logger().info("Download file generation completed", {
+  logger().info("Download file generation completed successfully", {
     downloadId,
     workspaceId,
     downloadType,
     blobStorageKey,
-    fileSizeBytes: csvBuffer.length,
   });
 
   return { blobStorageKey };

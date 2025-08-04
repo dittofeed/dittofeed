@@ -687,7 +687,7 @@ export async function getSegmentAssignmentsAndIdentifiers({
     id: string;
     email?: string;
     phone?: string;
-    // segment name -> in segment
+    // segment id -> in segment
     segments: Record<string, boolean>;
   }[];
   cursor?: string;
@@ -756,25 +756,7 @@ export async function getSegmentAssignmentsAndIdentifiers({
     latest_user_property_value: string | null;
   }>();
 
-  // Get segments metadata to map segment IDs to names
-  const segmentConditions: SQL[] = [eq(dbSegment.workspaceId, workspaceId)];
-  if (segmentIds && segmentIds.length > 0) {
-    segmentConditions.push(inArray(dbSegment.id, segmentIds));
-  }
-  const segments = await db()
-    .select({
-      id: dbSegment.id,
-      name: dbSegment.name,
-    })
-    .from(dbSegment)
-    .where(and(...segmentConditions));
-
-  // Create mappings
-  const segmentIdToName = new Map<string, string>();
-  segments.forEach((segment) => {
-    segmentIdToName.set(segment.id, segment.name);
-  });
-
+  // Create user property ID to name mapping
   const userPropertyIdToName = new Map<string, string>();
   userProperties.forEach((prop) => {
     userPropertyIdToName.set(prop.id, prop.name);
@@ -802,10 +784,7 @@ export async function getSegmentAssignmentsAndIdentifiers({
     const user = userMap.get(row.user_id)!;
 
     if (row.type === "segment" && row.latest_segment_value !== null) {
-      const segmentName = segmentIdToName.get(row.computed_property_id);
-      if (segmentName) {
-        user.segments[segmentName] = row.latest_segment_value;
-      }
+      user.segments[row.computed_property_id] = row.latest_segment_value;
     } else if (
       row.type === "user_property" &&
       row.latest_user_property_value !== null
