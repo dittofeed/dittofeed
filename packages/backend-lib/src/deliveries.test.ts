@@ -10,7 +10,6 @@ import {
   SearchDeliveryRow,
 } from "./deliveries";
 import logger from "./logger";
-import { batchMessageUsers } from "./messaging";
 import {
   BatchItem,
   ChannelType,
@@ -1642,44 +1641,79 @@ describe("deliveries", () => {
         const userId2 = randomUUID();
         const userId3 = randomUUID();
 
-        // Send messages with different context values using batchMessageUsers
-        await batchMessageUsers({
-          workspaceId,
-          templateId,
-          channel: ChannelType.Email,
-          provider: EmailProviderType.Test,
-          context: {
-            campaign: "summer-sale",
-            region: "us-west",
+        const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body",
+            subject: "subject",
+            provider: {
+              type: EmailProviderType.SendGrid,
+            },
           },
-          users: [
-            {
-              id: userId1,
-              properties: {
-                email: "user1@test.com",
-              },
-              context: {
-                source: "website",
-                campaign: "spring-sale", // Should override batch campaign
-              },
+        };
+
+        // Create MessageSent events with different context values directly
+        const events: BatchItem[] = [
+          {
+            userId: userId1,
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            context: {
+              source: "website",
+              campaign: "spring-sale",
             },
-            {
-              id: userId2,
-              properties: {
-                email: "user2@test.com",
-              },
-              context: {
-                source: "mobile-app",
-              },
+            properties: {
+              workspaceId,
+              templateId,
+              messageId: randomUUID(),
+              ...messageSentEvent,
             },
-            {
-              id: userId3,
-              properties: {
-                email: "user3@test.com",
-              },
-              // No individual context - should use batch context
+          },
+          {
+            userId: userId2,
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            context: {
+              source: "mobile-app",
+              region: "us-west",
             },
-          ],
+            properties: {
+              workspaceId,
+              templateId,
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          },
+          {
+            userId: userId3,
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            context: {
+              campaign: "summer-sale",
+              region: "us-west",
+            },
+            properties: {
+              workspaceId,
+              templateId,
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          },
+        ];
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
         });
 
         // Test filtering by context values that exist
@@ -1756,24 +1790,60 @@ describe("deliveries", () => {
 
       it("should combine contextValues and triggeringProperties with OR logic", async () => {
         const userId1 = randomUUID();
+        const triggeringMessageId = randomUUID();
 
-        // Send a message with context
-        await batchMessageUsers({
-          workspaceId,
-          templateId,
-          channel: ChannelType.Email,
-          provider: EmailProviderType.Test,
-          users: [
-            {
-              id: userId1,
-              properties: {
-                email: "user1@test.com",
-              },
-              context: {
-                source: "website",
-              },
+        const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body",
+            subject: "subject",
+            provider: {
+              type: EmailProviderType.SendGrid,
             },
-          ],
+          },
+        };
+
+        // Create a triggering event and a MessageSent event with context
+        const events: BatchItem[] = [
+          // Triggering event with properties that won't match
+          {
+            userId: userId1,
+            timestamp: new Date(Date.now() - 1000).toISOString(),
+            type: EventType.Track,
+            messageId: triggeringMessageId,
+            event: "some-triggering-event",
+            properties: {
+              workspaceId,
+              differentProp: "different-value",
+            },
+          },
+          // MessageSent event with context
+          {
+            userId: userId1,
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageSent,
+            context: {
+              source: "website",
+            },
+            properties: {
+              workspaceId,
+              templateId,
+              messageId: randomUUID(),
+              triggeringMessageId,
+              ...messageSentEvent,
+            },
+          },
+        ];
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
         });
 
         // Test that both contextValues and triggeringProperties work with OR logic

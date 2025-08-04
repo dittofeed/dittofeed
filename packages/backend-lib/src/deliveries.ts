@@ -430,21 +430,24 @@ export async function searchDeliveries({
             valueParam = queryBuilder.addQueryValue(roundedValue, "Int64");
             valueType = "Int64";
           } else {
-            logger().error({ key, value, workspaceId }, "Unexpected context value type");
+            logger().error(
+              { key, value, workspaceId },
+              "Unexpected context value type",
+            );
             return null; // Return null for invalid type
           }
 
-          const stringCheck = `EXISTS(SELECT 1 FROM (SELECT uev2.message_raw FROM user_events_v2 uev2 WHERE uev2.message_id = inner_grouped.origin_message_id AND uev2.workspace_id = ${workspaceIdParam} AND uev2.event = '${InternalEventType.MessageSent}' AND JSONType(uev2.message_raw, 'context', ${keyParam}) = 34 AND JSONExtractString(uev2.message_raw, 'context', ${keyParam}) = ${valueParam}))`;
-          const numberCheck = `EXISTS(SELECT 1 FROM (SELECT uev2.message_raw FROM user_events_v2 uev2 WHERE uev2.message_id = inner_grouped.origin_message_id AND uev2.workspace_id = ${workspaceIdParam} AND uev2.event = '${InternalEventType.MessageSent}' AND JSONType(uev2.message_raw, 'context', ${keyParam}) = 105 AND JSONExtractInt(uev2.message_raw, 'context', ${keyParam}) = ${valueParam}))`;
+          const stringCheck = `(JSONType(inner_grouped.context, ${keyParam}) = 34 AND JSONExtractString(inner_grouped.context, ${keyParam}) = ${valueParam})`;
+          const numberCheck = `(JSONType(inner_grouped.context, ${keyParam}) = 105 AND JSONExtractInt(inner_grouped.context, ${keyParam}) = ${valueParam})`;
 
           // Initialize to null for consistency, although it will always be set below.
           let arrayCheck: string;
           if (valueType === "String") {
-            const typedArrayExtract = `JSONExtract(uev2.message_raw, 'context', ${keyParam}, 'Array(String)')`;
-            arrayCheck = `EXISTS(SELECT 1 FROM (SELECT uev2.message_raw FROM user_events_v2 uev2 WHERE uev2.message_id = inner_grouped.origin_message_id AND uev2.workspace_id = ${workspaceIdParam} AND uev2.event = '${InternalEventType.MessageSent}' AND JSONType(uev2.message_raw, 'context', ${keyParam}) = 91 AND has(${typedArrayExtract}, ${valueParam})))`;
+            const typedArrayExtract = `JSONExtract(inner_grouped.context, ${keyParam}, 'Array(String)')`;
+            arrayCheck = `(JSONType(inner_grouped.context, ${keyParam}) = 91 AND has(${typedArrayExtract}, ${valueParam}))`;
           } else if (valueType === "Int64") {
-            const typedArrayExtractInt = `JSONExtract(uev2.message_raw, 'context', ${keyParam}, 'Array(Int64)')`;
-            arrayCheck = `EXISTS(SELECT 1 FROM (SELECT uev2.message_raw FROM user_events_v2 uev2 WHERE uev2.message_id = inner_grouped.origin_message_id AND uev2.workspace_id = ${workspaceIdParam} AND uev2.event = '${InternalEventType.MessageSent}' AND JSONType(uev2.message_raw, 'context', ${keyParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam})))`;
+            const typedArrayExtractInt = `JSONExtract(inner_grouped.context, ${keyParam}, 'Array(Int64)')`;
+            arrayCheck = `(JSONType(inner_grouped.context, ${keyParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam}))`;
           } else {
             logger().error(
               { key, value, valueType, workspaceId },
@@ -510,20 +513,22 @@ export async function searchDeliveries({
     withClauses.length > 0 ? `WITH ${withClauses.join(", ")} ` : "";
 
   let finalWhereClause = "WHERE 1=1";
-  
+
   // Combine triggeringProperties and contextValues with OR logic for backwards compatibility
-  const hasValidTriggeringProperties = triggeringPropertiesClause && triggeringPropertiesClause !== "1=0";
-  const hasValidContextValues = contextValuesClause && contextValuesClause !== "1=0";
-  
+  const hasValidTriggeringProperties =
+    triggeringPropertiesClause && triggeringPropertiesClause !== "1=0";
+  const hasValidContextValues =
+    contextValuesClause && contextValuesClause !== "1=0";
+
   if (hasValidTriggeringProperties && hasValidContextValues) {
     // Both conditions present - combine with OR for backwards compatibility
-    finalWhereClause += ` AND ((triggering_events.properties IS NOT NULL AND (${triggeringPropertiesClause})) OR (${contextValuesClause}))`;
+    finalWhereClause += ` AND ((triggering_events.properties IS NOT NULL AND (${triggeringPropertiesClause})) OR (inner_grouped.context IS NOT NULL AND inner_grouped.context != '' AND (${contextValuesClause})))`;
   } else if (hasValidTriggeringProperties) {
     // Only triggering properties
     finalWhereClause += ` AND triggering_events.properties IS NOT NULL AND (${triggeringPropertiesClause})`;
   } else if (hasValidContextValues) {
     // Only context values
-    finalWhereClause += ` AND (${contextValuesClause})`;
+    finalWhereClause += ` AND inner_grouped.context IS NOT NULL AND inner_grouped.context != '' AND (${contextValuesClause})`;
   }
 
   const query = `
@@ -531,6 +536,7 @@ export async function searchDeliveries({
     SELECT
       inner_grouped.last_event,
       inner_grouped.properties,
+      inner_grouped.context,
       inner_grouped.updated_at,
       inner_grouped.sent_at,
       inner_grouped.user_or_anonymous_id,
@@ -542,6 +548,7 @@ export async function searchDeliveries({
         SELECT
           argMax(event, event_time) last_event,
           anyIf(properties, properties != '') properties,
+          anyIf(context, context != '') context,
           max(event_time) updated_at,
           min(event_time) sent_at,
           user_or_anonymous_id,
@@ -554,6 +561,7 @@ export async function searchDeliveries({
             uev.workspace_id,
             uev.user_or_anonymous_id,
             if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'properties'), '') properties,
+            if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'context'), '') context,
             uev.event,
             uev.event_time,
             if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, JSON_VALUE(uev.message_raw, '$.properties.messageId')) origin_message_id,
