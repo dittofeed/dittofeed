@@ -15,6 +15,7 @@ import {
   workspaceMemberRole as dbWorkspaceMemberRole,
 } from "./db/schema";
 import logger from "./logger";
+import { isProfileEmailVerified } from "./openIdProfile";
 import { withSpan } from "./openTelemetry";
 import { requestContextPostProcessor } from "./requestContextPostProcessor";
 import {
@@ -33,7 +34,6 @@ import {
   WorkspaceTypeApp,
   WorkspaceTypeAppEnum,
 } from "./types";
-import { isProfileEmailVerified } from "./openIdProfile";
 
 export const SESSION_KEY = "df-session-key";
 
@@ -453,18 +453,13 @@ export async function getRequestContext(
       }
     }
     if (result.isOk()) {
-      const { id: memberId, email: memberEmail } = result.value.member;
-      const { id: workspaceId, name: workspaceName } = result.value.workspace;
+      const { id: memberId } = result.value.member;
+      const { id: workspaceId } = result.value.workspace;
 
-      const memberRoles = result.value.memberRoles.flatMap((r) =>
-        r.workspaceId === workspaceId ? r.role : [],
-      );
       span.setAttributes({
         memberId,
-        memberEmail,
         workspaceId,
-        workspaceName,
-        memberRoles,
+        workspaceType: result.value.workspace.type,
       });
       return result;
     }

@@ -9,6 +9,7 @@ import {
 } from "backend-lib/src/types";
 import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
+import { trace } from "@opentelemetry/api";
 
 import { getWorkspaceId } from "../workspace";
 
@@ -89,6 +90,18 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
     request.requestContext.set("workspace", workspace);
     request.requestContext.set("member", member);
     request.requestContext.set("memberRoles", memberRoles);
+
+    // Add workspace context to the active span
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan) {
+      activeSpan.setAttributes({
+        "workspace.id": workspace.id,
+        "workspace.name": workspace.name,
+        "member.id": member.id,
+        "member.email": member.email,
+      });
+    }
+
     return null;
   });
 });
