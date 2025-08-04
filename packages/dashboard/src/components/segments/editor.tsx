@@ -1,3 +1,4 @@
+import { CalendarDate, Time } from "@internationalized/date";
 import { AddCircleOutlineOutlined, Delete } from "@mui/icons-material";
 import {
   Autocomplete,
@@ -17,13 +18,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import {
-  CalendarDate,
-  parseDateTime,
-  toCalendarDateTime,
-  toZoned,
-  Time,
-} from "@internationalized/date";
 import { formatInTimeZone } from "date-fns-tz";
 import { Draft } from "immer";
 import { isEmailEvent } from "isomorphic-lib/src/email";
@@ -72,6 +66,12 @@ import React, {
   useMemo,
   useRef,
 } from "react";
+import {
+  DateInput,
+  DateSegment,
+  Label,
+  TimeField,
+} from "react-aria-components";
 import { Updater, useImmer } from "use-immer";
 import { v4 as uuid } from "uuid";
 
@@ -81,19 +81,13 @@ import { GroupedOption } from "../../lib/types";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUploadCsvMutation } from "../../lib/useUploadCsvMutation";
 import { Calendar } from "../calendar";
-import {
-  TimeField,
-  Label,
-  DateInput,
-  DateSegment,
-} from "react-aria-components";
 import { CsvUploader } from "../csvUploader";
 import DurationSelect from "../durationSelect";
-import { GreyButton } from "../greyButtonStyle";
 import {
   EventNamesAutocomplete,
   PropertiesAutocomplete,
 } from "../eventsAutocomplete";
+import { GreyButton } from "../greyButtonStyle";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
 import { MessageTemplateAutocomplete } from "../messageTemplateAutocomplete";
@@ -2125,20 +2119,6 @@ function AbsoluteTimestampValueSelect({
       : new Time(0, 0),
   );
 
-  const handleDateChange = (date: CalendarDate) => {
-    setSelectedDate(date);
-    if (timeValue) {
-      updateTimestamp(date, timeValue);
-    }
-  };
-
-  const handleTimeChange = (time: Time | null) => {
-    setTimeValue(time);
-    if (selectedDate && time) {
-      updateTimestamp(selectedDate, time);
-    }
-  };
-
   const updateTimestamp = (date: CalendarDate, time: Time) => {
     // Convert CalendarDate to a Date object in user's timezone
     const dateObj = date.toDate(userTimezone);
@@ -2153,6 +2133,20 @@ function AbsoluteTimestampValueSelect({
         node.operator.absoluteTimestamp = dateObj.toISOString();
       }
     });
+  };
+
+  const handleDateChange = (date: CalendarDate) => {
+    setSelectedDate(date);
+    if (timeValue) {
+      updateTimestamp(date, timeValue);
+    }
+  };
+
+  const handleTimeChange = (time: Time | null) => {
+    setTimeValue(time);
+    if (selectedDate && time) {
+      updateTimestamp(selectedDate, time);
+    }
   };
 
   const handleDirectionChange = (e: SelectChangeEvent<CursorDirectionEnum>) => {
@@ -2254,13 +2248,13 @@ function AbsoluteTimestampValueSelect({
                 <DateInput
                   className="time-field-input"
                   style={{
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                    padding: '8px 12px',
-                    background: '#fff',
-                    minHeight: '40px',
-                    display: 'flex',
-                    alignItems: 'center',
+                    border: "1px solid #ccc",
+                    borderRadius: "4px",
+                    padding: "8px 12px",
+                    background: "#fff",
+                    minHeight: "40px",
+                    display: "flex",
+                    alignItems: "center",
                   }}
                 >
                   {(segment) => (
@@ -2268,10 +2262,10 @@ function AbsoluteTimestampValueSelect({
                       segment={segment}
                       className="time-segment"
                       style={{
-                        padding: '2px 4px',
-                        borderRadius: '2px',
-                        minWidth: '24px',
-                        textAlign: 'center',
+                        padding: "2px 4px",
+                        borderRadius: "2px",
+                        minWidth: "24px",
+                        textAlign: "center",
                       }}
                     />
                   )}
@@ -2285,7 +2279,7 @@ function AbsoluteTimestampValueSelect({
             >
               {userTimezone}
             </Typography>
-            <GreyButton 
+            <GreyButton
               onClick={() => setAnchorEl(null)}
               sx={{
                 border: "1px solid",
