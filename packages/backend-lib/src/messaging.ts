@@ -2497,6 +2497,11 @@ export async function batchMessageUsers(
     (r) => r[0],
   );
 
+  // Create a mapping from userId to user context for event tracking
+  const userContextMap = new Map(
+    users.map((user) => [user.id, user.context]),
+  );
+
   const baseProperties: TrackData["properties"] = {
     templateId,
     workspaceId,
@@ -2527,12 +2532,17 @@ export async function batchMessageUsers(
           ...omit(backendMessageSendResult.error, ["type"]),
         };
       }
+      
+      // Get user-specific context
+      const userContext = userContextMap.get(userId);
+      
       return {
         type: EventType.Track,
         properties: trackingProperties,
         messageId,
         userId,
         event,
+        context: userContext,
       };
     },
   );

@@ -10,6 +10,7 @@ import {
   SearchDeliveryRow,
 } from "./deliveries";
 import logger from "./logger";
+import { batchMessageUsers } from "./messaging";
 import {
   BatchItem,
   ChannelType,
@@ -1626,6 +1627,193 @@ describe("deliveries", () => {
         });
         expect(deliveries.items).toHaveLength(5);
         expect(deliveries.cursor).toBeUndefined();
+      });
+    });
+
+    describe("when filtering by context values using batchMessageUsers", () => {
+      let templateId: string;
+
+      beforeEach(() => {
+        templateId = randomUUID();
+      });
+
+      it("should filter deliveries by context values", async () => {
+        const userId1 = randomUUID();
+        const userId2 = randomUUID();
+        const userId3 = randomUUID();
+
+        // Send messages with different context values using batchMessageUsers
+        await batchMessageUsers({
+          workspaceId,
+          templateId,
+          channel: ChannelType.Email,
+          provider: EmailProviderType.Test,
+          context: {
+            campaign: "summer-sale",
+            region: "us-west",
+          },
+          users: [
+            {
+              id: userId1,
+              properties: {
+                email: "user1@test.com",
+              },
+              context: {
+                source: "website",
+                campaign: "spring-sale", // Should override batch campaign
+              },
+            },
+            {
+              id: userId2,
+              properties: {
+                email: "user2@test.com",
+              },
+              context: {
+                source: "mobile-app",
+              },
+            },
+            {
+              id: userId3,
+              properties: {
+                email: "user3@test.com",
+              },
+              // No individual context - should use batch context
+            },
+          ],
+        });
+
+        // Test filtering by context values that exist
+        const springCampaignResults = await searchDeliveries({
+          workspaceId,
+          contextValues: [
+            {
+              key: "campaign",
+              value: "spring-sale",
+            },
+          ],
+        });
+
+        expect(springCampaignResults.items).toHaveLength(1);
+        // Should find the delivery for userId1 who has spring-sale campaign
+
+        const websiteSourceResults = await searchDeliveries({
+          workspaceId,
+          contextValues: [
+            {
+              key: "source",
+              value: "website",
+            },
+          ],
+        });
+
+        expect(websiteSourceResults.items).toHaveLength(1);
+        // Should find the delivery for userId1 who has website source
+
+        const regionResults = await searchDeliveries({
+          workspaceId,
+          contextValues: [
+            {
+              key: "region",
+              value: "us-west",
+            },
+          ],
+        });
+
+        expect(regionResults.items).toHaveLength(2);
+        // Should find deliveries for userId2 and userId3 who inherited the batch region
+
+        // Test filtering by context values that don't exist
+        const nonExistentResults = await searchDeliveries({
+          workspaceId,
+          contextValues: [
+            {
+              key: "nonexistent",
+              value: "value",
+            },
+          ],
+        });
+
+        expect(nonExistentResults.items).toHaveLength(0);
+
+        // Test filtering by multiple context values (AND logic)
+        const multipleContextResults = await searchDeliveries({
+          workspaceId,
+          contextValues: [
+            {
+              key: "source",
+              value: "mobile-app",
+            },
+            {
+              key: "region",
+              value: "us-west",
+            },
+          ],
+        });
+
+        expect(multipleContextResults.items).toHaveLength(1);
+        // Should find the delivery for userId2 who has mobile-app source and inherited us-west region
+      });
+
+      it("should combine contextValues and triggeringProperties with OR logic", async () => {
+        const userId1 = randomUUID();
+
+        // Send a message with context
+        await batchMessageUsers({
+          workspaceId,
+          templateId,
+          channel: ChannelType.Email,
+          provider: EmailProviderType.Test,
+          users: [
+            {
+              id: userId1,
+              properties: {
+                email: "user1@test.com",
+              },
+              context: {
+                source: "website",
+              },
+            },
+          ],
+        });
+
+        // Test that both contextValues and triggeringProperties work with OR logic
+        const combinedResults = await searchDeliveries({
+          workspaceId,
+          contextValues: [
+            {
+              key: "source",
+              value: "website",
+            },
+          ],
+          triggeringProperties: [
+            {
+              key: "nonexistent",
+              value: "value",
+            },
+          ],
+        });
+
+        expect(combinedResults.items).toHaveLength(1);
+        // Should find the delivery because contextValues match (OR logic)
+
+        const noMatchResults = await searchDeliveries({
+          workspaceId,
+          contextValues: [
+            {
+              key: "nonexistent1",
+              value: "value1",
+            },
+          ],
+          triggeringProperties: [
+            {
+              key: "nonexistent2",
+              value: "value2",
+            },
+          ],
+        });
+
+        expect(noMatchResults.items).toHaveLength(0);
+        // Should find no deliveries because neither condition matches
       });
     });
   });
