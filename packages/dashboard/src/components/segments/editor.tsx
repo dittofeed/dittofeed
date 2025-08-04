@@ -2109,7 +2109,9 @@ function AbsoluteTimestampValueSelect({
       ? (() => {
           // Create date in user's timezone, not UTC
           const utcDate = new Date(operator.absoluteTimestamp);
-          const localDate = new Date(utcDate.toLocaleString("en-US", { timeZone: userTimezone }));
+          const localDate = new Date(
+            utcDate.toLocaleString("en-US", { timeZone: userTimezone }),
+          );
           return toCalendarDate(localDate);
         })()
       : null,
@@ -2120,7 +2122,9 @@ function AbsoluteTimestampValueSelect({
       ? (() => {
           // Create date in user's timezone, not UTC
           const utcDate = new Date(operator.absoluteTimestamp);
-          const localDate = new Date(utcDate.toLocaleString("en-US", { timeZone: userTimezone }));
+          const localDate = new Date(
+            utcDate.toLocaleString("en-US", { timeZone: userTimezone }),
+          );
           return new Time(localDate.getHours(), 0); // Only hours, no minutes
         })()
       : new Time(0, 0),
