@@ -33,6 +33,7 @@ import {
   BlobStorageFile,
   ComputedPropertyStep,
   ComputedPropertyStepEnum,
+  CursorDirectionEnum,
   EventType,
   InternalEventType,
   JourneyDefinition,
@@ -488,8 +489,12 @@ interface TestJourney {
   entrySegmentName: string;
 }
 
-interface UpdateComputedPropertyStepEnum {
+interface UpdateComputedPropertyStep {
   type: EventsStepType.UpdateComputedProperty;
+  updater?: (ctx: StepContext) => {
+    userProperties?: TestUserProperty[];
+    segments?: TestSegment[];
+  };
   userProperties?: TestUserProperty[];
   segments?: TestSegment[];
 }
@@ -509,7 +514,7 @@ type TableStep =
   | AssertStep
   | SleepStep
   | DebugAssignmentsStep
-  | UpdateComputedPropertyStepEnum
+  | UpdateComputedPropertyStep
   | DelayStep
   | UpdateJourneyStep;
 
@@ -2182,6 +2187,108 @@ describe("computeProperties", () => {
               nodeId: "1",
               lastValue: new Date(now - 100 - 50 - 1200000).toISOString(),
             }),
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes absolute timestamp operator trait segment",
+      userProperties: [],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          updater: (ctx) => {
+            return {
+              segments: [
+                {
+                  name: "newUsers",
+                  definition: {
+                    entryNode: {
+                      type: SegmentNodeType.Trait,
+                      id: "1",
+                      path: "createdAt",
+                      operator: {
+                        type: SegmentOperatorType.AbsoluteTimestamp,
+                        absoluteTimestamp: new Date(
+                          // 5 hours from now
+                          ctx.now + 1000 * 60 * 60 * 5,
+                        ).toISOString(),
+                        direction: CursorDirectionEnum.After,
+                      },
+                    },
+                    nodes: [],
+                  },
+                },
+              ],
+            };
+          },
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            ({ now }) => ({
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                createdAt: new Date(now - 100).toISOString(),
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "first user is not in the segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          // 7 hours from now
+          timeMs: 1000 * 60 * 60 * 7,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            ({ now }) => ({
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                createdAt: new Date(now - 100).toISOString(),
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "next user is in the segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                newUsers: true,
+              },
+            },
           ],
         },
       ],
@@ -8016,11 +8123,26 @@ describe("computeProperties", () => {
           break;
         }
         case EventsStepType.UpdateComputedProperty: {
+          let segmentsAndUserProperties: Required<
+            Pick<UpdateComputedPropertyStep, "userProperties" | "segments">
+          >;
+          if (step.updater) {
+            const updaterResult = step.updater(stepContext);
+            segmentsAndUserProperties = {
+              userProperties: updaterResult.userProperties ?? [],
+              segments: updaterResult.segments ?? [],
+            };
+          } else {
+            segmentsAndUserProperties = {
+              userProperties: step.userProperties ?? [],
+              segments: step.segments ?? [],
+            };
+          }
+
           const computedProperties = await upsertComputedProperties({
             workspaceId,
             now,
-            userProperties: step.userProperties ?? [],
-            segments: step.segments ?? [],
+            ...segmentsAndUserProperties,
           });
           segments = computedProperties.segments;
           userProperties = computedProperties.userProperties;

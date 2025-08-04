@@ -34,6 +34,7 @@ import {
   ComputedPropertyAssignment,
   ComputedPropertyStepEnum,
   ComputedPropertyUpdate,
+  CursorDirectionEnum,
   EmailSegmentNode,
   GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
@@ -65,8 +66,6 @@ import {
   getPeriodsByComputedPropertyId,
   PeriodByComputedPropertyId,
 } from "./periods";
-
-const THREE_MINUTES_IN_MS = 180000;
 
 type AsyncWrapper = <T>(fn: () => Promise<T>) => Promise<T>;
 
@@ -377,6 +376,7 @@ function segmentToIndexed({
       }
 
       switch (node.operator.type) {
+        case SegmentOperatorType.AbsoluteTimestamp:
         case SegmentOperatorType.Within: {
           return [
             {
@@ -617,6 +617,7 @@ function segmentToResolvedState({
         return [];
       }
 
+      // TODO: support absolute timestamp
       if (node.withinSeconds && node.withinSeconds > 0) {
         const withinRangeWhereClause = `
           cps_performed.workspace_id = ${workspaceIdParam}
@@ -873,10 +874,25 @@ function segmentToResolvedState({
     case SegmentNodeType.Trait: {
       const { operator } = node;
       switch (operator.type) {
+        case SegmentOperatorType.AbsoluteTimestamp:
         case SegmentOperatorType.Within: {
-          const withinLowerBound = Math.round(
-            Math.max(nowSeconds - operator.windowSeconds, 0),
-          );
+          let boundClause: string;
+          if (operator.type === SegmentOperatorType.AbsoluteTimestamp) {
+            const indexValueComparator =
+              operator.direction === CursorDirectionEnum.After ? ">=" : "<";
+            const unixTimestamp = Math.floor(
+              new Date(operator.absoluteTimestamp).getTime() / 1000,
+            );
+            boundClause = `indexed_value ${indexValueComparator} ${qb.addQueryValue(
+              unixTimestamp,
+              "Int32",
+            )}`;
+          } else {
+            const withinLowerBound = Math.round(
+              Math.max(nowSeconds - operator.windowSeconds, 0),
+            );
+            boundClause = `indexed_value >= ${qb.addQueryValue(withinLowerBound, "Int32")}`;
+          }
           const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
           const computedPropertyIdParam = qb.addQueryValue(
             segment.id,
@@ -914,7 +930,7 @@ function segmentToResolvedState({
                   cpsi.computed_property_id,
                   cpsi.state_id,
                   cpsi.user_id,
-                  indexed_value >= ${qb.addQueryValue(withinLowerBound, "Int32")} as segment_state_value
+                  ${boundClause} as segment_state_value
                 from computed_property_state_index cpsi
                 where
                   segment_state_value = True
@@ -939,7 +955,7 @@ function segmentToResolvedState({
               toDateTime64(${nowSeconds}, 3) as assigned_at
             from computed_property_state_index cpsi
             where
-              indexed_value >= ${qb.addQueryValue(withinLowerBound, "Int32")}
+              ${boundClause}
               and cpsi.workspace_id = ${workspaceIdParam}
               and cpsi.type = 'segment'
               and cpsi.computed_property_id = ${computedPropertyIdParam}
@@ -1704,11 +1720,18 @@ export function segmentNodeToStateSubQuery({
           },
         ];
       }
-      const eventTimeExpression: string | undefined =
+      let eventTimeExpression: string | undefined;
+      if (
         node.operator.type === SegmentOperatorType.HasBeen ||
         node.operator.type === SegmentOperatorType.Within
-          ? truncateEventTimeExpression(node.operator.windowSeconds)
-          : undefined;
+      ) {
+        eventTimeExpression = truncateEventTimeExpression(
+          node.operator.windowSeconds,
+        );
+      } else if (node.operator.type === SegmentOperatorType.AbsoluteTimestamp) {
+        // Using precision / interval of 1 hour
+        eventTimeExpression = `toDateTime64(toStartOfInterval(event_time, toIntervalSecond(3600)), 3)`;
+      }
 
       return [
         {
@@ -1782,11 +1805,15 @@ export function segmentNodeToStateSubQuery({
               `Unimplemented segment operator for performed node ${operator.type} for segment: ${segment.id} and node: ${node.id}`,
             );
           }
+          case SegmentOperatorType.AbsoluteTimestamp: {
+            throw new Error("Not implemented");
+          }
           default:
             assertUnreachable(operator);
             return [];
         }
       });
+      // TODO: support absolute timestamp
       const eventTimeExpression: string | undefined = node.withinSeconds
         ? truncateEventTimeExpression(node.withinSeconds)
         : undefined;
