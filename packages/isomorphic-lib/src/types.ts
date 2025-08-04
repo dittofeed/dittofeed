@@ -2947,6 +2947,7 @@ export const BaseBatchIdentifyData = {
   ...BaseAppData,
   type: Type.Literal(EventType.Identify),
   traits: Type.Optional(Traits),
+  context: AppDataContext,
 };
 
 const KnownIdentifyData = Type.Object({
@@ -3025,6 +3026,7 @@ export const BaseBatchTrackData = {
   files: AppDataFiles,
   event: TrackEventName,
   properties: Type.Optional(TrackEventProperties),
+  context: AppDataContext,
   type: Type.Literal(EventType.Track),
 };
 
@@ -3088,6 +3090,7 @@ export const BaseBatchGroupData = {
   groupId: Type.String(),
   assigned: Type.Optional(Type.Boolean()),
   traits: Type.Optional(GroupEventTraits),
+  context: AppDataContext,
   type: Type.Literal(EventType.Group),
 };
 
@@ -3161,6 +3164,7 @@ export const BaseBatchPageData = {
   ...BaseAppData,
   name: Type.Optional(PageName),
   properties: Type.Optional(PageProperties),
+  context: AppDataContext,
   type: Type.Literal(EventType.Page),
 };
 
@@ -3224,6 +3228,7 @@ export const BaseBatchScreenData = {
   ...BaseAppData,
   name: Type.Optional(ScreenName),
   properties: Type.Optional(ScreenProperties),
+  context: AppDataContext,
   type: Type.Literal(EventType.Screen),
 };
 

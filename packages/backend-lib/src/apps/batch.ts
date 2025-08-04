@@ -25,14 +25,19 @@ export function buildBatchUserEvents(
   return batchWithMappedGroupEvents.map((message) => {
     let rest: Record<string, unknown>;
     let timestamp: string;
-    const messageRaw: Record<string, unknown> = { context };
+
+    const mergedContext = {
+      ...context,
+      ...message.context,
+    };
+    const messageRaw: Record<string, unknown> = { context: mergedContext };
 
     if (message.type === EventType.Identify) {
-      rest = R.omit(message, ["timestamp", "traits"]);
+      rest = R.omit(message, ["timestamp", "traits", "context"]);
       timestamp = message.timestamp ?? new Date().toISOString();
       messageRaw.traits = message.traits ?? {};
     } else {
-      rest = R.omit(message, ["timestamp", "properties"]);
+      rest = R.omit(message, ["timestamp", "properties", "context"]);
       timestamp = message.timestamp ?? new Date().toISOString();
 
       const properties = message.properties ?? {};

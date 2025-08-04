@@ -9,6 +9,7 @@ import {
   searchDeliveries,
   SearchDeliveryRow,
 } from "./deliveries";
+import logger from "./logger";
 import {
   BatchItem,
   ChannelType,
@@ -21,7 +22,6 @@ import {
   SmsProviderType,
 } from "./types";
 import { createWorkspace } from "./workspaces";
-import logger from "./logger";
 
 describe("deliveries", () => {
   let workspaceId: string;
