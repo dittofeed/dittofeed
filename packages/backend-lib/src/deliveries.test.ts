@@ -339,6 +339,116 @@ describe("deliveries", () => {
         expect(returnedMessageIds).toContain(triggeredMessageId1);
         expect(returnedMessageIds).toContain(triggeredMessageId4);
       });
+
+      it("matches individual items within array properties", async () => {
+        const userId = randomUUID();
+        const triggeringMessageId1 = randomUUID();
+        const triggeringMessageId2 = randomUUID();
+        const triggeredMessageId1 = randomUUID();
+        const triggeredMessageId2 = randomUUID();
+
+        const triggeringEventBase: Pick<
+          KnownBatchTrackData,
+          "userId" | "timestamp" | "type" | "event" | "properties"
+        > = {
+          userId,
+          timestamp: new Date(Date.now() - 10000).toISOString(),
+          type: EventType.Track,
+          event: "ARRAY_TEST_EVENT",
+          properties: {
+            workspaceId,
+          },
+        };
+
+        const triggeredEventBase: Pick<
+          KnownBatchTrackData,
+          "userId" | "timestamp" | "type" | "event" | "properties"
+        > = {
+          userId,
+          timestamp: new Date().toISOString(),
+          type: EventType.Track,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: randomUUID(),
+            variant: {
+              type: ChannelType.Email,
+              from: "test@email.com",
+              to: "user@email.com",
+              subject: "test",
+              body: "test",
+              provider: { type: EmailProviderType.SendGrid },
+            },
+          },
+        };
+
+        const events: BatchItem[] = [
+          // Triggering event 1: Has array property with matching value
+          {
+            ...triggeringEventBase,
+            messageId: triggeringMessageId1,
+            properties: {
+              ...triggeringEventBase.properties,
+              students: [1, 2, 3],
+              course: "math",
+            },
+          },
+          // Triggering event 2: Has array property without matching value
+          {
+            ...triggeringEventBase,
+            messageId: triggeringMessageId2,
+            properties: {
+              ...triggeringEventBase.properties,
+              students: [4, 5, 6],
+              course: "science",
+            },
+          },
+          // Triggered event 1: Should match because triggering event has array containing 2
+          {
+            ...triggeredEventBase,
+            messageId: triggeredMessageId1,
+            properties: {
+              ...triggeredEventBase.properties,
+              messageId: triggeredMessageId1,
+              triggeringMessageId: triggeringMessageId1,
+            },
+          },
+          // Triggered event 2: Should not match because triggering event array doesn't contain 2
+          {
+            ...triggeredEventBase,
+            messageId: triggeredMessageId2,
+            properties: {
+              ...triggeredEventBase.properties,
+              messageId: triggeredMessageId2,
+              triggeringMessageId: triggeringMessageId2,
+            },
+          },
+        ];
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          triggeringProperties: [{ key: "students", value: 2 }],
+          limit: 10,
+        });
+
+        expect(deliveries.items).toHaveLength(1);
+        expect(deliveries.items[0]?.triggeringMessageId).toEqual(
+          triggeringMessageId1,
+        );
+        expect(deliveries.items[0]?.originMessageId).toEqual(
+          triggeredMessageId1,
+        );
+      });
     });
 
     describe("with anonymous users", () => {
