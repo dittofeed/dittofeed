@@ -16,7 +16,7 @@ import {
 import logger from "../../logger";
 import { Sender, sendMessage, SendMessageParameters } from "../../messaging";
 import { withSpan } from "../../openTelemetry";
-import { calculateKeyedSegment, getSegmentAssignmentDb } from "../../segments";
+import { calculateKeyedSegment, getSegmentAssignmentDb, findAllSegmentAssignments } from "../../segments";
 import {
   getSubscriptionGroupDetails,
   getSubscriptionGroupWithAssignment,
@@ -123,6 +123,17 @@ async function sendMessageInner({
     });
   }
 
+  // Get user segments using the proper segment assignment logic
+  const segmentAssignments = await findAllSegmentAssignments({
+    workspaceId,
+    userId,
+  });
+  
+  // Convert segment assignments to userSegments format
+  const userSegments = Object.entries(segmentAssignments)
+    .filter(([_, inSegment]) => inSegment)
+    .map(([segmentName]) => ({ name: segmentName }));
+
   const messageTags: MessageTags = {
     workspaceId,
     runId,
@@ -132,6 +143,7 @@ async function sendMessageInner({
     messageId,
     userId,
     channel: rest.channel,
+    userSegments: JSON.stringify(userSegments),
   };
   if (rest.triggeringMessageId) {
     messageTags.triggeringMessageId = rest.triggeringMessageId;

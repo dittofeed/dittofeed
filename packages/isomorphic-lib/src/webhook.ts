@@ -7,7 +7,11 @@ export const DEFAULT_WEBHOOK_BODY = `{
     "headers": {
       "Content-Type": "application/json"
     },
-    "data": {}
+    "data": {
+      "userId": "{{ tags.userId }}",
+      "messageId": "{{ tags.messageId }}",
+      "userSegments": {{ tags.userSegments }}
+    }
   },
   "secret": {
     "headers": {}

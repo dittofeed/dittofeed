@@ -20,7 +20,7 @@ import {
   SendMessageParametersBase,
 } from "../messaging";
 import { withSpan } from "../openTelemetry";
-import { toSegmentResource } from "../segments";
+import { toSegmentResource, findAllSegmentAssignments } from "../segments";
 import {
   BackendMessageSendResult,
   BatchTrackData,
@@ -297,8 +297,21 @@ export function sendMessagesFactory(sender: Sender) {
             userId: user.id,
             workspaceId: params.workspaceId,
           });
+          
+          // Get user segments using the proper segment assignment logic
+          const segmentAssignments = await findAllSegmentAssignments({
+            workspaceId: params.workspaceId,
+            userId: user.id,
+          });
+          
+          // Convert segment assignments to userSegments format
+          const userSegments = Object.entries(segmentAssignments)
+            .filter(([_, inSegment]) => inSegment)
+            .map(([segmentName]) => ({ name: segmentName }));
+          
           const messageTags: MessageTags = {
             messageId,
+            userSegments: JSON.stringify(userSegments),
           };
           if (params.workspaceOccupantId) {
             messageTags.workspaceOccupantId = params.workspaceOccupantId;
