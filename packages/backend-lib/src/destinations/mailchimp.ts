@@ -36,33 +36,6 @@ function isRetryableError(error: AxiosError): boolean {
   return false;
 }
 
-function isRetryableRejectReason(reason: string | null | undefined): boolean {
-  if (!reason) {
-    return false;
-  }
-
-  const retryableReasons = ["unsigned", "soft-bounce", "spam", "unsub"];
-
-  const nonRetryableReasons = [
-    "hard-bounce",
-    "invalid-sender",
-    "invalid",
-    "test-mode-limit",
-    "rule",
-    "custom",
-  ];
-
-  if (nonRetryableReasons.includes(reason)) {
-    return false;
-  }
-
-  if (retryableReasons.includes(reason)) {
-    return true;
-  }
-
-  return false;
-}
-
 export async function sendMail({
   apiKey,
   message,
@@ -115,33 +88,7 @@ export async function sendMail({
 
     switch (firstResponse.status) {
       case "rejected": {
-        const isRetryable = isRetryableRejectReason(
-          firstResponse.reject_reason,
-        );
-
-        if (isRetryable) {
-          logger().info(
-            {
-              response: firstResponse,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              workspaceId: message.metadata?.workspaceId,
-            },
-            "Retryable rejection sending mailchimp email",
-          );
-          throw new Error(
-            `Retryable rejection: ${firstResponse.reject_reason}`,
-          );
-        } else {
-          logger().info(
-            {
-              response: firstResponse,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              workspaceId: message.metadata?.workspaceId,
-            },
-            "Non-retryable rejection sending mailchimp email",
-          );
-          return err(firstResponse);
-        }
+        return err(firstResponse);
       }
       default:
         return ok(firstResponse);
