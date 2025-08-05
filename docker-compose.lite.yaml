@@ -17,6 +17,7 @@ x-backend-app-env: &backend-app-env
   SECRET_KEY: ${SECRET_KEY:-GEGL1RHjFVOxIO80Dp8+ODlZPOjm2IDBJB/UunHlf3c=}
   PASSWORD: ${PASSWORD:-password}
   DASHBOARD_API_BASE: ${DASHBOARD_API_BASE:-http://localhost:3000}
+
 services:
   lite:
     image: ${IMAGE_REPOSITORY:-dittofeed/dittofeed-lite}:${IMAGE_TAG:-v0.22.0}
@@ -38,15 +39,13 @@ services:
       <<: *backend-app-env
       # comment out after initial setup
       BOOTSTRAP: "true"
-    # README: To add local env variables uncomment the following line and add a .env file in the root directory
-    # env_file:
-    #   - .env
     networks:
       - dittofeed-network-lite
+
   # useful for upgrading dittofeed
   admin-cli:
     image: dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.22.0}
-    entrypoint: []
+    entrypoint: null
     profiles: ["admin-cli"]
     command: tail -f /dev/null
     tty: true
@@ -58,11 +57,9 @@ services:
       - clickhouse-server
     environment:
       <<: *backend-app-env
-    # README: To add local env variables uncomment the following line and add a .env file in the root directory
-    # env_file:
-    #   - .env
     networks:
       - dittofeed-network-lite
+
   temporal:
     container_name: temporal
     restart: always
@@ -77,18 +74,16 @@ services:
       - POSTGRES_PWD=${DATABASE_PASSWORD:-password}
       - POSTGRES_SEEDS=${DATABASE_HOST:-postgres}
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml
-    # README: To add local env variables uncomment the following line and add a .env file in the root directory
-    # env_file:
-    #   - .env
     image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}
     labels:
-      kompose.volume.type: configMap
+      - "kompose.volume.type=configMap"
     networks:
       - dittofeed-network-lite
     ports:
       - 7233:7233
     volumes:
       - ./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
+
   temporal-ui:
     profiles: ["temporal-ui"]
     container_name: temporal-ui
@@ -105,6 +100,7 @@ services:
       - dittofeed-network-lite
     ports:
       - 8080:8080
+
   postgres:
     image: postgres:${POSTGRES_VERSION:-15}
     restart: always
@@ -120,6 +116,7 @@ services:
       - postgres:/var/lib/postgresql/data
     networks:
       - dittofeed-network-lite
+
   clickhouse-server:
     image: clickhouse/clickhouse-server:24.12.6.70-alpine
     restart: always
@@ -140,6 +137,7 @@ services:
       - clickhouse_log:/var/log/clickhouse-server
     networks:
       - dittofeed-network-lite
+
   # Note that minio is only used for local development. In production, use any S3-compatible storage.
   blob-storage:
     image: minio/minio
@@ -155,6 +153,7 @@ services:
     volumes:
       - blob-storage:/data
     command: server --console-address ":9001" /data
+
 volumes:
   postgres:
   clickhouse_lib:
