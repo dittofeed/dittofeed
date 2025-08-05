@@ -2276,5 +2276,89 @@ describe("deliveries", () => {
         expect(result).toEqual(expectedVariant);
       });
     });
+
+    describe("when filtering by both triggeringMessageId and messageId with OR condition", () => {
+      let triggeringMessageId: string;
+      let messageId: string;
+      let expectedVariant1: MessageSendSuccessVariant;
+      let expectedVariant2: MessageSendSuccessVariant;
+
+      beforeEach(async () => {
+        triggeringMessageId = randomUUID();
+        messageId = randomUUID();
+        expectedVariant1 = {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "triggering message body",
+          subject: "triggering subject",
+          provider: {
+            type: EmailProviderType.SendGrid,
+          },
+        };
+        expectedVariant2 = {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "message id body",
+          subject: "message id subject",
+          provider: {
+            type: EmailProviderType.SendGrid,
+          },
+        };
+
+        const event1: BatchItem = {
+          userId,
+          timestamp: new Date(Date.now() - 1000).toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: randomUUID(),
+            triggeringMessageId,
+            variant: expectedVariant1,
+          },
+        };
+
+        const event2: BatchItem = {
+          userId,
+          timestamp: new Date().toISOString(),
+          type: EventType.Track,
+          messageId,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: randomUUID(),
+            variant: expectedVariant2,
+          },
+        };
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: [event1, event2],
+          },
+        });
+      });
+
+      it("returns the most recent delivery when both triggeringMessageId and messageId are provided", async () => {
+        const result = await getDeliveryBody({
+          workspaceId,
+          userId,
+          triggeringMessageId,
+          messageId,
+        });
+
+        // Should return the most recent one (event2 with messageId)
+        expect(result).toEqual(expectedVariant2);
+      });
+    });
   });
 });

@@ -4905,10 +4905,10 @@ export type TombstoneWorkspaceRequest = Static<
 export const BaseDeliveryBodyRequest = {
   workspaceId: Type.String(),
   userId: Type.String(),
-  journeyId: Type.Optional(Type.Null()),
-  templateId: Type.Optional(Type.Null()),
-  triggeringMessageId: Type.Optional(Type.Null()),
-  messageId: Type.Optional(Type.Null()),
+  journeyId: Type.Optional(Type.String()),
+  templateId: Type.Optional(Type.String()),
+  triggeringMessageId: Type.Optional(Type.String()),
+  messageId: Type.Optional(Type.String()),
 };
 
 export const JourneyTemplateDeliveryBodyRequest = Type.Object({
@@ -4924,7 +4924,6 @@ export type JourneyTemplateDeliveryBodyRequest = Static<
 export const TriggeringMessageDeliveryBodyRequest = Type.Object({
   ...BaseDeliveryBodyRequest,
   triggeringMessageId: Type.String(),
-  templateId: Type.Optional(Type.String()),
 });
 
 export type TriggeringMessageDeliveryBodyRequest = Static<
@@ -5404,7 +5403,7 @@ export const SearchDeliveriesRequest = Type.Object({
         key: Type.String(),
         value: Type.Union([Type.String(), Type.Number()]),
       }),
-    )
+    ),
   ),
 });
 
@@ -5790,10 +5789,12 @@ export const BaseBatchMessageUsersRequestUser = Type.Object({
     description:
       "User property values to be rendered in the message, keyed by name. Will override values present on the user.",
   }),
-  context: Type.Optional(Type.Record(Type.String(), Type.Any(), {
-    description:
-      "Context values for this specific user's events. Will override batch-level context values.",
-  })),
+  context: Type.Optional(
+    Type.Record(Type.String(), Type.Any(), {
+      description:
+        "Context values for this specific user's events. Will override batch-level context values.",
+    }),
+  ),
 });
 
 export type BaseBatchMessageUsersRequestUser = Static<
