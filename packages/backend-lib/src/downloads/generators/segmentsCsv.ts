@@ -41,11 +41,14 @@ async function paginateAndWriteData(
 
   try {
     while (hasMore) {
-      logger().info("Fetching segment assignments page", {
-        workspaceId,
-        cursor,
-        batchSize,
-      });
+      logger().info(
+        {
+          workspaceId,
+          cursor,
+          batchSize,
+        },
+        "Fetching segment assignments page",
+      );
 
       // Send heartbeat for Temporal activity
       Context.current()?.heartbeat({ workspaceId, cursor });
@@ -81,7 +84,9 @@ async function paginateAndWriteData(
           // Write row to the source stream with backpressure handling
           if (!sourceStream.write(rowData)) {
             // If the stream's buffer is full, wait for it to drain
-            await new Promise((resolve) => sourceStream.once("drain", resolve));
+            await new Promise((resolve) => {
+              sourceStream.once("drain", resolve);
+            });
           }
         }
       }
@@ -102,16 +107,19 @@ async function paginateAndWriteData(
       }
     }
 
-    logger().info("All segment assignment pages processed", { workspaceId });
+    logger().info({ workspaceId }, "All segment assignment pages processed");
 
     // Signal that we're done writing data
     sourceStream.end();
   } catch (error) {
-    logger().error("Error during pagination", {
-      workspaceId,
-      cursor,
-      error,
-    });
+    logger().error(
+      {
+        workspaceId,
+        cursor,
+        err: error,
+      },
+      "Error during pagination",
+    );
     sourceStream.destroy(
       error instanceof Error ? error : new Error("Unknown error"),
     );
@@ -146,10 +154,13 @@ export async function generateSegmentsCsv({
   workspaceId,
   blobStorageKey,
 }: GenerateSegmentsCsvParams): Promise<void> {
-  logger().info("Starting segments CSV generation with S3 streaming", {
-    workspaceId,
-    blobStorageKey,
-  });
+  logger().info(
+    {
+      workspaceId,
+      blobStorageKey,
+    },
+    "Starting segments CSV generation with S3 streaming",
+  );
 
   const identifiers = Object.values(CHANNEL_IDENTIFIERS);
 
@@ -211,12 +222,15 @@ export async function generateSegmentsCsv({
       progress.loaded && progress.total
         ? Math.round((progress.loaded / progress.total) * 100)
         : "unknown";
-    logger().info("S3 Upload Progress", {
-      workspaceId,
-      loaded: progress.loaded,
-      total: progress.total,
-      percent: `${percent}%`,
-    });
+    logger().info(
+      {
+        workspaceId,
+        loaded: progress.loaded,
+        total: progress.total,
+        percent: `${percent}%`,
+      },
+      "S3 Upload Progress",
+    );
   });
 
   try {
@@ -241,16 +255,22 @@ export async function generateSegmentsCsv({
       paginationPromise,
     ]);
 
-    logger().info("Segments CSV generation completed successfully", {
-      workspaceId,
-      blobStorageKey,
-    });
+    logger().info(
+      {
+        workspaceId,
+        blobStorageKey,
+      },
+      "Segments CSV generation completed successfully",
+    );
   } catch (error) {
-    logger().error("Segments CSV generation failed", {
-      workspaceId,
-      blobStorageKey,
-      error,
-    });
+    logger().error(
+      {
+        workspaceId,
+        blobStorageKey,
+        err: error,
+      },
+      "Segments CSV generation failed",
+    );
 
     // Abort the S3 upload to clean up any partial multipart upload
     await s3Upload.abort();
