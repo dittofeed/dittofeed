@@ -141,32 +141,51 @@ export async function getDeliveryBody({
   let journeyClause = "";
   let triggeringMessageIdClause = "";
   let messageIdClause = "";
+
+  // Build OR conditions instead of exclusive if/else
+  const conditions: string[] = [];
+
   if (typeof rest.triggeringMessageId === "string") {
-    triggeringMessageIdClause = `AND JSONExtractString(properties, 'triggeringMessageId') = ${qb.addQueryValue(
+    triggeringMessageIdClause = `JSONExtractString(properties, 'triggeringMessageId') = ${qb.addQueryValue(
       rest.triggeringMessageId,
       "String",
     )}`;
     if (typeof rest.templateId === "string") {
-      templateClause = `AND JSONExtractString(properties, 'templateId') = ${qb.addQueryValue(
+      templateClause = `JSONExtractString(properties, 'templateId') = ${qb.addQueryValue(
         rest.templateId,
         "String",
       )}`;
+      conditions.push(`(${triggeringMessageIdClause} AND ${templateClause})`);
+    } else {
+      conditions.push(`(${triggeringMessageIdClause})`);
     }
-  } else if (typeof rest.messageId === "string") {
-    messageIdClause = `AND message_id = ${qb.addQueryValue(
+  }
+
+  if (typeof rest.messageId === "string") {
+    messageIdClause = `message_id = ${qb.addQueryValue(
       rest.messageId,
       "String",
     )}`;
-  } else {
-    journeyClause = `AND JSONExtractString(properties, 'journeyId') = ${qb.addQueryValue(
+    conditions.push(`(${messageIdClause})`);
+  }
+
+  if (
+    typeof rest.journeyId === "string" &&
+    typeof rest.templateId === "string"
+  ) {
+    journeyClause = `JSONExtractString(properties, 'journeyId') = ${qb.addQueryValue(
       rest.journeyId,
       "String",
     )}`;
-    templateClause = `AND JSONExtractString(properties, 'templateId') = ${qb.addQueryValue(
+    templateClause = `JSONExtractString(properties, 'templateId') = ${qb.addQueryValue(
       rest.templateId,
       "String",
     )}`;
+    conditions.push(`(${journeyClause} AND ${templateClause})`);
   }
+
+  const orCondition =
+    conditions.length > 0 ? `AND (${conditions.join(" OR ")})` : "";
   const query = `
     SELECT
       properties
@@ -176,10 +195,7 @@ export async function getDeliveryBody({
       AND workspace_id = ${workspaceIdParam}
       AND event_type = 'track'
       AND user_or_anonymous_id = ${userIdParam}
-      ${journeyClause}
-      ${templateClause}
-      ${triggeringMessageIdClause}
-      ${messageIdClause}
+      ${orCondition}
     ORDER BY processing_time DESC
     LIMIT 1
   `;
