@@ -75,7 +75,7 @@ import {
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import qs from "qs";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { omit } from "remeda";
 import uriTemplates from "uri-templates";
 import { Updater, useImmer } from "use-immer";
@@ -824,6 +824,30 @@ export function DeliveriesTableV2({
     },
     placeholderData: keepPreviousData,
   });
+
+  // Auto-extend date range to 90 days if initial load returns empty results
+  useEffect(() => {
+    if (
+      !query.isLoading &&
+      query.data?.items &&
+      query.data.items.length === 0 &&
+      state.selectedTimeOption === defaultTimeOptionId // Only for default time option
+    ) {
+      setState((draft) => {
+        draft.selectedTimeOption = TimeOptionId.LastNinetyDays;
+        const ninetyDaysOption = timeOptions.find(
+          (o) => o.id === TimeOptionId.LastNinetyDays,
+        );
+        if (ninetyDaysOption && ninetyDaysOption.type === "minutes") {
+          draft.query.startDate = subMinutes(
+            draft.referenceDate,
+            ninetyDaysOption.minutes,
+          );
+          draft.query.endDate = draft.referenceDate;
+        }
+      });
+    }
+  }, [query.isLoading, query.data?.items, state.selectedTimeOption, setState]);
 
   const renderPreviewCell = useMemo(
     () => renderPreviewCellFactory(setState),
