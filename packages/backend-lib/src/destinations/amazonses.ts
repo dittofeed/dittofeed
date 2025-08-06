@@ -73,25 +73,18 @@ export async function sendMail({
       }))
     : undefined;
 
-  logger().info(
-    {
-      tags,
-    },
-    "sending ses tags",
-  );
-
   // Process attachments if they exist
   const attachments = Array.isArray(mailData.attachments)
     ? mailData.attachments
     : [];
 
   // Create mail options for MailComposer
+  // Note: Bcc is excluded from MIME headers for privacy - SES v2 uses Destination.BccAddresses instead
   const mailOptions: Mail.Options = {
     from: mailData.from,
     to: mailData.to,
     subject: mailData.subject,
     cc: mailData.cc,
-    bcc: mailData.bcc,
     html: mailData.html,
     attachments,
     headers: mailData.headers,
@@ -121,8 +114,14 @@ export async function sendMail({
     return err(error);
   }
 
-  // Always use the Raw content interface
+  // Always use the Raw content interface with explicit destination parameters
   const input: SendEmailRequest = {
+    FromEmailAddress: mailData.from,
+    Destination: {
+      ToAddresses: Array.isArray(mailData.to) ? mailData.to : [mailData.to],
+      CcAddresses: mailData.cc,
+      BccAddresses: mailData.bcc,
+    },
     Content: {
       Raw: {
         Data: Uint8Array.from(rawEmailContent),
@@ -130,6 +129,22 @@ export async function sendMail({
     },
     EmailTags: tags,
   };
+
+  // Add ReplyToAddresses if specified
+  if (mailData.replyTo) {
+    input.ReplyToAddresses = Array.isArray(mailData.replyTo)
+      ? mailData.replyTo
+      : [mailData.replyTo];
+  }
+
+  logger().debug(
+    {
+      from: input.FromEmailAddress,
+      destination: input.Destination,
+      tags: input.EmailTags,
+    },
+    "sending ses email",
+  );
 
   const command = new SendEmailCommand(input);
 
