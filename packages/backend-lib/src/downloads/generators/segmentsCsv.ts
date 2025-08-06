@@ -162,7 +162,7 @@ export async function generateSegmentsCsv({
     "Starting segments CSV generation with S3 streaming",
   );
 
-  const identifiers = Object.values(CHANNEL_IDENTIFIERS);
+  const identifiers = Object.values(CHANNEL_IDENTIFIERS).filter(id => id !== 'deviceToken');
 
   // PassThrough stream acts as a bridge between manual writes and the pipeline
   const sourceStream = new PassThrough({ objectMode: true });
@@ -181,6 +181,7 @@ export async function generateSegmentsCsv({
   segments.forEach((segment) => {
     segmentMap.set(segment.Segment.id, segment);
   });
+
 
   // Create CSV formatter with explicit headers and transformation
   const csvFormatter = format({

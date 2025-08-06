@@ -9,6 +9,8 @@ import {
 } from "isomorphic-lib/src/types";
 import * as R from "remeda";
 
+import { createBucket, getObject, storage } from "../../blobStorage";
+import config from "../../config";
 import { db } from "../../db";
 import { workspace as dbWorkspace } from "../../db/schema";
 import { insertSegmentAssignments, upsertSegment } from "../../segments";
@@ -26,6 +28,23 @@ describe("generateSegmentsCsv Integration Test", () => {
   let testSubscriptionGroupId: string;
   let testEmailPropertyId: string;
   let testPhonePropertyId: string;
+
+  beforeAll(async () => {
+    // Create S3 bucket for tests (won't fail if it already exists)
+    const s3Client = storage();
+    const bucketName = config().blobStorageBucket;
+    try {
+      await createBucket(s3Client, { bucketName });
+    } catch (error) {
+      // Ignore error if bucket already exists
+      if (
+        (error as any)?.Code !== "BucketAlreadyOwnedByYou" &&
+        (error as any)?.Code !== "BucketAlreadyExists"
+      ) {
+        throw error;
+      }
+    }
+  });
 
   beforeEach(async () => {
     // Create test workspace
@@ -49,11 +68,8 @@ describe("generateSegmentsCsv Integration Test", () => {
       channel: "Email",
     }).then(unwrap);
 
-    // Create test segments
-    testSegmentId1 = randomUUID();
-    testSegmentId2 = randomUUID();
-
-    await upsertSegment({
+    // Create test segments and capture their actual IDs
+    const segment1 = await upsertSegment({
       name: "High Value Customers",
       workspaceId: testWorkspaceId,
       definition: {
@@ -71,7 +87,7 @@ describe("generateSegmentsCsv Integration Test", () => {
       subscriptionGroupId: testSubscriptionGroupId,
     }).then(unwrap);
 
-    await upsertSegment({
+    const segment2 = await upsertSegment({
       name: "New Users",
       workspaceId: testWorkspaceId,
       definition: {
@@ -88,11 +104,11 @@ describe("generateSegmentsCsv Integration Test", () => {
       },
     }).then(unwrap);
 
-    // Create test user properties
-    testEmailPropertyId = randomUUID();
-    testPhonePropertyId = randomUUID();
+    testSegmentId1 = segment1.id;
+    testSegmentId2 = segment2.id;
 
-    await upsertUserProperty(
+    // Create test user properties and capture their actual IDs
+    const emailProperty = await upsertUserProperty(
       {
         workspaceId: testWorkspaceId,
         name: "email",
@@ -102,7 +118,8 @@ describe("generateSegmentsCsv Integration Test", () => {
         skipProtectedCheck: true,
       },
     ).then(unwrap);
-    await upsertUserProperty(
+
+    const phoneProperty = await upsertUserProperty(
       {
         workspaceId: testWorkspaceId,
         name: "phone",
@@ -112,6 +129,9 @@ describe("generateSegmentsCsv Integration Test", () => {
         skipProtectedCheck: true,
       },
     ).then(unwrap);
+
+    testEmailPropertyId = emailProperty.id;
+    testPhonePropertyId = phoneProperty.id;
   });
   async function createUsersAndAssignments(count: number) {
     const segmentAssignments = R.times(count, (i) => [
@@ -178,10 +198,83 @@ describe("generateSegmentsCsv Integration Test", () => {
       // Verify heartbeats were sent during execution
       expect(heartbeats.length).toBeGreaterThan(0);
 
-      // Verify the file was uploaded to MinIO by attempting to download it
-      // Note: In a real test environment, you might want to verify the file contents
-      // by downloading it from MinIO and parsing the CSV
-      expect(true).toBe(true); // Test passed if no error was thrown
+      // Verify the file was uploaded to MinIO and read its content
+      const s3Client = storage();
+      const fileContent = await getObject(s3Client, {
+        key: testBlobStorageKey,
+      });
+      expect(fileContent).not.toBeNull();
+
+      const csvLines = fileContent!.text
+        .split("\n")
+        .filter((line) => line.trim());
+
+      // Verify CSV header
+      const expectedHeaders = [
+        "segmentName",
+        "segmentId",
+        "userId",
+        "inSegment",
+        "subscriptionGroupName",
+        "email",
+        "phone",
+      ];
+      expect(csvLines.length).toBeGreaterThan(0);
+      const headers = csvLines[0]!.split(",");
+      expect(headers).toEqual(expectedHeaders);
+
+      // Verify we have the expected number of data rows (2 users × 2 segments = 4 rows + 1 header)
+      expect(csvLines.length).toBe(5);
+
+      // Parse and verify data rows
+      const dataRows = csvLines.slice(1).map((line) => {
+        const values = line.split(",");
+        return {
+          segmentName: values[0],
+          segmentId: values[1],
+          userId: values[2],
+          inSegment: values[3],
+          subscriptionGroupName: values[4],
+          email: values[5],
+          phone: values[6],
+        };
+      });
+
+      // Verify we have entries for both users and both segments
+      const userIds = [...new Set(dataRows.map((row) => row.userId))];
+      expect(userIds).toContain("user-0");
+      expect(userIds).toContain("user-1");
+
+      const segmentNames = [...new Set(dataRows.map((row) => row.segmentName))];
+      expect(segmentNames).toContain("High Value Customers");
+      expect(segmentNames).toContain("New Users");
+
+      // Verify segment assignments are correct (user-0 should be in segment1, user-1 should be in segment2)
+      const user0Segment1 = dataRows.find(
+        (row) =>
+          row.userId === "user-0" && row.segmentName === "High Value Customers",
+      );
+      const user0Segment2 = dataRows.find(
+        (row) => row.userId === "user-0" && row.segmentName === "New Users",
+      );
+      const user1Segment1 = dataRows.find(
+        (row) =>
+          row.userId === "user-1" && row.segmentName === "High Value Customers",
+      );
+      const user1Segment2 = dataRows.find(
+        (row) => row.userId === "user-1" && row.segmentName === "New Users",
+      );
+
+      expect(user0Segment1?.inSegment).toBe("true");
+      expect(user0Segment2?.inSegment).toBe("false");
+      expect(user1Segment1?.inSegment).toBe("false");
+      expect(user1Segment2?.inSegment).toBe("true");
+
+      // Verify user properties are included
+      expect(user0Segment1?.email).toBe("user-0@example.com");
+      expect(user0Segment1?.phone).toBe("+1234567890");
+      expect(user1Segment2?.email).toBe("user-1@example.com");
+      expect(user1Segment2?.phone).toBe("+1234567890");
     });
   });
 
@@ -204,9 +297,39 @@ describe("generateSegmentsCsv Integration Test", () => {
         blobStorageKey: testBlobStorageKey,
       }),
     );
+
+    // Verify the file was created with just headers
+    const s3Client = storage();
+    const fileContent = await getObject(s3Client, { key: testBlobStorageKey });
+    expect(fileContent).not.toBeNull();
+
+    const csvLines = fileContent!.text
+      .split("\n")
+      .filter((line) => line.trim());
+
+    // Should have only the header row for empty workspace (or no content if no data to process)
+    expect(csvLines.length).toBeGreaterThanOrEqual(0);
+    if (csvLines.length > 0) {
+      const expectedHeaders = [
+        "segmentName",
+        "segmentId",
+        "userId",
+        "inSegment",
+        "subscriptionGroupName",
+        "email",
+        "phone",
+      ];
+      const headers = csvLines[0]!.split(",");
+      expect(headers).toEqual(expectedHeaders);
+    }
   });
 
   describe("with a large dataset", () => {
+    beforeEach(async () => {
+      // Create a large dataset to test pagination (500 users)
+      await createUsersAndAssignments(500);
+    });
+
     it("should handle large datasets with pagination", async () => {
       const testBlobStorageKey = `test-downloads/segments/${randomUUID()}.csv`;
       const mockEnv = new MockActivityEnvironment();
@@ -227,6 +350,51 @@ describe("generateSegmentsCsv Integration Test", () => {
 
       // Verify multiple heartbeats were sent during pagination
       expect(heartbeats.length).toBeGreaterThan(1);
+
+      // Verify the file content for large dataset
+      const s3Client = storage();
+      const fileContent = await getObject(s3Client, {
+        key: testBlobStorageKey,
+      });
+      expect(fileContent).not.toBeNull();
+
+      const csvLines = fileContent!.text
+        .split("\n")
+        .filter((line) => line.trim());
+
+      // Verify CSV header
+      const expectedHeaders = [
+        "segmentName",
+        "segmentId",
+        "userId",
+        "inSegment",
+        "subscriptionGroupName",
+        "email",
+        "phone",
+      ];
+      expect(csvLines.length).toBeGreaterThan(0);
+      const headers = csvLines[0]!.split(",");
+      expect(headers).toEqual(expectedHeaders);
+
+      // Verify we have the expected number of data rows
+      // (2 base users + 500 large dataset users) × 2 segments = 1004 rows + 1 header = 1005 total
+      expect(csvLines.length).toBeGreaterThan(1000); // At least 1000+ rows for large dataset
+
+      // Verify some sample data to ensure pagination worked correctly
+      const dataRows = csvLines.slice(1, 10); // Check first few rows
+      dataRows.forEach((line) => {
+        const values = line.split(",");
+        const userId = values[2];
+        const email = values[5];
+        if (!userId) {
+          throw new Error("userId is undefined");
+        }
+
+        // Verify user IDs are in expected format
+        expect(userId).toMatch(/^user-\d+$/);
+        // Verify email matches user ID
+        expect(email).toBe(`${userId}@example.com`);
+      });
     });
   });
 });

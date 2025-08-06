@@ -695,7 +695,8 @@ export async function getSegmentAssignmentsAndIdentifiers({
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const limitParam = qb.addQueryValue(limit, "UInt64");
-  const cursorClause = cursor ? `AND user_id > ${cursor}` : "";
+  const cursorParam = cursor ? qb.addQueryValue(cursor, "String") : null;
+  const cursorClause = cursorParam ? `AND user_id > ${cursorParam}` : "";
   const segmentIdsClause = segmentIds
     ? `AND computed_property_id IN (${qb.addQueryValue(segmentIds, "Array(String)")})`
     : "";
