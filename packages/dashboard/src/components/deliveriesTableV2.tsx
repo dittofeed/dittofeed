@@ -1,4 +1,3 @@
-import { CalendarDate } from "@internationalized/date";
 import {
   ArrowDownward as ArrowDownwardIcon,
   ArrowUpward as ArrowUpwardIcon,
@@ -22,7 +21,6 @@ import {
   CircularProgress,
   Divider,
   Drawer,
-  FormControl,
   IconButton,
   MenuItem,
   Paper,
@@ -50,7 +48,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import axios from "axios";
-import { subDays, subMinutes } from "date-fns";
+import { subMinutes } from "date-fns";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { isInternalBroadcastTemplate } from "isomorphic-lib/src/broadcasts";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -83,11 +81,15 @@ import { useInterval } from "usehooks-ts";
 
 import { useAppStorePick } from "../lib/appStore";
 import { useAuthHeaders, useBaseApiUrl } from "../lib/authModeProvider";
-import { toCalendarDate } from "../lib/dates";
 import { useBroadcastsQuery } from "../lib/useBroadcastsQuery";
 import { useDownloadDeliveriesMutation } from "../lib/useDownloadDeliveriesMutation";
 import { useResourcesQuery } from "../lib/useResourcesQuery";
 import { BroadcastQueryKeys } from "./broadcasts/broadcastsShared";
+import {
+  DateRangeSelector,
+  DateRangeValue,
+  TimeOptionId,
+} from "./dateRangeSelector";
 import {
   getFilterValues,
   NewDeliveriesFilterButton,
@@ -100,7 +102,6 @@ import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import EmailPreviewBody from "./messages/emailPreview";
 import { WebhookPreviewBody } from "./messages/webhookPreview";
-import { RangeCalendar } from "./rangeCalendar";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
 
@@ -142,20 +143,6 @@ function humanizeChannel(channel: ChannelType): string {
     case ChannelType.MobilePush:
       return "Mobile Push";
   }
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
-
-function formatCalendarDate(date: CalendarDate) {
-  return formatDate(
-    date.toDate(Intl.DateTimeFormat().resolvedOptions().timeZone),
-  );
 }
 
 function TimeCell({ row }: { row: Row<Delivery> }) {
@@ -346,19 +333,13 @@ function maxWidthCellFactory() {
 
 interface State {
   previewMessageId: string | null;
-  selectedTimeOption: string;
+  dateRange: DateRangeValue;
   referenceDate: Date;
-  customDateRange: {
-    start: CalendarDate;
-    end: CalendarDate;
-  } | null;
   query: {
     cursor: string | null;
     limit: number;
     sortBy: SearchDeliveriesRequestSortBy;
     sortDirection: SortDirection;
-    startDate: Date;
-    endDate: Date;
   };
   autoReload: boolean;
 }
@@ -515,68 +496,39 @@ function renderPreviewCellFactory(setState: SetState) {
   };
 }
 
-export const TimeOptionId = {
-  LastSevenDays: "last-7-days",
-  LastThirtyDays: "last-30-days",
-  LastNinetyDays: "last-90-days",
-  LastHour: "last-hour",
-  Last24Hours: "last-24-hours",
-  Custom: "custom",
-} as const;
+const defaultTimeOptionId = TimeOptionId.LastSevenDays;
 
-export type TimeOptionId = (typeof TimeOptionId)[keyof typeof TimeOptionId];
-
-interface MinuteTimeOption {
-  type: "minutes";
-  id: TimeOptionId;
-  minutes: number;
-  label: string;
-}
-
-interface CustomTimeOption {
-  type: "custom";
-  id: typeof TimeOptionId.Custom;
-  label: string;
-}
-
-type TimeOption = MinuteTimeOption | CustomTimeOption;
-
-const defaultTimeOptionValue = {
-  type: "minutes",
-  id: TimeOptionId.LastSevenDays,
-  minutes: 7 * 24 * 60,
-  label: "Last 7 days",
-} as const;
-
-const defaultTimeOptionId = defaultTimeOptionValue.id;
-
-const timeOptions: TimeOption[] = [
+const timeOptions = [
   {
-    type: "minutes",
+    type: "minutes" as const,
     id: TimeOptionId.LastHour,
     minutes: 60,
     label: "Last hour",
   },
   {
-    type: "minutes",
+    type: "minutes" as const,
     id: TimeOptionId.Last24Hours,
     minutes: 24 * 60,
     label: "Last 24 hours",
   },
-  defaultTimeOptionValue,
   {
-    type: "minutes",
+    type: "minutes" as const,
+    id: TimeOptionId.LastSevenDays,
+    minutes: 7 * 24 * 60,
+    label: "Last 7 days",
+  },
+  {
+    type: "minutes" as const,
     id: TimeOptionId.LastThirtyDays,
     minutes: 30 * 24 * 60,
     label: "Last 30 days",
   },
   {
-    type: "minutes",
+    type: "minutes" as const,
     id: TimeOptionId.LastNinetyDays,
     minutes: 90 * 24 * 60,
     label: "Last 90 days",
   },
-  { type: "custom", id: TimeOptionId.Custom, label: "Custom Date Range" },
 ];
 
 export const DEFAULT_DELIVERIES_TABLE_V2_PROPS: DeliveriesTableV2Props = {
@@ -703,21 +655,28 @@ export function DeliveriesTableV2({
   const [deliveriesFilterState, setDeliveriesFilterState] =
     useDeliveriesFilterState();
   const initialEndDate = useMemo(() => new Date(), []);
+  const defaultOption = timeOptions.find(
+    (o) => o.id === defaultTimeOptionOverride,
+  );
   const initialStartDate = useMemo(
-    () => subMinutes(initialEndDate, defaultTimeOptionValue.minutes),
-    [initialEndDate],
+    () =>
+      defaultOption && defaultOption.type === "minutes"
+        ? subMinutes(initialEndDate, defaultOption.minutes)
+        : subMinutes(initialEndDate, 7 * 24 * 60), // fallback to 7 days
+    [initialEndDate, defaultOption],
   );
 
   const [state, setState] = useImmer<State>({
     previewMessageId: null,
-    selectedTimeOption: defaultTimeOptionOverride,
+    dateRange: {
+      startDate: initialStartDate,
+      endDate: initialEndDate,
+      selectedTimeOption: defaultTimeOptionOverride,
+    },
     referenceDate: new Date(),
-    customDateRange: null,
     query: {
       cursor: null,
       limit: 10,
-      startDate: initialStartDate,
-      endDate: initialEndDate,
       sortBy: "sentAt",
       sortDirection: SortDirectionEnum.Desc,
     },
@@ -728,16 +687,16 @@ export function DeliveriesTableV2({
     () => {
       setState((draft) => {
         const selectedOption = timeOptions.find(
-          (o) => o.id === draft.selectedTimeOption,
+          (o) => o.id === draft.dateRange.selectedTimeOption,
         );
         if (selectedOption && selectedOption.type === "minutes") {
           const now = new Date();
-          draft.query.endDate = now;
-          draft.query.startDate = subMinutes(now, selectedOption.minutes);
+          draft.dateRange.endDate = now;
+          draft.dateRange.startDate = subMinutes(now, selectedOption.minutes);
         }
       });
     },
-    state.autoReload && state.selectedTimeOption !== "custom"
+    state.autoReload && state.dateRange.selectedTimeOption !== "custom"
       ? reloadPeriodMs
       : null,
   );
@@ -764,8 +723,8 @@ export function DeliveriesTableV2({
       workspaceId: workspace.value.id,
       cursor: state.query.cursor ?? undefined,
       limit: state.query.limit,
-      startDate: state.query.startDate.toISOString(),
-      endDate: state.query.endDate.toISOString(),
+      startDate: state.dateRange.startDate.toISOString(),
+      endDate: state.dateRange.endDate.toISOString(),
       templateIds,
       channels,
       to,
@@ -784,6 +743,7 @@ export function DeliveriesTableV2({
     workspace,
     deliveriesFilterState,
     state.query,
+    state.dateRange,
     triggeringProperties,
     contextValues,
     userId,
@@ -831,23 +791,28 @@ export function DeliveriesTableV2({
       !query.isLoading &&
       query.data?.items &&
       query.data.items.length === 0 &&
-      state.selectedTimeOption === defaultTimeOptionId // Only for default time option
+      state.dateRange.selectedTimeOption === defaultTimeOptionId // Only for default time option
     ) {
       setState((draft) => {
-        draft.selectedTimeOption = TimeOptionId.LastNinetyDays;
+        draft.dateRange.selectedTimeOption = TimeOptionId.LastNinetyDays;
         const ninetyDaysOption = timeOptions.find(
           (o) => o.id === TimeOptionId.LastNinetyDays,
         );
         if (ninetyDaysOption && ninetyDaysOption.type === "minutes") {
-          draft.query.startDate = subMinutes(
+          draft.dateRange.startDate = subMinutes(
             draft.referenceDate,
             ninetyDaysOption.minutes,
           );
-          draft.query.endDate = draft.referenceDate;
+          draft.dateRange.endDate = draft.referenceDate;
         }
       });
     }
-  }, [query.isLoading, query.data?.items, state.selectedTimeOption, setState]);
+  }, [
+    query.isLoading,
+    query.data?.items,
+    state.dateRange.selectedTimeOption,
+    setState,
+  ]);
 
   const renderPreviewCell = useMemo(
     () => renderPreviewCellFactory(setState),
@@ -1073,7 +1038,6 @@ export function DeliveriesTableV2({
       return delivery;
     });
   }, [query, workspace, resources, broadcasts]);
-  const customDateRef = useRef<HTMLInputElement | null>(null);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const onNextPage = useCallback(() => {
@@ -1165,16 +1129,15 @@ export function DeliveriesTableV2({
       />
     );
   }
-  const customOnClickHandler = useCallback(() => {
-    setState((draft) => {
-      if (draft.selectedTimeOption === "custom") {
-        draft.customDateRange = {
-          start: toCalendarDate(draft.referenceDate),
-          end: toCalendarDate(draft.referenceDate),
-        };
-      }
-    });
-  }, [setState]);
+  const handleDateRangeChange = useCallback(
+    (newDateRange: DateRangeValue) => {
+      setState((draft) => {
+        draft.dateRange = newDateRange;
+        draft.query.cursor = null; // Reset pagination when date range changes
+      });
+    },
+    [setState],
+  );
 
   return (
     <>
@@ -1193,146 +1156,11 @@ export function DeliveriesTableV2({
           spacing={1}
           sx={{ width: "100%", height: "48px" }}
         >
-          <FormControl>
-            <Select
-              value={state.selectedTimeOption}
-              renderValue={(value) => {
-                const option = timeOptions.find((o) => o.id === value);
-                if (option?.type === "custom") {
-                  return `${formatDate(state.query.startDate)} - ${formatDate(state.query.endDate)}`;
-                }
-                return option?.label;
-              }}
-              ref={customDateRef}
-              MenuProps={{
-                anchorOrigin: {
-                  vertical: "bottom",
-                  horizontal: "left",
-                },
-                transformOrigin: {
-                  vertical: "top",
-                  horizontal: "left",
-                },
-                sx: greyMenuItemStyles,
-              }}
-              sx={greySelectStyles}
-              onChange={(e) =>
-                setState((draft) => {
-                  if (e.target.value === "custom") {
-                    const dayBefore = subDays(draft.referenceDate, 1);
-                    draft.customDateRange = {
-                      start: toCalendarDate(dayBefore),
-                      end: toCalendarDate(draft.referenceDate),
-                    };
-                    return;
-                  }
-                  const option = timeOptions.find(
-                    (o) => o.id === e.target.value,
-                  );
-                  if (option === undefined || option.type !== "minutes") {
-                    return;
-                  }
-                  draft.selectedTimeOption = option.id;
-                  draft.query.startDate = subMinutes(
-                    draft.referenceDate,
-                    option.minutes,
-                  );
-                  draft.query.endDate = draft.referenceDate;
-                })
-              }
-              size="small"
-            >
-              {timeOptions.map((option) => (
-                <MenuItem
-                  key={option.id}
-                  value={option.id}
-                  onClick={
-                    option.id === "custom" ? customOnClickHandler : undefined
-                  }
-                >
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Popover
-            open={Boolean(state.customDateRange)}
-            anchorEl={customDateRef.current}
-            onClose={() => {
-              setState((draft) => {
-                draft.customDateRange = null;
-              });
-            }}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "left",
-            }}
-            transformOrigin={{
-              vertical: "top",
-              horizontal: "left",
-            }}
-          >
-            <RangeCalendar
-              value={state.customDateRange}
-              visibleDuration={{ months: 2 }}
-              onChange={(newValue) => {
-                setState((draft) => {
-                  draft.customDateRange = newValue;
-                });
-              }}
-              footer={
-                <Stack direction="row" justifyContent="space-between">
-                  <Stack justifyContent="center" alignItems="center" flex={1}>
-                    {state.customDateRange?.start &&
-                      formatCalendarDate(state.customDateRange.start)}
-                    {" - "}
-                    {state.customDateRange?.end &&
-                      formatCalendarDate(state.customDateRange.end)}
-                  </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <GreyButton
-                      onClick={() => {
-                        setState((draft) => {
-                          draft.customDateRange = null;
-                        });
-                      }}
-                    >
-                      Cancel
-                    </GreyButton>
-                    <GreyButton
-                      onClick={() => {
-                        setState((draft) => {
-                          if (draft.customDateRange) {
-                            draft.query.startDate =
-                              draft.customDateRange.start.toDate(
-                                Intl.DateTimeFormat().resolvedOptions()
-                                  .timeZone,
-                              );
-                            draft.query.endDate =
-                              draft.customDateRange.end.toDate(
-                                Intl.DateTimeFormat().resolvedOptions()
-                                  .timeZone,
-                              );
-
-                            draft.customDateRange = null;
-                            draft.selectedTimeOption = "custom";
-                          }
-                        });
-                      }}
-                      sx={{
-                        borderColor: "grey.400",
-                        borderWidth: "1px",
-                        borderStyle: "solid",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Apply
-                    </GreyButton>
-                  </Stack>
-                </Stack>
-              }
-            />
-          </Popover>
+          <DateRangeSelector
+            value={state.dateRange}
+            onChange={handleDateRangeChange}
+            referenceDate={state.referenceDate}
+          />
           <Divider
             orientation="vertical"
             flexItem
@@ -1520,19 +1348,22 @@ export function DeliveriesTableV2({
           </Popover>
           <Tooltip title="Refresh Results" placement="bottom-start">
             <IconButton
-              disabled={state.selectedTimeOption === "custom"}
+              disabled={state.dateRange.selectedTimeOption === "custom"}
               onClick={() => {
                 setState((draft) => {
                   const option = timeOptions.find(
-                    (o) => o.id === draft.selectedTimeOption,
+                    (o) => o.id === draft.dateRange.selectedTimeOption,
                   );
                   if (option === undefined || option.type !== "minutes") {
                     return;
                   }
                   draft.query.cursor = null;
                   const endDate = new Date();
-                  draft.query.endDate = endDate;
-                  draft.query.startDate = subMinutes(endDate, option.minutes);
+                  draft.dateRange.endDate = endDate;
+                  draft.dateRange.startDate = subMinutes(
+                    endDate,
+                    option.minutes,
+                  );
                 });
               }}
               sx={{
@@ -1548,7 +1379,7 @@ export function DeliveriesTableV2({
             placement="bottom-start"
           >
             <IconButton
-              disabled={state.selectedTimeOption === "custom"}
+              disabled={state.dateRange.selectedTimeOption === "custom"}
               onClick={() => {
                 setState((draft) => {
                   draft.autoReload = !draft.autoReload;
