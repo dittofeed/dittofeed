@@ -24,6 +24,8 @@ import {
 } from "@mui/material";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import { format, subMinutes } from "date-fns";
+
+import { DateRangeSelector, DateRangeValue, TimeOptionId } from "../../dateRangeSelector";
 import { round } from "isomorphic-lib/src/numbers";
 import { isStringPresent } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -300,77 +302,7 @@ function journNodeTypeToConfig(
 
 const borderRadius = 2;
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
 
-const TimeOptionId = {
-  LastSevenDays: "last-7-days",
-  LastThirtyDays: "last-30-days",
-  LastNinetyDays: "last-90-days",
-  LastHour: "last-hour",
-  Last24Hours: "last-24-hours",
-  Custom: "custom",
-} as const;
-
-type TimeOptionId = (typeof TimeOptionId)[keyof typeof TimeOptionId];
-
-interface MinuteTimeOption {
-  type: "minutes";
-  id: TimeOptionId;
-  minutes: number;
-  label: string;
-}
-
-interface CustomTimeOption {
-  type: "custom";
-  id: typeof TimeOptionId.Custom;
-  label: string;
-}
-
-type TimeOption = MinuteTimeOption | CustomTimeOption;
-
-const defaultTimeOptionValue = {
-  type: "minutes",
-  id: TimeOptionId.LastSevenDays,
-  minutes: 7 * 24 * 60,
-  label: "Last 7 days",
-} as const;
-
-const defaultTimeOptionId = defaultTimeOptionValue.id;
-
-const timeOptions: TimeOption[] = [
-  {
-    type: "minutes",
-    id: TimeOptionId.LastHour,
-    minutes: 60,
-    label: "Last hour",
-  },
-  {
-    type: "minutes",
-    id: TimeOptionId.Last24Hours,
-    minutes: 24 * 60,
-    label: "Last 24 hours",
-  },
-  defaultTimeOptionValue,
-  {
-    type: "minutes",
-    id: TimeOptionId.LastThirtyDays,
-    minutes: 30 * 24 * 60,
-    label: "Last 30 days",
-  },
-  {
-    type: "minutes",
-    id: TimeOptionId.LastNinetyDays,
-    minutes: 90 * 24 * 60,
-    label: "Last 90 days",
-  },
-  { type: "custom", id: TimeOptionId.Custom, label: "Custom Date Range" },
-];
 
 function StatCategory({
   label,
@@ -451,15 +383,14 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
     resourceType: "Declarative",
   });
 
-  // State for date range and display mode using pattern from deliveriesTableV2
-  const [selectedTimeOption, setSelectedTimeOption] =
-    useState<TimeOptionId>(defaultTimeOptionId);
-  const [dateRange, setDateRange] = useState(() => {
+  // State for date range and display mode using DateRangeSelector
+  const [dateRangeValue, setDateRangeValue] = useState<DateRangeValue>(() => {
     const endDate = new Date();
-    const startDate = subMinutes(endDate, defaultTimeOptionValue.minutes);
+    const startDate = subMinutes(endDate, 7 * 24 * 60); // Last 7 days
     return {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      startDate,
+      endDate,
+      selectedTimeOption: TimeOptionId.LastSevenDays,
     };
   });
   const [displayMode, setDisplayMode] = useState<"absolute" | "percentage">(
@@ -482,8 +413,8 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
     useJourneyStatsQueryV2(
       {
         journeyId: typeof journeyId === "string" ? journeyId : "",
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
+        startDate: dateRangeValue.startDate.toISOString(),
+        endDate: dateRangeValue.endDate.toISOString(),
       },
       {
         enabled: typeof journeyId === "string" && isSelected,
@@ -696,59 +627,12 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
             </Stack>
 
             {/* Date Range Selector */}
-            <FormControl size="small" sx={{ mb: 0.5 }}>
-              <Select
-                value={selectedTimeOption}
-                renderValue={(value) => {
-                  const option = timeOptions.find((o) => o.id === value);
-                  if (option?.type === "custom") {
-                    return `${formatDate(new Date(dateRange.startDate))} - ${formatDate(new Date(dateRange.endDate))}`;
-                  }
-                  return option?.label;
-                }}
-                onChange={(e) => {
-                  const selectedValue = e.target.value as TimeOptionId;
-                  if (selectedValue === TimeOptionId.Custom) {
-                    setSelectedTimeOption(selectedValue);
-                    return;
-                  }
-                  const option = timeOptions.find(
-                    (o) => o.id === selectedValue,
-                  );
-                  if (option === undefined || option.type !== "minutes") {
-                    return;
-                  }
-                  setSelectedTimeOption(option.id);
-                  const now = new Date();
-                  const startDate = subMinutes(now, option.minutes);
-                  setDateRange({
-                    startDate: startDate.toISOString(),
-                    endDate: now.toISOString(),
-                  });
-                }}
-                sx={{
-                  fontSize: "0.7rem",
-                  minHeight: "28px",
-                  "& .MuiSelect-select": {
-                    py: 0.25,
-                    px: 0.5,
-                    minHeight: "unset",
-                    display: "flex",
-                    alignItems: "center",
-                  },
-                }}
-              >
-                {timeOptions.map((option) => (
-                  <MenuItem
-                    key={option.id}
-                    value={option.id}
-                    sx={{ fontSize: "0.7rem" }}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Box sx={{ mb: 0.5 }}>
+              <DateRangeSelector
+                value={dateRangeValue}
+                onChange={setDateRangeValue}
+              />
+            </Box>
 
             {/* Display Mode Toggle */}
             <FormControlLabel

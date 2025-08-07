@@ -5911,6 +5911,8 @@ export const BatchMessageUsersResponse = Type.Object({
 
 export type BatchMessageUsersResponse = Static<
   typeof BatchMessageUsersResponse
+>;
+
 export const GetAnalysisRequest = Type.Object({
   workspaceId: Type.String(),
   channel: Type.Optional(Type.Enum(ChannelType)),
