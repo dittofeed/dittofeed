@@ -11,12 +11,14 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
+  ButtonProps,
   CircularProgress,
   Drawer,
   IconButton,
   Paper,
   Snackbar,
   Stack,
+  SxProps,
   Table,
   TableBody,
   TableCell,
@@ -24,6 +26,7 @@ import {
   TableFooter,
   TableHead,
   TableRow,
+  Theme,
   Tooltip,
   Typography,
   useTheme,
@@ -79,6 +82,7 @@ import EmailPreviewBody from "../messages/emailPreview";
 import { WebhookPreviewBody } from "../messages/webhookPreview";
 import SmsPreviewBody from "../smsPreviewBody";
 import TemplatePreview from "../templatePreview";
+import { DEFAULT_ALLOWED_COLUMNS } from "./constants";
 
 function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
   switch (sortBy) {
@@ -535,6 +539,10 @@ export interface DeliveriesBodyProps extends DeliveriesBodyHookProps {
   broadcastUriTemplate?: string;
   state: DeliveriesBodyState;
   setState: SetDeliveriesBodyState;
+  headerCellSx?: SxProps<Theme>;
+  footerRowSx?: SxProps<Theme>;
+  footerCellSx?: SxProps<Theme>;
+  footerCellButtonProps?: ButtonProps;
 }
 
 export function useDeliveryBodyState({
@@ -798,10 +806,14 @@ export function useDeliveryBodyState({
 export function DeliveriesBody({
   templateUriTemplate,
   originUriTemplate,
-  columnAllowList,
+  columnAllowList = DEFAULT_ALLOWED_COLUMNS,
   broadcastUriTemplate,
   state,
   setState,
+  headerCellSx,
+  footerCellSx,
+  footerCellButtonProps,
+  footerRowSx,
   ...hookProps
 }: DeliveriesBodyProps) {
   const { data, query, onNextPage, onPreviousPage, onFirstPage } =
@@ -1045,10 +1057,7 @@ export function DeliveriesBody({
                     <TableCell
                       key={header.id}
                       colSpan={header.colSpan}
-                      sx={{
-                        paddingTop: "8px",
-                        paddingBottom: "8px",
-                      }}
+                      sx={headerCellSx}
                     >
                       {header.isPlaceholder ? null : (
                         <Box>
@@ -1085,13 +1094,14 @@ export function DeliveriesBody({
                 bottom: 0,
               }}
             >
-              <TableRow>
+              <TableRow sx={footerRowSx}>
                 <TableCell
                   colSpan={table.getAllColumns().length}
                   sx={{
                     bgcolor: "background.paper",
                     borderTop: "1px solid",
                     borderColor: "grey.100",
+                    ...footerCellSx,
                   }}
                 >
                   <Stack
@@ -1105,6 +1115,7 @@ export function DeliveriesBody({
                         onClick={onFirstPage}
                         disabled={query.data?.previousCursor === undefined}
                         startIcon={<KeyboardDoubleArrowLeft />}
+                        {...footerCellButtonProps}
                       >
                         First
                       </GreyButton>
@@ -1112,6 +1123,7 @@ export function DeliveriesBody({
                         onClick={onPreviousPage}
                         disabled={query.data?.previousCursor === undefined}
                         startIcon={<KeyboardArrowLeft />}
+                        {...footerCellButtonProps}
                       >
                         Previous
                       </GreyButton>
@@ -1119,6 +1131,7 @@ export function DeliveriesBody({
                         onClick={onNextPage}
                         disabled={query.data?.cursor === undefined}
                         endIcon={<KeyboardArrowRight />}
+                        {...footerCellButtonProps}
                       >
                         Next
                       </GreyButton>

@@ -16,10 +16,10 @@ import { useRouter } from "next/router";
 import { validate } from "uuid";
 
 import {
-  DEFAULT_ALLOWED_COLUMNS,
   DEFAULT_DELIVERIES_TABLE_V2_PROPS,
   DeliveriesTableV2,
 } from "../../../components/deliveriesTableV2";
+import { DEFAULT_ALLOWED_COLUMNS } from "../../../components/deliveriesTableV2/constants";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../../lib/appStore";

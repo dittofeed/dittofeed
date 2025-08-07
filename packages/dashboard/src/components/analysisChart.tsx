@@ -52,7 +52,10 @@ import {
   GroupByOption,
 } from "./analysisChart/analysisChartGroupBy";
 import { AnalysisSummaryPanel } from "./analysisChart/analysisSummaryPanel";
-import { DeliveriesBody, useDeliveryBodyState } from "./deliveriesTableV2/deliveriesBody";
+import {
+  DeliveriesBody,
+  useDeliveryBodyState,
+} from "./deliveriesTableV2/deliveriesBody";
 import { DeliveriesDownloadButton } from "./deliveriesTableV2/deliveriesDownloadButton";
 import { DeliveriesSortButton } from "./deliveriesTableV2/deliveriesSortButton";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
@@ -792,6 +795,15 @@ export function AnalysisChart() {
         limit={5}
         state={deliveriesHookResult.state}
         setState={deliveriesHookResult.setState}
+        headerCellSx={{
+          paddingTop: "8px",
+          paddingBottom: "8px",
+        }}
+        footerCellButtonProps={{ size: "small" }}
+        footerCellSx={{
+          paddingTop: "4px",
+          paddingBottom: "4px",
+        }}
       />
     </Stack>
   );

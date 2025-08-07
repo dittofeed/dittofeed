@@ -97,6 +97,7 @@ import {
   useDeliveriesFilterState,
 } from "./deliveries/deliveriesFilter";
 import { humanizeStatus } from "./deliveriesTable";
+import { DEFAULT_ALLOWED_COLUMNS } from "./deliveriesTableV2/constants";
 import EmailPreviewHeader from "./emailPreviewHeader";
 import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
@@ -104,18 +105,6 @@ import EmailPreviewBody from "./messages/emailPreview";
 import { WebhookPreviewBody } from "./messages/webhookPreview";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
-
-export const DEFAULT_ALLOWED_COLUMNS: DeliveriesAllowedColumn[] = [
-  "preview",
-  "from",
-  "to",
-  "userId",
-  "channel",
-  "status",
-  "origin",
-  "template",
-  "sentAt",
-];
 
 function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
   switch (sortBy) {
