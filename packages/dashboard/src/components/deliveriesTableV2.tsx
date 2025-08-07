@@ -73,7 +73,7 @@ import {
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import qs from "qs";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { omit } from "remeda";
 import uriTemplates from "uri-templates";
 import { Updater, useImmer } from "use-immer";
