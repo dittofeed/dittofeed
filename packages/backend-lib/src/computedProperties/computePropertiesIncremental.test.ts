@@ -717,6 +717,69 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "computes a trait user property with concurrent empty event",
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+        },
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email: "test@email.com",
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {},
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test@email.com",
+                id: "user-1",
+              },
+            },
+          ],
+          states: [
+            {
+              userId: "user-1",
+              type: "user_property",
+              lastValue: "test@email.com",
+              name: "email",
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "computes a segment that matches everyone",
       segments: [
         {
