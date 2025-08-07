@@ -1,5 +1,9 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { getChartData, getJourneyEditorStats, getSummarizedData } from "backend-lib/src/analysis";
+import {
+  getChartData,
+  getJourneyEditorStats,
+  getSummarizedData,
+} from "backend-lib/src/analysis";
 import { FastifyInstance } from "fastify";
 import {
   GetChartDataRequest,
