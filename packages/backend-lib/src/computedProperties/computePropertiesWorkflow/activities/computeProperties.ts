@@ -309,8 +309,25 @@ export async function computePropertiesIndividual({
           names: ["id", "anonymousId"],
         }),
       ]);
-      const subscribedSegments = journeys.flatMap((j) =>
-        Array.from(getSubscribedSegments(j.definition)),
+      const journey = journeys.find((j) => j.id === item.id);
+      if (!journey) {
+        logger().error(
+          { workspaceId: item.workspaceId, journeyId: item.id },
+          "journey not found in computePropertiesIndividual",
+        );
+        return;
+      }
+      if (
+        journey.definition.entryNode.type !== JourneyNodeType.SegmentEntryNode
+      ) {
+        logger().error(
+          { workspaceId: item.workspaceId, journeyId: item.id },
+          "journey is not a segment entry node in computePropertiesIndividual",
+        );
+        return;
+      }
+      const subscribedSegments = Array.from(
+        getSubscribedSegments(journey.definition),
       );
       const segments = await findManySegmentResourcesSafe({
         workspaceId: item.workspaceId,
@@ -327,7 +344,7 @@ export async function computePropertiesIndividual({
         workspaceId: item.workspaceId,
         segments,
         userProperties,
-        journeys,
+        journeys: [journey],
         integrations: [],
         now,
       });
