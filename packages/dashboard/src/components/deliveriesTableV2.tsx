@@ -8,7 +8,6 @@ import {
   SwapVert as SwapVertIcon,
 } from "@mui/icons-material";
 import {
-  Box,
   Divider,
   IconButton,
   MenuItem,
@@ -29,7 +28,7 @@ import {
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Updater, useImmer } from "use-immer";
+import { useImmer } from "use-immer";
 import { useInterval } from "usehooks-ts";
 
 import { useDownloadDeliveriesMutation } from "../lib/useDownloadDeliveriesMutation";
@@ -67,8 +66,6 @@ interface State {
   autoReload: boolean;
   deliveriesBody: DeliveriesBodyState;
 }
-
-type SetState = Updater<State>;
 
 const defaultTimeOptionId = TimeOptionId.LastSevenDays;
 
@@ -138,7 +135,6 @@ export function DeliveriesTableV2({
   columnAllowList,
   journeyId,
   triggeringProperties,
-  contextValues,
   broadcastId,
   autoReloadByDefault = false,
   reloadPeriodMs = 30000,
@@ -239,20 +235,24 @@ export function DeliveriesTableV2({
   const deliveriesBodyState = useDeliveryBodyState(deliveriesBodyHookProps);
 
   const downloadParams = useMemo(() => {
-    const templateIds = getFilterValues(deliveriesFilterState, "template");
-    const channels = getFilterValues(deliveriesFilterState, "channel") as
-      | ChannelType[]
-      | undefined;
-    const to = getFilterValues(deliveriesFilterState, "to");
-    const statuses = getFilterValues(deliveriesFilterState, "status");
-    const from = getFilterValues(deliveriesFilterState, "from");
+    const downloadTemplateIds = getFilterValues(
+      deliveriesFilterState,
+      "template",
+    );
+    const downloadChannels = getFilterValues(
+      deliveriesFilterState,
+      "channel",
+    ) as ChannelType[] | undefined;
+    const downloadTo = getFilterValues(deliveriesFilterState, "to");
+    const downloadStatuses = getFilterValues(deliveriesFilterState, "status");
+    const downloadFrom = getFilterValues(deliveriesFilterState, "from");
 
     const params = {
-      templateIds,
-      channels,
-      to,
-      statuses,
-      from,
+      templateIds: downloadTemplateIds,
+      channels: downloadChannels,
+      to: downloadTo,
+      statuses: downloadStatuses,
+      from: downloadFrom,
       startDate: state.dateRange.startDate.toISOString(),
       endDate: state.dateRange.endDate.toISOString(),
       sortBy: state.query.sortBy,
