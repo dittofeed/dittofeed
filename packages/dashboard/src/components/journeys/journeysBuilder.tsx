@@ -159,6 +159,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
         proOptions={proOptions}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        noDragClassName="nodrag"
         defaultEdgeOptions={{
           markerEnd: {
             type: MarkerType.ArrowClosed,

@@ -8,35 +8,44 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
+  Card,
+  CardContent,
   ClickAwayListener,
+  FormControlLabel,
+  Skeleton,
   Stack,
+  Switch,
   Typography,
   useTheme,
 } from "@mui/material";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { format } from "date-fns";
-import { round } from "isomorphic-lib/src/numbers";
+import { format, subMinutes } from "date-fns";
 import { isStringPresent } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
-  ChannelType,
   DelayVariantType,
   JourneyNodeType,
   MessageTemplateResource,
-  NodeStatsType,
   SavedSegmentResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
+import { JOURNEY_EDITOR_CLICKAWAY_EXEMPT_CLASS } from "../../../lib/constants";
 import {
   AdditionalJourneyNodeType,
   JourneyUiNodeDefinition,
   JourneyUiNodeTypeProps,
 } from "../../../lib/types";
+import { useJourneyStatsQueryV2 } from "../../../lib/useJourneyStatsQueryV2";
 import { useMessageTemplatesQuery } from "../../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
+import {
+  DateRangeSelector,
+  DateRangeValue,
+  TimeOptionId,
+} from "../../dateRangeSelector";
 import DurationDescription from "../../durationDescription";
 import journeyNodeLabel from "../journeyNodeLabel";
 import styles from "./nodeTypes.module.css";
@@ -290,45 +299,70 @@ function journNodeTypeToConfig(
 
 const borderRadius = 2;
 
-function StatCategory({
-  label,
-  rate,
-}: {
-  label: string;
-  rate: number | string;
-}) {
+interface SmallMetricCardProps {
+  title: string;
+  value: number;
+  isLoading?: boolean;
+  isPercentage?: boolean;
+}
+
+function SmallMetricCard({
+  title,
+  value,
+  isLoading = false,
+  isPercentage = false,
+}: SmallMetricCardProps) {
   return (
-    <Stack direction="column">
-      <Typography variant="subtitle2">{label}</Typography>
-      <Box
-        sx={{
-          fontFamily: "monospace",
-        }}
-      >
-        {typeof rate === "number" ? `${round(rate * 100, 2)}%` : rate}
-      </Box>
-    </Stack>
+    <Card sx={{ minWidth: 60, textAlign: "center", flex: 1 }}>
+      <CardContent sx={{ p: 0.25, "&:last-child": { pb: 0.25 } }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ fontSize: "0.6rem" }}
+        >
+          {title}
+        </Typography>
+        {isLoading ? (
+          <Skeleton variant="text" width={30} height={16} sx={{ mx: "auto" }} />
+        ) : (
+          <Typography
+            variant="caption"
+            component="div"
+            sx={{ fontWeight: "bold", fontSize: "0.7rem" }}
+          >
+            {isPercentage ? `${value.toFixed(1)}%` : value.toLocaleString()}
+          </Typography>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
 export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
   const path = useRouter();
   const theme = useTheme();
-  const {
-    journeySelectedNodeId: selectedNodeId,
-    setSelectedNodeId,
-    journeyStats,
-  } = useAppStorePick([
-    "journeySelectedNodeId",
-    "journeyStats",
-    "setSelectedNodeId",
-  ]);
+  const { journeySelectedNodeId: selectedNodeId, setSelectedNodeId } =
+    useAppStorePick(["journeySelectedNodeId", "setSelectedNodeId"]);
   const { data: segmentsResult } = useSegmentsQuery({
     resourceType: "Declarative",
   });
   const { data: messagesResult } = useMessageTemplatesQuery({
     resourceType: "Declarative",
   });
+
+  // State for date range and display mode using DateRangeSelector
+  const [dateRangeValue, setDateRangeValue] = useState<DateRangeValue>(() => {
+    const endDate = new Date();
+    const startDate = subMinutes(endDate, 7 * 24 * 60); // Last 7 days
+    return {
+      startDate,
+      endDate,
+      selectedTimeOption: TimeOptionId.LastSevenDays,
+    };
+  });
+  const [displayMode, setDisplayMode] = useState<"absolute" | "percentage">(
+    "absolute",
+  );
 
   const { id: journeyId } = path.query;
   const config = useMemo(
@@ -341,6 +375,20 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
 
   const isSelected = selectedNodeId === id;
 
+  // New journey stats query
+  const { data: journeyStatsData, isLoading: isStatsLoading } =
+    useJourneyStatsQueryV2(
+      {
+        journeyId: typeof journeyId === "string" ? journeyId : "",
+        startDate: dateRangeValue.startDate.toISOString(),
+        endDate: dateRangeValue.endDate.toISOString(),
+      },
+      {
+        enabled: typeof journeyId === "string" && isSelected,
+        placeholderData: (previousData) => previousData,
+      },
+    );
+
   const clickOutsideHandler = useCallback(
     (event: MouseEvent | TouchEvent) => {
       // Clicking on another node should not trigger the node editor to close.
@@ -348,15 +396,23 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
         return;
       }
 
-      const insideRenderer = event
+      const insideReactFlowRenderer = event
         .composedPath()
-        .find(
+        .some(
           (el) =>
             el instanceof HTMLElement &&
             el.classList.contains("react-flow__renderer"),
         );
 
-      if (!insideRenderer) {
+      const insideJourneyNodeFooter = event
+        .composedPath()
+        .some(
+          (el) =>
+            el instanceof HTMLElement &&
+            el.classList.contains(JOURNEY_EDITOR_CLICKAWAY_EXEMPT_CLASS),
+        );
+
+      if (!insideReactFlowRenderer || insideJourneyNodeFooter) {
         return;
       }
       setSelectedNodeId(null);
@@ -372,18 +428,37 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
     [data.nodeTypeProps, messagesResult, segmentsResult],
   );
 
-  const channelStats = useMemo(() => {
-    if (!journeyId || typeof journeyId !== "string") {
+  // Process the new journey stats data
+  const nodeStats = useMemo(() => {
+    if (!isSelected) {
       return null;
     }
-    const stats = journeyStats[journeyId]?.nodeStats[id];
-    return isSelected &&
-      stats?.type === NodeStatsType.MessageNodeStats &&
-      stats.sendRate &&
-      stats.channelStats
-      ? { ...stats.channelStats, sendRate: stats.sendRate }
-      : null;
-  }, [id, isSelected, journeyId, journeyStats]);
+
+    const rawStats = journeyStatsData?.nodeStats[id];
+    const sent = rawStats?.sent || 0;
+    const delivered = rawStats?.delivered || 0;
+    const opened = rawStats?.opened || 0;
+    const clicked = rawStats?.clicked || 0;
+    const bounced = rawStats?.bounced || 0;
+
+    if (displayMode === "percentage" && sent > 0) {
+      return {
+        sent,
+        delivered: (delivered / sent) * 100,
+        opened: (opened / sent) * 100,
+        clicked: (clicked / sent) * 100,
+        bounced: (bounced / sent) * 100,
+      };
+    }
+
+    return {
+      sent,
+      delivered,
+      opened,
+      clicked,
+      bounced,
+    };
+  }, [id, isSelected, journeyStatsData, displayMode]);
 
   const borderColor: string = isSelected
     ? theme.palette.blue[200]
@@ -408,68 +483,76 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
     config.body
   );
 
+  const mainContent = (
+    <Box
+      onClick={clickInsideHandler}
+      sx={{
+        width: JOURNEY_NODE_WIDTH,
+        display: "flex",
+        flexDirection: "row",
+        backgroundColor: "white",
+        justifyItems: "stretch",
+        cursor: "pointer",
+        borderStyle: "solid",
+        borderRadius,
+        borderColor,
+        borderWidth: 2,
+      }}
+    >
+      <Box
+        sx={{
+          backgroundColor: config.sidebarColor,
+          width: 5,
+          borderTopLeftRadius: borderRadius,
+          borderBottomLeftRadius: borderRadius,
+          borderWidth: "1px 0 1px 1px",
+          borderColor,
+        }}
+      />
+      <Stack direction="column" spacing={1} sx={{ padding: 2, width: "100%" }}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <config.icon />
+          <Typography
+            variant="h5"
+            sx={{
+              height: "1.5rem",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {config.title}
+          </Typography>
+        </Stack>
+        {body}
+      </Stack>
+    </Box>
+  );
+
+  const clickAwayMain = isSelected ? (
+    <ClickAwayListener onClickAway={clickOutsideHandler}>
+      {mainContent}
+    </ClickAwayListener>
+  ) : (
+    mainContent
+  );
+
   const contents = (
     <Stack
       id={`journey-node-${id}`}
       direction="column"
       justifyContent="top"
+      className="nodrag"
       sx={{
         position: "relative",
       }}
     >
-      <Box
-        onClick={clickInsideHandler}
-        sx={{
-          width: JOURNEY_NODE_WIDTH,
-          display: "flex",
-          flexDirection: "row",
-          backgroundColor: "white",
-          justifyItems: "stretch",
-          cursor: "pointer",
-          borderStyle: "solid",
-          borderRadius,
-          borderColor,
-          borderWidth: 2,
-        }}
-      >
-        <Box
-          sx={{
-            backgroundColor: config.sidebarColor,
-            width: 5,
-            borderTopLeftRadius: borderRadius,
-            borderBottomLeftRadius: borderRadius,
-            borderWidth: "1px 0 1px 1px",
-            borderColor,
-          }}
-        />
-        <Stack
-          direction="column"
-          spacing={1}
-          sx={{ padding: 2, width: "100%" }}
-        >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <config.icon />
-            <Typography
-              variant="h5"
-              sx={{
-                height: "1.5rem",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {config.title}
-            </Typography>
-          </Stack>
-          {body}
-        </Stack>
-      </Box>
+      {clickAwayMain}
       <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
+        className={JOURNEY_EDITOR_CLICKAWAY_EXEMPT_CLASS}
+        direction="column"
         sx={{
-          padding: channelStats ? 1 : 0,
+          padding: nodeStats ? 1 : 0,
           backgroundColor: "white",
           borderStyle: "solid",
           width: JOURNEY_NODE_WIDTH,
@@ -477,47 +560,68 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
           borderBottomRightRadius: 8,
           borderColor,
           borderWidth: "0 2px 2px 2px",
-          opacity: channelStats ? 1 : 0,
-          visibility: channelStats ? "visible" : "hidden",
+          opacity: nodeStats ? 1 : 0,
+          visibility: nodeStats ? "visible" : "hidden",
           transition:
             "height .2s ease, padding-top .2s ease, padding-bottom .2s ease, opacity .2s ease",
-          height: channelStats ? undefined : 0,
+          height: nodeStats ? undefined : 0,
         }}
       >
-        {channelStats ? (
+        {nodeStats ? (
           <>
-            <StatCategory label="Sent" rate={channelStats.sendRate} />
-            <StatCategory
-              label="Delivered"
-              rate={
-                "deliveryRate" in channelStats
-                  ? channelStats.deliveryRate
-                  : "N/A"
-              }
+            {/* Metric Cards Row */}
+            <Stack direction="row" spacing={0.5} sx={{ mb: 1 }}>
+              <SmallMetricCard
+                title="SENT"
+                value={nodeStats.sent}
+                isLoading={isStatsLoading}
+                isPercentage={false}
+              />
+              <SmallMetricCard
+                title="DELIVERED"
+                value={nodeStats.delivered}
+                isLoading={isStatsLoading}
+                isPercentage={displayMode === "percentage"}
+              />
+              <SmallMetricCard
+                title="OPENED"
+                value={nodeStats.opened}
+                isLoading={isStatsLoading}
+                isPercentage={displayMode === "percentage"}
+              />
+              <SmallMetricCard
+                title="CLICKED"
+                value={nodeStats.clicked}
+                isLoading={isStatsLoading}
+                isPercentage={displayMode === "percentage"}
+              />
+            </Stack>
+
+            {/* Date Range Selector */}
+            <DateRangeSelector
+              value={dateRangeValue}
+              onChange={setDateRangeValue}
+              sx={{ width: "100%", mb: 0.5 }}
             />
-            <StatCategory
-              label="Opened"
-              rate={
-                channelStats.type === ChannelType.Email
-                  ? channelStats.openRate
-                  : "N/A"
+
+            {/* Display Mode Toggle */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={displayMode === "percentage"}
+                  onChange={(e) =>
+                    setDisplayMode(e.target.checked ? "percentage" : "absolute")
+                  }
+                  size="small"
+                />
               }
-            />
-            <StatCategory
-              label="Clicked"
-              rate={
-                channelStats.type === ChannelType.Email
-                  ? channelStats.clickRate
-                  : "N/A"
-              }
-            />
-            <StatCategory
-              label="Spam"
-              rate={
-                channelStats.type === ChannelType.Email
-                  ? channelStats.spamRate
-                  : "N/A"
-              }
+              label="Show %"
+              sx={{
+                m: 0,
+                "& .MuiFormControlLabel-label": {
+                  fontSize: "0.7rem",
+                },
+              }}
             />
           </>
         ) : null}
@@ -535,13 +639,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
           className={styles.handle}
         />
       )}
-      {isSelected ? (
-        <ClickAwayListener onClickAway={clickOutsideHandler}>
-          {contents}
-        </ClickAwayListener>
-      ) : (
-        contents
-      )}
+      {contents}
       {!config.disableBottomHandle && (
         <Handle
           type="source"

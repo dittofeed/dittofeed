@@ -5912,3 +5912,154 @@ export const BatchMessageUsersResponse = Type.Object({
 export type BatchMessageUsersResponse = Static<
   typeof BatchMessageUsersResponse
 >;
+
+export const GetAnalysisRequest = Type.Object({
+  workspaceId: Type.String(),
+  channel: Type.Optional(Type.Enum(ChannelType)),
+  provider: Type.Optional(Type.Enum(EmailProviderType)),
+  userId: Type.Optional(Type.String()),
+  startDate: Type.Optional(Type.String()),
+  endDate: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+  broadcastId: Type.Optional(Type.String()),
+});
+
+export type GetAnalysisRequest = Static<typeof GetAnalysisRequest>;
+
+// Analysis Dashboard Types
+export const ChartGranularity = Type.Union([
+  Type.Literal("auto"),
+  Type.Literal("30second"),
+  Type.Literal("1minute"),
+  Type.Literal("5minutes"),
+  Type.Literal("10minutes"),
+  Type.Literal("30minutes"),
+  Type.Literal("1hour"),
+  Type.Literal("6hours"),
+  Type.Literal("12hours"),
+  Type.Literal("1day"),
+  Type.Literal("7days"),
+  Type.Literal("30days"),
+]);
+
+export type ChartGranularity = Static<typeof ChartGranularity>;
+
+export const GetChartDataRequest = Type.Object({
+  workspaceId: Type.String(),
+  startDate: Type.String(),
+  endDate: Type.String(),
+  granularity: Type.Optional(ChartGranularity),
+  groupBy: Type.Optional(
+    Type.Union([
+      Type.Literal("journey"),
+      Type.Literal("broadcast"),
+      Type.Literal("messageTemplate"),
+      Type.Literal("channel"),
+      Type.Literal("provider"),
+      Type.Literal("messageState"),
+    ]),
+  ),
+  filters: Type.Optional(
+    Type.Object({
+      journeyIds: Type.Optional(Type.Array(Type.String())),
+      broadcastIds: Type.Optional(Type.Array(Type.String())),
+      channels: Type.Optional(Type.Array(Type.String())),
+      providers: Type.Optional(Type.Array(Type.String())),
+      messageStates: Type.Optional(Type.Array(Type.String())),
+      templateIds: Type.Optional(Type.Array(Type.String())),
+    }),
+  ),
+});
+
+export type GetChartDataRequest = Static<typeof GetChartDataRequest>;
+
+export const GetSummarizedDataRequest = Type.Object({
+  workspaceId: Type.String(),
+  startDate: Type.String(),
+  endDate: Type.String(),
+  filters: Type.Optional(
+    Type.Object({
+      journeyIds: Type.Optional(Type.Array(Type.String())),
+      broadcastIds: Type.Optional(Type.Array(Type.String())),
+      channel: Type.Optional(Type.Enum(ChannelType)),
+      providers: Type.Optional(Type.Array(Type.String())),
+      messageStates: Type.Optional(Type.Array(Type.String())),
+      templateIds: Type.Optional(Type.Array(Type.String())),
+    }),
+  ),
+});
+
+export type GetSummarizedDataRequest = Static<typeof GetSummarizedDataRequest>;
+
+export const ChartDataPoint = Type.Object({
+  timestamp: Type.String(),
+  count: Type.Number(),
+  groupKey: Type.Optional(Type.String()),
+  groupLabel: Type.Optional(Type.String()),
+});
+
+export type ChartDataPoint = Static<typeof ChartDataPoint>;
+
+export const ResolvedChartGranularity = Type.Union([
+  Type.Literal("30second"),
+  Type.Literal("1minute"),
+  Type.Literal("5minutes"),
+  Type.Literal("10minutes"),
+  Type.Literal("30minutes"),
+  Type.Literal("1hour"),
+  Type.Literal("6hours"),
+  Type.Literal("12hours"),
+  Type.Literal("1day"),
+  Type.Literal("7days"),
+  Type.Literal("30days"),
+]);
+
+export type ResolvedChartGranularity = Static<typeof ResolvedChartGranularity>;
+
+export const GetChartDataResponse = Type.Object({
+  data: Type.Array(ChartDataPoint),
+  granularity: ResolvedChartGranularity,
+});
+
+export type GetChartDataResponse = Static<typeof GetChartDataResponse>;
+
+export const SummaryMetric = Type.Object({
+  deliveries: Type.Number(),
+  sent: Type.Number(),
+  opens: Type.Number(),
+  clicks: Type.Number(),
+  bounces: Type.Number(),
+});
+
+export type SummaryMetric = Static<typeof SummaryMetric>;
+
+export const GetSummarizedDataResponse = Type.Object({
+  summary: SummaryMetric,
+});
+
+export type GetSummarizedDataResponse = Static<
+  typeof GetSummarizedDataResponse
+>;
+
+export const GetJourneyEditorStatsRequest = Type.Object({
+  workspaceId: Type.String(),
+  journeyId: Type.String(),
+  startDate: Type.String(),
+  endDate: Type.String(),
+});
+
+export type GetJourneyEditorStatsRequest = Static<
+  typeof GetJourneyEditorStatsRequest
+>;
+
+export const JourneyNodeStats = Type.Record(Type.String(), Type.Number());
+
+export type JourneyNodeStats = Static<typeof JourneyNodeStats>;
+
+export const GetJourneyEditorStatsResponse = Type.Object({
+  nodeStats: Type.Record(Type.String(), JourneyNodeStats),
+});
+
+export type GetJourneyEditorStatsResponse = Static<
+  typeof GetJourneyEditorStatsResponse
+>;

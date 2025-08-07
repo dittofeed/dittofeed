@@ -28,7 +28,10 @@ async function getJourneysResources({
       name: true,
       definition: true,
     },
-    where: eq(schema.journey.workspaceId, workspaceId),
+    where: and(
+      eq(schema.journey.workspaceId, workspaceId),
+      eq(schema.journey.resourceType, "Declarative"),
+    ),
     orderBy: [asc(schema.journey.name)],
   });
   return journeys.flatMap((journey) => {
@@ -136,7 +139,10 @@ export async function getResources({
             id: true,
             name: true,
           },
-          where: eq(schema.messageTemplate.workspaceId, workspaceId),
+          where: and(
+            eq(schema.messageTemplate.workspaceId, workspaceId),
+            eq(schema.messageTemplate.resourceType, "Declarative"),
+          ),
           orderBy: [asc(schema.messageTemplate.name)],
         })
       : null,

@@ -10,18 +10,20 @@ import {
   SxProps,
   TextField,
   Theme,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { CompletionStatus, Present } from "isomorphic-lib/src/types";
+import { Present } from "isomorphic-lib/src/types";
 import React, { HTMLAttributes, useCallback, useMemo, useRef } from "react";
 import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 
-import { useAppStorePick } from "../../lib/appStore";
 import { usePropertiesQuery } from "../../lib/usePropertiesQuery";
+import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
+import { sharedFilterChipSx } from "../shared/filterStyles";
 import { SquarePaper } from "../squarePaper";
 
 export interface BaseUserEventsFilterCommand {
@@ -203,20 +205,18 @@ export function SelectedUserEventsFilters({
     userId?: string;
   };
 }) {
-  const { broadcasts, journeys } = useAppStorePick(["broadcasts", "journeys"]);
+  const { data: broadcasts } = useResourcesQuery({ broadcasts: true });
+  const { data: journeys } = useResourcesQuery({ journeys: true });
 
   const resolveIdToName = (key: Key, id: string): string => {
     switch (key) {
       case "broadcastId": {
-        const broadcast = broadcasts.find((b) => b.id === id);
+        const broadcast = broadcasts?.broadcasts?.find((b) => b.id === id);
         return broadcast ? broadcast.name : id;
       }
       case "journeyId": {
-        if (journeys.type === CompletionStatus.Successful) {
-          const journey = journeys.value.find((j) => j.id === id);
-          return journey ? journey.name : id;
-        }
-        return id;
+        const journey = journeys?.journeys?.find((j) => j.id === id);
+        return journey ? journey.name : id;
       }
       default:
         return id;
@@ -237,17 +237,22 @@ export function SelectedUserEventsFilters({
         }
       }
       const keyLabel = keyCommandLabels[key];
+      const fullLabel = `${keyLabel} = ${label}`;
       return (
-        <Chip
-          key={key}
-          sx={sx}
-          label={`${keyLabel} = ${label}`}
-          onDelete={() =>
-            setState((draft) => {
-              draft.filters.delete(key as Key);
-            })
-          }
-        />
+        <Tooltip key={key} title={fullLabel} placement="bottom-start">
+          <Chip
+            sx={{
+              ...sharedFilterChipSx,
+              ...sx,
+            }}
+            label={fullLabel}
+            onDelete={() =>
+              setState((draft) => {
+                draft.filters.delete(key as Key);
+              })
+            }
+          />
+        </Tooltip>
       );
     },
   );
@@ -268,19 +273,26 @@ export function SelectedUserEventsFilters({
             // Resolve ID to name for single values
             label = resolveIdToName(key as Key, String(value));
           }
+          const fullLabel = `${key} = ${label}`;
           return (
-            <Chip
+            <Tooltip
               key={`hardcoded-${key}`}
-              sx={{
-                ...sx,
-                opacity: 0.7,
-                "& .MuiChip-deleteIcon": {
-                  display: "none",
-                },
-              }}
-              label={`${key} = ${label}`}
-              disabled
-            />
+              title={fullLabel}
+              placement="bottom-start"
+            >
+              <Chip
+                sx={{
+                  ...sharedFilterChipSx,
+                  ...sx,
+                  opacity: 0.7,
+                  "& .MuiChip-deleteIcon": {
+                    display: "none",
+                  },
+                }}
+                label={fullLabel}
+                disabled
+              />
+            </Tooltip>
           );
         })
     : [];
@@ -299,12 +311,8 @@ export function NewUserEventsFilterButton({
   setState: SetUserEventsState;
   greyScale?: boolean;
 }) {
-  // FIXME use hooks
-  const { broadcasts, journeys } = useAppStorePick([
-    "broadcasts",
-    "journeys",
-    "messages",
-  ]);
+  const { data: broadcasts } = useResourcesQuery({ broadcasts: true });
+  const { data: journeys } = useResourcesQuery({ journeys: true });
   const { data: properties, error: propertiesError } = usePropertiesQuery();
   const { stage } = state;
 
@@ -381,7 +389,8 @@ export function NewUserEventsFilterButton({
                   };
                   break;
                 case "broadcastId": {
-                  const children: SelectItemCommand[] = broadcasts.map(
+                  const broadcastList = broadcasts?.broadcasts || [];
+                  const children: SelectItemCommand[] = broadcastList.map(
                     (broadcast) => ({
                       label: broadcast.name,
                       type: UserEventsFilterCommandType.SelectItem,
@@ -396,12 +405,9 @@ export function NewUserEventsFilterButton({
                   break;
                 }
                 case "journeyId": {
-                  const journeyOptions =
-                    journeys.type === CompletionStatus.Successful
-                      ? journeys.value
-                      : [];
+                  const journeyOptions = journeys?.journeys || [];
                   const children: SelectItemCommand[] = journeyOptions.map(
-                    (journey) => ({
+                    (journey: { id: string; name: string }) => ({
                       label: journey.name,
                       type: UserEventsFilterCommandType.SelectItem,
                       id: journey.id,

@@ -10,74 +10,73 @@ import {
   SxProps,
   TextField,
   Theme,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import {
-  ChannelType,
-  InternalEventType,
-  Present,
-} from "isomorphic-lib/src/types";
+import { InternalEventType, Present } from "isomorphic-lib/src/types";
 import React, { HTMLAttributes, useCallback, useMemo, useRef } from "react";
 import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
 
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
+import {
+  sharedFilterButtonProps,
+  sharedFilterChipSx,
+} from "../shared/filterStyles";
 import { SquarePaper } from "../squarePaper";
 
-export interface BaseDeliveriesFilterCommand {
+export interface BaseAnalysisFilterCommand {
   label: string;
   icon?: React.ReactNode;
   disabled?: boolean;
 }
 
-export enum DeliveriesFilterCommandType {
+export enum AnalysisFilterCommandType {
   SelectItem = "SelectItem",
   SelectKey = "SelectKey",
 }
 
-export type Key = "template" | "status" | "to" | "from" | "channel";
+export type AnalysisFilterKey =
+  | "journeys"
+  | "broadcasts"
+  | "channels"
+  | "providers"
+  | "messageStates"
+  | "templates";
 
-export type SelectItemCommand = BaseDeliveriesFilterCommand & {
-  type: DeliveriesFilterCommandType.SelectItem;
+export type SelectItemCommand = BaseAnalysisFilterCommand & {
+  type: AnalysisFilterCommandType.SelectItem;
   id: string;
 };
 
-export type SelectKeyCommand = BaseDeliveriesFilterCommand & {
-  type: DeliveriesFilterCommandType.SelectKey;
-  filterKey: Key;
+export type SelectKeyCommand = BaseAnalysisFilterCommand & {
+  type: AnalysisFilterCommandType.SelectKey;
+  filterKey: AnalysisFilterKey;
 };
 
-export type DeliveriesFilterCommand = SelectItemCommand | SelectKeyCommand;
+export type AnalysisFilterCommand = SelectItemCommand | SelectKeyCommand;
 
 type CommandHandler = Present<
-  AutocompleteProps<DeliveriesFilterCommand, false, false, false>["onChange"]
+  AutocompleteProps<AnalysisFilterCommand, false, false, false>["onChange"]
 >;
 
 export enum FilterType {
-  Key = "Key",
-  Value = "Value",
+  MultiSelect = "MultiSelect",
 }
 
-export interface NameIdFilter {
-  type: FilterType.Key;
-  // Map of filter ID to filter label
+export interface MultiSelectFilter {
+  type: FilterType.MultiSelect;
   value: Map<string, string>;
 }
 
-export interface ValueFilter {
-  type: FilterType.Value;
-  value: string;
-}
-
-export type Filter = NameIdFilter | ValueFilter;
+export type Filter = MultiSelectFilter;
 
 export enum StageType {
   SelectKey = "SelectKey",
   SelectItem = "SelectItem",
-  SelectValue = "SelectValue",
 }
 
 export interface SelectKeyStage {
@@ -86,45 +85,79 @@ export interface SelectKeyStage {
 
 export interface SelectItemStage {
   type: StageType.SelectItem;
-  filterKey: Key;
+  filterKey: AnalysisFilterKey;
   children: SelectItemCommand[];
 }
-export interface SelectValueStage {
-  type: StageType.SelectValue;
-  label: string;
-  filterKey: Key;
-  value: Filter;
-}
 
-export type Stage = SelectKeyStage | SelectItemStage | SelectValueStage;
+export type Stage = SelectKeyStage | SelectItemStage;
 
-export interface DeliveriesState {
+export interface AnalysisFiltersState {
   open: boolean;
   inputValue: string;
   stage: Stage;
-  filters: Map<Key, Filter>;
+  filters: Map<AnalysisFilterKey, Filter>;
 }
 
+const keyCommandLabels: Record<AnalysisFilterKey, string> = {
+  journeys: "Journey",
+  broadcasts: "Broadcast",
+  channels: "Channel",
+  providers: "Provider",
+  messageStates: "Message Status",
+  templates: "Template",
+};
+
+const keyCommands: AnalysisFilterCommand[] = [
+  {
+    label: keyCommandLabels.journeys,
+    type: AnalysisFilterCommandType.SelectKey,
+    filterKey: "journeys",
+  },
+  {
+    label: keyCommandLabels.broadcasts,
+    type: AnalysisFilterCommandType.SelectKey,
+    filterKey: "broadcasts",
+  },
+  {
+    label: keyCommandLabels.channels,
+    type: AnalysisFilterCommandType.SelectKey,
+    filterKey: "channels",
+  },
+  {
+    label: keyCommandLabels.providers,
+    type: AnalysisFilterCommandType.SelectKey,
+    filterKey: "providers",
+  },
+  {
+    label: keyCommandLabels.messageStates,
+    type: AnalysisFilterCommandType.SelectKey,
+    filterKey: "messageStates",
+  },
+  {
+    label: keyCommandLabels.templates,
+    type: AnalysisFilterCommandType.SelectKey,
+    filterKey: "templates",
+  },
+] as const;
+
 export function getFilterValues(
-  state: DeliveriesState,
-  filterKey: Key,
+  state: AnalysisFiltersState,
+  filterKey: AnalysisFilterKey,
 ): string[] | undefined {
   const filter = state.filters.get(filterKey);
   if (!filter) {
     return;
   }
-  return filter.type === FilterType.Value
-    ? [filter.value]
-    : Array.from(filter.value.keys());
+  return Array.from(filter.value.keys());
 }
 
-type SetDeliveriesState = Updater<DeliveriesState>;
+type SetAnalysisFiltersState = Updater<AnalysisFiltersState>;
 
-export function useDeliveriesFilterState(): [
-  DeliveriesState,
-  SetDeliveriesState,
+export function useAnalysisFiltersState(): [
+  AnalysisFiltersState,
+  SetAnalysisFiltersState,
 ] {
-  return useImmer<DeliveriesState>({
+  return useImmer<AnalysisFiltersState>({
     open: false,
     inputValue: "",
     stage: { type: StageType.SelectKey },
@@ -132,94 +165,65 @@ export function useDeliveriesFilterState(): [
   });
 }
 
-export function SelectedDeliveriesFilters({
+export function SelectedAnalysisFilters({
   state,
   setState,
   sx,
 }: {
   sx?: SxProps<Theme>;
-  state: DeliveriesState;
-  setState: SetDeliveriesState;
+  state: AnalysisFiltersState;
+  setState: SetAnalysisFiltersState;
 }) {
   const filterChips = Array.from(state.filters.entries()).map(
-    ([key, filters]) => {
-      let label: string;
-      switch (filters.type) {
-        case FilterType.Key: {
-          label = Array.from(filters.value.values()).join(" OR ");
-          break;
-        }
-        case FilterType.Value: {
-          label = filters.value;
-          break;
-        }
-      }
+    ([key, filter]) => {
+      const label = Array.from(filter.value.values()).join(" OR ");
+      const keyLabel = keyCommandLabels[key];
+      const fullLabel = `${keyLabel} = ${label}`;
       return (
-        <Chip
-          key={key}
-          sx={sx}
-          label={`${key} = ${label}`}
-          onDelete={() =>
-            setState((draft) => {
-              draft.filters.delete(key as Key);
-            })
-          }
-        />
+        <Tooltip key={key} title={fullLabel} placement="bottom-start">
+          <Chip
+            sx={{
+              ...sharedFilterChipSx,
+              ...sx,
+            }}
+            label={fullLabel}
+            onDelete={() =>
+              setState((draft) => {
+                draft.filters.delete(key);
+              })
+            }
+          />
+        </Tooltip>
       );
     },
   );
+
   return <>{filterChips}</>;
 }
 
-export function NewDeliveriesFilterButton({
+export function NewAnalysisFilterButton({
   state,
   setState,
   buttonProps,
   greyScale,
 }: {
   buttonProps?: ButtonProps;
-  state: DeliveriesState;
-  setState: SetDeliveriesState;
+  state: AnalysisFiltersState;
+  setState: SetAnalysisFiltersState;
   greyScale?: boolean;
 }) {
-  const { data: resources } = useResourcesQuery({ messageTemplates: true });
+  const { data: broadcasts } = useResourcesQuery({ broadcasts: true });
+  const { data: journeys } = useResourcesQuery({ journeys: true });
+  const { data: templates } = useResourcesQuery({ messageTemplates: true });
   const { stage } = state;
+
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorEl = useRef<HTMLElement | null>(null);
 
-  const commands: DeliveriesFilterCommand[] = useMemo(() => {
+  const commands: AnalysisFilterCommand[] = useMemo(() => {
     switch (stage.type) {
       case StageType.SelectKey: {
-        return [
-          {
-            label: "Template",
-            type: DeliveriesFilterCommandType.SelectKey,
-            filterKey: "template",
-          },
-          {
-            label: "To",
-            type: DeliveriesFilterCommandType.SelectKey,
-            filterKey: "to",
-          },
-          {
-            label: "From",
-            type: DeliveriesFilterCommandType.SelectKey,
-            filterKey: "from",
-          },
-          {
-            label: "Status",
-            type: DeliveriesFilterCommandType.SelectKey,
-            filterKey: "status",
-          },
-          {
-            label: "Channel",
-            type: DeliveriesFilterCommandType.SelectKey,
-            filterKey: "channel",
-          },
-        ];
-      }
-      case StageType.SelectValue: {
-        return [];
+        return keyCommands;
       }
       case StageType.SelectItem: {
         return stage.children;
@@ -233,7 +237,7 @@ export function NewDeliveriesFilterButton({
     (_event, value) => {
       if (value) {
         switch (value.type) {
-          case DeliveriesFilterCommandType.SelectItem:
+          case AnalysisFilterCommandType.SelectItem:
             setState((draft) => {
               const { stage: currentStage } = draft;
               if (currentStage.type !== StageType.SelectItem) {
@@ -242,12 +246,8 @@ export function NewDeliveriesFilterButton({
               draft.inputValue = "";
               draft.open = false;
               const maybeExisting = draft.filters.get(currentStage.filterKey);
-              if (maybeExisting?.type === FilterType.Value) {
-                console.error("Expected key filter value");
-                return draft;
-              }
               const existing = maybeExisting ?? {
-                type: FilterType.Key,
+                type: FilterType.MultiSelect,
                 value: new Map(),
               };
 
@@ -257,18 +257,17 @@ export function NewDeliveriesFilterButton({
               return draft;
             });
             break;
-          case DeliveriesFilterCommandType.SelectKey:
+          case AnalysisFilterCommandType.SelectKey:
             setState((draft) => {
               draft.inputValue = "";
               switch (value.filterKey) {
-                case "template": {
-                  const templates = resources?.messageTemplates || [];
-
-                  const children: SelectItemCommand[] = templates.map(
-                    (template) => ({
-                      label: template.name,
-                      type: DeliveriesFilterCommandType.SelectItem,
-                      id: template.id,
+                case "journeys": {
+                  const journeyOptions = journeys?.journeys || [];
+                  const children: SelectItemCommand[] = journeyOptions.map(
+                    (journey) => ({
+                      label: journey.name,
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: journey.id,
                     }),
                   );
                   draft.stage = {
@@ -278,73 +277,138 @@ export function NewDeliveriesFilterButton({
                   };
                   break;
                 }
-                case "to":
+                case "broadcasts": {
+                  const broadcastOptions = broadcasts?.broadcasts || [];
+                  const children: SelectItemCommand[] = broadcastOptions.map(
+                    (broadcast) => ({
+                      label: broadcast.name,
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: broadcast.id,
+                    }),
+                  );
                   draft.stage = {
-                    type: StageType.SelectValue,
+                    type: StageType.SelectItem,
                     filterKey: value.filterKey,
-                    label: value.label,
-                    value: {
-                      type: FilterType.Value,
-                      value: "",
-                    },
+                    children,
                   };
                   break;
-                case "from":
-                  draft.stage = {
-                    type: StageType.SelectValue,
-                    filterKey: value.filterKey,
-                    label: value.label,
-                    value: {
-                      type: FilterType.Value,
-                      value: "",
+                }
+                case "channels": {
+                  const children: SelectItemCommand[] = [
+                    {
+                      label: "Email",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "Email",
                     },
+                    {
+                      label: "SMS",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "Sms",
+                    },
+                    {
+                      label: "Mobile Push",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "MobilePush",
+                    },
+                    {
+                      label: "Webhook",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "Webhook",
+                    },
+                  ];
+                  draft.stage = {
+                    type: StageType.SelectItem,
+                    filterKey: value.filterKey,
+                    children,
                   };
                   break;
-                case "status": {
+                }
+                case "providers": {
+                  // Provider types matching EmailProviderType enum values
+                  const children: SelectItemCommand[] = [
+                    {
+                      label: "SendGrid",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "SendGrid",
+                    },
+                    {
+                      label: "Amazon SES",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "AmazonSes",
+                    },
+                    {
+                      label: "Postmark",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "Postmark",
+                    },
+                    {
+                      label: "Resend",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "Resend",
+                    },
+                    {
+                      label: "SMTP",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "Smtp",
+                    },
+                    {
+                      label: "Gmail",
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: "Gmail",
+                    },
+                  ];
+                  draft.stage = {
+                    type: StageType.SelectItem,
+                    filterKey: value.filterKey,
+                    children,
+                  };
+                  break;
+                }
+                case "messageStates": {
                   const children: SelectItemCommand[] = [
                     {
                       label: "Sent",
-                      type: DeliveriesFilterCommandType.SelectItem,
+                      type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.MessageSent,
                     },
                     {
                       label: "Email Bounced",
-                      type: DeliveriesFilterCommandType.SelectItem,
+                      type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.EmailBounced,
                     },
                     {
                       label: "Email Marked as Spam",
-                      type: DeliveriesFilterCommandType.SelectItem,
+                      type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.EmailMarkedSpam,
                     },
                     {
                       label: "Email Opened",
-                      type: DeliveriesFilterCommandType.SelectItem,
+                      type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.EmailOpened,
                     },
                     {
                       label: "Email Link Clicked",
-                      type: DeliveriesFilterCommandType.SelectItem,
+                      type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.EmailClicked,
                     },
                     {
                       label: "Email Delivered",
-                      type: DeliveriesFilterCommandType.SelectItem,
+                      type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.EmailDelivered,
                     },
                     {
                       label: "Email Dropped",
-                      type: DeliveriesFilterCommandType.SelectItem,
+                      type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.EmailDropped,
                     },
                     {
                       label: "Sms Delivered",
-                      type: DeliveriesFilterCommandType.SelectItem,
+                      type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.SmsDelivered,
                     },
                     {
                       label: "Sms Failed",
-                      type: DeliveriesFilterCommandType.SelectItem,
+                      type: AnalysisFilterCommandType.SelectItem,
                       id: InternalEventType.SmsFailed,
                     },
                   ];
@@ -355,25 +419,15 @@ export function NewDeliveriesFilterButton({
                   };
                   break;
                 }
-                case "channel": {
-                  const children: SelectItemCommand[] = [
-                    {
-                      label: "Email",
-                      id: ChannelType.Email,
-                      type: DeliveriesFilterCommandType.SelectItem,
-                    },
-                    {
-                      label: "SMS",
-                      id: ChannelType.Sms,
-                      type: DeliveriesFilterCommandType.SelectItem,
-                    },
-                    {
-                      label: "Webhook",
-                      id: ChannelType.Webhook,
-                      type: DeliveriesFilterCommandType.SelectItem,
-                    },
-                  ];
-
+                case "templates": {
+                  const templateOptions = templates?.messageTemplates || [];
+                  const children: SelectItemCommand[] = templateOptions.map(
+                    (template) => ({
+                      label: template.name,
+                      type: AnalysisFilterCommandType.SelectItem,
+                      id: template.id,
+                    }),
+                  );
                   draft.stage = {
                     type: StageType.SelectItem,
                     filterKey: value.filterKey,
@@ -389,7 +443,7 @@ export function NewDeliveriesFilterButton({
         }
       }
     },
-    [setState, resources],
+    [setState, broadcasts, journeys, templates],
   );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -407,61 +461,9 @@ export function NewDeliveriesFilterButton({
     });
   };
 
-  let popoverBody: React.ReactNode;
-  if (state.stage.type === StageType.SelectValue) {
-    popoverBody = (
-      <TextField
-        autoFocus
-        variant="filled"
-        InputProps={{
-          sx: {
-            borderRadius: 0,
-          },
-        }}
-        sx={{
-          ...(greyScale ? greyTextFieldStyles : {}),
-          width: 300,
-        }}
-        label={state.stage.label}
-        value={state.stage.value.value}
-        onChange={(event) =>
-          setState((draft) => {
-            if (draft.stage.type !== StageType.SelectValue) {
-              return draft;
-            }
-            draft.stage.value.value = event.target.value;
-            return draft;
-          })
-        }
-        onKeyDown={(event) => {
-          if (event.key !== "Enter") {
-            return;
-          }
-          event.preventDefault();
-
-          setState((draft) => {
-            if (draft.stage.type !== StageType.SelectValue) {
-              return draft;
-            }
-            if (draft.stage.value.type !== FilterType.Value) {
-              return draft;
-            }
-            // Set the filter
-            draft.filters.set(draft.stage.filterKey, {
-              type: FilterType.Value,
-              value: draft.stage.value.value,
-            });
-            // Reset and close
-            draft.open = false;
-            draft.stage = { type: StageType.SelectKey };
-            return draft;
-          });
-        }}
-      />
-    );
-  } else if (commands.length > 0) {
-    popoverBody = (
-      <Autocomplete<DeliveriesFilterCommand>
+  const popoverBody =
+    commands.length > 0 ? (
+      <Autocomplete<AnalysisFilterCommand>
         disablePortal
         open
         ListboxProps={{
@@ -486,7 +488,7 @@ export function NewDeliveriesFilterButton({
           <TextField
             {...params}
             autoFocus
-            label="Settings"
+            label="Add Filter"
             variant="filled"
             sx={greyScale ? greyTextFieldStyles : undefined}
             inputRef={inputRef}
@@ -529,10 +531,7 @@ export function NewDeliveriesFilterButton({
           height: "100%",
         }}
       />
-    );
-  } else {
-    popoverBody = null;
-  }
+    ) : null;
 
   return (
     <>
@@ -541,6 +540,11 @@ export function NewDeliveriesFilterButton({
         variant="contained"
         color="info"
         {...buttonProps}
+        {...sharedFilterButtonProps}
+        sx={{
+          ...sharedFilterButtonProps.sx,
+          ...buttonProps?.sx,
+        }}
         onClick={handleClick}
       >
         Add Filter
