@@ -219,6 +219,7 @@ export function DateRangeSelector({
           onTouchStartCapture={stopPropagation}
           onPointerDownCapture={stopPropagation}
           MenuProps={{
+            className: JOURNEY_EDITOR_CLICKAWAY_EXEMPT_CLASS,
             anchorOrigin: {
               vertical: "bottom",
               horizontal: "left",
@@ -242,7 +243,6 @@ export function DateRangeSelector({
         >
           {timeOptions.map((option) => (
             <MenuItem
-              className={JOURNEY_EDITOR_CLICKAWAY_EXEMPT_CLASS}
               key={option.id}
               value={option.id}
               onClick={
