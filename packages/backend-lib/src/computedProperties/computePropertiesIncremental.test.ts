@@ -718,7 +718,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait user property with concurrent empty event",
-      only: true,
       userProperties: [
         {
           name: "email",
