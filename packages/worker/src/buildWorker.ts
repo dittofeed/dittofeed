@@ -64,7 +64,11 @@ export async function buildWorker(otel?: OpenTelemetry) {
             }),
           (ctx) => new OpenTelemetryActivityInboundInterceptor(ctx),
         ],
-        workflowModules: [require.resolve("backend-lib/src/temporal/workflowInboundCallsInterceptor")],
+        workflowModules: [
+          require.resolve(
+            "backend-lib/src/temporal/workflowInboundCallsInterceptor",
+          ),
+        ],
       },
       workerLogger,
     ),
@@ -76,29 +80,29 @@ export async function buildWorker(otel?: OpenTelemetry) {
     opts.reuseV8Context = reuseV8Context;
   }
 
-  if (maxConcurrentWorkflowTaskExecutions) {
+  if (maxConcurrentWorkflowTaskExecutions !== undefined) {
     opts.maxConcurrentWorkflowTaskExecutions =
       maxConcurrentWorkflowTaskExecutions;
   }
 
-  if (maxConcurrentActivityTaskPolls) {
+  if (maxConcurrentActivityTaskPolls !== undefined) {
     opts.maxConcurrentActivityTaskPolls = maxConcurrentActivityTaskPolls;
   }
 
-  if (maxConcurrentWorkflowTaskPolls) {
+  if (maxConcurrentWorkflowTaskPolls !== undefined) {
     opts.maxConcurrentWorkflowTaskPolls = maxConcurrentWorkflowTaskPolls;
   }
 
-  if (maxCachedWorkflows) {
+  if (maxCachedWorkflows !== undefined) {
     opts.maxCachedWorkflows = maxCachedWorkflows;
   }
 
-  if (maxConcurrentActivityTaskExecutions) {
+  if (maxConcurrentActivityTaskExecutions !== undefined) {
     opts.maxConcurrentActivityTaskExecutions =
       maxConcurrentActivityTaskExecutions;
   }
 
-  if (maxConcurrentLocalActivityExecutions) {
+  if (maxConcurrentLocalActivityExecutions !== undefined) {
     opts.maxConcurrentLocalActivityExecutions =
       maxConcurrentLocalActivityExecutions;
   }
