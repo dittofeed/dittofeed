@@ -8,14 +8,10 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
-  Button,
   Card,
   CardContent,
   ClickAwayListener,
-  FormControl,
   FormControlLabel,
-  MenuItem,
-  Select,
   Skeleton,
   Stack,
   Switch,
@@ -24,21 +20,19 @@ import {
 } from "@mui/material";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import { format, subMinutes } from "date-fns";
-import { round } from "isomorphic-lib/src/numbers";
 import { isStringPresent } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
-  ChannelType,
   DelayVariantType,
   JourneyNodeType,
   MessageTemplateResource,
-  NodeStatsType,
   SavedSegmentResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
+import { JOURNEY_EDITOR_CLICKAWAY_EXEMPT_CLASS } from "../../../lib/constants";
 import {
   AdditionalJourneyNodeType,
   JourneyUiNodeDefinition,
@@ -305,27 +299,6 @@ function journNodeTypeToConfig(
 
 const borderRadius = 2;
 
-function StatCategory({
-  label,
-  rate,
-}: {
-  label: string;
-  rate: number | string;
-}) {
-  return (
-    <Stack direction="column">
-      <Typography variant="subtitle2">{label}</Typography>
-      <Box
-        sx={{
-          fontFamily: "monospace",
-        }}
-      >
-        {typeof rate === "number" ? `${round(rate * 100, 2)}%` : rate}
-      </Box>
-    </Stack>
-  );
-}
-
 interface SmallMetricCardProps {
   title: string;
   value: number;
@@ -368,15 +341,8 @@ function SmallMetricCard({
 export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
   const path = useRouter();
   const theme = useTheme();
-  const {
-    journeySelectedNodeId: selectedNodeId,
-    setSelectedNodeId,
-    journeyStats,
-  } = useAppStorePick([
-    "journeySelectedNodeId",
-    "journeyStats",
-    "setSelectedNodeId",
-  ]);
+  const { journeySelectedNodeId: selectedNodeId, setSelectedNodeId } =
+    useAppStorePick(["journeySelectedNodeId", "setSelectedNodeId"]);
   const { data: segmentsResult } = useSegmentsQuery({
     resourceType: "Declarative",
   });
@@ -442,7 +408,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
         .some(
           (el) =>
             el instanceof HTMLElement &&
-            el.classList.contains("journey-node-footer"),
+            el.classList.contains(JOURNEY_EDITOR_CLICKAWAY_EXEMPT_CLASS),
         );
 
       if (!insideReactFlowRenderer || insideJourneyNodeFooter) {
@@ -578,13 +544,14 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
       id={`journey-node-${id}`}
       direction="column"
       justifyContent="top"
+      className="nodrag"
       sx={{
         position: "relative",
       }}
     >
       {clickAwayMain}
       <Stack
-        className="journey-node-footer"
+        className={JOURNEY_EDITOR_CLICKAWAY_EXEMPT_CLASS}
         direction="column"
         sx={{
           padding: nodeStats ? 1 : 0,

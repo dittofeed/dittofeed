@@ -1,12 +1,32 @@
 import { CalendarDate } from "@internationalized/date";
-import { FormControl, MenuItem, Popover, Select, Stack, SxProps, Theme } from "@mui/material";
+import {
+  FormControl,
+  MenuItem,
+  Popover,
+  Select,
+  Stack,
+  SxProps,
+  Theme,
+} from "@mui/material";
 import { subDays, subMinutes } from "date-fns";
-import { useCallback, useRef, useState } from "react";
+import {
+  MouseEvent,
+  SyntheticEvent,
+  TouchEvent,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 
+import { JOURNEY_EDITOR_CLICKAWAY_EXEMPT_CLASS } from "../lib/constants";
 import { toCalendarDate } from "../lib/dates";
 import { GreyButton } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { RangeCalendar } from "./rangeCalendar";
+
+const stopPropagation = (e: MouseEvent | TouchEvent | SyntheticEvent) => {
+  e.stopPropagation();
+};
 
 export const TimeOptionId = {
   LastSevenDays: "last-7-days",
@@ -106,6 +126,7 @@ export function DateRangeSelector({
     start: CalendarDate;
     end: CalendarDate;
   } | null>(null);
+  const [selectOpen, setSelectOpen] = useState(false);
 
   const customOnClickHandler = useCallback(() => {
     if (value.selectedTimeOption === "custom") {
@@ -167,11 +188,25 @@ export function DateRangeSelector({
     setCustomDateRange(null);
   }, []);
 
+  const handleSelectOpen = useCallback((e: SyntheticEvent) => {
+    stopPropagation(e);
+    setSelectOpen(true);
+  }, []);
+
+  const handleSelectClose = useCallback((e: SyntheticEvent) => {
+    stopPropagation(e);
+    setSelectOpen(false);
+  }, []);
+
   return (
     <>
       <FormControl sx={sx}>
         <Select
           value={value.selectedTimeOption}
+          open={selectOpen}
+          onClick={handleSelectOpen}
+          onOpen={handleSelectOpen}
+          onClose={handleSelectClose}
           renderValue={(selectedValue) => {
             const option = timeOptions.find((o) => o.id === selectedValue);
             if (option?.type === "custom") {
@@ -180,6 +215,9 @@ export function DateRangeSelector({
             return option?.label;
           }}
           ref={customDateRef}
+          onMouseDownCapture={stopPropagation}
+          onTouchStartCapture={stopPropagation}
+          onPointerDownCapture={stopPropagation}
           MenuProps={{
             anchorOrigin: {
               vertical: "bottom",
@@ -190,6 +228,11 @@ export function DateRangeSelector({
               horizontal: "left",
             },
             sx: greyMenuItemStyles,
+            PaperProps: {
+              onMouseDownCapture: stopPropagation,
+              onTouchStartCapture: stopPropagation,
+              onPointerDownCapture: stopPropagation,
+            },
           }}
           sx={greySelectStyles}
           onChange={(e) =>
@@ -199,6 +242,7 @@ export function DateRangeSelector({
         >
           {timeOptions.map((option) => (
             <MenuItem
+              className={JOURNEY_EDITOR_CLICKAWAY_EXEMPT_CLASS}
               key={option.id}
               value={option.id}
               onClick={
