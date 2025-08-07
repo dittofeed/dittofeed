@@ -1,5 +1,5 @@
 import { CalendarDate } from "@internationalized/date";
-import { FormControl, MenuItem, Popover, Select, Stack } from "@mui/material";
+import { FormControl, MenuItem, Popover, Select, Stack, SxProps, Theme } from "@mui/material";
 import { subDays, subMinutes } from "date-fns";
 import { useCallback, useRef, useState } from "react";
 
@@ -78,6 +78,7 @@ export interface DateRangeSelectorProps {
   value: DateRangeValue;
   onChange: (value: DateRangeValue) => void;
   referenceDate?: Date;
+  sx?: SxProps<Theme>;
 }
 
 function formatDate(date: Date) {
@@ -98,6 +99,7 @@ export function DateRangeSelector({
   value,
   onChange,
   referenceDate = new Date(),
+  sx,
 }: DateRangeSelectorProps) {
   const customDateRef = useRef<HTMLInputElement | null>(null);
   const [customDateRange, setCustomDateRange] = useState<{
@@ -167,7 +169,7 @@ export function DateRangeSelector({
 
   return (
     <>
-      <FormControl>
+      <FormControl sx={sx}>
         <Select
           value={value.selectedTimeOption}
           renderValue={(selectedValue) => {

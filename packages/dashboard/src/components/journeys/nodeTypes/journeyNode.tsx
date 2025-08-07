@@ -24,8 +24,6 @@ import {
 } from "@mui/material";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import { format, subMinutes } from "date-fns";
-
-import { DateRangeSelector, DateRangeValue, TimeOptionId } from "../../dateRangeSelector";
 import { round } from "isomorphic-lib/src/numbers";
 import { isStringPresent } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -49,6 +47,11 @@ import {
 import { useJourneyStatsQueryV2 } from "../../../lib/useJourneyStatsQueryV2";
 import { useMessageTemplatesQuery } from "../../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
+import {
+  DateRangeSelector,
+  DateRangeValue,
+  TimeOptionId,
+} from "../../dateRangeSelector";
 import DurationDescription from "../../durationDescription";
 import journeyNodeLabel from "../journeyNodeLabel";
 import styles from "./nodeTypes.module.css";
@@ -302,8 +305,6 @@ function journNodeTypeToConfig(
 
 const borderRadius = 2;
 
-
-
 function StatCategory({
   label,
   rate,
@@ -428,20 +429,25 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
         return;
       }
 
-      const insideExempted = event
+      const insideReactFlowRenderer = event
         .composedPath()
         .some(
           (el) =>
             el instanceof HTMLElement &&
-            (!el.classList.contains("react-flow__renderer") ||
-              el.classList.contains("journey-node-footer")),
+            el.classList.contains("react-flow__renderer"),
         );
 
-      if (insideExempted) {
-        console.log("insideExempted");
+      const insideJourneyNodeFooter = event
+        .composedPath()
+        .some(
+          (el) =>
+            el instanceof HTMLElement &&
+            el.classList.contains("journey-node-footer"),
+        );
+
+      if (!insideReactFlowRenderer || insideJourneyNodeFooter) {
         return;
       }
-      console.log("outsideExempted");
       setSelectedNodeId(null);
     },
     [isSelected, setSelectedNodeId],
@@ -627,12 +633,11 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
             </Stack>
 
             {/* Date Range Selector */}
-            <Box sx={{ mb: 0.5 }}>
-              <DateRangeSelector
-                value={dateRangeValue}
-                onChange={setDateRangeValue}
-              />
-            </Box>
+            <DateRangeSelector
+              value={dateRangeValue}
+              onChange={setDateRangeValue}
+              sx={{ width: "100%", mb: 0.5 }}
+            />
 
             {/* Display Mode Toggle */}
             <FormControlLabel
@@ -645,12 +650,13 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
                   size="small"
                 />
               }
-              label={
-                <Typography sx={{ fontSize: "0.7rem" }}>
-                  {displayMode === "percentage" ? "%" : "#"}
-                </Typography>
-              }
-              sx={{ m: 0, justifyContent: "space-between", width: "100%" }}
+              label="Show %"
+              sx={{
+                m: 0,
+                "& .MuiFormControlLabel-label": {
+                  fontSize: "0.7rem",
+                },
+              }}
             />
           </>
         ) : null}
