@@ -40,6 +40,10 @@ import {
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
+import {
+  insertUserPropertyAssignments,
+  upsertUserProperty,
+} from "../userProperties";
 
 jest.setTimeout(15000);
 
@@ -94,12 +98,16 @@ describe("keyedEventEntry journeys", () => {
     let journey: Journey;
     let journeyDefinition: JourneyDefinition;
     let dateUserPropertyId: string;
+    let emailUserPropertyId: string;
+    let idUserPropertyId: string;
     const oneDaySeconds = 60 * 60 * 24;
 
     beforeEach(async () => {
       const appointmentCancelledSegmentId = randomUUID();
       const templateId = randomUUID();
       dateUserPropertyId = randomUUID();
+      emailUserPropertyId = randomUUID();
+      idUserPropertyId = randomUUID();
 
       journeyDefinition = {
         entryNode: {
@@ -252,16 +260,55 @@ describe("keyedEventEntry journeys", () => {
             },
           ],
         };
-        await insert({
-          table: dbUserProperty,
-          values: {
+        await Promise.all([
+          upsertUserProperty({
             id: dateUserPropertyId,
             workspaceId: workspace.id,
             definition: dateUserPropertyDefinition,
             name: "appointmentDate",
-            updatedAt: new Date(),
+          }).then(unwrap),
+          upsertUserProperty(
+            {
+              id: idUserPropertyId,
+              workspaceId: workspace.id,
+              definition: {
+                type: UserPropertyDefinitionType.Id,
+              },
+              name: "id",
+            },
+            {
+              skipProtectedCheck: true,
+            },
+          ).then(unwrap),
+          upsertUserProperty(
+            {
+              id: emailUserPropertyId,
+              workspaceId: workspace.id,
+              definition: {
+                type: UserPropertyDefinitionType.Trait,
+                path: "email",
+              },
+              name: "email",
+            },
+            {
+              skipProtectedCheck: true,
+            },
+          ).then(unwrap),
+        ]);
+        await insertUserPropertyAssignments([
+          {
+            workspaceId: workspace.id,
+            userId,
+            userPropertyId: idUserPropertyId,
+            value: userId,
           },
-        }).then(unwrap);
+          {
+            workspaceId: workspace.id,
+            userId,
+            userPropertyId: emailUserPropertyId,
+            value: "test@test.com",
+          },
+        ]);
       });
 
       it("only the cancelled journey should send a message", async () => {
