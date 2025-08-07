@@ -645,7 +645,7 @@ export async function getSummarizedData({
  *
  * Returns counts for each node in the journey, with cascading logic:
  * - Click events count as: click + open + delivery
- * - Open events count as: open + delivery  
+ * - Open events count as: open + delivery
  * - Delivery events count as: delivery
  * - Each message can only be counted once per state type per node
  */
@@ -803,11 +803,13 @@ export async function getJourneyEditorStats({
   // Populate with actual data
   for (const row of rows) {
     const nodeId = row.node_id;
-    const state = row.state;
-    const count = typeof row.count === "string" ? parseInt(row.count, 10) : row.count;
+    const { state } = row;
+    const count =
+      typeof row.count === "string" ? parseInt(row.count, 10) : row.count;
 
-    if (nodeStats[nodeId]) {
-      nodeStats[nodeId][state] = count;
+    const individualNode = nodeStats[nodeId];
+    if (individualNode) {
+      individualNode[state] = count;
     }
   }
 

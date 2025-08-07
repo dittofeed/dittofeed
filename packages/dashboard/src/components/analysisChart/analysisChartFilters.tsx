@@ -107,7 +107,7 @@ const keyCommandLabels: Record<AnalysisFilterKey, string> = {
   templates: "Template",
 };
 
-const keyCommands: AnalysisFilterCommand[] = [
+const keyCommands: readonly AnalysisFilterCommand[] = [
   {
     label: keyCommandLabels.journeys,
     type: AnalysisFilterCommandType.SelectKey,
@@ -220,7 +220,7 @@ export function NewAnalysisFilterButton({
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorEl = useRef<HTMLElement | null>(null);
 
-  const commands: AnalysisFilterCommand[] = useMemo(() => {
+  const commands: readonly AnalysisFilterCommand[] = useMemo(() => {
     switch (stage.type) {
       case StageType.SelectKey: {
         return keyCommands;
