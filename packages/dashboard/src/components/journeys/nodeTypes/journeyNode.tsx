@@ -385,6 +385,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
       },
       {
         enabled: typeof journeyId === "string" && isSelected,
+        placeholderData: (previousData) => previousData,
       },
     );
 
