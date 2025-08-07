@@ -299,7 +299,7 @@ describe("sendMail", () => {
   });
 
   describe("retryable rejection scenarios", () => {
-    it("should throw for unsigned rejection", async () => {
+    it("should return error for unsigned rejection", async () => {
       const rejectResponse: MessagesSendRejectResponse = {
         email: "test@example.com",
         status: "rejected",
@@ -309,12 +309,12 @@ describe("sendMail", () => {
 
       mockMailchimp.messages.send.mockResolvedValue([rejectResponse]);
 
-      await expect(sendMail({ apiKey, message })).rejects.toThrow(
-        "Retryable rejection: unsigned",
-      );
+      const result = await sendMail({ apiKey, message });
+
+      expect(result).toEqual(err(rejectResponse));
     });
 
-    it("should throw for soft-bounce rejection", async () => {
+    it("should return error for soft-bounce rejection", async () => {
       const rejectResponse: MessagesSendRejectResponse = {
         email: "test@example.com",
         status: "rejected",
@@ -324,12 +324,12 @@ describe("sendMail", () => {
 
       mockMailchimp.messages.send.mockResolvedValue([rejectResponse]);
 
-      await expect(sendMail({ apiKey, message })).rejects.toThrow(
-        "Retryable rejection: soft-bounce",
-      );
+      const result = await sendMail({ apiKey, message });
+
+      expect(result).toEqual(err(rejectResponse));
     });
 
-    it("should throw for spam rejection", async () => {
+    it("should return error for spam rejection", async () => {
       const rejectResponse: MessagesSendRejectResponse = {
         email: "test@example.com",
         status: "rejected",
@@ -339,12 +339,12 @@ describe("sendMail", () => {
 
       mockMailchimp.messages.send.mockResolvedValue([rejectResponse]);
 
-      await expect(sendMail({ apiKey, message })).rejects.toThrow(
-        "Retryable rejection: spam",
-      );
+      const result = await sendMail({ apiKey, message });
+
+      expect(result).toEqual(err(rejectResponse));
     });
 
-    it("should throw for unsub rejection", async () => {
+    it("should return error for unsub rejection", async () => {
       const rejectResponse: MessagesSendRejectResponse = {
         email: "test@example.com",
         status: "rejected",
@@ -354,9 +354,9 @@ describe("sendMail", () => {
 
       mockMailchimp.messages.send.mockResolvedValue([rejectResponse]);
 
-      await expect(sendMail({ apiKey, message })).rejects.toThrow(
-        "Retryable rejection: unsub",
-      );
+      const result = await sendMail({ apiKey, message });
+
+      expect(result).toEqual(err(rejectResponse));
     });
 
     it("should return error for custom rejection reason (default to non-retryable)", async () => {
