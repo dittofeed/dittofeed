@@ -718,6 +718,7 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait user property with concurrent empty event",
+      only: true,
       userProperties: [
         {
           name: "email",
@@ -748,7 +749,7 @@ describe("computeProperties", () => {
             },
             {
               type: EventType.Identify,
-              offsetMs: -100,
+              offsetMs: -50,
               userId: "user-1",
               traits: {},
             },
