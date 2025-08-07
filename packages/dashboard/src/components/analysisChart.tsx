@@ -52,7 +52,7 @@ import {
   GroupByOption,
 } from "./analysisChart/analysisChartGroupBy";
 import { AnalysisSummaryPanel } from "./analysisChart/analysisSummaryPanel";
-import { DeliveriesBody } from "./deliveriesTableV2/deliveriesBody";
+import { DeliveriesBody, useDeliveryBodyState } from "./deliveriesTableV2/deliveriesBody";
 import { DeliveriesDownloadButton } from "./deliveriesTableV2/deliveriesDownloadButton";
 import { DeliveriesSortButton } from "./deliveriesTableV2/deliveriesSortButton";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
@@ -286,6 +286,20 @@ export function AnalysisChart() {
     sortBy: SearchDeliveriesRequestSortByEnum.sentAt,
     sortDirection: SortDirectionEnum.Desc,
     displayMode: "absolute",
+  });
+
+  // Use the deliveries hook
+  const deliveriesHookResult = useDeliveryBodyState({
+    templateIds: deliveriesFilters.templateIds,
+    channels: deliveriesFilters.channels,
+    statuses: deliveriesFilters.statuses,
+    journeyIds: deliveriesFilters.journeyIds,
+    broadcastIds: deliveriesFilters.broadcastIds,
+    startDate: new Date(state.dateRange.startDate),
+    endDate: new Date(state.dateRange.endDate),
+    sortBy: state.sortBy,
+    sortDirection: state.sortDirection,
+    limit: 5,
   });
 
   // Build filters object from filter state
@@ -776,6 +790,8 @@ export function AnalysisChart() {
         sortBy={state.sortBy}
         sortDirection={state.sortDirection}
         limit={5}
+        state={deliveriesHookResult.state}
+        setState={deliveriesHookResult.setState}
       />
     </Stack>
   );

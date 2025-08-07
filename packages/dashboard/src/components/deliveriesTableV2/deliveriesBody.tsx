@@ -388,12 +388,12 @@ function getOrigin({
   return null;
 }
 
-interface DeliveriesBodyState {
+export interface DeliveriesBodyState {
   previewMessageId: string | null;
   cursor: string | null;
 }
 
-type SetDeliveriesBodyState = Updater<DeliveriesBodyState>;
+export type SetDeliveriesBodyState = Updater<DeliveriesBodyState>;
 
 function SnippetCell({ row }: { row: Row<Delivery> }) {
   return (
@@ -508,18 +508,14 @@ function userIdCellFactory() {
   };
 }
 
-export interface DeliveriesBodyProps {
-  templateUriTemplate?: string;
-  originUriTemplate?: string;
+export interface DeliveriesBodyHookProps {
   userId?: string[] | string;
   groupId?: string[] | string;
-  columnAllowList?: DeliveriesAllowedColumn[];
   journeyId?: string;
   journeyIds?: string[];
   triggeringProperties?: SearchDeliveriesRequest["triggeringProperties"];
   broadcastId?: string;
   broadcastIds?: string[];
-  broadcastUriTemplate?: string;
   templateIds?: string[];
   channels?: ChannelType[];
   to?: string[];
@@ -532,18 +528,23 @@ export interface DeliveriesBodyProps {
   limit?: number;
 }
 
-export function DeliveriesBody({
-  templateUriTemplate,
-  originUriTemplate,
+export interface DeliveriesBodyProps extends DeliveriesBodyHookProps {
+  templateUriTemplate?: string;
+  originUriTemplate?: string;
+  columnAllowList?: DeliveriesAllowedColumn[];
+  broadcastUriTemplate?: string;
+  state: DeliveriesBodyState;
+  setState: SetDeliveriesBodyState;
+}
+
+export function useDeliveryBodyState({
   userId,
   groupId,
-  columnAllowList,
   journeyId,
   journeyIds,
   triggeringProperties,
   broadcastId,
   broadcastIds,
-  broadcastUriTemplate,
   templateIds,
   channels,
   to,
@@ -554,7 +555,7 @@ export function DeliveriesBody({
   sortBy = "sentAt",
   sortDirection = SortDirectionEnum.Desc,
   limit = 10,
-}: DeliveriesBodyProps) {
+}: DeliveriesBodyHookProps) {
   const { workspace } = useAppStorePick(["workspace"]);
   const baseApiUrl = useBaseApiUrl();
   const authHeaders = useAuthHeaders();
@@ -576,7 +577,6 @@ export function DeliveriesBody({
     });
   }, [startDate, endDate, sortBy, sortDirection, setState]);
 
-  const theme = useTheme();
   const filtersHash = useMemo(
     () =>
       JSON.stringify({
@@ -681,6 +681,135 @@ export function DeliveriesBody({
     },
     placeholderData: keepPreviousData,
   });
+
+  const data = useMemo<Delivery[] | null>(() => {
+    if (
+      !query.data ||
+      !resources ||
+      !broadcasts ||
+      workspace.type !== CompletionStatus.Successful
+    ) {
+      return null;
+    }
+    return query.data.items.flatMap((item) => {
+      const origin = getOrigin({
+        journeys: resources.journeys ?? [],
+        broadcasts,
+        item,
+      });
+      const template = (resources.messageTemplates ?? []).find(
+        (messageTemplate) => messageTemplate.id === item.templateId,
+      );
+      if (!("variant" in item)) {
+        return [];
+      }
+      const { variant } = item;
+      const baseDelivery: Omit<
+        Delivery,
+        "channel" | "body" | "snippet" | "subject" | "to" | "from" | "replyTo"
+      > = {
+        messageId: item.originMessageId,
+        userId: item.userId,
+        status: item.status,
+        originId: origin?.originId,
+        originType: origin?.originType,
+        originName: origin?.originName,
+        templateId: item.templateId,
+        templateName: template?.name,
+        broadcastId: item.broadcastId,
+        sentAt: new Date(item.sentAt).getTime(),
+        updatedAt: new Date(item.updatedAt).getTime(),
+      };
+
+      let delivery: Delivery;
+      switch (variant.type) {
+        case ChannelType.Email:
+          delivery = {
+            ...baseDelivery,
+            channel: ChannelType.Email,
+            body: variant.body,
+            snippet: variant.subject,
+            subject: variant.subject,
+            to: variant.to,
+            from: variant.from,
+            replyTo: variant.replyTo,
+          };
+          break;
+        case ChannelType.Sms:
+          delivery = {
+            ...baseDelivery,
+            channel: ChannelType.Sms,
+            body: variant.body,
+            snippet: variant.body,
+            to: variant.to,
+          };
+          break;
+        case ChannelType.Webhook:
+          delivery = {
+            ...baseDelivery,
+            channel: ChannelType.Webhook,
+            body: JSON.stringify(
+              { request: variant.request, response: variant.response },
+              null,
+              2,
+            ),
+          };
+          break;
+        default:
+          assertUnreachable(variant);
+      }
+      return delivery;
+    });
+  }, [query, workspace, resources, broadcasts]);
+
+  const onNextPage = useCallback(() => {
+    setState((draft) => {
+      if (query.data?.cursor) {
+        draft.cursor = query.data.cursor;
+      }
+    });
+  }, [setState, query.data]);
+
+  const onPreviousPage = useCallback(() => {
+    setState((draft) => {
+      if (query.data?.previousCursor) {
+        draft.cursor = query.data.previousCursor;
+      }
+    });
+  }, [setState, query.data]);
+
+  const onFirstPage = useCallback(() => {
+    setState((draft) => {
+      draft.cursor = null;
+    });
+  }, [setState]);
+
+  return {
+    state,
+    setState,
+    data,
+    query,
+    onNextPage,
+    onPreviousPage,
+    onFirstPage,
+  };
+}
+
+export function DeliveriesBody({
+  templateUriTemplate,
+  originUriTemplate,
+  columnAllowList,
+  broadcastUriTemplate,
+  state,
+  setState,
+  ...hookProps
+}: DeliveriesBodyProps) {
+  const { data, query, onNextPage, onPreviousPage, onFirstPage } =
+    useDeliveryBodyState(hookProps);
+
+  const { workspace } = useAppStorePick(["workspace"]);
+
+  const theme = useTheme();
 
   const renderPreviewCell = useMemo(
     () => renderPreviewCellFactory(setState),
@@ -827,108 +956,6 @@ export function DeliveriesBody({
     templateLinkCell,
     columnAllowList,
   ]);
-
-  const data = useMemo<Delivery[] | null>(() => {
-    if (
-      !query.data ||
-      !resources ||
-      !broadcasts ||
-      workspace.type !== CompletionStatus.Successful
-    ) {
-      return null;
-    }
-    return query.data.items.flatMap((item) => {
-      const origin = getOrigin({
-        journeys: resources.journeys ?? [],
-        broadcasts,
-        item,
-      });
-      const template = (resources.messageTemplates ?? []).find(
-        (messageTemplate) => messageTemplate.id === item.templateId,
-      );
-      if (!("variant" in item)) {
-        return [];
-      }
-      const { variant } = item;
-      const baseDelivery: Omit<
-        Delivery,
-        "channel" | "body" | "snippet" | "subject" | "to" | "from" | "replyTo"
-      > = {
-        messageId: item.originMessageId,
-        userId: item.userId,
-        status: item.status,
-        originId: origin?.originId,
-        originType: origin?.originType,
-        originName: origin?.originName,
-        templateId: item.templateId,
-        templateName: template?.name,
-        broadcastId: item.broadcastId,
-        sentAt: new Date(item.sentAt).getTime(),
-        updatedAt: new Date(item.updatedAt).getTime(),
-      };
-
-      let delivery: Delivery;
-      switch (variant.type) {
-        case ChannelType.Email:
-          delivery = {
-            ...baseDelivery,
-            channel: ChannelType.Email,
-            body: variant.body,
-            snippet: variant.subject,
-            subject: variant.subject,
-            to: variant.to,
-            from: variant.from,
-            replyTo: variant.replyTo,
-          };
-          break;
-        case ChannelType.Sms:
-          delivery = {
-            ...baseDelivery,
-            channel: ChannelType.Sms,
-            body: variant.body,
-            snippet: variant.body,
-            to: variant.to,
-          };
-          break;
-        case ChannelType.Webhook:
-          delivery = {
-            ...baseDelivery,
-            channel: ChannelType.Webhook,
-            body: JSON.stringify(
-              { request: variant.request, response: variant.response },
-              null,
-              2,
-            ),
-          };
-          break;
-        default:
-          assertUnreachable(variant);
-      }
-      return delivery;
-    });
-  }, [query, workspace, resources, broadcasts]);
-
-  const onNextPage = useCallback(() => {
-    setState((draft) => {
-      if (query.data?.cursor) {
-        draft.cursor = query.data.cursor;
-      }
-    });
-  }, [setState, query.data]);
-
-  const onPreviousPage = useCallback(() => {
-    setState((draft) => {
-      if (query.data?.previousCursor) {
-        draft.cursor = query.data.previousCursor;
-      }
-    });
-  }, [setState, query.data]);
-
-  const onFirstPage = useCallback(() => {
-    setState((draft) => {
-      draft.cursor = null;
-    });
-  }, [setState]);
 
   const table = useReactTable({
     columns,
