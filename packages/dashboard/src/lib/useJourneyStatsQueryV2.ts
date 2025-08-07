@@ -42,13 +42,16 @@ export function useJourneyStatsQueryV2<TData = GetJourneyEditorStatsResponse>(
     queryKey,
     queryFn: async (): Promise<GetJourneyEditorStatsResponse> => {
       try {
-        const response = await axios.get(`${baseApiUrl}/analysis/journey-stats`, {
-          params: {
-            ...params,
-            workspaceId,
+        const response = await axios.get(
+          `${baseApiUrl}/analysis/journey-stats`,
+          {
+            params: {
+              ...params,
+              workspaceId,
+            },
+            headers: authHeaders,
           },
-          headers: authHeaders,
-        });
+        );
 
         return unwrap(
           schemaValidateWithErr(response.data, GetJourneyEditorStatsResponse),

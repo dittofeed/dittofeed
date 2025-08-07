@@ -189,7 +189,7 @@ function CustomLegend(props: { payload?: readonly LegendPayload[] }) {
 
   const truncateText = (text: string, maxLen: number) => {
     if (text.length <= maxLen) return text;
-    return text.substring(0, maxLen) + "...";
+    return `${text.substring(0, maxLen)}...`;
   };
 
   return (

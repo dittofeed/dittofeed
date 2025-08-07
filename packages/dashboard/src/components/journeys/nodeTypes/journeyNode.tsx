@@ -434,7 +434,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
       return null;
     }
 
-    const rawStats = journeyStatsData?.nodeStats?.[id];
+    const rawStats = journeyStatsData?.nodeStats[id];
     const sent = rawStats?.sent || 0;
     const delivered = rawStats?.delivered || 0;
     const opened = rawStats?.opened || 0;

@@ -8,6 +8,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { keepPreviousData } from "@tanstack/react-query";
 import { ChannelType, SummaryMetric } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
@@ -124,18 +125,23 @@ export function AnalysisSummaryPanel({
     };
   }, [filtersState]);
 
-  const summaryQuery = useAnalysisSummaryQuery({
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
-    ...(filters || selectedChannel
-      ? {
-          filters: {
-            ...filters,
-            ...(selectedChannel && { channel: selectedChannel }),
-          },
-        }
-      : {}),
-  });
+  const summaryQuery = useAnalysisSummaryQuery(
+    {
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+      ...(filters || selectedChannel
+        ? {
+            filters: {
+              ...filters,
+              ...(selectedChannel && { channel: selectedChannel }),
+            },
+          }
+        : {}),
+    },
+    {
+      placeholderData: keepPreviousData,
+    },
+  );
 
   // Calculate percentage values when in percentage mode
   const summary = useMemo(() => {
