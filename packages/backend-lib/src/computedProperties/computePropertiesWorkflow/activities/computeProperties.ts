@@ -11,6 +11,7 @@ import { withSpan } from "../../../openTelemetry";
 import { findManySegmentResourcesSafe } from "../../../segments";
 import {
   IndividualComputedPropertyQueueItem,
+  JourneyNodeType,
   SavedUserPropertyResource,
   WorkspaceQueueItem,
   WorkspaceQueueItemType,
@@ -89,7 +90,9 @@ export async function computePropertiesIncrementalArgs({
       return s.value;
     }),
     userProperties,
-    journeys,
+    journeys: journeys.filter(
+      (j) => j.definition.entryNode.type === JourneyNodeType.SegmentEntryNode,
+    ),
     integrations: integrations.flatMap((i) => {
       if (i.isErr()) {
         logger().error(
