@@ -24,7 +24,7 @@ import {
   SortDirection,
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import {
   Legend,
   LegendPayload,
@@ -184,7 +184,7 @@ interface State {
 function CustomLegend(props: { payload?: readonly LegendPayload[] }) {
   const { payload } = props;
   const maxLength = 20; // Maximum characters to show before truncating
-  
+
   if (!payload) return null;
 
   const truncateText = (text: string, maxLen: number) => {
@@ -454,10 +454,10 @@ export function AnalysisChart() {
         if (state.groupBy === "messageState") {
           // For message state grouping: use "sent" as baseline (100%)
           let baseline = 0;
-          const sentKey = Array.from(groups).find(group => 
-            group.toLowerCase().includes("sent")
+          const sentKey = Array.from(groups).find((group) =>
+            group.toLowerCase().includes("sent"),
           );
-          
+
           if (sentKey) {
             const sentValue = dataPoint[sentKey];
             baseline = typeof sentValue === "number" ? sentValue : 0;
@@ -712,7 +712,9 @@ export function AnalysisChart() {
                   }
                 />
                 <YAxis
-                  domain={state.displayMode === "percentage" ? [0, 100] : [0, "auto"]}
+                  domain={
+                    state.displayMode === "percentage" ? [0, 100] : [0, "auto"]
+                  }
                   label={{
                     value:
                       state.displayMode === "percentage"

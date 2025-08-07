@@ -361,7 +361,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
     };
   });
   const [displayMode, setDisplayMode] = useState<"absolute" | "percentage">(
-    "percentage",
+    "absolute",
   );
 
   const { id: journeyId } = path.query;
@@ -429,19 +429,16 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
 
   // Process the new journey stats data
   const nodeStats = useMemo(() => {
-    if (!isSelected || !journeyStatsData?.nodeStats) {
-      return null;
-    }
-    const rawStats = journeyStatsData.nodeStats[id];
-    if (!rawStats) {
+    if (!isSelected) {
       return null;
     }
 
-    const sent = rawStats.sent || 0;
-    const delivered = rawStats.delivered || 0;
-    const opened = rawStats.opened || 0;
-    const clicked = rawStats.clicked || 0;
-    const bounced = rawStats.bounced || 0;
+    const rawStats = journeyStatsData?.nodeStats?.[id];
+    const sent = rawStats?.sent || 0;
+    const delivered = rawStats?.delivered || 0;
+    const opened = rawStats?.opened || 0;
+    const clicked = rawStats?.clicked || 0;
+    const bounced = rawStats?.bounced || 0;
 
     if (displayMode === "percentage" && sent > 0) {
       return {
