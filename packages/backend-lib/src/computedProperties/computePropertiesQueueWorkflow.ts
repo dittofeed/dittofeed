@@ -260,8 +260,6 @@ export async function computePropertiesQueueWorkflow(
     // C) Acquire a semaphore slot to respect concurrency
     await semaphore.acquire();
 
-    membership.delete(key);
-
     logger.info("Queue: Acquired semaphore slot", {
       workspaceId,
       key,
@@ -295,6 +293,7 @@ export async function computePropertiesQueueWorkflow(
           err,
         });
       } finally {
+        membership.delete(key);
         inFlight.splice(
           inFlight.findIndex((t) => t.key === key),
           1,
