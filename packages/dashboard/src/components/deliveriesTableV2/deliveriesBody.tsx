@@ -581,12 +581,6 @@ export function useDeliveryBodyState({
   // Reset pagination when date range or sort changes
   useEffect(() => {
     setState((draft) => {
-      console.log("resetting pagination", {
-        startDate,
-        endDate,
-        sortBy,
-        sortDirection,
-      });
       if (draft.cursor) {
         draft.cursor = null;
       }
