@@ -525,8 +525,8 @@ export interface DeliveriesBodyHookProps {
   to?: string[];
   statuses?: string[];
   from?: string[];
-  startDate: Date;
-  endDate: Date;
+  startDate: string;
+  endDate: string;
   sortBy?: SearchDeliveriesRequestSortBy;
   sortDirection?: SortDirection;
   limit?: number;
@@ -581,7 +581,10 @@ export function useDeliveryBodyState({
   // Reset pagination when date range or sort changes
   useEffect(() => {
     setState((draft) => {
-      draft.cursor = null;
+      console.log("resetting pagination");
+      if (draft.cursor) {
+        draft.cursor = null;
+      }
     });
   }, [startDate, endDate, sortBy, sortDirection, setState]);
 
@@ -622,8 +625,8 @@ export function useDeliveryBodyState({
       workspaceId: workspace.value.id,
       cursor: state.cursor ?? undefined,
       limit,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      startDate,
+      endDate,
       templateIds,
       channels,
       to,
