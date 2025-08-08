@@ -5,6 +5,9 @@
 ee:
   enabled: false
 
+separateWorker:
+  enabled: false
+
 workspaceName: Dittofeed
 replicaCount: 1
 
