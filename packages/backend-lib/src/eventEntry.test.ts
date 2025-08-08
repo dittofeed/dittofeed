@@ -37,6 +37,10 @@ import {
   UserPropertyDefinitionType,
   Workspace,
 } from "./types";
+import {
+  insertUserPropertyAssignments,
+  upsertUserProperty,
+} from "./userProperties";
 import { createWorkspace } from "./workspaces";
 
 jest.setTimeout(15000);
@@ -45,11 +49,46 @@ describe("eventEntry journeys", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  let emailUserPropertyId: string;
+  let idUserPropertyId: string;
 
   beforeEach(async () => {
     workspace = await createWorkspace({
       name: `event-entry-${randomUUID()}`,
     }).then(unwrap);
+
+    emailUserPropertyId = randomUUID();
+    idUserPropertyId = randomUUID();
+
+    await Promise.all([
+      upsertUserProperty(
+        {
+          id: idUserPropertyId,
+          workspaceId: workspace.id,
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+          name: "id",
+        },
+        {
+          skipProtectedCheck: true,
+        },
+      ).then(unwrap),
+      upsertUserProperty(
+        {
+          id: emailUserPropertyId,
+          workspaceId: workspace.id,
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+          name: "email",
+        },
+        {
+          skipProtectedCheck: true,
+        },
+      ).then(unwrap),
+    ]);
   });
 
   afterEach(async () => {
@@ -88,7 +127,9 @@ describe("eventEntry journeys", () => {
     describe("when messaging a user with an anyof performed user property", () => {
       let journeyId: string;
       let journeyDefinition: JourneyDefinition;
+      let userId: string;
       beforeEach(async () => {
+        userId = randomUUID();
         await db()
           .insert(dbUserProperty)
           .values([
@@ -150,10 +191,23 @@ describe("eventEntry journeys", () => {
           definition: journeyDefinition,
           status: "Running",
         });
+        await insertUserPropertyAssignments([
+          {
+            workspaceId: workspace.id,
+            userId,
+            userPropertyId: emailUserPropertyId,
+            value: "test@test.com",
+          },
+          {
+            workspaceId: workspace.id,
+            userId,
+            userPropertyId: idUserPropertyId,
+            value: userId,
+          },
+        ]);
       });
       it("should call the inner send message", async () => {
         await worker.runUntil(async () => {
-          const userId = randomUUID();
           await testEnv.client.workflow.execute(userJourneyWorkflow, {
             workflowId: "workflow1",
             taskQueue: "default",
@@ -182,6 +236,14 @@ describe("eventEntry journeys", () => {
             expect.objectContaining({
               userPropertyAssignments: expect.objectContaining({
                 carrier: "UPS",
+              }),
+            }),
+          );
+
+          expect(senderMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+              userPropertyAssignments: expect.objectContaining({
+                email: "test@test.com",
               }),
             }),
           );

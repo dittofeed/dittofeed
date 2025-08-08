@@ -33,6 +33,10 @@ import {
   UserPropertyOperatorType,
   Workspace,
 } from "../types";
+import {
+  insertUserPropertyAssignments,
+  upsertUserProperty,
+} from "../userProperties";
 import { createWorkspace } from "../workspaces";
 import {
   trackSignal,
@@ -40,10 +44,6 @@ import {
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
-import {
-  insertUserPropertyAssignments,
-  upsertUserProperty,
-} from "../userProperties";
 
 jest.setTimeout(15000);
 
@@ -404,6 +404,14 @@ describe("keyedEventEntry journeys", () => {
             ),
             "should have sent a reminder message for appointment 2",
           ).toHaveLength(1);
+          expect(
+            senderMock.mock.calls.filter(
+              (call) =>
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                call[0].userPropertyAssignments?.email === "test@test.com",
+            ).length,
+            "should have passed the db email user property to the sender",
+          ).toBeGreaterThanOrEqual(1);
 
           await handle1.signal(trackSignal, {
             event: "APPOINTMENT_UPDATE",
