@@ -7,6 +7,37 @@ ee:
 
 separateWorker:
   enabled: false
+  # Configuration for worker deployments handing separate queues.
+  default:
+    replicaCount: 1
+    maxOldSpaceSize: 412
+    resources:
+      limits:
+        cpu: 1
+        memory: 1024Mi
+      requests:
+        cpu: 1
+        memory: 1024Mi
+  workspace:
+    replicaCount: 1
+    maxOldSpaceSize: 412
+    resources:
+      limits:
+        cpu: 1
+        memory: 1024Mi
+      requests:
+        cpu: 1
+        memory: 1024Mi
+  global:
+    replicaCount: 1
+    maxOldSpaceSize: 412
+    resources:
+      limits:
+        cpu: 1
+        memory: 1024Mi
+      requests:
+        cpu: 1
+        memory: 1024Mi
 
 workspaceName: Dittofeed
 replicaCount: 1
