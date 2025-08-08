@@ -1,0 +1,90 @@
+{{/* A small template to render one worker Deployment given a name and values path */}}
+{{- define "dittofeed.renderWorker" -}}
+{{- $root := .root -}}
+{{- $fullname := include "dittofeed.fullname" $root -}}
+{{- $baseLabels := include "dittofeed.baseLabels" $root -}}
+{{- $sa := include "dittofeed.serviceAccountName" $root -}}
+{{- $workerImageRepository := $root.Values.separateWorker.worker.image.repository -}}
+{{- $workerImageTag := $root.Values.separateWorker.worker.image.tag | default $root.Chart.AppVersion -}}
+{{- $workerImagePullPolicy := $root.Values.separateWorker.worker.image.pullPolicy -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-worker-{{ .name }}
+  labels:
+    {{- $baseLabels | nindent 4 }}
+    queue: {{ .name }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .vals.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: worker
+      queue: {{ .name }}
+  template:
+    metadata:
+      labels:
+        {{- include "dittofeed.baseLabels" $root | nindent 8 }}
+        app.kubernetes.io/component: worker
+        queue: {{ .name }}
+    spec:
+      {{- with $root.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ $sa }}
+      securityContext:
+        {{- toYaml $root.Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: worker-{{ .name }}
+          securityContext:
+            {{- toYaml $root.Values.securityContext | nindent 12 }}
+          image: "{{ $workerImageRepository }}:{{ $workerImageTag }}"
+          imagePullPolicy: {{ $workerImagePullPolicy }}
+          command:
+            - node
+            - --max-old-space-size={{ .vals.maxOldSpaceSize | default 412 }}
+            - ./packages/worker/dist/scripts/startWorker.js
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: AUTH_MODE
+              value: "single-tenant"
+            - name: DASHBOARD_API_BASE
+              value: ""
+            - name: TASK_QUEUE
+              value: {{ .name | quote }}
+            - name: GLOBAL_CRON_TASK_QUEUE
+              value: "global"
+            - name: COMPUTED_PROPERTIES_TASK_QUEUE
+              value: "workspace"
+            - name: COMPUTED_PROPERTIES_ACTIVITY_TASK_QUEUE
+              value: "workspace"
+            {{- if $root.Values.env }}
+            {{- toYaml $root.Values.env | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .vals.resources | nindent 12 }}
+      {{- with $root.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $root.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $root.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+{{- end -}}
+
+{{- if .Values.separateWorker.enabled }}
+{{- $root := . -}}
+{{- include "dittofeed.renderWorker" (dict "root" $root "name" "default" "vals" $root.Values.separateWorker.default) }}
+{{- include "dittofeed.renderWorker" (dict "root" $root "name" "workspace" "vals" $root.Values.separateWorker.workspace) }}
+{{- include "dittofeed.renderWorker" (dict "root" $root "name" "global" "vals" $root.Values.separateWorker.global) }}
+{{- end }}
+
+
