@@ -12,9 +12,7 @@ metadata:
   labels:
     {{- include "dittofeed.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "dittofeed.selectorLabels" . | nindent 6 }}
@@ -65,6 +63,16 @@ spec:
               value: "single-tenant"
             - name: DASHBOARD_API_BASE
               value: ""
+            {{- if .Values.separateWorker.enabled }}
+            - name: ENABLE_WORKER
+              value: "false"
+            - name: GLOBAL_CRON_TASK_QUEUE
+              value: "global"
+            - name: COMPUTED_PROPERTIES_TASK_QUEUE
+              value: "workspace"
+            - name: COMPUTED_PROPERTIES_ACTIVITY_TASK_QUEUE
+              value: "workspace"
+            {{- end }}
             {{- if .Values.env }}
             {{- toYaml .Values.env | nindent 12 }}
             {{- end }}
