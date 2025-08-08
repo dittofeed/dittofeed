@@ -298,8 +298,8 @@ export function AnalysisChart() {
     statuses: deliveriesFilters.statuses,
     journeyIds: deliveriesFilters.journeyIds,
     broadcastIds: deliveriesFilters.broadcastIds,
-    startDate: new Date(state.dateRange.startDate),
-    endDate: new Date(state.dateRange.endDate),
+    startDate: state.dateRange.startDate,
+    endDate: state.dateRange.endDate,
     sortBy: state.sortBy,
     sortDirection: state.sortDirection,
     limit: 5,
@@ -788,8 +788,8 @@ export function AnalysisChart() {
         statuses={deliveriesFilters.statuses}
         journeyIds={deliveriesFilters.journeyIds}
         broadcastIds={deliveriesFilters.broadcastIds}
-        startDate={new Date(state.dateRange.startDate)}
-        endDate={new Date(state.dateRange.endDate)}
+        startDate={state.dateRange.startDate}
+        endDate={state.dateRange.endDate}
         sortBy={state.sortBy}
         sortDirection={state.sortDirection}
         limit={5}
