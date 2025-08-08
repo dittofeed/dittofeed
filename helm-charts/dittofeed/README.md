@@ -108,3 +108,19 @@ env:
 | `nodeSelector`                      | `{}`                                               | Node selector for pod scheduling. |
 | `tolerations`                       | `[]`                                               | Tolerations for pod scheduling. |
 | `affinity`                          | `{}`                                               | Affinity rules for pod scheduling. |
+
+## Contributing
+
+### Testing
+
+Use these commands locally (from the repo root) to validate template rendering in both modes and verify there are no autoscaling resources.
+
+Basic renders
+
+```bash
+# Default (bundled) mode
+helm template demo ./helm-charts/dittofeed
+
+# Separate workers enabled
+helm template demo ./helm-charts/dittofeed --set separateWorker.enabled=true
+```
