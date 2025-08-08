@@ -5,11 +5,14 @@
 ee:
   enabled: false
 
+# This configuration disables the worker in our primary deployment, which then
+# only runs the API and Dashboard. We then create separate worker deployments
+# for each of the temporal queues utilized by Dittofeed.
 separateWorker:
   enabled: false
-  # Configuration for worker deployments handing separate queues.
+  # The default queue is used to process user journeys.
   default:
-    replicaCount: 1
+    replicaCount: 3
     maxOldSpaceSize: 412
     resources:
       limits:
@@ -18,16 +21,18 @@ separateWorker:
       requests:
         cpu: 1
         memory: 1024Mi
+  # The workspace queue is used to recompute workspaces' segments and user properties, and to process broadcasts.
   workspace:
     replicaCount: 1
-    maxOldSpaceSize: 412
+    maxOldSpaceSize: 824
     resources:
       limits:
         cpu: 1
-        memory: 1024Mi
+        memory: 2048Mi
       requests:
         cpu: 1
-        memory: 1024Mi
+        memory: 2048Mi
+  # Is used to handle secondary scheduled workflows.
   global:
     replicaCount: 1
     maxOldSpaceSize: 412
