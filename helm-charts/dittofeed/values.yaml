@@ -10,6 +10,13 @@ ee:
 # for each of the temporal queues utilized by Dittofeed.
 separateWorker:
   enabled: false
+  worker:
+    image:
+      repository: dittofeed/dittofeed-worker
+      pullPolicy: IfNotPresent
+      # Overrides the image tag whose default is the chart appVersion.
+      tag: ""
+
   # The default queue is used to process user journeys.
   default:
     replicaCount: 3
