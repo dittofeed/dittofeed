@@ -105,10 +105,6 @@ env:
 | `temporal.image.tag`                | `1.23.1.0`                                         | Image tag for Temporal. |
 | `temporal.image.pullPolicy`         | `IfNotPresent`                                     | Image pull policy for Temporal. |
 | `env`                               | `[ { name: DATABASE_HOST, value: "dittofeed-postgresql.default.svc.cluster.local" }, { name: DATABASE_USER, value: "postgres" }, { name: DATABASE_PASSWORD, value: "password" }, { name: CLICKHOUSE_HOST, value: "http://dittofeed-clickhouse.default.svc.cluster.local:8123" }, { name: CLICKHOUSE_USER, value: "dittofeed" }, { name: CLICKHOUSE_PASSWORD, value: "password" }, { name: TEMPORAL_ADDRESS, value: "demo-dittofeed-temporal:80" } ]` | Environment variables for the application. |
-| `autoscaling.enabled`               | `false`                                            | Enable autoscaling. |
-| `autoscaling.minReplicas`           | `1`                                                | Minimum number of replicas for autoscaling. |
-| `autoscaling.maxReplicas`           | `100`                                              | Maximum number of replicas for autoscaling. |
-| `autoscaling.targetCPUUtilizationPercentage` | `80`                                      | Target CPU utilization percentage for autoscaling. |
 | `nodeSelector`                      | `{}`                                               | Node selector for pod scheduling. |
 | `tolerations`                       | `[]`                                               | Tolerations for pod scheduling. |
 | `affinity`                          | `{}`                                               | Affinity rules for pod scheduling. |
