@@ -1,6 +1,6 @@
 import { Static, Type } from "@sinclair/typebox";
 import { loadConfig, setConfigOnEnv } from "backend-lib/src/config/loader";
-import { NodeEnv } from "backend-lib/src/types";
+import { BoolStr, NodeEnv } from "backend-lib/src/types";
 import { Overwrite } from "utility-types";
 
 const RawConfigProps = {
@@ -12,6 +12,7 @@ const RawConfigProps = {
     }),
   ),
   host: Type.Optional(Type.String()),
+  enableWorker: Type.Optional(BoolStr),
 };
 
 // Structure of application config.
@@ -26,6 +27,7 @@ export type Config = Overwrite<
     serviceName: string;
     host: string;
     port: number;
+    enableWorker: boolean;
   }
 >;
 function parseRawConfig(raw: RawConfig): Config {
@@ -38,6 +40,7 @@ function parseRawConfig(raw: RawConfig): Config {
     nodeEnv,
     host: raw.host ?? (nodeEnv === "development" ? "localhost" : "0.0.0.0"),
     port: Number.isNaN(port) ? 3000 : port,
+    enableWorker: raw.enableWorker !== "false",
   };
 }
 

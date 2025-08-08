@@ -1,6 +1,7 @@
 // ensures types are imported to support single-tenant auth
 import "@fastify/secure-session";
 
+import { Worker } from "@temporalio/worker";
 import { BOOTSTRAP_OPTIONS } from "admin-cli/src/bootstrap";
 import { requestToSessionValue } from "api/src/buildApp/requestContext";
 import backendConfig from "backend-lib/src/config";
@@ -105,11 +106,15 @@ async function startLite() {
     },
   });
 
-  const worker = await buildWorker(otel);
+  let worker: Worker | null = null;
+
+  if (liteConfig().enableWorker) {
+    worker = await buildWorker(otel);
+  }
 
   otel.start();
 
-  await Promise.all([app.listen({ port, host }), worker.run()]);
+  await Promise.all([app.listen({ port, host }), worker?.run()]);
 }
 
 startLite()
