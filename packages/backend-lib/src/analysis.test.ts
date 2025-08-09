@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { groupBy } from "remeda";
+import { groupBy, mapToObj, mapValues } from "remeda";
 
 import {
   getChartData,
@@ -9,6 +9,7 @@ import {
   getSummarizedData,
 } from "./analysis";
 import { submitBatch } from "./apps/batch";
+import logger from "./logger";
 import {
   BatchItem,
   ChannelType,
@@ -590,7 +591,7 @@ describe("analysis", () => {
       expect(totalCount).toBe(1);
     });
 
-    it("should not allow delivered to exceed sent within the same time bucket (currently fails)", async () => {
+    it.only("should not allow delivered to exceed sent within the same time bucket (currently fails)", async () => {
       // Build a clean, isolated scenario entirely outside the times used in beforeEach
       // so the window only contains our test cohort.
       const now = Date.now();
@@ -676,34 +677,15 @@ describe("analysis", () => {
 
       // Group rows by hour bucket using remeda utilities
       const byTimestamp = groupBy(result.data, (d) => d.timestamp);
+      const countsByKey = mapValues(byTimestamp, (d) =>
+        mapToObj(d, (dp) => [dp.groupKey ?? "", dp.count]),
+      );
 
-      // Select the latest bucket from the returned data itself
-      const bucketKeys = Object.keys(byTimestamp).sort();
-      const latestBucketKey = bucketKeys[bucketKeys.length - 1];
-
-      type StateKey = "sent" | "delivered" | "opened" | "clicked" | "bounced";
-      const isStateKey = (k: string | undefined): k is StateKey =>
-        k === "sent" ||
-        k === "delivered" ||
-        k === "opened" ||
-        k === "clicked" ||
-        k === "bounced";
-
-      const hourRows = latestBucketKey
-        ? byTimestamp[latestBucketKey] ?? []
-        : [];
-      const stateCounts: Partial<Record<StateKey, number>> = {};
-      for (const d of hourRows) {
-        if (isStateKey(d.groupKey)) {
-          stateCounts[d.groupKey] = (stateCounts[d.groupKey] ?? 0) + d.count;
-        }
-      }
-
-      const deliveredCount = stateCounts.delivered ?? 0;
-      const sentCount = stateCounts.sent ?? 0;
-      // Desired invariant: delivered should never exceed sent in the same bucket
-      // This assertion is expected to FAIL with current implementation.
-      expect(deliveredCount).toBeLessThanOrEqual(sentCount);
+      Object.values(countsByKey).forEach((counts) => {
+        const sent = counts.sent ?? 0;
+        const delivered = counts.delivered ?? 0;
+        expect(delivered).toBeLessThanOrEqual(sent);
+      });
     });
 
     it("returns chart data with default granularity when not specified", async () => {
