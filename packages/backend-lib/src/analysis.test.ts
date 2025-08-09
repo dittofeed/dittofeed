@@ -2,7 +2,11 @@
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { getChartData, getJourneyEditorStats, getSummarizedData } from "./analysis";
+import {
+  getChartData,
+  getJourneyEditorStats,
+  getSummarizedData,
+} from "./analysis";
 import { submitBatch } from "./apps/batch";
 import {
   BatchItem,
@@ -1385,7 +1389,7 @@ describe("analysis", () => {
       expect(result.nodeStats[nodeId1]).toBeDefined();
       const node1Stats = result.nodeStats[nodeId1];
       if (!node1Stats) throw new Error("Node1 stats should be defined");
-      
+
       expect(node1Stats.sent).toBe(2); // 2 messages sent
       expect(node1Stats.delivered).toBe(2); // Both messages delivered (1 explicit + 1 from click cascade)
       expect(node1Stats.opened).toBe(2); // Both messages opened (1 explicit + 1 from click cascade)
@@ -1396,7 +1400,7 @@ describe("analysis", () => {
       expect(result.nodeStats[nodeId2]).toBeDefined();
       const node2Stats = result.nodeStats[nodeId2];
       if (!node2Stats) throw new Error("Node2 stats should be defined");
-      
+
       expect(node2Stats.sent).toBe(1); // 1 message sent
       expect(node2Stats.delivered).toBe(0); // No deliveries (bounced message doesn't count as delivered)
       expect(node2Stats.opened).toBe(0); // No opens
@@ -1538,7 +1542,7 @@ describe("analysis", () => {
       expect(result.nodeStats[testNodeId]).toBeDefined();
       const nodeStats = result.nodeStats[testNodeId];
       if (!nodeStats) throw new Error("Node stats should be defined");
-      
+
       // Despite multiple open events, should only count as 1 opened message
       expect(nodeStats.sent).toBe(1);
       expect(nodeStats.delivered).toBe(1); // From open cascade
