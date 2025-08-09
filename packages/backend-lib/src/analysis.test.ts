@@ -1,6 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { groupBy } from "remeda";
 
 import {
   getChartData,
@@ -587,6 +588,122 @@ describe("analysis", () => {
         0,
       );
       expect(totalCount).toBe(1);
+    });
+
+    it("should not allow delivered to exceed sent within the same time bucket (currently fails)", async () => {
+      // Build a clean, isolated scenario entirely outside the times used in beforeEach
+      // so the window only contains our test cohort.
+      const now = Date.now();
+      const startOfCurrentHour =
+        Math.floor(now / (60 * 60 * 1000)) * 60 * 60 * 1000;
+      const sentBucket = startOfCurrentHour + 60 * 60 * 1000; // next hour
+      const deliveredBucket = sentBucket + 60 * 60 * 1000; // hour after sent
+
+      const testJourneyId = randomUUID();
+      const testTemplateId = randomUUID();
+      const testUserId = randomUUID();
+      const testMessageId = randomUUID();
+
+      const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+        variant: {
+          type: ChannelType.Email,
+          from: "sent-bucket-from@email.com",
+          to: "sent-bucket-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: {
+            type: EmailProviderType.SendGrid,
+          },
+        },
+      };
+
+      const events: BatchItem[] = [
+        // Sent occurs in sentBucket
+        {
+          userId: testUserId,
+          timestamp: new Date(sentBucket + 5 * 60 * 1000).toISOString(),
+          type: EventType.Track,
+          messageId: testMessageId,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: testJourneyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: testTemplateId,
+            messageId: testMessageId,
+            ...messageSentEvent,
+          },
+        },
+        // Delivered occurs in a later bucket (deliveredBucket)
+        {
+          userId: testUserId,
+          timestamp: new Date(deliveredBucket + 5 * 60 * 1000).toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailDelivered,
+          properties: {
+            workspaceId,
+            journeyId: testJourneyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: testTemplateId,
+            messageId: testMessageId,
+          },
+        },
+      ];
+
+      // Submit with explicit processing times so CH buckets line up by processing_time
+      await submitBatch(
+        { workspaceId, data: { batch: [events[0]!] } },
+        { processingTime: sentBucket + 5 * 60 * 1000 },
+      );
+      await submitBatch(
+        { workspaceId, data: { batch: [events[1]!] } },
+        { processingTime: deliveredBucket + 5 * 60 * 1000 },
+      );
+
+      const startDate = new Date(sentBucket - 5 * 60 * 1000).toISOString();
+      const endDate = new Date(deliveredBucket + 30 * 60 * 1000).toISOString();
+
+      const result = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+        groupBy: "messageState",
+      });
+
+      // Group rows by hour bucket using remeda utilities
+      const byTimestamp = groupBy(result.data, (d) => d.timestamp);
+
+      // Select the latest bucket from the returned data itself
+      const bucketKeys = Object.keys(byTimestamp).sort();
+      const latestBucketKey = bucketKeys[bucketKeys.length - 1];
+
+      type StateKey = "sent" | "delivered" | "opened" | "clicked" | "bounced";
+      const isStateKey = (k: string | undefined): k is StateKey =>
+        k === "sent" ||
+        k === "delivered" ||
+        k === "opened" ||
+        k === "clicked" ||
+        k === "bounced";
+
+      const hourRows = latestBucketKey
+        ? byTimestamp[latestBucketKey] ?? []
+        : [];
+      const stateCounts: Partial<Record<StateKey, number>> = {};
+      for (const d of hourRows) {
+        if (isStateKey(d.groupKey)) {
+          stateCounts[d.groupKey] = (stateCounts[d.groupKey] ?? 0) + d.count;
+        }
+      }
+
+      const deliveredCount = stateCounts.delivered ?? 0;
+      const sentCount = stateCounts.sent ?? 0;
+      // Desired invariant: delivered should never exceed sent in the same bucket
+      // This assertion is expected to FAIL with current implementation.
+      expect(deliveredCount).toBeLessThanOrEqual(sentCount);
     });
 
     it("returns chart data with default granularity when not specified", async () => {
