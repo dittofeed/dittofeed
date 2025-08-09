@@ -1086,6 +1086,112 @@ describe("analysis", () => {
       expect(result.summary.bounces).toBe(1); // Same as before
     });
 
+    it("does not count orphan statuses and deliveries never exceed sent in summary", async () => {
+      // Create an isolated time window and events
+      const now = Date.now();
+      const startOfNextHour =
+        Math.floor(now / (60 * 60 * 1000)) * 60 * 60 * 1000 + 60 * 60 * 1000;
+      const sentAt = startOfNextHour + 5 * 60 * 1000;
+      const deliveredAt = startOfNextHour + 65 * 60 * 1000; // +1h 5m
+
+      const testJourneyId = randomUUID();
+      const testTemplateId = randomUUID();
+      const testUserId = randomUUID();
+      const testMessageId = randomUUID();
+
+      const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+        variant: {
+          type: ChannelType.Email,
+          from: "summary-from@email.com",
+          to: "summary-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: { type: EmailProviderType.SendGrid },
+        },
+      };
+
+      const events: BatchItem[] = [
+        {
+          userId: testUserId,
+          timestamp: new Date(sentAt).toISOString(),
+          type: EventType.Track,
+          messageId: testMessageId,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: testJourneyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: testTemplateId,
+            messageId: testMessageId,
+            ...messageSentEvent,
+          },
+        },
+        // Valid delivered for the sent message (later bucket)
+        {
+          userId: testUserId,
+          timestamp: new Date(deliveredAt).toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailDelivered,
+          properties: {
+            workspaceId,
+            journeyId: testJourneyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: testTemplateId,
+            messageId: testMessageId,
+          },
+        },
+        // Orphan delivered that should be ignored (no matching sent in cohort)
+        {
+          userId: randomUUID(),
+          timestamp: new Date(deliveredAt).toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailDelivered,
+          properties: {
+            workspaceId,
+            journeyId: testJourneyId,
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: testTemplateId,
+            messageId: randomUUID(),
+          },
+        },
+      ];
+
+      await submitBatch(
+        { workspaceId, data: { batch: [events[0]!] } },
+        { processingTime: sentAt },
+      );
+      await submitBatch(
+        { workspaceId, data: { batch: [events[1]!] } },
+        { processingTime: deliveredAt },
+      );
+      await submitBatch(
+        { workspaceId, data: { batch: [events[2]!] } },
+        { processingTime: deliveredAt },
+      );
+
+      const startDate = new Date(sentAt - 5 * 60 * 1000).toISOString();
+      const endDate = new Date(deliveredAt + 10 * 60 * 1000).toISOString();
+
+      const summary = await getSummarizedData({
+        workspaceId,
+        startDate,
+        endDate,
+        filters: { channel: ChannelType.Email },
+      });
+
+      expect(summary.summary.sent).toBe(1);
+      expect(summary.summary.deliveries).toBe(1);
+      // Invariant: deliveries should never exceed sent
+      expect(summary.summary.deliveries).toBeLessThanOrEqual(
+        summary.summary.sent,
+      );
+    });
+
     it("returns default behavior (sent messages only) when no channel is specified", async () => {
       const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
       const endDate = new Date().toISOString();
