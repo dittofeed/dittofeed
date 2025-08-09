@@ -130,70 +130,43 @@ export async function getChartData({
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
-  // Build filter clauses
-  let filterClauses = "";
+  // Build filter clauses (applied to SENT events only)
+  let sentFilterClauses = "";
   if (filters) {
-    const conditions: string[] = [];
+    const sentConditions: string[] = [];
 
     if (filters.journeyIds && filters.journeyIds.length > 0) {
-      conditions.push(
+      sentConditions.push(
         `JSONExtractString(properties, 'journeyId') IN ${qb.addQueryValue(filters.journeyIds, "Array(String)")}`,
       );
     }
 
     if (filters.broadcastIds && filters.broadcastIds.length > 0) {
-      conditions.push(
+      sentConditions.push(
         `JSONExtractString(properties, 'broadcastId') IN ${qb.addQueryValue(filters.broadcastIds, "Array(String)")}`,
       );
     }
 
     if (filters.channels && filters.channels.length > 0) {
-      const channelConditions: string[] = [];
-
-      filters.channels.forEach((channel) => {
-        if (channel === "Email") {
-          channelConditions.push(`(
-            (event = '${InternalEventType.MessageSent}' AND JSON_VALUE(properties, '$.variant.type') = 'Email') OR
-            event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.EmailOpened}', '${InternalEventType.EmailClicked}', '${InternalEventType.EmailBounced}', '${InternalEventType.EmailMarkedSpam}', '${InternalEventType.EmailDropped}')
-          )`);
-        } else if (channel === "Sms") {
-          channelConditions.push(`(
-            (event = '${InternalEventType.MessageSent}' AND JSON_VALUE(properties, '$.variant.type') = 'Sms') OR
-            event IN ('${InternalEventType.SmsDelivered}', '${InternalEventType.SmsFailed}')
-          )`);
-        } else {
-          // For other channels, only include sent messages of that type
-          channelConditions.push(
-            `(event = '${InternalEventType.MessageSent}' AND JSON_VALUE(properties, '$.variant.type') = ${qb.addQueryValue(channel, "String")})`,
-          );
-        }
-      });
-
-      if (channelConditions.length > 0) {
-        conditions.push(`(${channelConditions.join(" OR ")})`);
-      }
+      sentConditions.push(
+        `JSON_VALUE(properties, '$.variant.type') IN ${qb.addQueryValue(filters.channels, "Array(String)")}`,
+      );
     }
 
     if (filters.providers && filters.providers.length > 0) {
-      conditions.push(
+      sentConditions.push(
         `JSON_VALUE(properties, '$.variant.provider.type') IN ${qb.addQueryValue(filters.providers, "Array(String)")}`,
       );
     }
 
-    if (filters.messageStates && filters.messageStates.length > 0) {
-      conditions.push(
-        `event IN ${qb.addQueryValue(filters.messageStates, "Array(String)")}`,
-      );
-    }
-
     if (filters.templateIds && filters.templateIds.length > 0) {
-      conditions.push(
+      sentConditions.push(
         `JSONExtractString(properties, 'templateId') IN ${qb.addQueryValue(filters.templateIds, "Array(String)")}`,
       );
     }
 
-    if (conditions.length > 0) {
-      filterClauses = `AND ${conditions.join(" AND ")}`;
+    if (sentConditions.length > 0) {
+      sentFilterClauses = `AND ${sentConditions.join(" AND ")}`;
     }
   }
 
@@ -241,31 +214,7 @@ export async function getChartData({
     endDate,
   });
 
-  // Determine the event types to include based on groupBy
-  let eventStates: string[];
-  if (groupBy === "messageState") {
-    // When grouping by state, we need to handle each state separately
-    eventStates = [
-      InternalEventType.MessageSent,
-      InternalEventType.EmailDelivered,
-      InternalEventType.SmsDelivered,
-      InternalEventType.EmailOpened,
-      InternalEventType.EmailClicked,
-      InternalEventType.EmailBounced,
-      InternalEventType.SmsFailed,
-    ];
-  } else {
-    // When not grouping by state, aggregate all events into a single count
-    eventStates = [
-      InternalEventType.MessageSent,
-      InternalEventType.EmailDelivered,
-      InternalEventType.SmsDelivered,
-      InternalEventType.EmailOpened,
-      InternalEventType.EmailClicked,
-      InternalEventType.EmailBounced,
-      InternalEventType.SmsFailed,
-    ];
-  }
+  // We will always cohort by SENT events, and derive status flags by joining all status events for that cohort
 
   // Simplify query structure based on whether we're grouping by message state or not
   let groupSelectClause = selectClause;
@@ -283,37 +232,63 @@ export async function getChartData({
     groupBySQL = "GROUP BY timestamp";
   }
 
-  // Build a simpler query that handles cascading logic correctly
+  // Build query with SENT cohort bucketing and status join; timestamps come from SENT bucket
   const query = `
-    WITH message_events AS (
+    WITH sent_messages AS (
       SELECT
-        processing_time,
-        event,
-        properties,
-        if(event = '${InternalEventType.MessageSent}', message_id, JSON_VALUE(properties, '$.messageId')) as origin_message_id,
+        uev.message_id AS origin_message_id,
+        ${timeFunction} AS timestamp,
         ${groupSelectClause.replace(/properties/g, "uev.properties")}
       FROM user_events_v2 AS uev
       WHERE
-        workspace_id = ${workspaceIdParam}
-        AND processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
-        AND processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
-        AND event_type = 'track'
-        AND event IN (${eventStates.map((e) => `'${e}'`).join(", ")})
-        ${filterClauses.replace(/properties/g, "uev.properties")}
+        uev.workspace_id = ${workspaceIdParam}
+        AND uev.processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
+        AND uev.processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
+        AND uev.event_type = 'track'
+        AND uev.event = '${InternalEventType.MessageSent}'
+        ${sentFilterClauses.replace(/properties/g, "uev.properties")}
+    ),
+    status_events AS (
+      SELECT
+        JSON_VALUE(uev.properties, '$.messageId') AS origin_message_id,
+        uev.event
+      FROM user_events_v2 AS uev
+      WHERE
+        uev.workspace_id = ${workspaceIdParam}
+        AND uev.event_type = 'track'
+        AND uev.event IN (
+          '${InternalEventType.EmailDelivered}',
+          '${InternalEventType.SmsDelivered}',
+          '${InternalEventType.EmailOpened}',
+          '${InternalEventType.EmailClicked}',
+          '${InternalEventType.EmailBounced}',
+          '${InternalEventType.SmsFailed}'
+        )
+        AND JSON_VALUE(uev.properties, '$.messageId') IN (SELECT origin_message_id FROM sent_messages)
+    ),
+    message_flags AS (
+      SELECT
+        origin_message_id,
+        max(event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}')) AS has_delivered,
+        max(event = '${InternalEventType.EmailOpened}') AS has_opened,
+        max(event = '${InternalEventType.EmailClicked}') AS has_clicked,
+        max(event IN ('${InternalEventType.EmailBounced}', '${InternalEventType.SmsFailed}')) AS has_bounced
+      FROM status_events
+      WHERE origin_message_id != ''
+      GROUP BY origin_message_id
     ),
     message_states_per_message AS (
       SELECT
-        origin_message_id,
-        groupKey,
-        ${timeFunction} as timestamp,
-        countIf(event = '${InternalEventType.MessageSent}') > 0 as has_sent,
-        countIf(event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}')) > 0 as has_delivered,
-        countIf(event = '${InternalEventType.EmailOpened}') > 0 as has_opened,
-        countIf(event = '${InternalEventType.EmailClicked}') > 0 as has_clicked,
-        countIf(event IN ('${InternalEventType.EmailBounced}', '${InternalEventType.SmsFailed}')) > 0 as has_bounced
-      FROM message_events
-      WHERE origin_message_id != ''
-      GROUP BY origin_message_id, groupKey, timestamp
+        sm.origin_message_id,
+        sm.groupKey,
+        sm.timestamp,
+        1 AS has_sent,
+        toUInt8(coalesce(mf.has_delivered, 0)) AS has_delivered,
+        toUInt8(coalesce(mf.has_opened, 0)) AS has_opened,
+        toUInt8(coalesce(mf.has_clicked, 0)) AS has_clicked,
+        toUInt8(coalesce(mf.has_bounced, 0)) AS has_bounced
+      FROM sent_messages sm
+      LEFT JOIN message_flags mf USING (origin_message_id)
     )
     ${
       groupBy === "messageState"
@@ -426,8 +401,8 @@ export async function getSummarizedData({
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
-  // Build filter clauses
-  let filterClauses = "";
+  // Build filter clauses for SENT events only
+  let sentSummaryFilterClauses = "";
   if (filters) {
     const conditions: string[] = [];
 
@@ -445,19 +420,13 @@ export async function getSummarizedData({
 
     if (filters.channel) {
       conditions.push(
-        `(event != '${InternalEventType.MessageSent}' OR JSON_VALUE(properties, '$.variant.type') = ${qb.addQueryValue(filters.channel, "String")})`,
+        `JSON_VALUE(properties, '$.variant.type') = ${qb.addQueryValue(filters.channel, "String")}`,
       );
     }
 
     if (filters.providers && filters.providers.length > 0) {
       conditions.push(
         `JSON_VALUE(properties, '$.variant.provider.type') IN ${qb.addQueryValue(filters.providers, "Array(String)")}`,
-      );
-    }
-
-    if (filters.messageStates && filters.messageStates.length > 0) {
-      conditions.push(
-        `event IN ${qb.addQueryValue(filters.messageStates, "Array(String)")}`,
       );
     }
 
@@ -468,7 +437,7 @@ export async function getSummarizedData({
     }
 
     if (conditions.length > 0) {
-      filterClauses = `AND ${conditions.join(" AND ")}`;
+      sentSummaryFilterClauses = `AND ${conditions.join(" AND ")}`;
     }
   }
 
@@ -508,8 +477,6 @@ export async function getSummarizedData({
     }
   }
 
-  const eventsInClause = eventsToTrack.map((event) => `'${event}'`).join(", ");
-
   // Build channel-specific summary fields with cascading logic
   let summaryFields: string;
   if (!channel) {
@@ -545,30 +512,47 @@ export async function getSummarizedData({
   }
 
   const query = `
-    WITH message_events AS (
+    WITH sent_messages AS (
       SELECT
-        event,
-        if(event = '${InternalEventType.MessageSent}', message_id, JSON_VALUE(properties, '$.messageId')) as origin_message_id
-      FROM user_events_v2
+        uev.message_id AS origin_message_id
+      FROM user_events_v2 AS uev
       WHERE
-        workspace_id = ${workspaceIdParam}
-        AND event_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
-        AND event_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
-        AND event_type = 'track'
-        AND event IN (${eventsInClause})
-        ${filterClauses}
+        uev.workspace_id = ${workspaceIdParam}
+        AND uev.processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
+        AND uev.processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
+        AND uev.event_type = 'track'
+        AND uev.event = '${InternalEventType.MessageSent}'
+        ${sentSummaryFilterClauses.replace(/properties/g, "uev.properties")}
+    ),
+    status_events AS (
+      SELECT
+        JSON_VALUE(uev.properties, '$.messageId') AS origin_message_id,
+        uev.event
+      FROM user_events_v2 AS uev
+      WHERE
+        uev.workspace_id = ${workspaceIdParam}
+        AND uev.event_type = 'track'
+        AND uev.event IN (
+          '${InternalEventType.EmailDelivered}',
+          '${InternalEventType.SmsDelivered}',
+          '${InternalEventType.EmailOpened}',
+          '${InternalEventType.EmailClicked}',
+          '${InternalEventType.EmailBounced}',
+          '${InternalEventType.SmsFailed}'
+        )
+        AND JSON_VALUE(uev.properties, '$.messageId') IN (SELECT origin_message_id FROM sent_messages)
     ),
     message_final_states AS (
       SELECT
-        origin_message_id,
-        countIf(event = '${InternalEventType.MessageSent}') > 0 as has_sent,
-        countIf(event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}')) > 0 as has_delivered,
-        countIf(event = '${InternalEventType.EmailOpened}') > 0 as has_opened,
-        countIf(event = '${InternalEventType.EmailClicked}') > 0 as has_clicked,
-        countIf(event IN ('${InternalEventType.EmailBounced}', '${InternalEventType.SmsFailed}')) > 0 as has_bounced
-      FROM message_events
-      WHERE origin_message_id != ''
-      GROUP BY origin_message_id
+        sm.origin_message_id,
+        1 as has_sent,
+        max(se.event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}')) as has_delivered,
+        max(se.event = '${InternalEventType.EmailOpened}') as has_opened,
+        max(se.event = '${InternalEventType.EmailClicked}') as has_clicked,
+        max(se.event IN ('${InternalEventType.EmailBounced}', '${InternalEventType.SmsFailed}')) as has_bounced
+      FROM sent_messages sm
+      LEFT JOIN status_events se USING (origin_message_id)
+      GROUP BY sm.origin_message_id
     )
     SELECT
       ${summaryFields}
