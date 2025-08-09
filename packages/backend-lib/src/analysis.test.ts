@@ -9,7 +9,6 @@ import {
   getSummarizedData,
 } from "./analysis";
 import { submitBatch } from "./apps/batch";
-import logger from "./logger";
 import {
   BatchItem,
   ChannelType,
@@ -591,7 +590,7 @@ describe("analysis", () => {
       expect(totalCount).toBe(1);
     });
 
-    it.only("should not allow delivered to exceed sent within the same time bucket (currently fails)", async () => {
+    it("should not allow delivered to exceed sent within the same time bucket (currently fails)", async () => {
       // Build a clean, isolated scenario entirely outside the times used in beforeEach
       // so the window only contains our test cohort.
       const now = Date.now();
