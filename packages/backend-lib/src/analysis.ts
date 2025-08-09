@@ -250,7 +250,7 @@ export async function getChartData({
     ),
     status_events AS (
       SELECT
-        if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, JSON_VALUE(uev.properties, '$.messageId')) AS origin_message_id,
+        JSON_VALUE(uev.properties, '$.messageId') AS origin_message_id,
         uev.event
       FROM user_events_v2 AS uev
       WHERE
@@ -264,7 +264,7 @@ export async function getChartData({
           '${InternalEventType.EmailBounced}',
           '${InternalEventType.SmsFailed}'
         )
-        AND if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, JSON_VALUE(uev.properties, '$.messageId')) IN (SELECT origin_message_id FROM sent_messages)
+        AND JSON_VALUE(uev.properties, '$.messageId') IN (SELECT origin_message_id FROM sent_messages)
     ),
     message_flags AS (
       SELECT
@@ -526,7 +526,7 @@ export async function getSummarizedData({
     ),
     status_events AS (
       SELECT
-        if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, JSON_VALUE(uev.properties, '$.messageId')) AS origin_message_id,
+        JSON_VALUE(uev.properties, '$.messageId') AS origin_message_id,
         uev.event
       FROM user_events_v2 AS uev
       WHERE
@@ -540,7 +540,7 @@ export async function getSummarizedData({
           '${InternalEventType.EmailBounced}',
           '${InternalEventType.SmsFailed}'
         )
-        AND if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, JSON_VALUE(uev.properties, '$.messageId')) IN (SELECT origin_message_id FROM sent_messages)
+        AND JSON_VALUE(uev.properties, '$.messageId') IN (SELECT origin_message_id FROM sent_messages)
     ),
     message_final_states AS (
       SELECT
