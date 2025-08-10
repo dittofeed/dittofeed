@@ -27,7 +27,6 @@ import {
   query as chQuery,
   streamClickhouseQuery,
 } from "./clickhouse";
-import { getMeter } from "./openTelemetry";
 import { enqueueRecompute } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import { QUEUE_ITEM_PRIORITIES } from "./constants";
 import { Db, db, insert, QueryError, queryResult } from "./db";
@@ -37,6 +36,7 @@ import {
   StartKeyedUserJourneyProps,
 } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
+import { getMeter } from "./openTelemetry";
 import { restartUserJourneyWorkflow } from "./restartUserJourneyWorkflow/lifecycle";
 import { findManySegmentResourcesSafe, findSegmentResource } from "./segments";
 import {
@@ -789,6 +789,7 @@ export function triggerEventEntryJourneysFactory({
         counter.add(1, {
           workspaceId,
           journeyId,
+          entryType: definition.entryNode.type,
           keyName: definition.entryNode.key ?? "messageId",
         });
         return startKeyedJourneyImpl({
