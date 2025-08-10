@@ -19,12 +19,7 @@ import {
 import config from "../config";
 import { HUBSPOT_INTEGRATION } from "../constants";
 import { startHubspotUserIntegrationWorkflow } from "../integrations/hubspot/signalUtils";
-import { getSubscribedSegments } from "../journeys";
-import {
-  getUserJourneyWorkflowId,
-  segmentUpdateSignal,
-  userJourneyWorkflow,
-} from "../journeys/userWorkflow";
+import { getSubscribedSegments, triggerSegmentEntryJourney } from "../journeys";
 import logger from "../logger";
 import { getMeter, withSpan, withSpanSync } from "../openTelemetry";
 import { getContext } from "../temporal/activity";
@@ -53,7 +48,6 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
-  SegmentUpdate,
   SubscriptionChange,
   SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
@@ -274,57 +268,6 @@ function subscriptionChangeToPerformed(
     ],
     hasProperties,
   };
-}
-
-async function signalJourney({
-  segmentId,
-  workspaceId,
-  segmentAssignment,
-  journey,
-}: {
-  segmentId: string;
-  workspaceId: string;
-  segmentAssignment: ComputedAssignment;
-  journey: HasStartedJourneyResource;
-}) {
-  const segmentUpdate: SegmentUpdate = {
-    segmentId,
-    currentlyInSegment: Boolean(segmentAssignment.latest_segment_value),
-    segmentVersion: new Date(segmentAssignment.max_assigned_at).getTime(),
-    type: "segment",
-  };
-
-  if (!segmentUpdate.currentlyInSegment) {
-    return;
-  }
-
-  const { workflowClient } = getContext();
-  const { id: journeyId, definition } = journey;
-
-  const workflowId = getUserJourneyWorkflowId({
-    journeyId,
-    userId: segmentAssignment.user_id,
-  });
-
-  const userId = segmentAssignment.user_id;
-
-  await workflowClient.signalWithStart<
-    typeof userJourneyWorkflow,
-    [SegmentUpdate]
-  >(userJourneyWorkflow, {
-    taskQueue: "default",
-    workflowId,
-    args: [
-      {
-        journeyId,
-        definition,
-        workspaceId,
-        userId,
-      },
-    ],
-    signal: segmentUpdateSignal,
-    signalArgs: [segmentUpdate],
-  });
 }
 
 interface FullSubQueryData {
@@ -3432,7 +3375,7 @@ async function processRowsInner({
         return [];
       }
 
-      return signalJourney({
+      return triggerSegmentEntryJourney({
         workspaceId,
         segmentId: assignment.computed_property_id,
         segmentAssignment: assignment,
