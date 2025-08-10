@@ -1,4 +1,5 @@
 import { Row } from "@clickhouse/client";
+import { Counter } from "@opentelemetry/api";
 import { Type } from "@sinclair/typebox";
 import { and, eq, inArray, isNotNull, not, SQL } from "drizzle-orm";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
@@ -26,6 +27,7 @@ import {
   query as chQuery,
   streamClickhouseQuery,
 } from "./clickhouse";
+import { getMeter } from "./openTelemetry";
 import { enqueueRecompute } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import { QUEUE_ITEM_PRIORITIES } from "./constants";
 import { Db, db, insert, QueryError, queryResult } from "./db";
@@ -683,6 +685,21 @@ const EVENT_TRIGGER_JOURNEY_CACHE = new NodeCache({
   checkperiod: 120,
 });
 
+let JOURNEY_TRIGGER_COUNTER: Counter | null = null;
+
+function journeyTriggerCounter() {
+  if (JOURNEY_TRIGGER_COUNTER !== null) {
+    return JOURNEY_TRIGGER_COUNTER;
+  }
+  const meter = getMeter();
+  const counter = meter.createCounter("journey_triggered_counter", {
+    description: "Counter for the number of keyed journeys triggered",
+    unit: "1",
+  });
+  JOURNEY_TRIGGER_COUNTER = counter;
+  return counter;
+}
+
 interface EventTriggerJourneyDetails {
   journeyId: string;
   event: string;
@@ -757,6 +774,23 @@ export function triggerEventEntryJourneysFactory({
           return [];
         }
 
+        const counter = journeyTriggerCounter();
+        if (definition.entryNode.type !== JourneyNodeType.EventEntryNode) {
+          logger().error(
+            {
+              workspaceId,
+              journeyId,
+            },
+            "can't trigger non-event entry journeys using event trigger",
+          );
+          return [];
+        }
+
+        counter.add(1, {
+          workspaceId,
+          journeyId,
+          keyName: definition.entryNode.key ?? "messageId",
+        });
         return startKeyedJourneyImpl({
           workspaceId,
           userId,
