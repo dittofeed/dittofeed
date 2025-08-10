@@ -481,3 +481,11 @@ export async function shouldReEnter({
   });
   return assignment === true && definition.entryNode.reEnter === true;
 }
+
+export async function reporWorkflowInfo({
+  historySize,
+  historyLength,
+}: {
+  historySize: number;
+  historyLength: number;
+}): Promise<void> {}
