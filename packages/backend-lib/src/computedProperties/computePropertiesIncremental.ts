@@ -44,6 +44,7 @@ import {
   SavedIntegrationResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
+  SegmentDefinition,
   SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
@@ -3317,10 +3318,12 @@ async function processRowsInner({
   rows,
   workspaceId,
   subscribedJourneys,
+  segmentDefinitionById,
 }: {
   rows: unknown[];
   workspaceId: string;
   subscribedJourneys: HasStartedJourneyResource[];
+  segmentDefinitionById: Map<string, SegmentDefinition>;
 }): Promise<string | null> {
   logger().trace(
     {
@@ -3361,6 +3364,15 @@ async function processRowsInner({
 
   await Promise.all([
     ...journeySegmentAssignments.flatMap((assignment) => {
+      const segmentId = assignment.computed_property_id;
+      const segmentDefinition = segmentDefinitionById.get(segmentId);
+      if (!segmentDefinition) {
+        logger().error(
+          { workspaceId, segmentId },
+          "Missing segment definition for triggerSegmentEntryJourney",
+        );
+        return [];
+      }
       const journey = subscribedJourneys.find(
         (j) => j.id === assignment.processed_for,
       );
@@ -3377,7 +3389,8 @@ async function processRowsInner({
 
       return triggerSegmentEntryJourney({
         workspaceId,
-        segmentId: assignment.computed_property_id,
+        segmentId,
+        segmentDefinition,
         segmentAssignment: assignment,
         journey,
       });
@@ -3620,6 +3633,7 @@ type AssignmentProcessorParams = (
   | WithoutProcessorParams<UserPropertyProcessAssignmentsQueryArgs>
 ) & {
   journeys: HasStartedJourneyResource[];
+  segmentDefinitionById: Map<string, SegmentDefinition>;
 };
 
 /**
@@ -3660,7 +3674,11 @@ class AssignmentProcessor {
         const results = await withSpan(
           { name: "process-assignments-query-page" },
           async (pageSpan) => {
-            const { journeys, ...processAssignmentsParams } = this.params;
+            const {
+              journeys,
+              segmentDefinitionById,
+              ...processAssignmentsParams
+            } = this.params;
             const pageQueryId = getChCompatibleUuid();
             queryIds.push(pageQueryId);
 
@@ -3710,6 +3728,7 @@ class AssignmentProcessor {
                 rows: resultRows,
                 workspaceId: this.params.workspaceId,
                 subscribedJourneys: journeys,
+                segmentDefinitionById,
               });
 
               const pageRetrieved = resultRows.length;
@@ -3846,6 +3865,10 @@ export async function processAssignments({
     });
 
     const assignmentProcessors: AssignmentProcessor[] = [];
+    const segmentDefinitionById = new Map<string, SegmentDefinition>();
+    for (const s of segments) {
+      segmentDefinitionById.set(s.id, s.definition);
+    }
 
     for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
       const segment = segmentById.get(segmentId);
@@ -3883,6 +3906,7 @@ export async function processAssignments({
           processedForUpdatedAt: journey.updatedAt,
           now,
           journeys,
+          segmentDefinitionById,
         });
         assignmentProcessors.push(processor);
       }
@@ -3925,6 +3949,7 @@ export async function processAssignments({
           now,
           processedForUpdatedAt: integration.updatedAt,
           journeys,
+          segmentDefinitionById,
         });
         assignmentProcessors.push(processor);
       }
@@ -3960,6 +3985,7 @@ export async function processAssignments({
           now,
           processedForUpdatedAt: integration.updatedAt,
           journeys,
+          segmentDefinitionById,
         });
         assignmentProcessors.push(processor);
       }
