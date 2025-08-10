@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { and, eq, inArray, InferSelectModel, not, SQL } from "drizzle-orm";
 import deepEqual from "fast-deep-equal";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
+import { stableJsonStringify } from "isomorphic-lib/src/equality";
 import { doesEventNameMatch } from "isomorphic-lib/src/events";
 import {
   schemaValidate,
@@ -13,7 +14,7 @@ import {
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import { PostgresError } from "pg-error-enum";
-import { validate as validateUuid } from "uuid";
+import { v5 as uuidv5, validate as validateUuid } from "uuid";
 
 import {
   clickhouseClient,
@@ -1080,4 +1081,17 @@ export async function deleteSegment(
     )
     .returning();
   return result[0] ?? null;
+}
+
+const SEGMENTS_HASH_NAMESPACE = "cea974fe-c5e9-4fde-a3f1-cea2167be214";
+
+/**
+ * Hash a segment definition to a string to see if segments have equivalent definitions.
+ */
+export function getSegmentsHash({
+  definition,
+}: {
+  definition: SegmentDefinition;
+}): string {
+  return uuidv5(stableJsonStringify(definition), SEGMENTS_HASH_NAMESPACE);
 }
