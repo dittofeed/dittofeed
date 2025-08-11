@@ -1,4 +1,4 @@
-import { SpanStatusCode } from "@opentelemetry/api";
+import { Histogram, SpanStatusCode } from "@opentelemetry/api";
 import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -15,7 +15,7 @@ import {
 } from "../../db/schema";
 import logger from "../../logger";
 import { Sender, sendMessage, SendMessageParameters } from "../../messaging";
-import { withSpan } from "../../openTelemetry";
+import { getMeter, withSpan } from "../../openTelemetry";
 import { calculateKeyedSegment, getSegmentAssignmentDb } from "../../segments";
 import {
   getSubscriptionGroupDetails,
@@ -419,6 +419,35 @@ export function getWorkspace(workspaceId: string) {
 
 export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
 
+let WORKFLOW_HISTORY_SIZE_HISTOGRAM: Histogram | null = null;
+let WORKFLOW_HISTORY_LENGTH_HISTOGRAM: Histogram | null = null;
+
+function workflowHistorySizeHistogram() {
+  if (WORKFLOW_HISTORY_SIZE_HISTOGRAM !== null) {
+    return WORKFLOW_HISTORY_SIZE_HISTOGRAM;
+  }
+  const meter = getMeter();
+  const histogram = meter.createHistogram("workflow_history_size_histogram", {
+    description: "Histogram for workflow history size in bytes",
+    unit: "bytes",
+  });
+  WORKFLOW_HISTORY_SIZE_HISTOGRAM = histogram;
+  return histogram;
+}
+
+function workflowHistoryLengthHistogram() {
+  if (WORKFLOW_HISTORY_LENGTH_HISTOGRAM !== null) {
+    return WORKFLOW_HISTORY_LENGTH_HISTOGRAM;
+  }
+  const meter = getMeter();
+  const histogram = meter.createHistogram("workflow_history_length_histogram", {
+    description: "Histogram for workflow history length in events",
+    unit: "1",
+  });
+  WORKFLOW_HISTORY_LENGTH_HISTOGRAM = histogram;
+  return histogram;
+}
+
 export async function shouldReEnter({
   journeyId,
   userId,
@@ -482,10 +511,17 @@ export async function shouldReEnter({
   return assignment === true && definition.entryNode.reEnter === true;
 }
 
-export async function reporWorkflowInfo({
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function reportWorkflowInfo({
   historySize,
   historyLength,
 }: {
   historySize: number;
   historyLength: number;
-}): Promise<void> {}
+}): Promise<void> {
+  const sizeHistogram = workflowHistorySizeHistogram();
+  const lengthHistogram = workflowHistoryLengthHistogram();
+
+  sizeHistogram.record(historySize);
+  lengthHistogram.record(historyLength);
+}
