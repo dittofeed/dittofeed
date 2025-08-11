@@ -212,6 +212,13 @@ export function sendMessagesFactory(sender: Sender) {
       if (!broadcast) {
         throw new Error("Broadcast not found");
       }
+      if (broadcast.status !== "Running") {
+        return {
+          messagesSent: 0,
+          nextCursor: params.cursor,
+          includesNonRetryableError: false,
+        };
+      }
       const { messageTemplateId, config: unparsedConfig } = broadcast;
       if (!messageTemplateId) {
         throw new Error("Broadcast template is null");

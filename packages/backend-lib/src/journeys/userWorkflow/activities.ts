@@ -157,6 +157,16 @@ export function sendMessageFactory(sender: Sender) {
   return async function sendMessageWithSender(
     params: SendParamsV2,
   ): Promise<boolean> {
+    const journey = await db().query.journey.findFirst({
+      where: and(
+        eq(dbJourney.id, params.journeyId),
+        eq(dbJourney.workspaceId, params.workspaceId),
+      ),
+    });
+    if (!journey || journey.status !== "Running") {
+      return false;
+    }
+
     return withSpan({ name: "sendMessageWithSender" }, async (span) => {
       span.setAttributes({
         workspaceId: params.workspaceId,
