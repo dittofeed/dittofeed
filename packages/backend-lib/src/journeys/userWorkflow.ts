@@ -231,6 +231,13 @@ export async function userJourneyWorkflow(
           ) {
             eventKey = keyValueFromProps.value.toString();
           } else {
+            logger.error("event key value not found", {
+              journeyId,
+              userId,
+              workspaceId,
+              messageId: props.event.messageId,
+            });
+            return null;
           }
         } else {
           eventKey = props.event.messageId;
