@@ -1290,11 +1290,11 @@ export default function TemplateEditor({
         openTitle="Send Test Message"
         loading={testTemplateMutation.isPending}
         submitTitle={
-          testTemplateMutation.isPending ||
-          testTemplateMutation.isSuccess ||
           testTemplateMutation.isError
-            ? "Re-Submit"
-            : "Submit"
+            ? "Retry"
+            : testTemplateMutation.isPending || testTemplateMutation.isSuccess
+              ? "Re-Submit"
+              : "Submit"
         }
         onSubmit={() => {
           testTemplateMutation.mutate(submitTestDataVariables, {
