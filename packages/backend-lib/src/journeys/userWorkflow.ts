@@ -60,6 +60,10 @@ const {
   startToCloseTimeout: "2 minutes",
 });
 
+const { reportWorkflowInfo } = wf.proxyLocalActivities<typeof activities>({
+  startToCloseTimeout: "30 seconds",
+});
+
 type SegmentAssignment = Pick<
   SegmentUpdate,
   "currentlyInSegment" | "segmentVersion"
