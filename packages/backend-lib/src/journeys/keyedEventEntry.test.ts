@@ -752,13 +752,6 @@ describe("keyedEventEntry journeys", () => {
       } as const;
       event2 = eventFull2;
 
-      logger().debug(
-        {
-          event1MessageId: event1.messageId,
-          event2MessageId: event2.messageId,
-        },
-        "Submitting events",
-      );
       await submitBatch({
         workspaceId: workspace.id,
         data: {
@@ -769,7 +762,6 @@ describe("keyedEventEntry journeys", () => {
 
     it("only the cancelled journey should send a message", async () => {
       await worker.runUntil(async () => {
-        logger().debug("Events submitted successfully");
 
         const handle1 = await testEnv.client.workflow.start(
           userJourneyWorkflow,
@@ -1093,13 +1085,6 @@ describe("keyedEventEntry journeys", () => {
       } as const;
       event2 = eventFull2;
 
-      logger().debug(
-        {
-          event1MessageId: event1.messageId,
-          event2MessageId: event2.messageId,
-        },
-        "Submitting events for mixed V2 workflow/V2 signal test",
-      );
       await submitBatch({
         workspaceId: workspace.id,
         data: {
@@ -1110,7 +1095,6 @@ describe("keyedEventEntry journeys", () => {
 
     it("only the cancelled journey should send a message", async () => {
       await worker.runUntil(async () => {
-        logger().debug("Events submitted successfully for mixed V2 test");
 
         const handle1 = await testEnv.client.workflow.start(
           userJourneyWorkflow,

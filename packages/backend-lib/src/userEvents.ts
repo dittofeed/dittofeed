@@ -800,13 +800,11 @@ export async function getEventsById({
   workspaceId: string;
   eventIds: string[];
 }): Promise<UserWorkflowTrackEvent[]> {
-  logger().debug({ workspaceId, eventIds }, "getEventsById called");
   const events = await findUserEvents({
     workspaceId,
     messageId: eventIds,
     includeContext: true,
   });
-  logger().debug({ events, eventIds }, "getEventsById found events");
   return events.flatMap((event) => {
     if (event.event_type !== EventType.Track) {
       logger().error(

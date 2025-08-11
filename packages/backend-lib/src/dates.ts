@@ -128,31 +128,14 @@ export async function getUserPropertyDelay({
   offsetDirection = "after",
   ...rest
 }: GetUserPropertyDelayParams): Promise<number | null> {
-  logger().debug(
-    {
-      workspaceId,
-      userId,
-      userProperty,
-      version: "version" in rest ? rest.version : "v1",
-    },
-    "getUserPropertyDelay called",
-  );
   let events: UserWorkflowTrackEvent[] | undefined;
   if ("version" in rest) {
     events = await getEventsById({
       workspaceId,
       eventIds: rest.eventIds,
     });
-    logger().debug(
-      { events, eventIds: rest.eventIds },
-      "getUserPropertyDelay fetched events for v2",
-    );
   } else {
     events = rest.events;
-    logger().debug(
-      { events },
-      "getUserPropertyDelay using provided events for v1",
-    );
   }
   const assignments = await findAllUserPropertyAssignmentsById({
     workspaceId,
@@ -162,26 +145,7 @@ export async function getUserPropertyDelay({
   });
 
   const assignment = assignments[userProperty];
-  logger().debug(
-    {
-      workspaceId,
-      userId,
-      userProperty,
-      assignment,
-      allAssignments: assignments,
-    },
-    "getUserPropertyDelay assignment check",
-  );
   if (!assignment) {
-    logger().debug(
-      {
-        workspaceId,
-        userId,
-        userProperty,
-        assignments,
-      },
-      "no assignment in user property delay",
-    );
     return null;
   }
 
@@ -204,15 +168,6 @@ export async function getUserPropertyDelay({
   }
 
   if (!date) {
-    logger().debug(
-      {
-        workspaceId,
-        userId,
-        userProperty,
-        assignment,
-      },
-      "no date in user property delay",
-    );
     return null;
   }
 
