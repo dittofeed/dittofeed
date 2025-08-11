@@ -12,6 +12,11 @@ import * as wf from "@temporalio/workflow";
 import { omit } from "remeda";
 import { v5 as uuidV5 } from "uuid";
 
+import {
+  GetUserPropertyDelayParams,
+  GetUserPropertyDelayParamsV1,
+  GetUserPropertyDelayParamsV2,
+} from "../dates";
 import { jsonStringOrNumber, jsonValue } from "../jsonPath";
 import { retryExponential } from "../retry";
 import { assertUnreachableSafe } from "../typeAssertions";
@@ -37,11 +42,6 @@ import {
 } from "../types";
 import * as activities from "./userWorkflow/activities";
 import { GetSegmentAssignmentVersion } from "./userWorkflow/types";
-import {
-  GetUserPropertyDelayParams,
-  GetUserPropertyDelayParamsV1,
-  GetUserPropertyDelayParamsV2,
-} from "../dates";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -441,6 +441,22 @@ export async function userJourneyWorkflow(
           });
         }
         keyedEventIds.add(event.messageId);
+        break;
+      }
+      default: {
+        // Backwards compatibility: treat missing version as V1
+        const v1Event = event as TrackSignalParamsV1;
+        if (keyedEvents) {
+          keyedEvents.push(v1Event);
+        } else {
+          logger.error("keyed events not set", {
+            journeyId,
+            userId,
+            workspaceId,
+            event,
+          });
+        }
+        keyedEventIds.add(v1Event.messageId);
         break;
       }
     }
