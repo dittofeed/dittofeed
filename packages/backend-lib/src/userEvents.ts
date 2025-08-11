@@ -746,15 +746,25 @@ export async function buildEventsFile(params: DownloadEventsRequest): Promise<{
 
 export async function findUserEventsById({
   messageIds,
+  workspaceId,
 }: {
   messageIds: string[];
+  workspaceId?: string;
 }): Promise<UserEventsWithTraits[]> {
   const qb = new ClickHouseQueryBuilder();
 
-  const messageIdClause =
-    messageIds.length > 0
-      ? `message_id IN ${qb.addQueryValue(messageIds, "Array(String)")}`
-      : "1=0";
+  const clauses: string[] = [];
+
+  if (messageIds.length > 0) {
+    clauses.push(
+      `message_id IN ${qb.addQueryValue(messageIds, "Array(String)")}`,
+    );
+  }
+
+  if (workspaceId) {
+    clauses.push(`workspace_id = ${qb.addQueryValue(workspaceId, "String")}`);
+  }
+  const whereClause = clauses.join(" AND ");
 
   const query = `
     SELECT
@@ -770,7 +780,7 @@ export async function findUserEventsById({
         JSONExtractRaw(message_raw, 'traits') AS traits,
         JSONExtractRaw(message_raw, 'properties') AS properties
     FROM user_events_v2
-    WHERE ${messageIdClause}
+    WHERE ${whereClause}
     ORDER BY processing_time DESC
   `;
 
