@@ -67,7 +67,8 @@ export function initOpenTelemetry({
   meterProviderViews?: MeterProviderOptions["views"];
 }): OpenTelemetry {
   setServiceName(serviceName);
-  const { otelCollector, startOtel, appVersion } = config();
+  const { otelCollector, startOtel, appVersion, metricsExportIntervalMs } =
+    config();
 
   const resource = new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
@@ -82,7 +83,7 @@ export function initOpenTelemetry({
   });
 
   const metricReader = new PeriodicExportingMetricReader({
-    exportIntervalMillis: 10_000,
+    exportIntervalMillis: metricsExportIntervalMs,
     exporter: metricExporter,
   });
 

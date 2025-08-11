@@ -6,6 +6,10 @@ import { err, ok } from "neverthrow";
 import { omit } from "remeda";
 
 import { submitTrack } from "../../apps/track";
+import {
+  WORKFLOW_HISTORY_LENGTH_METRIC,
+  WORKFLOW_HISTORY_SIZE_METRIC,
+} from "../../constants";
 import { db } from "../../db";
 import {
   journey as dbJourney,
@@ -427,7 +431,7 @@ function workflowHistorySizeHistogram() {
     return WORKFLOW_HISTORY_SIZE_HISTOGRAM;
   }
   const meter = getMeter();
-  const histogram = meter.createHistogram("workflow_history_size_histogram", {
+  const histogram = meter.createHistogram(WORKFLOW_HISTORY_SIZE_METRIC, {
     description: "Histogram for workflow history size in bytes",
     unit: "bytes",
   });
@@ -440,7 +444,7 @@ function workflowHistoryLengthHistogram() {
     return WORKFLOW_HISTORY_LENGTH_HISTOGRAM;
   }
   const meter = getMeter();
-  const histogram = meter.createHistogram("workflow_history_length_histogram", {
+  const histogram = meter.createHistogram(WORKFLOW_HISTORY_LENGTH_METRIC, {
     description: "Histogram for workflow history length in events",
     unit: "1",
   });
@@ -516,27 +520,39 @@ export async function reportWorkflowInfo({
   historySize,
   historyLength,
   workspaceId,
-  runId,
   journeyId,
-  keyName,
 }: {
   historySize: number;
   historyLength: number;
   workspaceId: string;
-  runId: string;
   journeyId: string;
-  keyName?: string;
 }): Promise<void> {
   const sizeHistogram = workflowHistorySizeHistogram();
   const lengthHistogram = workflowHistoryLengthHistogram();
+  const journey = await db().query.journey.findFirst({
+    where: and(
+      eq(dbJourney.id, journeyId),
+      eq(dbJourney.workspaceId, workspaceId),
+    ),
+    columns: {
+      name: true,
+    },
+  });
+  if (!journey) {
+    logger().error(
+      {
+        journeyId,
+        workspaceId,
+      },
+      "journey not found",
+    );
+    return;
+  }
 
   const attributes = {
     workspaceId,
-    runId,
-    journeyId,
-    ...(keyName ? { keyName } : {}),
-  };
-
+    journeyName: journey.name,
+  } as const;
   sizeHistogram.record(historySize, attributes);
   lengthHistogram.record(historyLength, attributes);
 }
