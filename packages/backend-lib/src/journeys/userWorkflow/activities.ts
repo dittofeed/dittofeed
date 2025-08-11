@@ -520,25 +520,38 @@ export async function reportWorkflowInfo({
   historySize,
   historyLength,
   workspaceId,
-  runId,
   journeyId,
-  keyName,
 }: {
   historySize: number;
   historyLength: number;
   workspaceId: string;
-  runId: string;
   journeyId: string;
-  keyName?: string;
 }): Promise<void> {
   const sizeHistogram = workflowHistorySizeHistogram();
   const lengthHistogram = workflowHistoryLengthHistogram();
+  const journey = await db().query.journey.findFirst({
+    where: and(
+      eq(dbJourney.id, journeyId),
+      eq(dbJourney.workspaceId, workspaceId),
+    ),
+    columns: {
+      name: true,
+    },
+  });
+  if (!journey) {
+    logger().error(
+      {
+        journeyId,
+        workspaceId,
+      },
+      "journey not found",
+    );
+    return;
+  }
 
   const attributes = {
     workspaceId,
-    runId,
-    journeyId,
-    ...(keyName ? { keyName } : {}),
+    journeyName: journey.name,
   };
 
   sizeHistogram.record(historySize, attributes);

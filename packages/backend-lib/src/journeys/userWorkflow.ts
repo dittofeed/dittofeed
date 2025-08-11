@@ -262,9 +262,7 @@ export async function userJourneyWorkflow(
         historySize: info.historySize,
         historyLength: info.historyLength,
         workspaceId,
-        runId,
         journeyId,
-        keyName: eventKeyName,
       });
     }
   }

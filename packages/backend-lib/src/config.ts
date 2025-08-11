@@ -147,6 +147,10 @@ const BaseRawConfigProps = {
   computePropertiesTimeout: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  // OpenTelemetry metrics export interval (milliseconds)
+  metricsExportIntervalMs: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -274,6 +278,7 @@ export type Config = Overwrite<
     clickhouseMaxBytesRatioBeforeExternalGroupBy?: number;
     computePropertiesSplit: boolean;
     computePropertiesTimeout: number;
+    metricsExportIntervalMs: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -624,6 +629,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     computePropertiesTimeout: rawConfig.computePropertiesTimeout
       ? parseInt(rawConfig.computePropertiesTimeout)
       : 5 * 60 * 1000,
+    metricsExportIntervalMs: rawConfig.metricsExportIntervalMs
+      ? parseInt(rawConfig.metricsExportIntervalMs)
+      : 30 * 1000,
   };
 
   return parsedConfig;
