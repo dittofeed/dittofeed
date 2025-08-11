@@ -42,11 +42,7 @@ import {
 import logger from "./logger";
 import { getMeter } from "./openTelemetry";
 import { restartUserJourneyWorkflow } from "./restartUserJourneyWorkflow/lifecycle";
-import {
-  findManySegmentResourcesSafe,
-  findSegmentResource,
-  getSegmentsHash,
-} from "./segments";
+import { findManySegmentResourcesSafe, findSegmentResource } from "./segments";
 import { getContext } from "./temporal/activity";
 import { getUserJourneyWorkflowId } from "./temporal/workflows";
 import {
@@ -716,6 +712,7 @@ function journeyTriggerCounter() {
 
 interface EventTriggerJourneyDetails {
   journeyId: string;
+  journeyName: string;
   event: string;
   definition: JourneyDefinition;
 }
@@ -772,13 +769,14 @@ export function triggerEventEntryJourneysFactory({
           event: journey.definition.entryNode.event,
           journeyId: journey.id,
           definition: journey.definition,
+          journeyName: journey.name,
         };
       });
       journeyCache.set(workspaceId, journeyDetails);
     }
 
     const starts: Promise<unknown>[] = journeyDetails.flatMap(
-      ({ journeyId, event: journeyEvent, definition }) => {
+      ({ journeyId, journeyName, event: journeyEvent, definition }) => {
         const isMatch = doesEventNameMatch({
           pattern: journeyEvent,
           event: triggerEvent.event,
@@ -802,9 +800,8 @@ export function triggerEventEntryJourneysFactory({
 
         counter.add(1, {
           workspaceId,
-          journeyId,
+          journeyName,
           entryType: definition.entryNode.type,
-          keyName: definition.entryNode.key ?? "messageId",
         });
         return startKeyedJourneyImpl({
           workspaceId,
@@ -822,12 +819,12 @@ export function triggerEventEntryJourneysFactory({
 export async function triggerSegmentEntryJourney({
   workspaceId,
   segmentId,
-  segmentDefinition,
   segmentAssignment,
   journey,
 }: {
   workspaceId: string;
   segmentId: string;
+  // TODO: remove this. Was servicing metric tag.
   segmentDefinition: SegmentDefinition;
   segmentAssignment: ComputedAssignment;
   journey: HasStartedJourneyResource;
@@ -876,10 +873,8 @@ export async function triggerSegmentEntryJourney({
   const counter = journeyTriggerCounter();
   counter.add(1, {
     workspaceId,
-    journeyId,
+    journeyName: journey.name,
     entryType: definition.entryNode.type,
-    segmentId,
-    segmentHash: getSegmentsHash({ definition: segmentDefinition }),
   });
 
   await workflowClient.signalWithStart<
