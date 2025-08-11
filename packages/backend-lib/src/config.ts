@@ -631,7 +631,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       : 5 * 60 * 1000,
     metricsExportIntervalMs: rawConfig.metricsExportIntervalMs
       ? parseInt(rawConfig.metricsExportIntervalMs)
-      : 30 * 1000,
+      : 60 * 1000,
   };
 
   return parsedConfig;
