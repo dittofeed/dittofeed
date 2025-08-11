@@ -255,6 +255,16 @@ export async function userJourneyWorkflow(
   const nodes = new Map<string, JourneyNode>();
   const { runId } = workflowInfo();
 
+  function reportWorkflowInfoHandler() {
+    if (wf.patched("workflow-history-metrics")) {
+      const info = workflowInfo();
+      void reportWorkflowInfo({
+        historySize: info.historySize,
+        historyLength: info.historyLength,
+      });
+    }
+  }
+
   for (const node of definition.nodes) {
     nodes.set(node.id, node);
   }
@@ -317,6 +327,8 @@ export async function userJourneyWorkflow(
         });
       }),
     );
+
+    reportWorkflowInfoHandler();
   });
 
   wf.setHandler(segmentUpdateSignal, (update) => {
@@ -750,6 +762,8 @@ export async function userJourneyWorkflow(
       eventKeyName,
     });
 
+    reportWorkflowInfoHandler();
+
     // check if workspace is inactive after a long running node
     if (LONG_RUNNING_NODE_TYPES.has(currentNode.type)) {
       const workspace = await getWorkspace(workspaceId);
@@ -774,6 +788,8 @@ export async function userJourneyWorkflow(
     eventKey,
     eventKeyName,
   });
+
+  reportWorkflowInfoHandler();
 
   if (await shouldReEnter({ journeyId, userId, workspaceId })) {
     if (shouldContinueAsNew) {
