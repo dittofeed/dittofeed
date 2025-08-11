@@ -1289,6 +1289,13 @@ export default function TemplateEditor({
         isMinimised={isUserPropertiesMinimised}
         openTitle="Send Test Message"
         loading={testTemplateMutation.isPending}
+        submitTitle={
+          testTemplateMutation.isPending ||
+          testTemplateMutation.isSuccess ||
+          testTemplateMutation.isError
+            ? "Re-Submit"
+            : "Submit"
+        }
         onSubmit={() => {
           testTemplateMutation.mutate(submitTestDataVariables, {
             onSuccess: (data) => {
