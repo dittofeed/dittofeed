@@ -1,7 +1,6 @@
 import {
   ExplicitBucketHistogramAggregation,
   InstrumentType,
-  LastValueAggregation,
   View,
 } from "@opentelemetry/sdk-metrics";
 import {
@@ -15,7 +14,13 @@ import config from "./config";
 
 export const WORKER_VIEWS = [
   new View({
-    aggregation: new LastValueAggregation(),
+    aggregation: new ExplicitBucketHistogramAggregation([
+      300_000, // 5m
+      480_000, // 8m
+      720_000, // 12m
+      900_000, // 15m
+      1_200_000, // 20m
+    ]),
     instrumentName: WORKSPACE_COMPUTE_LATENCY_METRIC,
     instrumentType: InstrumentType.HISTOGRAM,
     attributeKeys: ["workspaceId"],
