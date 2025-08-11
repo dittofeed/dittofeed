@@ -429,7 +429,8 @@ export async function userJourneyWorkflow(
         keyedEventIds.add(event.messageId);
         break;
       }
-      case TrackSignalParamsVersion.V1: {
+      case TrackSignalParamsVersion.V1:
+      default: {
         if (keyedEvents) {
           keyedEvents.push(event);
         } else {
@@ -441,22 +442,6 @@ export async function userJourneyWorkflow(
           });
         }
         keyedEventIds.add(event.messageId);
-        break;
-      }
-      default: {
-        // Backwards compatibility: treat missing version as V1
-        const v1Event = event as TrackSignalParamsV1;
-        if (keyedEvents) {
-          keyedEvents.push(v1Event);
-        } else {
-          logger.error("keyed events not set", {
-            journeyId,
-            userId,
-            workspaceId,
-            event,
-          });
-        }
-        keyedEventIds.add(v1Event.messageId);
         break;
       }
     }
@@ -999,7 +984,7 @@ export async function userJourneyWorkflow(
       runId,
       fromNodeType: currentNode.type,
       fromNodeId: "id" in currentNode ? currentNode.id : "no-id",
-      toNodeType: nextNode?.type,
+      toNodeType: nextNode ? nextNode.type : undefined,
       toNodeId: nextNode && "id" in nextNode ? nextNode.id : "no-id",
     });
     currentNode = nextNode;

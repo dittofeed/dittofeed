@@ -100,8 +100,7 @@ describe("keyedEventEntry journeys", () => {
     await testEnv.teardown();
   });
 
-  // FIXME existing test now fails
-  describe.only("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
+  describe("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
     let journey: Journey;
     let journeyDefinition: JourneyDefinition;
     let dateUserPropertyId: string;
