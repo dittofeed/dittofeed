@@ -46,6 +46,10 @@ function observeWorkspaceComputeLatencyInner({
 
   const histogram = getMeter().createHistogram(
     WORKSPACE_COMPUTE_LATENCY_METRIC,
+    {
+      description: "Workspace compute latency",
+      unit: "ms",
+    },
   );
   const { appVersion } = config();
 
