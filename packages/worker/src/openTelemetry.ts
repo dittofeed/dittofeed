@@ -22,15 +22,14 @@ export const WORKER_VIEWS = [
   }),
   new View({
     aggregation: new ExplicitBucketHistogramAggregation([
-      1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288,
-      1048576, 2097152, 4194304, 8388608, 16777216, 33554432, 67108864,
+      4096, 16384, 65536, 262144, 1048576, 4194304, 16777216, 67108864,
     ]),
     instrumentName: WORKFLOW_HISTORY_SIZE_METRIC,
     instrumentType: InstrumentType.HISTOGRAM,
   }),
   new View({
     aggregation: new ExplicitBucketHistogramAggregation([
-      10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000,
+      25, 100, 500, 2500, 10000, 50000,
     ]),
     instrumentName: WORKFLOW_HISTORY_LENGTH_METRIC,
     instrumentType: InstrumentType.HISTOGRAM,
