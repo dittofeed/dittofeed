@@ -1,9 +1,11 @@
-import { Histogram, SpanStatusCode } from "@opentelemetry/api";
+import { SpanStatusCode } from "@opentelemetry/api";
 import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
+import { stableJsonStringify } from "isomorphic-lib/src/equality";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
 import { omit } from "remeda";
+import { v5 as uuidv5 } from "uuid";
 
 import { submitTrack } from "../../apps/track";
 import {
@@ -423,33 +425,75 @@ export function getWorkspace(workspaceId: string) {
 
 export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
 
-let WORKFLOW_HISTORY_SIZE_HISTOGRAM: Histogram | null = null;
-let WORKFLOW_HISTORY_LENGTH_HISTOGRAM: Histogram | null = null;
+type MetricAttributes = Record<string, string>;
 
-function workflowHistorySizeHistogram() {
-  if (WORKFLOW_HISTORY_SIZE_HISTOGRAM !== null) {
-    return WORKFLOW_HISTORY_SIZE_HISTOGRAM;
-  }
-  const meter = getMeter();
-  const histogram = meter.createHistogram(WORKFLOW_HISTORY_SIZE_METRIC, {
-    description: "Histogram for workflow history size in bytes",
-    unit: "bytes",
-  });
-  WORKFLOW_HISTORY_SIZE_HISTOGRAM = histogram;
-  return histogram;
+interface RunningMaxEntry {
+  attributes: MetricAttributes;
+  value: number;
 }
 
-function workflowHistoryLengthHistogram() {
-  if (WORKFLOW_HISTORY_LENGTH_HISTOGRAM !== null) {
-    return WORKFLOW_HISTORY_LENGTH_HISTOGRAM;
+const WORKFLOW_HISTORY_SIZE_MAX = new Map<string, RunningMaxEntry>();
+const WORKFLOW_HISTORY_LENGTH_MAX = new Map<string, RunningMaxEntry>();
+
+const WORKFLOW_HISTORY_RUNNING_MAX_NAMESPACE =
+  "33a6efcb-9d9f-49e2-ad27-8cdc3bb9d7a8" as const;
+
+function stableAttributesKey(attrs: MetricAttributes): string {
+  const stringified = stableJsonStringify(attrs);
+  const key = uuidv5(stringified, WORKFLOW_HISTORY_RUNNING_MAX_NAMESPACE);
+  return key;
+}
+
+function recordRunningMax(
+  map: Map<string, RunningMaxEntry>,
+  attributes: MetricAttributes,
+  value: number,
+) {
+  const key = stableAttributesKey(attributes);
+  const existing = map.get(key);
+  if (!existing) {
+    map.set(key, { attributes, value });
+    return;
   }
+  if (value > existing.value) {
+    existing.value = value;
+  }
+}
+
+let historyGaugesInitialized = false;
+function ensureHistoryGaugesInitialized() {
+  if (historyGaugesInitialized) return;
   const meter = getMeter();
-  const histogram = meter.createHistogram(WORKFLOW_HISTORY_LENGTH_METRIC, {
-    description: "Histogram for workflow history length in events",
-    unit: "1",
+  const sizeGauge = meter.createObservableGauge(WORKFLOW_HISTORY_SIZE_METRIC, {
+    description: "Max workflow history size in bytes (per export interval)",
+    unit: "bytes",
   });
-  WORKFLOW_HISTORY_LENGTH_HISTOGRAM = histogram;
-  return histogram;
+  const lengthGauge = meter.createObservableGauge(
+    WORKFLOW_HISTORY_LENGTH_METRIC,
+    {
+      description:
+        "Max workflow history length in events (per export interval)",
+      unit: "1",
+    },
+  );
+
+  meter.addBatchObservableCallback(
+    (observer) => {
+      for (const { attributes, value } of WORKFLOW_HISTORY_SIZE_MAX.values()) {
+        observer.observe(sizeGauge, value, attributes);
+      }
+      for (const {
+        attributes,
+        value,
+      } of WORKFLOW_HISTORY_LENGTH_MAX.values()) {
+        observer.observe(lengthGauge, value, attributes);
+      }
+      WORKFLOW_HISTORY_SIZE_MAX.clear();
+      WORKFLOW_HISTORY_LENGTH_MAX.clear();
+    },
+    [sizeGauge, lengthGauge],
+  );
+  historyGaugesInitialized = true;
 }
 
 export async function shouldReEnter({
@@ -527,8 +571,7 @@ export async function reportWorkflowInfo({
   workspaceId: string;
   journeyId: string;
 }): Promise<void> {
-  const sizeHistogram = workflowHistorySizeHistogram();
-  const lengthHistogram = workflowHistoryLengthHistogram();
+  ensureHistoryGaugesInitialized();
   const journey = await db().query.journey.findFirst({
     where: and(
       eq(dbJourney.id, journeyId),
@@ -549,11 +592,10 @@ export async function reportWorkflowInfo({
     return;
   }
 
-  const attributes = {
+  const attributes: MetricAttributes = {
     workspaceId,
     journeyName: journey.name,
   };
-
-  sizeHistogram.record(historySize, attributes);
-  lengthHistogram.record(historyLength, attributes);
+  recordRunningMax(WORKFLOW_HISTORY_SIZE_MAX, attributes, historySize);
+  recordRunningMax(WORKFLOW_HISTORY_LENGTH_MAX, attributes, historyLength);
 }
