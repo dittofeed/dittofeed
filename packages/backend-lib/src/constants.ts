@@ -19,6 +19,12 @@ export const FEATURE_INCREMENTAL_COMP = "incremental-comp" as const;
 export const WORKSPACE_COMPUTE_LATENCY_METRIC =
   "workspace_compute_latency" as const;
 
+// Worker workflow history metrics
+export const WORKFLOW_HISTORY_SIZE_METRIC =
+  "workflow_history_size_histogram" as const;
+export const WORKFLOW_HISTORY_LENGTH_METRIC =
+  "workflow_history_length_histogram" as const;
+
 export const MESSAGE_METADATA_FIELDS = [
   "workspaceId",
   "broadcastId",

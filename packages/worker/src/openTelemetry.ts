@@ -3,7 +3,11 @@ import {
   LastValueAggregation,
   View,
 } from "@opentelemetry/sdk-metrics";
-import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "backend-lib/src/constants";
+import {
+  WORKFLOW_HISTORY_LENGTH_METRIC,
+  WORKFLOW_HISTORY_SIZE_METRIC,
+  WORKSPACE_COMPUTE_LATENCY_METRIC,
+} from "backend-lib/src/constants";
 import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
 
 import config from "./config";
@@ -17,12 +21,12 @@ export const WORKER_VIEWS = [
   }),
   new View({
     aggregation: new LastValueAggregation(),
-    instrumentName: "workflow_history_size_histogram",
+    instrumentName: WORKFLOW_HISTORY_SIZE_METRIC,
     instrumentType: InstrumentType.HISTOGRAM,
   }),
   new View({
     aggregation: new LastValueAggregation(),
-    instrumentName: "workflow_history_length_histogram",
+    instrumentName: WORKFLOW_HISTORY_LENGTH_METRIC,
     instrumentType: InstrumentType.HISTOGRAM,
   }),
 ];
