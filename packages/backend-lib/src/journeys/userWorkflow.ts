@@ -220,10 +220,6 @@ export async function userJourneyWorkflow(
       isHidden = props.event?.context?.hidden === true;
       if (props.event) {
         if (eventKeyName) {
-          logger.debug("event key from name", {
-            eventKeyName,
-            event: props.event,
-          });
           const keyValueFromProps = jsonValue({
             data: props.event.properties,
             path: eventKeyName,
@@ -235,13 +231,6 @@ export async function userJourneyWorkflow(
           ) {
             eventKey = keyValueFromProps.value.toString();
           } else {
-            logger.debug("unable to generate event key", {
-              workspaceId,
-              journeyId,
-              userId,
-              eventKeyName,
-              event: props.event,
-            });
           }
         } else {
           eventKey = props.event.messageId;
@@ -328,21 +317,8 @@ export async function userJourneyWorkflow(
 
   for (const node of definition.nodes) {
     nodes.set(node.id, node);
-    logger.debug("Added node to map", {
-      workspaceId,
-      journeyId,
-      userId,
-      nodeId: node.id,
-      nodeType: node.type,
-    });
   }
   nodes.set(definition.exitNode.type, definition.exitNode);
-  logger.debug("Final nodes map", {
-    workspaceId,
-    journeyId,
-    userId,
-    nodesMapKeys: Array.from(nodes.keys()),
-  });
   let waitForSegmentIds: WaitForSegmentChild[] | null = null;
 
   async function getSegmentAssignmentHandler({
@@ -446,12 +422,6 @@ export async function userJourneyWorkflow(
       }
     }
     if (!waitForSegmentIds) {
-      logger.debug("no wait for segments, skipping", {
-        workflow: WORKFLOW_NAME,
-        journeyId,
-        userId,
-        workspaceId,
-      });
       return;
     }
     await Promise.all(
@@ -460,13 +430,6 @@ export async function userJourneyWorkflow(
         const assignment = await getSegmentAssignmentHandler({
           segmentId,
           now: nowMs,
-        });
-        logger.debug("segment assignment from keyed event", {
-          workspaceId,
-          userId,
-          segmentId,
-          assignment,
-          event,
         });
         if (assignment === null) {
           return;
@@ -554,18 +517,6 @@ export async function userJourneyWorkflow(
       }
       case JourneyNodeType.EventEntryNode: {
         const lookupResult = nodes.get(currentNode.child);
-        logger.info("EventEntryNode lookup result", {
-          ...defaultLoggingFields,
-          child: currentNode.child,
-          foundNode: lookupResult
-            ? {
-                type: lookupResult.type,
-                id: "id" in lookupResult ? lookupResult.id : "no-id",
-              }
-            : null,
-          mapHasKey: nodes.has(currentNode.child),
-          mapSize: nodes.size,
-        });
         nextNode = lookupResult ?? null;
         if (!nextNode) {
           logger.error("missing entry node child", {
@@ -579,20 +530,10 @@ export async function userJourneyWorkflow(
         break;
       }
       case JourneyNodeType.DelayNode: {
-        logger.debug("DelayNode execution started", {
-          ...defaultLoggingFields,
-          delayVariantType: currentNode.variant.type,
-          workflowVersion: props.version,
-        });
         let delay: number;
         switch (currentNode.variant.type) {
           case DelayVariantType.Second: {
             delay = currentNode.variant.seconds * 1000;
-            logger.debug("DelayNode: Second delay calculated", {
-              ...defaultLoggingFields,
-              delay,
-              seconds: currentNode.variant.seconds,
-            });
             break;
           }
           case DelayVariantType.LocalTime: {
@@ -603,22 +544,9 @@ export async function userJourneyWorkflow(
               now,
             });
             delay = nexTime - now;
-            logger.debug("DelayNode: LocalTime delay calculated", {
-              ...defaultLoggingFields,
-              delay,
-              now,
-              nexTime,
-            });
             break;
           }
           case DelayVariantType.UserProperty: {
-            logger.debug("DelayNode: UserProperty delay starting", {
-              ...defaultLoggingFields,
-              userProperty: currentNode.variant.userProperty,
-              workflowVersion: props.version,
-              keyedEventIdsCount: keyedEventIds.size,
-              keyedEventsCount: keyedEvents?.length,
-            });
             let params: GetUserPropertyDelayParams;
             if (props.version === UserJourneyWorkflowVersion.V3) {
               params = {
@@ -631,10 +559,6 @@ export async function userJourneyWorkflow(
                 eventIds: Array.from(keyedEventIds),
                 version: "v2",
               } satisfies GetUserPropertyDelayParamsV2;
-              logger.debug("DelayNode: V3 params prepared", {
-                ...defaultLoggingFields,
-                eventIds: Array.from(keyedEventIds),
-              });
             } else {
               params = {
                 workspaceId,
@@ -645,18 +569,9 @@ export async function userJourneyWorkflow(
                 offsetDirection: currentNode.variant.offsetDirection,
                 events: keyedEvents,
               } satisfies GetUserPropertyDelayParamsV1;
-              logger.debug("DelayNode: V1/V2 params prepared", {
-                ...defaultLoggingFields,
-                eventsCount: keyedEvents?.length,
-              });
             }
             const userPropertyDelay = await getUserPropertyDelay(params);
             delay = userPropertyDelay ?? 0;
-            logger.debug("DelayNode: UserProperty delay calculated", {
-              ...defaultLoggingFields,
-              userPropertyDelay,
-              finalDelay: delay,
-            });
             break;
           }
           default: {
@@ -977,16 +892,6 @@ export async function userJourneyWorkflow(
         break;
       }
     }
-    logger.debug("Node transition", {
-      workspaceId,
-      journeyId,
-      userId,
-      runId,
-      fromNodeType: currentNode.type,
-      fromNodeId: "id" in currentNode ? currentNode.id : "no-id",
-      toNodeType: nextNode ? nextNode.type : undefined,
-      toNodeId: nextNode && "id" in nextNode ? nextNode.id : "no-id",
-    });
     currentNode = nextNode;
   }
 
