@@ -12,6 +12,11 @@ import * as wf from "@temporalio/workflow";
 import { omit } from "remeda";
 import { v5 as uuidV5 } from "uuid";
 
+import {
+  GetUserPropertyDelayParams,
+  GetUserPropertyDelayParamsV1,
+  GetUserPropertyDelayParamsV2,
+} from "../dates";
 import { jsonStringOrNumber, jsonValue } from "../jsonPath";
 import { retryExponential } from "../retry";
 import { assertUnreachableSafe } from "../typeAssertions";
@@ -25,6 +30,7 @@ import {
   JSONValue,
   MessageVariant,
   RenameKey,
+  SegmentAssignment,
   SegmentAssignment as SegmentAssignmentDb,
   SegmentUpdate,
   SmsMessageVariant,
@@ -35,6 +41,7 @@ import {
   WaitForSegmentChild,
 } from "../types";
 import * as activities from "./userWorkflow/activities";
+import { SendParamsV2 } from "./userWorkflow/activities";
 import { GetSegmentAssignmentVersion } from "./userWorkflow/types";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
@@ -42,7 +49,23 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 export const segmentUpdateSignal =
   wf.defineSignal<[SegmentUpdate]>("segmentUpdate");
 
-export const trackSignal = wf.defineSignal<[UserWorkflowTrackEvent]>("track");
+export enum TrackSignalParamsVersion {
+  V1 = 1,
+  V2 = 2,
+}
+
+export type TrackSignalParamsV1 = UserWorkflowTrackEvent & {
+  version?: TrackSignalParamsVersion.V1;
+};
+
+export interface TrackSignalParamsV2 {
+  version: TrackSignalParamsVersion.V2;
+  messageId: string;
+}
+
+export type TrackSignalParams = TrackSignalParamsV1 | TrackSignalParamsV2;
+
+export const trackSignal = wf.defineSignal<[TrackSignalParams]>("track");
 
 const WORKFLOW_NAME = "userJourneyWorkflow";
 
@@ -56,6 +79,7 @@ const {
   getUserPropertyDelay,
   getWorkspace,
   shouldReEnter,
+  getEventsById,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "2 minutes",
 });
@@ -64,7 +88,7 @@ const { reportWorkflowInfo } = wf.proxyLocalActivities<typeof activities>({
   startToCloseTimeout: "30 seconds",
 });
 
-type SegmentAssignment = Pick<
+type ReceivedSegmentUpdate = Pick<
   SegmentUpdate,
   "currentlyInSegment" | "segmentVersion"
 >;
@@ -118,6 +142,19 @@ export function getUserJourneyWorkflowId({
 export enum UserJourneyWorkflowVersion {
   V1 = 1,
   V2 = 2,
+  V3 = 3,
+}
+
+export interface UserJourneyWorkflowPropsV3 {
+  version: UserJourneyWorkflowVersion.V3;
+  workspaceId: string;
+  userId: string;
+  definition: JourneyDefinition;
+  journeyId: string;
+  eventKey?: string;
+  messageId: string;
+  hidden?: boolean;
+  shouldContinueAsNew?: boolean;
 }
 
 export interface UserJourneyWorkflowPropsV2 {
@@ -143,7 +180,8 @@ export interface UserJourneyWorkflowPropsV1 {
 
 export type UserJourneyWorkflowProps =
   | UserJourneyWorkflowPropsV1
-  | UserJourneyWorkflowPropsV2;
+  | UserJourneyWorkflowPropsV2
+  | UserJourneyWorkflowPropsV3;
 
 const LONG_RUNNING_NODE_TYPES = new Set<JourneyNodeType>([
   JourneyNodeType.WaitForNode,
@@ -161,52 +199,60 @@ export async function userJourneyWorkflow(
     journeyId,
     shouldContinueAsNew = true,
   } = props;
-  const entryEventProperties =
-    props.version === UserJourneyWorkflowVersion.V2
-      ? props.event?.properties
-      : props.context;
-  const isHidden =
-    props.version === UserJourneyWorkflowVersion.V2 &&
-    props.event?.context?.hidden === true;
+
+  let entryEventProperties: Record<string, JSONValue> | undefined;
+  let isHidden: boolean;
+  let eventKey: string | undefined;
+
   const eventKeyName =
     props.definition.entryNode.type === JourneyNodeType.EventEntryNode
       ? props.definition.entryNode.key
       : undefined;
 
-  let eventKey: string | undefined;
-  if (props.version === UserJourneyWorkflowVersion.V2) {
-    if (props.event) {
-      if (eventKeyName) {
-        logger.debug("event key from name", {
-          eventKeyName,
-          event: props.event,
-        });
-        const keyValueFromProps = jsonValue({
-          data: props.event.properties,
-          path: eventKeyName,
-        });
-        if (
-          keyValueFromProps.isOk() &&
-          (typeof keyValueFromProps.value === "string" ||
-            typeof keyValueFromProps.value === "number")
-        ) {
-          eventKey = keyValueFromProps.value.toString();
-        } else {
-          logger.debug("unable to generate event key", {
-            workspaceId,
-            journeyId,
-            userId,
-            eventKeyName,
-            event: props.event,
-            eventKey,
-          });
-        }
-      } else {
-        eventKey = props.event.messageId;
-      }
+  switch (props.version) {
+    case UserJourneyWorkflowVersion.V3: {
+      // not setting entry event properties for v3
+      isHidden = props.hidden ?? false;
+      eventKey = props.eventKey ?? props.messageId;
+      break;
     }
-  } else {
-    eventKey = props.eventKey;
+    case UserJourneyWorkflowVersion.V2: {
+      entryEventProperties = props.event?.properties;
+      isHidden = props.event?.context?.hidden === true;
+      if (props.event) {
+        if (eventKeyName) {
+          const keyValueFromProps = jsonValue({
+            data: props.event.properties,
+            path: eventKeyName,
+          });
+          if (
+            keyValueFromProps.isOk() &&
+            (typeof keyValueFromProps.value === "string" ||
+              typeof keyValueFromProps.value === "number")
+          ) {
+            eventKey = keyValueFromProps.value.toString();
+          } else {
+            logger.error("event key value not found", {
+              journeyId,
+              userId,
+              workspaceId,
+              messageId: props.event.messageId,
+            });
+            return null;
+          }
+        } else {
+          eventKey = props.event.messageId;
+        }
+      }
+      break;
+    }
+    case UserJourneyWorkflowVersion.V1:
+    default: {
+      entryEventProperties = props.context;
+      isHidden = false;
+      eventKey = props.eventKey;
+      break;
+    }
   }
 
   if (
@@ -228,11 +274,21 @@ export async function userJourneyWorkflow(
     return null;
   }
 
-  const keyedEvents: UserWorkflowTrackEvent[] = [];
+  // deprecated because inflates the size of the workflow state
+  let keyedEvents: UserWorkflowTrackEvent[] | undefined;
   const keyedEventIds = new Set<string>();
-  if (props.version === UserJourneyWorkflowVersion.V2 && props.event) {
-    keyedEvents.push(props.event);
-    keyedEventIds.add(props.event.messageId);
+  switch (props.version) {
+    case UserJourneyWorkflowVersion.V3: {
+      keyedEventIds.add(props.messageId);
+      break;
+    }
+    case UserJourneyWorkflowVersion.V2: {
+      if (props.event) {
+        keyedEvents = [props.event];
+        keyedEventIds.add(props.event.messageId);
+      }
+      break;
+    }
   }
 
   // event entry journeys can't be started from segment signals
@@ -251,7 +307,7 @@ export async function userJourneyWorkflow(
   }
 
   const journeyStartedAt = Date.now();
-  const segmentAssignments = new Map<string, SegmentAssignment>();
+  const segmentAssignments = new Map<string, ReceivedSegmentUpdate>();
   const nodes = new Map<string, JourneyNode>();
   const { runId } = workflowInfo();
 
@@ -273,6 +329,44 @@ export async function userJourneyWorkflow(
   nodes.set(definition.exitNode.type, definition.exitNode);
   let waitForSegmentIds: WaitForSegmentChild[] | null = null;
 
+  async function getSegmentAssignmentHandler({
+    segmentId,
+    now: nowInner,
+  }: {
+    segmentId: string;
+    now: number;
+  }): Promise<SegmentAssignment | null> {
+    if (eventKey) {
+      // deprecated, now passing by id rather than by value
+      if (keyedEvents) {
+        return getSegmentAssignment({
+          workspaceId,
+          userId,
+          segmentId,
+          events: keyedEvents,
+          keyValue: eventKey,
+          nowMs: nowInner,
+          version: GetSegmentAssignmentVersion.V1,
+        });
+      }
+      return getSegmentAssignment({
+        workspaceId,
+        userId,
+        segmentId,
+        eventIds: Array.from(keyedEventIds),
+        keyValue: eventKey,
+        nowMs: nowInner,
+        version: GetSegmentAssignmentVersion.V2,
+      });
+    }
+
+    return getSegmentAssignment({
+      workspaceId,
+      userId,
+      segmentId,
+    });
+  }
+
   wf.setHandler(trackSignal, async (event) => {
     logger.info("keyed event signal", {
       workspaceId,
@@ -289,36 +383,61 @@ export async function userJourneyWorkflow(
       });
       return;
     }
-    keyedEvents.push(event);
-    keyedEventIds.add(event.messageId);
+    switch (event.version) {
+      case TrackSignalParamsVersion.V2: {
+        const propsVersion = props.version ?? UserJourneyWorkflowVersion.V1;
+        if (propsVersion !== UserJourneyWorkflowVersion.V3) {
+          if (!Array.isArray(keyedEvents)) {
+            logger.error(
+              "keyed events not set on a workflow version that expects it to be",
+              {
+                journeyId,
+                userId,
+                workspaceId,
+                event,
+                propsVersion,
+              },
+            );
+            return;
+          }
 
+          const newEvents = await getEventsById({
+            workspaceId,
+            eventIds: [event.messageId],
+          });
+          if (Array.isArray(keyedEvents)) {
+            keyedEvents.push(...newEvents);
+          }
+        }
+
+        keyedEventIds.add(event.messageId);
+        break;
+      }
+      case TrackSignalParamsVersion.V1:
+      default: {
+        if (keyedEvents) {
+          keyedEvents.push(event);
+        } else {
+          logger.error("keyed events not set", {
+            journeyId,
+            userId,
+            workspaceId,
+            event,
+          });
+        }
+        keyedEventIds.add(event.messageId);
+        break;
+      }
+    }
     if (!waitForSegmentIds) {
-      logger.debug("no wait for segments, skipping", {
-        workflow: WORKFLOW_NAME,
-        journeyId,
-        userId,
-        workspaceId,
-      });
       return;
     }
     await Promise.all(
       waitForSegmentIds.map(async ({ segmentId }) => {
         const nowMs = Date.now();
-        const assignment = await getSegmentAssignment({
-          workspaceId,
-          userId,
+        const assignment = await getSegmentAssignmentHandler({
           segmentId,
-          events: keyedEvents,
-          keyValue: eventKey,
-          nowMs,
-          version: GetSegmentAssignmentVersion.V1,
-        });
-        logger.debug("segment assignment from keyed event", {
-          workspaceId,
-          userId,
-          segmentId,
-          assignment,
-          event,
+          now: nowMs,
         });
         if (assignment === null) {
           return;
@@ -385,14 +504,9 @@ export async function userJourneyWorkflow(
         const cn = currentNode;
         const initialSegmentAssignment =
           (
-            await getSegmentAssignment({
-              workspaceId,
-              userId,
+            await getSegmentAssignmentHandler({
               segmentId: cn.segment,
-              events: keyedEvents,
-              keyValue: eventKey,
-              nowMs: Date.now(),
-              version: GetSegmentAssignmentVersion.V1,
+              now: Date.now(),
             })
           )?.inSegment === true;
         if (!initialSegmentAssignment) {
@@ -410,11 +524,13 @@ export async function userJourneyWorkflow(
         break;
       }
       case JourneyNodeType.EventEntryNode: {
-        nextNode = nodes.get(currentNode.child) ?? null;
+        const lookupResult = nodes.get(currentNode.child);
+        nextNode = lookupResult ?? null;
         if (!nextNode) {
           logger.error("missing entry node child", {
             ...defaultLoggingFields,
             child: currentNode.child,
+            availableNodes: Array.from(nodes.keys()),
           });
           nextNode = definition.exitNode;
           break;
@@ -439,15 +555,30 @@ export async function userJourneyWorkflow(
             break;
           }
           case DelayVariantType.UserProperty: {
-            const userPropertyDelay = await getUserPropertyDelay({
-              workspaceId,
-              userId,
-              userProperty: currentNode.variant.userProperty,
-              events: keyedEvents,
-              now: Date.now(),
-              offsetSeconds: currentNode.variant.offsetSeconds,
-              offsetDirection: currentNode.variant.offsetDirection,
-            });
+            let params: GetUserPropertyDelayParams;
+            if (props.version === UserJourneyWorkflowVersion.V3) {
+              params = {
+                workspaceId,
+                userId,
+                userProperty: currentNode.variant.userProperty,
+                now: Date.now(),
+                offsetSeconds: currentNode.variant.offsetSeconds,
+                offsetDirection: currentNode.variant.offsetDirection,
+                eventIds: Array.from(keyedEventIds),
+                version: "v2",
+              } satisfies GetUserPropertyDelayParamsV2;
+            } else {
+              params = {
+                workspaceId,
+                userId,
+                userProperty: currentNode.variant.userProperty,
+                now: Date.now(),
+                offsetSeconds: currentNode.variant.offsetSeconds,
+                offsetDirection: currentNode.variant.offsetDirection,
+                events: keyedEvents,
+              } satisfies GetUserPropertyDelayParamsV1;
+            }
+            const userPropertyDelay = await getUserPropertyDelay(params);
             delay = userPropertyDelay ?? 0;
             break;
           }
@@ -490,20 +621,14 @@ export async function userJourneyWorkflow(
         const initialSegmentAssignments: SegmentAssignmentDb[] = (
           await Promise.all(
             segmentChildren.map(async ({ segmentId }) => {
-              const assignment: SegmentAssignmentDb | null =
-                await getSegmentAssignment({
-                  workspaceId,
-                  userId,
-                  segmentId,
-                  events: keyedEvents,
-                  keyValue: eventKey,
-                  nowMs: Date.now(),
-                  version: GetSegmentAssignmentVersion.V1,
-                });
+              const assignment = await getSegmentAssignmentHandler({
+                segmentId,
+                now: Date.now(),
+              });
               if (assignment === null) {
                 return [];
               }
-              if (assignment.inSegment) {
+              if (assignment.inSegment === true) {
                 segmentAssignments.set(segmentId, {
                   currentlyInSegment: assignment.inSegment,
                   segmentVersion: Date.now(),
@@ -560,15 +685,11 @@ export async function userJourneyWorkflow(
       case JourneyNodeType.SegmentSplitNode: {
         const cn = currentNode;
 
-        const segmentAssignment = await getSegmentAssignment({
-          workspaceId,
-          userId,
+        const segmentAssignment = await getSegmentAssignmentHandler({
           segmentId: cn.variant.segment,
-          events: keyedEvents,
-          keyValue: eventKey,
-          nowMs: Date.now(),
-          version: GetSegmentAssignmentVersion.V1,
+          now: Date.now(),
         });
+
         const nextNodeId: string = segmentAssignment?.inSegment
           ? currentNode.variant.trueChild
           : currentNode.variant.falseChild;
@@ -664,13 +785,18 @@ export async function userJourneyWorkflow(
           }
         }
 
-        const messageSucceeded = await sendMessageV2({
+        const sendMesssageParams: SendParamsV2 = {
           ...messagePayload,
           ...variant,
           events: keyedEvents,
           context: entryEventProperties,
           isHidden,
-        });
+        };
+        if (props.version === UserJourneyWorkflowVersion.V3) {
+          sendMesssageParams.eventIds = Array.from(keyedEventIds);
+        }
+
+        const messageSucceeded = await sendMessageV2(sendMesssageParams);
 
         if (!messageSucceeded && !currentNode.skipOnFailure) {
           logger.info("message node early exit", {

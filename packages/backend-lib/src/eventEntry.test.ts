@@ -6,6 +6,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../test/temporal";
+import { submitBatch } from "./apps/batch";
 import { db, insert } from "./db";
 import {
   journey as dbJourney,
@@ -23,6 +24,7 @@ import { insertSegmentAssignments } from "./segments";
 import {
   ChannelType,
   EmailProviderType,
+  EventType,
   InternalEventType,
   Journey,
   JourneyDefinition,
@@ -248,6 +250,151 @@ describe("eventEntry journeys", () => {
             }),
           );
         });
+      });
+    });
+  });
+
+  describe("when messaging a user with an anyof performed user property with new style args", () => {
+    let journeyId: string;
+    let journeyDefinition: JourneyDefinition;
+    let messageId: string;
+    let userId: string;
+    const senderMock = jest.fn().mockReturnValue(
+      ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Email,
+          from: "test@test.com",
+          body: "test",
+          to: "test@test.com",
+          subject: "test",
+          headers: {},
+          replyTo: "test@test.com",
+          provider: {
+            type: EmailProviderType.Test,
+          },
+        },
+      }),
+    );
+
+    const testActivities = {
+      sendMessageV2: sendMessageFactory(senderMock),
+    };
+
+    beforeEach(async () => {
+      messageId = randomUUID();
+      userId = randomUUID();
+      const event = {
+        type: EventType.Track,
+        event: "tracking_update",
+        messageId,
+        userId,
+        timestamp: new Date().toISOString(),
+        properties: {
+          data: {
+            carrier: "UPS",
+          },
+        },
+      } as const;
+
+      const envAndWorker = await createEnvAndWorker({
+        activityOverrides: testActivities,
+      });
+      testEnv = envAndWorker.testEnv;
+      worker = envAndWorker.worker;
+
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [event],
+        },
+      });
+
+      await db()
+        .insert(dbUserProperty)
+        .values([
+          {
+            workspaceId: workspace.id,
+            name: "carrier",
+            updatedAt: new Date(),
+            definition: {
+              type: UserPropertyDefinitionType.Group,
+              entry: "0",
+              nodes: [
+                {
+                  id: "0",
+                  type: UserPropertyDefinitionType.AnyOf,
+                  children: ["1", "2", "3", "4"],
+                },
+                {
+                  id: "1",
+                  type: UserPropertyDefinitionType.Performed,
+                  event: "tracking_update",
+                  path: "data.carrier",
+                },
+              ],
+            } satisfies UserPropertyDefinition,
+          },
+        ]);
+      const templateId = randomUUID();
+      await db().insert(dbMessageTemplate).values({
+        id: templateId,
+        workspaceId: workspace.id,
+        name: "test-template",
+      });
+      journeyId = randomUUID();
+      journeyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.EventEntryNode,
+          event: "tracking_update",
+          child: "message-node",
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            type: JourneyNodeType.MessageNode,
+            id: "message-node",
+            child: JourneyNodeType.ExitNode,
+            variant: {
+              type: ChannelType.Email,
+              templateId,
+            },
+          },
+        ],
+      };
+      await db().insert(dbJourney).values({
+        id: journeyId,
+        name: "test-journey",
+        workspaceId: workspace.id,
+        definition: journeyDefinition,
+        status: "Running",
+      });
+    });
+
+    it("should call the inner send message", async () => {
+      await worker.runUntil(async () => {
+        await testEnv.client.workflow.execute(userJourneyWorkflow, {
+          workflowId: "workflow1",
+          taskQueue: "default",
+          args: [
+            {
+              journeyId,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              messageId,
+            },
+          ],
+        });
+        expect(senderMock).toHaveBeenCalledTimes(1);
+        expect(senderMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            eventIds: [messageId],
+          }),
+        );
       });
     });
   });
