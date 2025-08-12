@@ -804,8 +804,8 @@ export async function markBroadcastStatus({
     async (tx) => {
       const existing = await tx.query.broadcast.findFirst({
         where: and(
-          eq(schema.broadcast.id, broadcastId),
-          eq(schema.broadcast.workspaceId, workspaceId),
+          eq(dbBroadcast.id, broadcastId),
+          eq(dbBroadcast.workspaceId, workspaceId),
         ),
       });
       if (!existing) {
