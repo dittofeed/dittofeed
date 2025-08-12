@@ -41,6 +41,7 @@ import {
   WaitForSegmentChild,
 } from "../types";
 import * as activities from "./userWorkflow/activities";
+import { SendParamsV2 } from "./userWorkflow/activities";
 import { GetSegmentAssignmentVersion } from "./userWorkflow/types";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
@@ -784,14 +785,18 @@ export async function userJourneyWorkflow(
           }
         }
 
-        const messageSucceeded = await sendMessageV2({
+        const sendMesssageParams: SendParamsV2 = {
           ...messagePayload,
           ...variant,
           events: keyedEvents,
-          eventIds: Array.from(keyedEventIds),
           context: entryEventProperties,
           isHidden,
-        });
+        };
+        if (props.version === UserJourneyWorkflowVersion.V3) {
+          sendMesssageParams.eventIds = Array.from(keyedEventIds);
+        }
+
+        const messageSucceeded = await sendMessageV2(sendMesssageParams);
 
         if (!messageSucceeded && !currentNode.skipOnFailure) {
           logger.info("message node early exit", {
