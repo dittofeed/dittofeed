@@ -1,5 +1,9 @@
-import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
+import {
+  WorkflowExecutionAlreadyStartedError,
+  WorkflowNotFoundError,
+} from "@temporalio/common";
 
+import { markBroadcastStatus } from "../broadcasts";
 import config from "../config";
 import logger from "../logger";
 import connectWorkflowClient from "../temporal/connectWorkflowClient";
@@ -140,6 +144,22 @@ export async function pauseBroadcast({
     );
     await handle.signal("PauseBroadcast");
   } catch (e) {
+    if (e instanceof WorkflowNotFoundError) {
+      logger().info(
+        {
+          workspaceId,
+          broadcastId,
+          err: e,
+        },
+        "Broadcast workflow not found while pausing; updating status directly",
+      );
+      await markBroadcastStatus({
+        workspaceId,
+        broadcastId,
+        status: "Paused",
+      });
+      return;
+    }
     logger().error(
       {
         workspaceId,
@@ -176,6 +196,22 @@ export async function resumeBroadcast({
     );
     await handle.signal("ResumeBroadcast");
   } catch (e) {
+    if (e instanceof WorkflowNotFoundError) {
+      logger().info(
+        {
+          workspaceId,
+          broadcastId,
+          err: e,
+        },
+        "Broadcast workflow not found while resuming; updating status directly",
+      );
+      await markBroadcastStatus({
+        workspaceId,
+        broadcastId,
+        status: "Running",
+      });
+      return;
+    }
     logger().error(
       {
         workspaceId,
@@ -212,6 +248,22 @@ export async function cancelBroadcast({
     );
     await handle.signal("CancelBroadcast");
   } catch (e) {
+    if (e instanceof WorkflowNotFoundError) {
+      logger().info(
+        {
+          workspaceId,
+          broadcastId,
+          err: e,
+        },
+        "Broadcast workflow not found while cancelling; updating status directly",
+      );
+      await markBroadcastStatus({
+        workspaceId,
+        broadcastId,
+        status: "Cancelled",
+      });
+      return;
+    }
     logger().error(
       {
         workspaceId,

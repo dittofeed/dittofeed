@@ -11,6 +11,7 @@ import {
   BroadcastResource,
   BroadcastResourceV2,
   BroadcastV2Config,
+  BroadcastV2Status,
   ChannelType,
   EmailContentsType,
   GetBroadcastsResponse,
@@ -731,4 +732,124 @@ export async function archiveBroadcast({
     )
     .returning();
   return result.length > 0;
+}
+
+function canTransitionToStatus(
+  currentStatus: BroadcastV2Status,
+  newStatus: BroadcastV2Status,
+): boolean {
+  // Cannot transition to the same status
+  if (currentStatus === newStatus) {
+    return false;
+  }
+
+  switch (currentStatus) {
+    case "Draft":
+      // From Draft, can start (Running), schedule, or cancel
+      return (
+        newStatus === "Running" ||
+        newStatus === "Scheduled" ||
+        newStatus === "Cancelled"
+      );
+
+    case "Scheduled":
+      // From Scheduled, can start (Running) or cancel
+      return newStatus === "Running" || newStatus === "Cancelled";
+
+    case "Running":
+      // From Running, can pause, complete, fail, or cancel
+      return (
+        newStatus === "Paused" ||
+        newStatus === "Completed" ||
+        newStatus === "Failed" ||
+        newStatus === "Cancelled"
+      );
+
+    case "Paused":
+      // From Paused, can resume (Running), fail, or cancel
+      return (
+        newStatus === "Running" ||
+        newStatus === "Failed" ||
+        newStatus === "Cancelled"
+      );
+
+    case "Completed":
+      // Completed is a terminal state - no transitions allowed
+      return false;
+
+    case "Cancelled":
+      // Cancelled is a terminal state - no transitions allowed
+      return false;
+
+    case "Failed":
+      // Failed is a terminal state - no transitions allowed
+      return false;
+
+    default:
+      // Unknown status - disallow transition
+      return false;
+  }
+}
+
+export async function markBroadcastStatus({
+  workspaceId,
+  broadcastId,
+  status,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+  status: BroadcastV2Status;
+}): Promise<BroadcastV2Status | null> {
+  const result: BroadcastV2Status | null = await db().transaction(
+    async (tx) => {
+      const existing = await tx.query.broadcast.findFirst({
+        where: and(
+          eq(dbBroadcast.id, broadcastId),
+          eq(dbBroadcast.workspaceId, workspaceId),
+        ),
+      });
+      if (!existing) {
+        return null;
+      }
+      if (existing.statusV2 === status) {
+        return existing.statusV2;
+      }
+      if (existing.statusV2 === null) {
+        logger().error(
+          {
+            broadcastId,
+            workspaceId,
+            status,
+          },
+          "Broadcast status is null",
+        );
+        return null;
+      }
+      if (!canTransitionToStatus(existing.statusV2, status)) {
+        logger().error(
+          {
+            broadcastId,
+            workspaceId,
+            status,
+            currentStatus: existing.statusV2,
+          },
+          "Broadcast status transition is not valid",
+        );
+        return null;
+      }
+      await tx
+        .update(dbBroadcast)
+        .set({
+          statusV2: status,
+        })
+        .where(
+          and(
+            eq(dbBroadcast.id, broadcastId),
+            eq(dbBroadcast.workspaceId, workspaceId),
+          ),
+        );
+      return status;
+    },
+  );
+  return result;
 }
