@@ -40,6 +40,7 @@ import { useImmer } from "use-immer";
 import { expandCascadingMessageFilters } from "../lib/cascadingMessageFilters";
 import { toCalendarDate } from "../lib/dates";
 import { useAnalysisChartQuery } from "../lib/useAnalysisChartQuery";
+import { useResourcesQuery } from "../lib/useResourcesQuery";
 import {
   FilterType,
   getFilterValues,
@@ -354,6 +355,15 @@ export function AnalysisChart() {
     },
   );
 
+  // Fetch journey resources for name lookup when grouping by journey
+  const journeyResourcesQuery = useResourcesQuery(
+    { journeys: true },
+    {
+      enabled: state.groupBy === "journey",
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  );
+
   const customDateRef = useRef<HTMLInputElement | null>(null);
 
   const customOnClickHandler = useCallback(() => {
@@ -425,6 +435,20 @@ export function AnalysisChart() {
     state.sortDirection,
   ]);
 
+  // Create journey ID to name mapping
+  const journeyIdToNameMap = useMemo(() => {
+    if (state.groupBy !== "journey" || !journeyResourcesQuery.data?.journeys) {
+      return new Map<string, string>();
+    }
+
+    return new Map(
+      journeyResourcesQuery.data.journeys.map((journey) => [
+        journey.id,
+        journey.name,
+      ]),
+    );
+  }, [state.groupBy, journeyResourcesQuery.data?.journeys]);
+
   // Transform chart data for recharts
   const chartData = useMemo(() => {
     if (!chartQuery.data?.data) return [];
@@ -435,7 +459,13 @@ export function AnalysisChart() {
 
     chartQuery.data.data.forEach((point: ChartDataPoint) => {
       const timestamp = new Date(point.timestamp).toISOString();
-      const groupLabel = point.groupLabel ?? "Total";
+      const rawGroupLabel = point.groupLabel ?? "Total";
+
+      // For journey grouping, map journey ID to journey name
+      const groupLabel =
+        state.groupBy === "journey" && rawGroupLabel !== "Total"
+          ? journeyIdToNameMap.get(rawGroupLabel) || rawGroupLabel
+          : rawGroupLabel;
 
       groups.add(groupLabel);
 
@@ -518,19 +548,26 @@ export function AnalysisChart() {
     }
 
     return sortedData;
-  }, [chartQuery.data, state.displayMode]);
+  }, [chartQuery.data, state.displayMode, state.groupBy, journeyIdToNameMap]);
 
   const legendData = useMemo(() => {
     if (!chartQuery.data?.data) return [];
 
     const groups = new Set<string>();
     chartQuery.data.data.forEach((point: ChartDataPoint) => {
-      const groupLabel = point.groupLabel ?? "Total";
+      const rawGroupLabel = point.groupLabel ?? "Total";
+
+      // For journey grouping, map journey ID to journey name
+      const groupLabel =
+        state.groupBy === "journey" && rawGroupLabel !== "Total"
+          ? journeyIdToNameMap.get(rawGroupLabel) || rawGroupLabel
+          : rawGroupLabel;
+
       groups.add(groupLabel);
     });
 
     return Array.from(groups);
-  }, [chartQuery.data]);
+  }, [chartQuery.data, state.groupBy, journeyIdToNameMap]);
 
   // Colors for different lines
   const colors = [
