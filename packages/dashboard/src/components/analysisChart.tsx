@@ -40,6 +40,7 @@ import { useImmer } from "use-immer";
 import { expandCascadingMessageFilters } from "../lib/cascadingMessageFilters";
 import { toCalendarDate } from "../lib/dates";
 import { useAnalysisChartQuery } from "../lib/useAnalysisChartQuery";
+import { useResourcesQuery } from "../lib/useResourcesQuery";
 import {
   FilterType,
   getFilterValues,
@@ -354,6 +355,18 @@ export function AnalysisChart() {
     },
   );
 
+  // Fetch all resources for name lookup - unconditional to avoid latency when switching groupBy
+  const resourcesQuery = useResourcesQuery(
+    {
+      journeys: true,
+      broadcasts: true,
+      messageTemplates: true,
+    },
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  );
+
   const customDateRef = useRef<HTMLInputElement | null>(null);
 
   const customOnClickHandler = useCallback(() => {
@@ -425,6 +438,54 @@ export function AnalysisChart() {
     state.sortDirection,
   ]);
 
+  // Create ID to name mappings for all resource types
+  const idToNameMaps = useMemo(() => {
+    return {
+      journey: new Map(
+        resourcesQuery.data?.journeys?.map((journey) => [
+          journey.id,
+          journey.name,
+        ]) || [],
+      ),
+      broadcast: new Map(
+        resourcesQuery.data?.broadcasts?.map((broadcast) => [
+          broadcast.id,
+          broadcast.name,
+        ]) || [],
+      ),
+      messageTemplate: new Map(
+        resourcesQuery.data?.messageTemplates?.map((template) => [
+          template.id,
+          template.name,
+        ]) || [],
+      ),
+    };
+  }, [resourcesQuery.data]);
+
+  // Helper function to map ID to name based on groupBy type
+  const mapIdToName = useCallback(
+    (id: string, groupBy: GroupByOption): string => {
+      if (groupBy === null || id === "Total") {
+        return id;
+      }
+
+      switch (groupBy) {
+        case "journey":
+          return idToNameMaps.journey.get(id) ?? id;
+        case "broadcast":
+          return idToNameMaps.broadcast.get(id) ?? id;
+        case "messageTemplate":
+          return idToNameMaps.messageTemplate.get(id) ?? id;
+        case "channel":
+        case "provider":
+        case "messageState":
+        default:
+          return id;
+      }
+    },
+    [idToNameMaps],
+  );
+
   // Transform chart data for recharts
   const chartData = useMemo(() => {
     if (!chartQuery.data?.data) return [];
@@ -435,7 +496,10 @@ export function AnalysisChart() {
 
     chartQuery.data.data.forEach((point: ChartDataPoint) => {
       const timestamp = new Date(point.timestamp).toISOString();
-      const groupLabel = point.groupLabel ?? "Total";
+      const rawGroupLabel = point.groupLabel ?? "Total";
+
+      // Map ID to name based on groupBy type
+      const groupLabel = mapIdToName(rawGroupLabel, state.groupBy);
 
       groups.add(groupLabel);
 
@@ -518,19 +582,23 @@ export function AnalysisChart() {
     }
 
     return sortedData;
-  }, [chartQuery.data, state.displayMode]);
+  }, [chartQuery.data, state.displayMode, state.groupBy, mapIdToName]);
 
   const legendData = useMemo(() => {
     if (!chartQuery.data?.data) return [];
 
     const groups = new Set<string>();
     chartQuery.data.data.forEach((point: ChartDataPoint) => {
-      const groupLabel = point.groupLabel ?? "Total";
+      const rawGroupLabel = point.groupLabel ?? "Total";
+
+      // Map ID to name based on groupBy type
+      const groupLabel = mapIdToName(rawGroupLabel, state.groupBy);
+
       groups.add(groupLabel);
     });
 
     return Array.from(groups);
-  }, [chartQuery.data]);
+  }, [chartQuery.data, state.groupBy, mapIdToName]);
 
   // Colors for different lines
   const colors = [
