@@ -355,11 +355,14 @@ export function AnalysisChart() {
     },
   );
 
-  // Fetch journey resources for name lookup when grouping by journey
-  const journeyResourcesQuery = useResourcesQuery(
-    { journeys: true },
+  // Fetch all resources for name lookup - unconditional to avoid latency when switching groupBy
+  const resourcesQuery = useResourcesQuery(
     {
-      enabled: state.groupBy === "journey",
+      journeys: true,
+      broadcasts: true,
+      messageTemplates: true,
+    },
+    {
       staleTime: 5 * 60 * 1000, // 5 minutes
     },
   );
@@ -435,19 +438,53 @@ export function AnalysisChart() {
     state.sortDirection,
   ]);
 
-  // Create journey ID to name mapping
-  const journeyIdToNameMap = useMemo(() => {
-    if (state.groupBy !== "journey" || !journeyResourcesQuery.data?.journeys) {
-      return new Map<string, string>();
-    }
+  // Create ID to name mappings for all resource types
+  const idToNameMaps = useMemo(() => {
+    return {
+      journey: new Map(
+        resourcesQuery.data?.journeys?.map((journey) => [
+          journey.id,
+          journey.name,
+        ]) || [],
+      ),
+      broadcast: new Map(
+        resourcesQuery.data?.broadcasts?.map((broadcast) => [
+          broadcast.id,
+          broadcast.name,
+        ]) || [],
+      ),
+      messageTemplate: new Map(
+        resourcesQuery.data?.messageTemplates?.map((template) => [
+          template.id,
+          template.name,
+        ]) || [],
+      ),
+    };
+  }, [resourcesQuery.data]);
 
-    return new Map(
-      journeyResourcesQuery.data.journeys.map((journey) => [
-        journey.id,
-        journey.name,
-      ]),
-    );
-  }, [state.groupBy, journeyResourcesQuery.data?.journeys]);
+  // Helper function to map ID to name based on groupBy type
+  const mapIdToName = useCallback(
+    (id: string, groupBy: GroupByOption): string => {
+      if (groupBy === null || id === "Total") {
+        return id;
+      }
+
+      switch (groupBy) {
+        case "journey":
+          return idToNameMaps.journey.get(id) ?? id;
+        case "broadcast":
+          return idToNameMaps.broadcast.get(id) ?? id;
+        case "messageTemplate":
+          return idToNameMaps.messageTemplate.get(id) ?? id;
+        case "channel":
+        case "provider":
+        case "messageState":
+        default:
+          return id;
+      }
+    },
+    [idToNameMaps],
+  );
 
   // Transform chart data for recharts
   const chartData = useMemo(() => {
@@ -461,11 +498,8 @@ export function AnalysisChart() {
       const timestamp = new Date(point.timestamp).toISOString();
       const rawGroupLabel = point.groupLabel ?? "Total";
 
-      // For journey grouping, map journey ID to journey name
-      const groupLabel =
-        state.groupBy === "journey" && rawGroupLabel !== "Total"
-          ? journeyIdToNameMap.get(rawGroupLabel) || rawGroupLabel
-          : rawGroupLabel;
+      // Map ID to name based on groupBy type
+      const groupLabel = mapIdToName(rawGroupLabel, state.groupBy);
 
       groups.add(groupLabel);
 
@@ -548,7 +582,7 @@ export function AnalysisChart() {
     }
 
     return sortedData;
-  }, [chartQuery.data, state.displayMode, state.groupBy, journeyIdToNameMap]);
+  }, [chartQuery.data, state.displayMode, state.groupBy, mapIdToName]);
 
   const legendData = useMemo(() => {
     if (!chartQuery.data?.data) return [];
@@ -557,17 +591,14 @@ export function AnalysisChart() {
     chartQuery.data.data.forEach((point: ChartDataPoint) => {
       const rawGroupLabel = point.groupLabel ?? "Total";
 
-      // For journey grouping, map journey ID to journey name
-      const groupLabel =
-        state.groupBy === "journey" && rawGroupLabel !== "Total"
-          ? journeyIdToNameMap.get(rawGroupLabel) || rawGroupLabel
-          : rawGroupLabel;
+      // Map ID to name based on groupBy type
+      const groupLabel = mapIdToName(rawGroupLabel, state.groupBy);
 
       groups.add(groupLabel);
     });
 
     return Array.from(groups);
-  }, [chartQuery.data, state.groupBy, journeyIdToNameMap]);
+  }, [chartQuery.data, state.groupBy, mapIdToName]);
 
   // Colors for different lines
   const colors = [
