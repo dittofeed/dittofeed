@@ -271,6 +271,67 @@ describe("renderWithUserProperties", () => {
     });
   });
 
+  describe("when show_all_channels parameter is used", () => {
+    it("can render an unsubscribe link with showAllChannels set in renderLiquid options", () => {
+      const rendered = renderLiquid({
+        template: `{% unsubscribe_link %}`,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
+        identifierKey: "email",
+        subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
+        secrets: {
+          [SecretNames.Subscription]: "secret",
+        },
+        userProperties: {
+          email: "max@email.com",
+          id: "123",
+        },
+        showAllChannels: true,
+      });
+
+      expect(rendered).toContain("showAllChannels=true");
+    });
+
+    it("shows what happens when show_all_channels:true is passed as tag argument", () => {
+      const rendered = renderLiquid({
+        template: `{% unsubscribe_link show_all_channels:true %}`,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
+        identifierKey: "email",
+        subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
+        secrets: {
+          [SecretNames.Subscription]: "secret",
+        },
+        userProperties: {
+          email: "max@email.com",
+          id: "123",
+        },
+      });
+
+      // This will likely show "show_all_channels:true" as the link text
+      expect(rendered).toContain("show_all_channels:true");
+    });
+
+    it("shows what happens when trying to use both custom text and show_all_channels parameter", () => {
+      const rendered = renderLiquid({
+        template: `{% unsubscribe_link show_all_channels:true Click here to unsubscribe %}`,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
+        identifierKey: "email",
+        subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
+        secrets: {
+          [SecretNames.Subscription]: "secret",
+        },
+        userProperties: {
+          email: "max@email.com",
+          id: "123",
+        },
+      });
+
+      // This will show the entire args string as link text
+      expect(rendered).toContain(
+        "show_all_channels:true Click here to unsubscribe",
+      );
+    });
+  });
+
   describe.skip("when inlining a file", () => {
     describe("when the rendered user property is not a file", () => {});
     describe("when the rendered user property is a file", () => {
