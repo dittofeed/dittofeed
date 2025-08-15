@@ -32,6 +32,7 @@ export interface SubscriptionManagementProps {
   workspaceName: string;
   apiBase: string;
   isPreview?: boolean;
+  showAllChannels?: boolean;
 }
 
 export function SubscriptionManagement({
@@ -46,6 +47,7 @@ export function SubscriptionManagement({
   workspaceName,
   apiBase,
   isPreview = false,
+  showAllChannels = false,
 }: SubscriptionManagementProps) {
   const initialSubscriptionManagementState = React.useMemo(
     () =>
@@ -69,8 +71,18 @@ export function SubscriptionManagement({
       }
       return acc;
     }, {});
+    
+    // Filter channels based on showAllChannels prop
+    if (!showAllChannels && changedSubscriptionChannel) {
+      const filteredGrouped: Record<string, UserSubscriptionResource[]> = {};
+      if (grouped[changedSubscriptionChannel]) {
+        filteredGrouped[changedSubscriptionChannel] = grouped[changedSubscriptionChannel];
+      }
+      return filteredGrouped;
+    }
+    
     return grouped;
-  }, [subscriptions]);
+  }, [subscriptions, showAllChannels, changedSubscriptionChannel]);
 
   // Calculate initial channel state based on subscription states
   const initialChannelState = React.useMemo(() => {

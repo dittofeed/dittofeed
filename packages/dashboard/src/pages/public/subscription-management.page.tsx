@@ -24,6 +24,7 @@ import { apiBase } from "../../lib/apiBase";
 type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate"> & {
   apiBase: string;
   changedSubscriptionChannel?: string;
+  showAllChannels: boolean;
 };
 export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
   const params = schemaValidate(ctx.query, SubscriptionParams);
@@ -42,8 +43,9 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
       },
     };
   }
-  const { i, w, h, sub, s, ik, isPreview: isPreviewParam } = params.value;
+  const { i, w, h, sub, s, ik, isPreview: isPreviewParam, showAllChannels: showAllChannelsParam } = params.value;
   const isPreview = isPreviewParam === "true";
+  const showAllChannels = showAllChannelsParam === "true";
 
   const [userLookupResult, workspace] = await Promise.all([
     isPreview
@@ -176,6 +178,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
     workspaceId: w,
     workspaceName: workspace.name,
     isPreview,
+    showAllChannels,
   };
   if (subscriptionChange) {
     props.subscriptionChange = subscriptionChange;
@@ -204,6 +207,7 @@ const SubscriptionManagementPage: NextPage<SSP> =
       identifierKey,
       workspaceName,
       isPreview,
+      showAllChannels,
     } = props;
     return (
       <Stack
@@ -223,6 +227,7 @@ const SubscriptionManagementPage: NextPage<SSP> =
           workspaceName={workspaceName}
           apiBase={propsApiBase}
           isPreview={isPreview}
+          showAllChannels={showAllChannels}
         />
       </Stack>
     );
