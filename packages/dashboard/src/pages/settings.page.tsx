@@ -1922,7 +1922,7 @@ function SubscriptionManagementSettings() {
               identifierKey="email"
               apiBase={apiBase}
               isPreview
-              showAllChannels
+              showAllChannels={!fromSubscriptionChange}
             />
           </Paper>
         </Stack>
