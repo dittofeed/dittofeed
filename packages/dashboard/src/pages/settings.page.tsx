@@ -1782,6 +1782,7 @@ function SubscriptionManagementSettings() {
   const [fromSubscriptionChange, setFromSubscriptionChange] =
     useState<boolean>(true);
   const [fromSubscribe, setFromSubscribe] = useState<boolean>(false);
+  const [showAllChannels, setShowAllChannels] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
   const workspaceResult = useAppStore((store) => store.workspace);
@@ -1848,6 +1849,15 @@ function SubscriptionManagementSettings() {
                 }
                 label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
               />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showAllChannels}
+                    onChange={(e) => setShowAllChannels(e.target.checked)}
+                  />
+                }
+                label="Show All Channels"
+              />
             </FormGroup>
           </Box>
           <Paper
@@ -1860,7 +1870,7 @@ function SubscriptionManagementSettings() {
             }}
           >
             <SubscriptionManagement
-              key={`${fromSubscribe}-${fromSubscriptionChange}`}
+              key={`${fromSubscribe}-${fromSubscriptionChange}-${showAllChannels}`}
               subscriptions={subscriptions}
               workspaceName={workspace.name}
               subscriptionChange={
@@ -1876,6 +1886,7 @@ function SubscriptionManagementSettings() {
               identifierKey="email"
               apiBase={apiBase}
               isPreview
+              showAllChannels={showAllChannels}
             />
           </Paper>
         </Stack>
