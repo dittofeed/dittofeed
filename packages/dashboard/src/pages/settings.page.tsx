@@ -21,6 +21,8 @@ import {
   Stack,
   Switch,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -453,7 +455,6 @@ function SettingsLayout(
   const { authMode } = useAppStorePick(["authMode"]);
   const menuItems = getMenuItems(authMode);
 
-  console.log("authMode", authMode);
   return (
     <>
       <DashboardHead />
@@ -1837,57 +1838,61 @@ function SubscriptionManagementSettings() {
               users.
             </Box>
             <FormGroup>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={fromSubscriptionChange}
-                    onChange={(e) =>
-                      setFromSubscriptionChange(e.target.checked)
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Page Type:
+                </Typography>
+                <ToggleButtonGroup
+                  value={fromSubscriptionChange ? "change" : "management"}
+                  exclusive
+                  onChange={(_, value) => {
+                    if (value !== null) {
+                      setFromSubscriptionChange(value === "change");
                     }
-                  />
-                }
-                label="User clicked subscription change link."
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={fromSubscribe}
-                    onChange={(e) => setFromSubscribe(e.target.checked)}
-                  />
-                }
-                label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
-              />
+                  }}
+                  aria-label="page type"
+                >
+                  <ToggleButton value="change" aria-label="subscription change">
+                    Subscription Change
+                  </ToggleButton>
+                  <ToggleButton value="management" aria-label="subscription management">
+                    Subscription Management
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
               {fromSubscriptionChange && (
-                <Box sx={{ mt: 1, mb: 1 }}>
-                  <Autocomplete
-                    options={subscriptionGroups}
-                    value={selectedSubscriptionGroup || null}
-                    onChange={(_event, newValue) => {
-                      setSelectedSubscriptionGroupId(newValue?.id || "");
-                    }}
-                    getOptionLabel={(option) =>
-                      `${option.name} (${option.channel})`
-                    }
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        variant="outlined"
-                        label="Changed Subscription Group"
-                        size="small"
+                <>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={fromSubscribe}
+                        onChange={(e) => setFromSubscribe(e.target.checked)}
                       />
-                    )}
+                    }
+                    label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
                   />
-                </Box>
+                  <Box sx={{ mt: 1, mb: 1 }}>
+                    <Autocomplete
+                      options={subscriptionGroups}
+                      value={selectedSubscriptionGroup || null}
+                      onChange={(_event, newValue) => {
+                        setSelectedSubscriptionGroupId(newValue?.id || "");
+                      }}
+                      getOptionLabel={(option) =>
+                        `${option.name} (${option.channel})`
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          variant="outlined"
+                          label="Changed Subscription Group"
+                          size="small"
+                        />
+                      )}
+                    />
+                  </Box>
+                </>
               )}
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showAllChannels}
-                    onChange={(e) => setShowAllChannels(e.target.checked)}
-                  />
-                }
-                label="Show All Channels"
-              />
             </FormGroup>
           </Box>
           <Paper
