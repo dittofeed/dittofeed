@@ -1783,6 +1783,8 @@ function SubscriptionManagementSettings() {
     useState<boolean>(true);
   const [fromSubscribe, setFromSubscribe] = useState<boolean>(false);
   const [showAllChannels, setShowAllChannels] = useState<boolean>(false);
+  const [selectedSubscriptionGroupId, setSelectedSubscriptionGroupId] =
+    useState<string>("");
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
   const workspaceResult = useAppStore((store) => store.workspace);
@@ -1791,9 +1793,16 @@ function SubscriptionManagementSettings() {
       ? workspaceResult.value
       : null;
 
-  // For unsubscribe simulation, unsubscribe all groups in the same channel as the first group
-  const firstSubscriptionGroup = subscriptionGroups[0];
-  const channelToUnsubscribeFrom = firstSubscriptionGroup?.channel;
+  // Set default selected subscription group if not set
+  const defaultSubscriptionGroupId = subscriptionGroups[0]?.id || "";
+  const actualSelectedId =
+    selectedSubscriptionGroupId || defaultSubscriptionGroupId;
+
+  // Find the selected subscription group and its channel
+  const selectedSubscriptionGroup = subscriptionGroups.find(
+    (sg) => sg.id === actualSelectedId,
+  );
+  const channelToUnsubscribeFrom = selectedSubscriptionGroup?.channel;
 
   const subscriptions = subscriptionGroups.map((sg) => ({
     name: sg.name,
@@ -1811,7 +1820,7 @@ function SubscriptionManagementSettings() {
   }
 
   const changedSubscription = fromSubscriptionChange
-    ? subscriptions[0]?.id
+    ? actualSelectedId
     : undefined;
 
   const changedSubscriptionChannel = fromSubscriptionChange
@@ -1848,6 +1857,28 @@ function SubscriptionManagementSettings() {
                 }
                 label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
               />
+              {fromSubscriptionChange && (
+                <Box sx={{ mt: 1, mb: 1 }}>
+                  <Autocomplete
+                    options={subscriptionGroups}
+                    value={selectedSubscriptionGroup || null}
+                    onChange={(_event, newValue) => {
+                      setSelectedSubscriptionGroupId(newValue?.id || "");
+                    }}
+                    getOptionLabel={(option) =>
+                      `${option.name} (${option.channel})`
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        variant="outlined"
+                        label="Changed Subscription Group"
+                        size="small"
+                      />
+                    )}
+                  />
+                </Box>
+              )}
               <FormControlLabel
                 control={
                   <Checkbox
