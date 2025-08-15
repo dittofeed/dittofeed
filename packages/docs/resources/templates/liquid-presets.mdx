@@ -43,24 +43,6 @@ Including an `unsubscribe_link` is critical for marketing emails, for both legal
 </mj-text>
 ```
 
-#### Channel Display Behavior
-
-By default, when a user clicks an unsubscribe link, they will see subscription groups for only the channel they are unsubscribing from (e.g., if unsubscribing from an email, they'll only see email subscription groups). This behavior can be controlled by the `show_all_channels` setting when rendering the template.
-
-**Default behavior** (show only relevant channel):
-```html
-<!-- Standard unsubscribe link - shows only the relevant channel -->
-{% unsubscribe_link %}
-```
-
-**Show all channels**:
-```html
-<!-- Show all subscription groups across all channels -->
-{% unsubscribe_link show_all_channels:true %}
-
-<!-- With custom link text and show all channels -->
-{% unsubscribe_link show_all_channels:true Click here to unsubscribe %}
-```
 
 ### `unsubscribe_url`
 
@@ -68,19 +50,6 @@ If you need to customize the unsubscribe link, you can use the `unsubscribe_url`
 
 ```html
 <a class="df-unsubscribe" clicktracking=off href="{% unsubscribe_url %}" target="_blank">unsubscribe</a>
-```
-
-This tag follows the same channel display behavior as `unsubscribe_link` - by default showing only the relevant channel's subscription groups, unless `show_all_channels` is set to `true` during template rendering.
-
-**Examples**:
-```html
-<!-- Default behavior - shows only relevant channel -->
-<a class="df-unsubscribe" href="{% unsubscribe_url %}" target="_blank">unsubscribe</a>
-
-<!-- Show all channels -->
-<a class="custom-unsubscribe" href="{% unsubscribe_url show_all_channels:true %}" target="_blank">
-  Unsubscribe from all communications
-</a>
 ```
 
 ### `subscription_management_link`

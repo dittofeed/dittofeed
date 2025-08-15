@@ -201,7 +201,7 @@ describe("renderWithUserProperties", () => {
   });
 
   describe("with all of the necessary values to render a subscription management link", () => {
-    const expectedRenderedSubscriptionManagementUrl = `http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9`;
+    const expectedRenderedSubscriptionManagementUrl = `http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&showAllChannels=true`;
     const expectedRenderedSubscriptionManagementLink = `
       <a class="df-subscription-management" clicktracking=off href="${expectedRenderedSubscriptionManagementUrl}" target="_blank">manage subscriptions</a>
     `;
@@ -249,7 +249,7 @@ describe("renderWithUserProperties", () => {
     `;
 
     const expectedRenderedSubscriptionManagementEmail = `
-      <a class="df-subscription-management" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9" target="_blank">here</a>
+      <a class="df-subscription-management" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&showAllChannels=true" target="_blank">here</a>
     `;
 
     it("can render a subscription management link", () => {
@@ -267,67 +267,6 @@ describe("renderWithUserProperties", () => {
       });
       expect(rendered.trim()).toEqual(
         expectedRenderedSubscriptionManagementEmail.trim(),
-      );
-    });
-  });
-
-  describe("when show_all_channels parameter is used", () => {
-    it("can render an unsubscribe link with showAllChannels set in renderLiquid options", () => {
-      const rendered = renderLiquid({
-        template: `{% unsubscribe_link %}`,
-        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
-        identifierKey: "email",
-        subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
-        secrets: {
-          [SecretNames.Subscription]: "secret",
-        },
-        userProperties: {
-          email: "max@email.com",
-          id: "123",
-        },
-        showAllChannels: true,
-      });
-
-      expect(rendered).toContain("showAllChannels=true");
-    });
-
-    it("shows what happens when show_all_channels:true is passed as tag argument", () => {
-      const rendered = renderLiquid({
-        template: `{% unsubscribe_link show_all_channels:true %}`,
-        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
-        identifierKey: "email",
-        subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
-        secrets: {
-          [SecretNames.Subscription]: "secret",
-        },
-        userProperties: {
-          email: "max@email.com",
-          id: "123",
-        },
-      });
-
-      // This will likely show "show_all_channels:true" as the link text
-      expect(rendered).toContain("show_all_channels:true");
-    });
-
-    it("shows what happens when trying to use both custom text and show_all_channels parameter", () => {
-      const rendered = renderLiquid({
-        template: `{% unsubscribe_link show_all_channels:true Click here to unsubscribe %}`,
-        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
-        identifierKey: "email",
-        subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
-        secrets: {
-          [SecretNames.Subscription]: "secret",
-        },
-        userProperties: {
-          email: "max@email.com",
-          id: "123",
-        },
-      });
-
-      // This will show the entire args string as link text
-      expect(rendered).toContain(
-        "show_all_channels:true Click here to unsubscribe",
       );
     });
   });

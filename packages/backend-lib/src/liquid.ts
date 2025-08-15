@@ -85,7 +85,6 @@ function generateUnsubscribeUrl(scope: any): string {
   const userProperties = allScope.user as UserPropertyAssignments;
   const identifierKey = allScope.identifier_key as string | undefined;
   const isPreview = allScope.is_preview as boolean | undefined;
-  const showAllChannels = allScope.show_all_channels as boolean | undefined;
 
   const identifier = identifierKey
     ? assignmentAsString(userProperties, identifierKey)
@@ -103,7 +102,6 @@ function generateUnsubscribeUrl(scope: any): string {
       changedSubscription: subscriptionGroupId,
       subscriptionChange: SubscriptionChange.Unsubscribe,
       isPreview,
-      showAllChannels,
     });
   }
 
@@ -226,7 +224,6 @@ export function renderLiquid({
   mjml = false,
   tags,
   isPreview = false,
-  showAllChannels = false,
 }: RenderLiquidOptions): string {
   if (!template?.length) {
     return "";
@@ -241,7 +238,6 @@ export function renderLiquid({
     // TODO [DF-471] remove default
     tags: tags ?? {},
     is_preview: isPreview,
-    show_all_channels: showAllChannels,
   }) as string;
   if (!mjml) {
     return liquidRendered;
