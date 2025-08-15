@@ -139,6 +139,7 @@ function generateSubscriptionManagementUrl(scope: any): string {
       subscriptionSecret,
       userId,
       isPreview,
+      showAllChannels: true,
     });
   }
 
