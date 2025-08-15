@@ -107,68 +107,70 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
 
   let subscriptionChange: SubscriptionChange | undefined;
   let changedSubscriptionChannel: string | undefined;
-  if (s && sub && !isPreview) {
-    logger().debug(
-      {
-        subscriptionId: s,
-        subscriptionChange: sub,
-      },
-      "Subscription change",
-    );
-
-    subscriptionChange =
-      sub === "1"
-        ? SubscriptionChange.Subscribe
-        : SubscriptionChange.Unsubscribe;
-
+  if (s) {
     // Get the subscription group to determine its channel
     const targetSubscriptionGroup =
       await db().query.subscriptionGroup.findFirst({
         where: eq(schema.subscriptionGroup.id, s),
       });
 
-    if (targetSubscriptionGroup) {
-      changedSubscriptionChannel = targetSubscriptionGroup.channel;
+    changedSubscriptionChannel = targetSubscriptionGroup?.channel;
 
-      // If unsubscribing, unsubscribe from all subscription groups in the same channel
-      if (subscriptionChange === SubscriptionChange.Unsubscribe) {
-        const channelSubscriptionGroups =
-          await db().query.subscriptionGroup.findMany({
-            where: and(
-              eq(schema.subscriptionGroup.workspaceId, w),
-              eq(
-                schema.subscriptionGroup.channel,
-                targetSubscriptionGroup.channel,
+    if (sub && !isPreview) {
+      logger().debug(
+        {
+          subscriptionId: s,
+          subscriptionChange: sub,
+        },
+        "Subscription change",
+      );
+
+      subscriptionChange =
+        sub === "1"
+          ? SubscriptionChange.Subscribe
+          : SubscriptionChange.Unsubscribe;
+
+      if (targetSubscriptionGroup) {
+        // If unsubscribing, unsubscribe from all subscription groups in the same channel
+        if (subscriptionChange === SubscriptionChange.Unsubscribe) {
+          const channelSubscriptionGroups =
+            await db().query.subscriptionGroup.findMany({
+              where: and(
+                eq(schema.subscriptionGroup.workspaceId, w),
+                eq(
+                  schema.subscriptionGroup.channel,
+                  targetSubscriptionGroup.channel,
+                ),
               ),
-            ),
+            });
+
+          const channelChanges: Record<string, boolean> = {};
+          channelSubscriptionGroups.forEach((sg) => {
+            channelChanges[sg.id] = false;
           });
 
-        const channelChanges: Record<string, boolean> = {};
-        channelSubscriptionGroups.forEach((sg) => {
-          channelChanges[sg.id] = false;
-        });
-
-        await updateUserSubscriptions({
-          workspaceId: w,
-          userUpdates: [
-            {
-              userId,
-              changes: channelChanges,
-            },
-          ],
-        });
-      } else {
-        await updateUserSubscriptions({
-          workspaceId: w,
-          userUpdates: [
-            {
-              userId,
-              changes: {
-                [s]: sub === "1",
+          await updateUserSubscriptions({
+            workspaceId: w,
+            userUpdates: [
+              {
+                userId,
+                changes: channelChanges,
               },
-            },
-          ],
-        });
+            ],
+          });
+        } else {
+          await updateUserSubscriptions({
+            workspaceId: w,
+            userUpdates: [
+              {
+                userId,
+                changes: {
+                  [s]: sub === "1",
+                },
+              },
+            ],
+          });
+        }
       }
     }
   }
