@@ -1814,10 +1814,9 @@ function SubscriptionManagementSettings() {
     ? subscriptions[0]?.id
     : undefined;
 
-  const changedSubscriptionChannel =
-    fromSubscriptionChange && !fromSubscribe
-      ? channelToUnsubscribeFrom
-      : undefined;
+  const changedSubscriptionChannel = fromSubscriptionChange
+    ? channelToUnsubscribeFrom
+    : undefined;
 
   return (
     <Stack>
