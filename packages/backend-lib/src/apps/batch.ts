@@ -1,5 +1,6 @@
 import * as R from "remeda";
 
+import config from "../config";
 import { BatchAppData, EventType } from "../types";
 import { InsertUserEvent, insertUserEvents } from "../userEvents";
 import { splitGroupEvents } from "./group";
@@ -62,7 +63,7 @@ export function buildBatchUserEvents(
   });
 }
 
-export async function submitBatch(
+export async function submitBatchChunk(
   { workspaceId, data }: SubmitBatchOptions,
   {
     processingTime,
@@ -76,4 +77,26 @@ export async function submitBatch(
     workspaceId,
     userEvents,
   });
+}
+
+export async function submitBatch(
+  { workspaceId, data }: SubmitBatchOptions,
+  {
+    processingTime,
+  }: {
+    processingTime?: number;
+  } = {},
+) {
+  const { batchChunkSize } = config();
+  const chunks = R.chunk(data.batch, batchChunkSize);
+
+  await Promise.all(
+    chunks.map(async (chunk) => {
+      const chunkData = { ...data, batch: chunk };
+      return submitBatchChunk(
+        { workspaceId, data: chunkData },
+        { processingTime },
+      );
+    }),
+  );
 }
