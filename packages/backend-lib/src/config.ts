@@ -151,6 +151,7 @@ const BaseRawConfigProps = {
   metricsExportIntervalMs: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  batchChunkSize: Type.Optional(Type.String({ format: "naturalNumber" })),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -279,6 +280,7 @@ export type Config = Overwrite<
     computePropertiesSplit: boolean;
     computePropertiesTimeout: number;
     metricsExportIntervalMs: number;
+    batchChunkSize: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -632,6 +634,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     metricsExportIntervalMs: rawConfig.metricsExportIntervalMs
       ? parseInt(rawConfig.metricsExportIntervalMs)
       : 60 * 1000,
+    batchChunkSize: rawConfig.batchChunkSize
+      ? parseInt(rawConfig.batchChunkSize)
+      : 100,
   };
 
   return parsedConfig;
