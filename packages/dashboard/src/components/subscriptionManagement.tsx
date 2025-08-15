@@ -71,16 +71,17 @@ export function SubscriptionManagement({
       }
       return acc;
     }, {});
-    
+
     // Filter channels based on showAllChannels prop
     if (!showAllChannels && changedSubscriptionChannel) {
       const filteredGrouped: Record<string, UserSubscriptionResource[]> = {};
       if (grouped[changedSubscriptionChannel]) {
-        filteredGrouped[changedSubscriptionChannel] = grouped[changedSubscriptionChannel];
+        filteredGrouped[changedSubscriptionChannel] =
+          grouped[changedSubscriptionChannel];
       }
       return filteredGrouped;
     }
-    
+
     return grouped;
   }, [subscriptions, showAllChannels, changedSubscriptionChannel]);
 

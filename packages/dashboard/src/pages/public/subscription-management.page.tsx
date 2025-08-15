@@ -43,7 +43,16 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
       },
     };
   }
-  const { i, w, h, sub, s, ik, isPreview: isPreviewParam, showAllChannels: showAllChannelsParam } = params.value;
+  const {
+    i,
+    w,
+    h,
+    sub,
+    s,
+    ik,
+    isPreview: isPreviewParam,
+    showAllChannels: showAllChannelsParam,
+  } = params.value;
   const isPreview = isPreviewParam === "true";
   const showAllChannels = showAllChannelsParam === "true";
 
