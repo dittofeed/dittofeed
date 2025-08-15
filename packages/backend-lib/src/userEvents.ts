@@ -751,6 +751,9 @@ export async function findUserEventsById({
   messageIds: string[];
   workspaceId?: string;
 }): Promise<UserEventsWithTraits[]> {
+  if (messageIds.length === 0) {
+    return [];
+  }
   const qb = new ClickHouseQueryBuilder();
 
   const clauses: string[] = [];
