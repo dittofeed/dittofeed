@@ -201,7 +201,7 @@ describe("renderWithUserProperties", () => {
   });
 
   describe("with all of the necessary values to render a subscription management link", () => {
-    const expectedRenderedSubscriptionManagementUrl = `http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9`;
+    const expectedRenderedSubscriptionManagementUrl = `http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&showAllChannels=true`;
     const expectedRenderedSubscriptionManagementLink = `
       <a class="df-subscription-management" clicktracking=off href="${expectedRenderedSubscriptionManagementUrl}" target="_blank">manage subscriptions</a>
     `;
@@ -249,7 +249,7 @@ describe("renderWithUserProperties", () => {
     `;
 
     const expectedRenderedSubscriptionManagementEmail = `
-      <a class="df-subscription-management" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9" target="_blank">here</a>
+      <a class="df-subscription-management" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&showAllChannels=true" target="_blank">here</a>
     `;
 
     it("can render a subscription management link", () => {

@@ -139,6 +139,7 @@ function generateSubscriptionManagementUrl(scope: any): string {
       subscriptionSecret,
       userId,
       isPreview,
+      showAllChannels: true,
     });
   }
 
@@ -210,6 +211,7 @@ export interface RenderLiquidOptions {
   // TODO [DF-471] make this field required and render tags in the user property field
   tags?: MessageTags;
   isPreview?: boolean;
+  showAllChannels?: boolean;
 }
 
 export function renderLiquid({

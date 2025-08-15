@@ -43,6 +43,7 @@ Including an `unsubscribe_link` is critical for marketing emails, for both legal
 </mj-text>
 ```
 
+
 ### `unsubscribe_url`
 
 If you need to customize the unsubscribe link, you can use the `unsubscribe_url` tag to only output the URL.
@@ -73,6 +74,10 @@ You can {% subscription_management_link manage your subscription preferences %}.
 
 This tag is useful when you want to provide users with access to subscription management without automatically changing their subscription status upon page load.
 
+#### Channel Display Behavior
+
+The subscription management page accessed via this link will always show subscription groups for all channels, allowing users to comprehensively manage their preferences across email, SMS, and other messaging channels.
+
 ### `subscription_management_url`
 
 If you need to customize the subscription management link, you can use the `subscription_management_url` tag to only output the URL.
@@ -80,3 +85,5 @@ If you need to customize the subscription management link, you can use the `subs
 ```html
 <a class="df-subscription-management" clicktracking=off href="{% subscription_management_url %}" target="_blank">manage subscriptions</a>
 ```
+
+This tag follows the same channel display behavior as `subscription_management_link` - always showing subscription groups for all channels.

@@ -389,6 +389,7 @@ export function generateSubscriptionChangeUrl({
   changedSubscription,
   subscriptionChange,
   isPreview,
+  showAllChannels,
 }: {
   workspaceId: string;
   userId: string;
@@ -398,6 +399,7 @@ export function generateSubscriptionChangeUrl({
   changedSubscription?: string;
   subscriptionChange?: SubscriptionChange;
   isPreview?: boolean;
+  showAllChannels?: boolean;
 }): string {
   const hash = generateSubscriptionHash({
     workspaceId,
@@ -420,6 +422,9 @@ export function generateSubscriptionChangeUrl({
   }
   if (isPreview) {
     params.isPreview = "true";
+  }
+  if (showAllChannels) {
+    params.showAllChannels = "true";
   }
   const url = new URL(config().dashboardUrl);
   url.pathname = path.join("/dashboard", SUBSCRIPTION_MANAGEMENT_PAGE);

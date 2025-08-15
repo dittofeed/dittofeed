@@ -13,7 +13,6 @@ import {
   Autocomplete,
   Box,
   Button,
-  Checkbox,
   Dialog,
   FormControlLabel,
   FormGroup,
@@ -21,6 +20,8 @@ import {
   Stack,
   Switch,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -453,7 +454,6 @@ function SettingsLayout(
   const { authMode } = useAppStorePick(["authMode"]);
   const menuItems = getMenuItems(authMode);
 
-  console.log("authMode", authMode);
   return (
     <>
       <DashboardHead />
@@ -1782,6 +1782,8 @@ function SubscriptionManagementSettings() {
   const [fromSubscriptionChange, setFromSubscriptionChange] =
     useState<boolean>(true);
   const [fromSubscribe, setFromSubscribe] = useState<boolean>(false);
+  const [selectedSubscriptionGroupId, setSelectedSubscriptionGroupId] =
+    useState<string>("");
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
   const workspaceResult = useAppStore((store) => store.workspace);
@@ -1790,9 +1792,16 @@ function SubscriptionManagementSettings() {
       ? workspaceResult.value
       : null;
 
-  // For unsubscribe simulation, unsubscribe all groups in the same channel as the first group
-  const firstSubscriptionGroup = subscriptionGroups[0];
-  const channelToUnsubscribeFrom = firstSubscriptionGroup?.channel;
+  // Set default selected subscription group if not set
+  const defaultSubscriptionGroupId = subscriptionGroups[0]?.id || "";
+  const actualSelectedId =
+    selectedSubscriptionGroupId || defaultSubscriptionGroupId;
+
+  // Find the selected subscription group and its channel
+  const selectedSubscriptionGroup = subscriptionGroups.find(
+    (sg) => sg.id === actualSelectedId,
+  );
+  const channelToUnsubscribeFrom = selectedSubscriptionGroup?.channel;
 
   const subscriptions = subscriptionGroups.map((sg) => ({
     name: sg.name,
@@ -1810,13 +1819,12 @@ function SubscriptionManagementSettings() {
   }
 
   const changedSubscription = fromSubscriptionChange
-    ? subscriptions[0]?.id
+    ? actualSelectedId
     : undefined;
 
-  const changedSubscriptionChannel =
-    fromSubscriptionChange && !fromSubscribe
-      ? channelToUnsubscribeFrom
-      : undefined;
+  const changedSubscriptionChannel = fromSubscriptionChange
+    ? channelToUnsubscribeFrom
+    : undefined;
 
   return (
     <Stack>
@@ -1828,26 +1836,64 @@ function SubscriptionManagementSettings() {
               users.
             </Box>
             <FormGroup>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={fromSubscriptionChange}
-                    onChange={(e) =>
-                      setFromSubscriptionChange(e.target.checked)
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Page Type:
+                </Typography>
+                <ToggleButtonGroup
+                  value={fromSubscriptionChange ? "change" : "management"}
+                  exclusive
+                  onChange={(_, value) => {
+                    if (value !== null) {
+                      setFromSubscriptionChange(value === "change");
                     }
+                  }}
+                  aria-label="page type"
+                >
+                  <ToggleButton value="change" aria-label="subscription change">
+                    Subscription Change
+                  </ToggleButton>
+                  <ToggleButton
+                    value="management"
+                    aria-label="subscription management"
+                  >
+                    Subscription Management
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+              {fromSubscriptionChange && (
+                <>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={fromSubscribe}
+                        onChange={(e) => setFromSubscribe(e.target.checked)}
+                      />
+                    }
+                    label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
                   />
-                }
-                label="User clicked subscription change link."
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={fromSubscribe}
-                    onChange={(e) => setFromSubscribe(e.target.checked)}
-                  />
-                }
-                label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
-              />
+                  <Box sx={{ mt: 1, mb: 1 }}>
+                    <Autocomplete
+                      options={subscriptionGroups}
+                      value={selectedSubscriptionGroup || null}
+                      onChange={(_event, newValue) => {
+                        setSelectedSubscriptionGroupId(newValue?.id || "");
+                      }}
+                      getOptionLabel={(option) =>
+                        `${option.name} (${option.channel})`
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          variant="outlined"
+                          label="Changed Subscription Group"
+                          size="small"
+                        />
+                      )}
+                    />
+                  </Box>
+                </>
+              )}
             </FormGroup>
           </Box>
           <Paper
@@ -1876,6 +1922,7 @@ function SubscriptionManagementSettings() {
               identifierKey="email"
               apiBase={apiBase}
               isPreview
+              showAllChannels
             />
           </Paper>
         </Stack>

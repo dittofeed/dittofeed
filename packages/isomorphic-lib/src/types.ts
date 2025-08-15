@@ -2736,6 +2736,11 @@ export const SubscriptionParams = Type.Object(
         description: "Preview mode flag to skip subscription updates.",
       }),
     ),
+    showAllChannels: Type.Optional(
+      Type.String({
+        description: "Show subscription groups for all channels instead of just the changed channel.",
+      }),
+    ),
   },
   {
     description:
