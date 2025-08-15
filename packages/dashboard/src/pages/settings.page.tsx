@@ -13,7 +13,6 @@ import {
   Autocomplete,
   Box,
   Button,
-  Checkbox,
   Dialog,
   FormControlLabel,
   FormGroup,
@@ -1783,7 +1782,6 @@ function SubscriptionManagementSettings() {
   const [fromSubscriptionChange, setFromSubscriptionChange] =
     useState<boolean>(true);
   const [fromSubscribe, setFromSubscribe] = useState<boolean>(false);
-  const [showAllChannels, setShowAllChannels] = useState<boolean>(false);
   const [selectedSubscriptionGroupId, setSelectedSubscriptionGroupId] =
     useState<string>("");
   const [showPreview, setShowPreview] = useState<boolean>(false);
@@ -1855,7 +1853,10 @@ function SubscriptionManagementSettings() {
                   <ToggleButton value="change" aria-label="subscription change">
                     Subscription Change
                   </ToggleButton>
-                  <ToggleButton value="management" aria-label="subscription management">
+                  <ToggleButton
+                    value="management"
+                    aria-label="subscription management"
+                  >
                     Subscription Management
                   </ToggleButton>
                 </ToggleButtonGroup>
@@ -1905,7 +1906,7 @@ function SubscriptionManagementSettings() {
             }}
           >
             <SubscriptionManagement
-              key={`${fromSubscribe}-${fromSubscriptionChange}-${showAllChannels}`}
+              key={`${fromSubscribe}-${fromSubscriptionChange}`}
               subscriptions={subscriptions}
               workspaceName={workspace.name}
               subscriptionChange={
@@ -1921,7 +1922,7 @@ function SubscriptionManagementSettings() {
               identifierKey="email"
               apiBase={apiBase}
               isPreview
-              showAllChannels={showAllChannels}
+              showAllChannels
             />
           </Paper>
         </Stack>
