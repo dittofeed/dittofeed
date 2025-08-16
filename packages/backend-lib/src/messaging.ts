@@ -381,12 +381,16 @@ async function getSendMessageModels({
   });
 }
 
+export type SubscriptionGroupDetailsWithName = SubscriptionGroupDetails & {
+  name: string;
+};
+
 export interface SendMessageParametersBase {
   workspaceId: string;
   userId: string;
   templateId: string;
   userPropertyAssignments: UserPropertyAssignments;
-  subscriptionGroupDetails?: SubscriptionGroupDetails & { name: string };
+  subscriptionGroupDetails?: SubscriptionGroupDetailsWithName;
   messageTags?: MessageTags;
   useDraft: boolean;
   isPreview?: boolean;
@@ -2498,9 +2502,7 @@ export async function batchMessageUsers(
   );
 
   // Create a mapping from userId to user context for event tracking
-  const userContextMap = new Map(
-    users.map((user) => [user.id, user.context]),
-  );
+  const userContextMap = new Map(users.map((user) => [user.id, user.context]));
 
   const baseProperties: TrackData["properties"] = {
     templateId,
@@ -2532,10 +2534,10 @@ export async function batchMessageUsers(
           ...omit(backendMessageSendResult.error, ["type"]),
         };
       }
-      
+
       // Get user-specific context
       const userContext = userContextMap.get(userId);
-      
+
       return {
         type: EventType.Track,
         properties: trackingProperties,
