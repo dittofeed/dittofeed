@@ -263,8 +263,8 @@ export function DeliveriesTableV2({
       groupId,
       journeyId,
       triggeringProperties,
-      broadcastId,
       contextValues,
+      broadcastId,
     };
 
     return createDownloadParams(params);
@@ -276,8 +276,8 @@ export function DeliveriesTableV2({
     groupId,
     journeyId,
     triggeringProperties,
-    broadcastId,
     contextValues,
+    broadcastId,
   ]);
 
   // Auto-extend date range to 90 days if initial load returns empty results
