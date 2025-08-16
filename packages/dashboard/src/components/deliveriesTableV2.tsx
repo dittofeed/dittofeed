@@ -135,6 +135,7 @@ export function DeliveriesTableV2({
   columnAllowList,
   journeyId,
   triggeringProperties,
+  contextValues,
   broadcastId,
   autoReloadByDefault = false,
   reloadPeriodMs = 30000,
@@ -219,6 +220,7 @@ export function DeliveriesTableV2({
     groupId,
     journeyId,
     triggeringProperties,
+    contextValues,
     broadcastId,
     templateIds,
     channels,
@@ -262,6 +264,7 @@ export function DeliveriesTableV2({
       journeyId,
       triggeringProperties,
       broadcastId,
+      contextValues,
     };
 
     return createDownloadParams(params);
@@ -274,6 +277,7 @@ export function DeliveriesTableV2({
     journeyId,
     triggeringProperties,
     broadcastId,
+    contextValues,
   ]);
 
   // Auto-extend date range to 90 days if initial load returns empty results
