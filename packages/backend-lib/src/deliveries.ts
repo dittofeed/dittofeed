@@ -345,59 +345,73 @@ export async function searchDeliveries({
       )`;
   }
 
-  let triggeringPropertiesClause = "";
-  if (triggeringProperties && triggeringProperties.length > 0) {
-    const groupedByKey = groupBy(triggeringProperties, ({ key }) => key);
+  // Helper to build tolerant conditions for JSON fields on either the triggering event properties
+  // or the delivery context. This function constructs a WHERE fragment that matches provided key/value
+  // pairs regardless of storage representation (scalar vs array, string vs number).
+  //
+  // Input semantics:
+  // - items: array of {key, value} filters. Multiple entries with the same key are OR'ed together.
+  // - Different keys are AND'ed together.
+  // - targetExpr: a vetted ClickHouse JSON expression string identifying the object to search, and must
+  //   be one of:
+  //     - "triggering_events.properties" (joined table of the triggering event)
+  //     - "inner_grouped.context" (context captured on the MessageSent event)
+  //
+  // Matching semantics for a single key/value:
+  // - If value is a string:
+  //   - Match string scalar: JSONExtractString(target, key) = value
+  //   - Match string array: has(JSONExtract(target, key, 'Array(String)'), value)
+  //   - If toInt64OrNull(value) is not NULL, also match numeric scalar/array using the casted number
+  //     so that "741207" will match 741207 and [741207, ...].
+  // - If value is a number:
+  //   - Match numeric scalar: JSONExtractInt(target, key) = value
+  //   - Match numeric array: has(JSONExtract(target, key, 'Array(Int64)'), value)
+  //   - Also allow string forms: JSONExtractString(target, key) = toString(value) and has(Array(String), toString(value))
+  function buildPropertyConditionsForTarget(
+    items: { key: string; value: string | number }[],
+    targetExpr: string,
+  ): string {
+    const groupedByKey = groupBy(items, ({ key }) => key);
 
     const pathConditions = pipe(
       groupedByKey,
-      values, // Get the arrays of properties for each key
+      values,
       map((keyItems) => {
         const { key } = keyItems[0];
         if (!key) {
-          return null; // Return null if key is missing
+          return null;
         }
         const keyParam = queryBuilder.addQueryValue(key, "String");
 
+        // For a single key, build an OR over all values provided for that key
         const valueConditions = map(keyItems, ({ value }) => {
-          let valueParam: string;
-          let valueType: "String" | "Int64";
-
           if (typeof value === "string") {
-            valueParam = queryBuilder.addQueryValue(value, "String");
-            valueType = "String";
-          } else if (typeof value === "number") {
+            const stringParam = queryBuilder.addQueryValue(value, "String");
+            const stringScalarCheck = `(JSONExtractString(${targetExpr}, ${keyParam}) = ${stringParam})`;
+            const arrayStringCheck = `has(JSONExtract(${targetExpr}, ${keyParam}, 'Array(String)'), ${stringParam})`;
+            // Attempt numeric match via safe cast in ClickHouse
+            const toInt = `toInt64OrNull(${stringParam})`;
+            const numberScalarCheck = `(JSONExtractInt(${targetExpr}, ${keyParam}) = ${toInt})`;
+            const arrayIntCheck = `has(JSONExtract(${targetExpr}, ${keyParam}, 'Array(Int64)'), ifNull(${toInt}, 0))`;
+            const numericGroup = `((${toInt}) IS NOT NULL AND (${numberScalarCheck} OR ${arrayIntCheck}))`;
+            return `(${stringScalarCheck} OR ${arrayStringCheck} OR ${numericGroup})`;
+          }
+          if (typeof value === "number") {
             const roundedValue = Math.floor(value);
-            valueParam = queryBuilder.addQueryValue(roundedValue, "Int64");
-            valueType = "Int64";
-          } else {
-            logger().error({ key, value, workspaceId }, "Unexpected type");
-            return null; // Return null for invalid type
-          }
-
-          const stringCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 34 AND JSONExtractString(triggering_events.properties, ${keyParam}) = ${valueParam})`;
-          const numberCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 105 AND JSONExtractInt(triggering_events.properties, ${keyParam}) = ${valueParam})`;
-
-          // Initialize to null for consistency, although it will always be set below.
-          let arrayCheck: string;
-          if (valueType === "String") {
-            const typedArrayExtract = `JSONExtract(triggering_events.properties, ${keyParam}, 'Array(String)')`;
-            arrayCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 91 AND has(${typedArrayExtract}, ${valueParam}))`;
-          } else if (valueType === "Int64") {
-            const typedArrayExtractInt = `JSONExtract(triggering_events.properties, ${keyParam}, 'Array(Int64)')`;
-            arrayCheck = `(JSONType(triggering_events.properties, ${keyParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam}))`;
-          } else {
-            logger().error(
-              { key, value, valueType, workspaceId },
-              "Unexpected value type",
+            const intParam = queryBuilder.addQueryValue(roundedValue, "Int64");
+            const numberScalarCheck = `(JSONExtractInt(${targetExpr}, ${keyParam}) = ${intParam})`;
+            const arrayIntCheck = `has(JSONExtract(${targetExpr}, ${keyParam}, 'Array(Int64)'), ${intParam})`;
+            // Also allow matching if the stored value is stringified
+            const stringParam = queryBuilder.addQueryValue(
+              String(roundedValue),
+              "String",
             );
-            return null;
+            const stringScalarCheck = `(JSONExtractString(${targetExpr}, ${keyParam}) = ${stringParam})`;
+            const arrayStringCheck = `has(JSONExtract(${targetExpr}, ${keyParam}, 'Array(String)'), ${stringParam})`;
+            return `(${numberScalarCheck} OR ${arrayIntCheck} OR ${stringScalarCheck} OR ${arrayStringCheck})`;
           }
-
-          if (valueType === "String") {
-            return `(${stringCheck} OR ${arrayCheck})`;
-          }
-          return `(${numberCheck} OR ${arrayCheck})`;
+          logger().error({ key, value, workspaceId }, "Unexpected type");
+          return null;
         });
 
         const validValueConditions = rFilter(
@@ -413,88 +427,26 @@ export async function searchDeliveries({
     );
 
     if (pathConditions.length > 0) {
-      triggeringPropertiesClause = join(pathConditions, " AND ");
-    } else {
-      triggeringPropertiesClause = "1=0";
+      return join(pathConditions, " AND ");
     }
+    return "1=0";
+  }
+
+  let triggeringPropertiesClauseTrigger = "";
+  if (triggeringProperties && triggeringProperties.length > 0) {
+    triggeringPropertiesClauseTrigger = buildPropertyConditionsForTarget(
+      triggeringProperties,
+      "triggering_events.properties",
+    );
   }
 
   // Process context values filtering
   let contextValuesClause = "";
   if (contextValues && contextValues.length > 0) {
-    const groupedByKey = groupBy(contextValues, ({ key }) => key);
-
-    const pathConditions = pipe(
-      groupedByKey,
-      values, // Get the arrays of context values for each key
-      map((keyItems) => {
-        const { key } = keyItems[0];
-        if (!key) {
-          return null; // Return null if key is missing
-        }
-        const keyParam = queryBuilder.addQueryValue(key, "String");
-
-        const valueConditions = map(keyItems, ({ value }) => {
-          let valueParam: string;
-          let valueType: "String" | "Int64";
-
-          if (typeof value === "string") {
-            valueParam = queryBuilder.addQueryValue(value, "String");
-            valueType = "String";
-          } else if (typeof value === "number") {
-            const roundedValue = Math.floor(value);
-            valueParam = queryBuilder.addQueryValue(roundedValue, "Int64");
-            valueType = "Int64";
-          } else {
-            logger().error(
-              { key, value, workspaceId },
-              "Unexpected context value type",
-            );
-            return null; // Return null for invalid type
-          }
-
-          const stringCheck = `(JSONType(inner_grouped.context, ${keyParam}) = 34 AND JSONExtractString(inner_grouped.context, ${keyParam}) = ${valueParam})`;
-          const numberCheck = `(JSONType(inner_grouped.context, ${keyParam}) = 105 AND JSONExtractInt(inner_grouped.context, ${keyParam}) = ${valueParam})`;
-
-          // Initialize to null for consistency, although it will always be set below.
-          let arrayCheck: string;
-          if (valueType === "String") {
-            const typedArrayExtract = `JSONExtract(inner_grouped.context, ${keyParam}, 'Array(String)')`;
-            arrayCheck = `(JSONType(inner_grouped.context, ${keyParam}) = 91 AND has(${typedArrayExtract}, ${valueParam}))`;
-          } else if (valueType === "Int64") {
-            const typedArrayExtractInt = `JSONExtract(inner_grouped.context, ${keyParam}, 'Array(Int64)')`;
-            arrayCheck = `(JSONType(inner_grouped.context, ${keyParam}) = 91 AND has(${typedArrayExtractInt}, ${valueParam}))`;
-          } else {
-            logger().error(
-              { key, value, valueType, workspaceId },
-              "Unexpected context value type",
-            );
-            return null;
-          }
-
-          if (valueType === "String") {
-            return `(${stringCheck} OR ${arrayCheck})`;
-          }
-          return `(${numberCheck} OR ${arrayCheck})`;
-        });
-
-        const validValueConditions = rFilter(
-          valueConditions,
-          (c) => c !== null,
-        );
-        if (validValueConditions.length === 0) {
-          return null;
-        }
-        return `(${join(validValueConditions, " OR ")})`;
-      }),
-      rFilter((c): c is string => c !== null),
+    contextValuesClause = buildPropertyConditionsForTarget(
+      contextValues,
+      "inner_grouped.context",
     );
-
-    if (pathConditions.length > 0) {
-      contextValuesClause = join(pathConditions, " AND ");
-    } else {
-      contextValuesClause = "1=0";
-    }
   }
 
   let sortByClause: string;
@@ -531,17 +483,18 @@ export async function searchDeliveries({
   let finalWhereClause = "WHERE 1=1";
 
   // Combine triggeringProperties and contextValues with OR logic for backwards compatibility
-  const hasValidTriggeringProperties =
-    triggeringPropertiesClause && triggeringPropertiesClause !== "1=0";
+  const hasValidTriggeringPropsTrigger =
+    triggeringPropertiesClauseTrigger &&
+    triggeringPropertiesClauseTrigger !== "1=0";
   const hasValidContextValues =
     contextValuesClause && contextValuesClause !== "1=0";
 
-  if (hasValidTriggeringProperties && hasValidContextValues) {
-    // Both conditions present - combine with OR for backwards compatibility
-    finalWhereClause += ` AND ((triggering_events.properties IS NOT NULL AND (${triggeringPropertiesClause})) OR (inner_grouped.context IS NOT NULL AND inner_grouped.context != '' AND (${contextValuesClause})))`;
-  } else if (hasValidTriggeringProperties) {
-    // Only triggering properties
-    finalWhereClause += ` AND triggering_events.properties IS NOT NULL AND (${triggeringPropertiesClause})`;
+  if (hasValidTriggeringPropsTrigger && hasValidContextValues) {
+    // Both inputs present - OR join-based triggering props with explicit context filters
+    finalWhereClause += ` AND ((triggering_events.properties IS NOT NULL AND (${triggeringPropertiesClauseTrigger})) OR (inner_grouped.context IS NOT NULL AND inner_grouped.context != '' AND (${contextValuesClause})))`;
+  } else if (hasValidTriggeringPropsTrigger) {
+    // Only triggeringProperties provided: match only triggering event properties via join
+    finalWhereClause += ` AND triggering_events.properties IS NOT NULL AND (${triggeringPropertiesClauseTrigger})`;
   } else if (hasValidContextValues) {
     // Only context values
     finalWhereClause += ` AND inner_grouped.context IS NOT NULL AND inner_grouped.context != '' AND (${contextValuesClause})`;
@@ -609,7 +562,7 @@ export async function searchDeliveries({
     ${
       triggeringProperties &&
       triggeringProperties.length > 0 &&
-      triggeringPropertiesClause !== "1=0"
+      triggeringPropertiesClauseTrigger !== "1=0"
         ? `LEFT JOIN (
       SELECT
         message_id,
