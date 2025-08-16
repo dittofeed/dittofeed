@@ -75,9 +75,9 @@ export function SubscriptionManagement({
     // Filter channels based on showAllChannels prop
     if (!showAllChannels && changedSubscriptionChannel) {
       const filteredGrouped: Record<string, UserSubscriptionResource[]> = {};
-      if (grouped[changedSubscriptionChannel]) {
-        filteredGrouped[changedSubscriptionChannel] =
-          grouped[changedSubscriptionChannel];
+      const channelSubscriptions = grouped[changedSubscriptionChannel];
+      if (channelSubscriptions) {
+        filteredGrouped[changedSubscriptionChannel] = channelSubscriptions;
       }
       return filteredGrouped;
     }
