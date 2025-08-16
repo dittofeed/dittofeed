@@ -18,9 +18,14 @@ import {
   sendMessage,
   SendMessageParameters,
   SendMessageParametersBase,
+  SubscriptionGroupDetailsWithName,
 } from "../messaging";
 import { withSpan } from "../openTelemetry";
 import { toSegmentResource } from "../segments";
+import {
+  getSubscriptionGroupDetails,
+  getSubscriptionGroupWithAssignments,
+} from "../subscriptionGroups";
 import {
   BackendMessageSendResult,
   BatchTrackData,
@@ -244,20 +249,6 @@ export function sendMessagesFactory(sender: Sender) {
         throw new Error("Broadcast subscription group is null");
       }
 
-      const subscriptionGroup = await db().query.subscriptionGroup.findFirst({
-        where: eq(schema.subscriptionGroup.id, broadcast.subscriptionGroupId),
-        with: {
-          segments: true,
-        },
-      });
-      if (!subscriptionGroup) {
-        throw new Error("Subscription group not found");
-      }
-      const subscriptionGroupSegment = subscriptionGroup.segments[0];
-      if (!subscriptionGroupSegment) {
-        throw new Error("Subscription group segment not found");
-      }
-
       const { users, nextCursor } = await getUnmessagedUsers({
         workspaceId: params.workspaceId,
         segmentFilter: broadcast.segmentId ? [broadcast.segmentId] : undefined,
@@ -270,6 +261,22 @@ export function sendMessagesFactory(sender: Sender) {
         broadcastId: params.broadcastId,
         now: params.now,
       });
+
+      const subscriptionGroup = await getSubscriptionGroupWithAssignments({
+        subscriptionGroupId: broadcast.subscriptionGroupId,
+        userIds: users.map((user) => user.id),
+      });
+
+      const subscriptionGroupDetailsByUserId = subscriptionGroup.reduce(
+        (acc, sg) => {
+          acc.set(sg.userId, {
+            ...getSubscriptionGroupDetails(sg),
+            name: sg.name,
+          });
+          return acc;
+        },
+        new Map<string, SubscriptionGroupDetailsWithName>(),
+      );
 
       const promises: Promise<{
         userId: string;
@@ -315,6 +322,9 @@ export function sendMessagesFactory(sender: Sender) {
           if (params.workspaceOccupantType) {
             messageTags.workspaceOccupantType = params.workspaceOccupantType;
           }
+          const subscriptionGroupDetails = subscriptionGroupDetailsByUserId.get(
+            user.id,
+          );
           const baseParams: SendMessageParametersBase = {
             userId: user.id,
             workspaceId: params.workspaceId,
@@ -322,6 +332,7 @@ export function sendMessagesFactory(sender: Sender) {
             useDraft: false,
             userPropertyAssignments,
             messageTags,
+            subscriptionGroupDetails,
           };
           let messageVariant: SendMessageParameters;
           switch (config.message.type) {
