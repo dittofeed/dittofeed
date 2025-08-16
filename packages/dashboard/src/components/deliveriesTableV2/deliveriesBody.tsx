@@ -518,6 +518,7 @@ export interface DeliveriesBodyHookProps {
   journeyId?: string;
   journeyIds?: string[];
   triggeringProperties?: SearchDeliveriesRequest["triggeringProperties"];
+  contextValues?: SearchDeliveriesRequest["contextValues"];
   broadcastId?: string;
   broadcastIds?: string[];
   templateIds?: string[];
@@ -551,6 +552,7 @@ export function useDeliveryBodyState({
   journeyId,
   journeyIds,
   triggeringProperties,
+  contextValues,
   broadcastId,
   broadcastIds,
   templateIds,
@@ -632,6 +634,7 @@ export function useDeliveryBodyState({
       statuses: expandedStatuses,
       from,
       triggeringProperties,
+      contextValues,
       sortBy,
       sortDirection,
       userId,
@@ -655,6 +658,7 @@ export function useDeliveryBodyState({
     to,
     from,
     triggeringProperties,
+    contextValues,
     sortBy,
     sortDirection,
     userId,
@@ -670,6 +674,7 @@ export function useDeliveryBodyState({
       groupId,
       journeyId,
       triggeringProperties,
+      contextValues,
       workspace,
       sortBy,
       sortDirection,
