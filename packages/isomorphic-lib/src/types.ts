@@ -3621,7 +3621,7 @@ export const SignalWireSecret = Type.Object({
   project: Type.Optional(Type.String()),
   token: Type.Optional(Type.String()),
   spaceUrl: Type.Optional(Type.String()),
-  from: Type.Optional(Type.String()),
+  phone: Type.Optional(Type.String()),
 });
 
 export type SignalWireSecret = Static<typeof SignalWireSecret>;
@@ -5531,6 +5531,7 @@ export const BaseBroadcastSmsMessageVariant = Type.Object({
 export const BroadcastSmsMessageVariant = Type.Union([
   Type.Composite([BaseBroadcastSmsMessageVariant, NoSmsProviderOverride]),
   Type.Composite([BaseBroadcastSmsMessageVariant, TwilioOverride]),
+  Type.Composite([BaseBroadcastSmsMessageVariant, SignalWireOverride]),
   Type.Composite([BaseBroadcastSmsMessageVariant, TestSmsOverride]),
 ]);
 

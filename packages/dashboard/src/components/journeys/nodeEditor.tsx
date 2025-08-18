@@ -526,6 +526,7 @@ function MessageNodeFields({
       </>
     );
   }
+  let signalWireSenderOverrideType: SignalWireSenderOverrideType | "" = "";
   if (
     nodeProps.channel === ChannelType.Sms &&
     nodeProps.providerOverride === SmsProviderType.SignalWire
@@ -534,6 +535,7 @@ function MessageNodeFields({
     if (nodeProps.senderOverride) {
       switch (nodeProps.senderOverride.type) {
         case SignalWireSenderOverrideType.PhoneNumber:
+          signalWireSenderOverrideType = SignalWireSenderOverrideType.PhoneNumber;
           signalWireOverrideConfigEl = (
             <TextField
               label="Phone Number"
@@ -594,7 +596,7 @@ function MessageNodeFields({
             labelId="signalwire-sender-override-select-label"
             label="SignalWire Override"
             onChange={onSignalWireSenderOverrideChangeHandler}
-            value={nodeProps.senderOverride?.type ?? ""}
+            value={signalWireSenderOverrideType}
             disabled={disabled}
           >
             <MenuItem value="">None</MenuItem>
