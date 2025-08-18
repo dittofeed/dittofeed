@@ -46,10 +46,7 @@ import {
   ResendRequiredData,
   sendMail as sendMailResend,
 } from "./destinations/resend";
-import {
-  SENDGRID_ID_HEADER,
-  sendMail as sendMailSendgrid,
-} from "./destinations/sendgrid";
+import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
 import { sendSms as sendSmsSignalWire } from "./destinations/signalwire";
 import {
   sendMail as sendMailSmtp,
@@ -110,9 +107,7 @@ import {
   ParsedWebhookBody,
   Secret,
   SignalWireSecret,
-  SignalWireSenderOverride,
   SignalWireSenderOverrideType,
-  SmsMessageVariant,
   SmsProvider,
   SmsProviderOverride,
   SmsProviderSecret,
