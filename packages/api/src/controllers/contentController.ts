@@ -50,6 +50,7 @@ import {
   RenderMessageTemplateResponseContent,
   RenderMessageTemplateType,
   ResetMessageTemplateResource,
+  SmsProviderType,
   UpsertMessageTemplateResource,
   UpsertMessageTemplateValidationError,
   WebhookSecret,
@@ -367,6 +368,63 @@ export default async function contentController(fastify: FastifyInstance) {
               },
             });
           }
+          case ChannelType.Sms: {
+            const { provider } = result.error.variant;
+            switch (provider.type) {
+              case SmsProviderType.Twilio: {
+                const suggestions: string[] = [];
+                if (provider.message) {
+                  suggestions.push(provider.message);
+                } else {
+                  suggestions.push(
+                    "Failed to send SMS via Twilio. Check your Twilio configuration and the phone number format.",
+                  );
+                }
+                return reply.status(200).send({
+                  type: JsonResultType.Err,
+                  err: {
+                    suggestions,
+                    responseData: provider.message,
+                  },
+                });
+              }
+              case SmsProviderType.SignalWire: {
+                const suggestions: string[] = [];
+                if (provider.status) {
+                  suggestions.push(
+                    `SignalWire responded with status: ${provider.status}`,
+                  );
+                }
+                if (provider.errorCode) {
+                  suggestions.push(`Error code: ${provider.errorCode}`);
+                }
+                if (provider.errorMessage) {
+                  suggestions.push(provider.errorMessage);
+                } else {
+                  suggestions.push(
+                    "Failed to send SMS via SignalWire. Verify phone number format and SignalWire project/token/space configuration.",
+                  );
+                }
+                return reply.status(200).send({
+                  type: JsonResultType.Err,
+                  err: {
+                    suggestions,
+                    responseData: JSON.stringify(provider, null, 2),
+                  },
+                });
+              }
+              default: {
+                return reply.status(200).send({
+                  type: JsonResultType.Err,
+                  err: {
+                    suggestions: [
+                      "Failed to send SMS. Check your SMS provider settings.",
+                    ],
+                  },
+                });
+              }
+            }
+          }
           case ChannelType.Email: {
             const { type } = result.error.variant.provider;
             switch (type) {
@@ -493,7 +551,12 @@ export default async function contentController(fastify: FastifyInstance) {
         }
       }
       logger().error(result.error, "Unexpected error sending test message");
-      return reply.status(500);
+      return reply.status(200).send({
+        type: JsonResultType.Err,
+        err: {
+          suggestions: ["Unexpected error sending test message"],
+        },
+      });
     },
   );
 

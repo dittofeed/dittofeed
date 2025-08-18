@@ -1,5 +1,4 @@
 import { RestClient } from "@signalwire/compatibility-api";
-import { Static, Type } from "@sinclair/typebox";
 import { err, ok, Result } from "neverthrow";
 import qs from "querystring";
 import * as R from "remeda";
@@ -16,23 +15,49 @@ import {
 
 export type SignalWireHandlingApplicationError = Error;
 
-export const SignalWireResult = Type.Object({
-  sid: Type.String(),
-  error_code: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-  error_message: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-  status: Type.String(),
-});
-
-export type SignalWireResult = Static<typeof SignalWireResult>;
-
 export const SIGNAL_WIRE_RETRYABLE_ERROR_CODES = new Set([
   // application error
-  30008,
+  "30008",
   // throughput limit exceeded
-  30022,
+  "30022",
   // t-mobile limit exceeded
-  30027,
+  "30027",
 ]);
+
+/**
+ * Represents the inferred structure of an error object thrown by the
+ * SignalWire Compatibility API SDK when a REST request fails.
+ */
+export interface SignalWireApiError extends Error {
+  /**
+   * The HTTP status code of the API response.
+   * @example 400
+   */
+  status: number;
+
+  /**
+   * The SignalWire-specific numerical error code.
+   * @see https://developer.signalwire.com/rest/compatibility-api/overview/error-codes/
+   * @example 21212
+   */
+  code: string;
+
+  /**
+   * A URL linking to more information about the error code.
+   * @example "https://www.signalwire.com/docs/errors/21212"
+   */
+  moreInfo: string;
+}
+
+function isRetryableSignalWireError(error: SignalWireApiError): boolean {
+  if (error.status >= 500) {
+    return true;
+  }
+  if (SIGNAL_WIRE_RETRYABLE_ERROR_CODES.has(error.code)) {
+    return true;
+  }
+  return false;
+}
 
 export async function sendSms({
   project,
@@ -87,25 +112,29 @@ export async function sendSms({
       },
       "signalwire error value",
     );
-    if (SIGNAL_WIRE_RETRYABLE_ERROR_CODES.has(errorCode)) {
+    if (SIGNAL_WIRE_RETRYABLE_ERROR_CODES.has(errorCode.toString())) {
       throw new Error(
         `transient signalwire error: code=${errorCode} message=${errorMessage}`,
       );
     }
     return err({
       type: SmsProviderType.SignalWire,
-      errorCode,
+      errorCode: errorCode.toString(),
       errorMessage,
       status,
     });
   } catch (error) {
-    // FIXME handle non-retryable errors see the shape of the error
-    logger().error(
-      {
-        err: error,
-      },
-      "thrown signalwire error",
-    );
-    throw error;
+    const signalWireErr = error as SignalWireApiError;
+    if (isRetryableSignalWireError(signalWireErr)) {
+      throw new Error(
+        `transient signalwire error: code=${signalWireErr.code} message=${signalWireErr.message}`,
+      );
+    }
+    return err({
+      type: SmsProviderType.SignalWire,
+      errorCode: signalWireErr.code,
+      errorMessage: signalWireErr.message,
+      status: signalWireErr.status.toString(),
+    });
   }
 }

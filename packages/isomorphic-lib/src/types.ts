@@ -4123,7 +4123,7 @@ export type MessageTwilioServiceFailure = Static<
 
 export const MessageSignalWireServiceFailure = Type.Object({
   type: Type.Literal(SmsProviderType.SignalWire),
-  errorCode: Type.Number(),
+  errorCode: Type.String(),
   errorMessage: Type.Optional(Type.String()),
   status: Type.String(),
 });
