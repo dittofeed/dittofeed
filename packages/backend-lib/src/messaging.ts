@@ -111,6 +111,7 @@ import {
   Secret,
   SignalWireSecret,
   SignalWireSenderOverride,
+  SignalWireSenderOverrideType,
   SmsMessageVariant,
   SmsProvider,
   SmsProviderOverride,
@@ -1889,7 +1890,7 @@ export async function sendSms(
         });
       }
 
-      const { project, token, spaceUrl } = configResult.value;
+      const { project, token, spaceUrl, phone } = configResult.value;
 
       if (!project) {
         return err({
@@ -1921,22 +1922,28 @@ export async function sendSms(
         });
       }
 
-      let from: string;
-      const { senderOverride } = params;
+      let phoneOverride: string | null = null;
       if (
         params.providerOverride === SmsProviderType.SignalWire &&
-        senderOverride
+        params.senderOverride
       ) {
-        // When providerOverride is SignalWire, senderOverride is SignalWireSenderOverride
-        const signalWireSender = senderOverride as SignalWireSenderOverride;
-        from = signalWireSender.phone;
+        switch (params.senderOverride.type) {
+          case SignalWireSenderOverrideType.PhoneNumber:
+            phoneOverride = params.senderOverride.phone;
+        }
+      }
+      let from: string;
+      if (phoneOverride) {
+        from = phoneOverride;
+      } else if (phone) {
+        from = phone;
       } else {
         return err({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
             message:
-              "SignalWire provider requires a senderOverride with a phone number",
+              "SignalWire sender requires a default phone number or a sender override phone number",
           },
         });
       }
