@@ -163,6 +163,7 @@ export type ChannelType = (typeof ChannelType)[keyof typeof ChannelType];
 
 export enum SmsProviderType {
   Twilio = "Twilio",
+  SignalWire = "SignalWire",
   Test = "Test",
 }
 
@@ -1062,6 +1063,24 @@ export const TwilioOverride = Type.Object({
 
 export type TwilioOverride = Static<typeof TwilioOverride>;
 
+export enum SignalWireSenderOverrideType {
+  PhoneNumber = "PhoneNumber",
+}
+
+export const SignalWireSenderOverride = Type.Object({
+  type: Type.Literal(SignalWireSenderOverrideType.PhoneNumber),
+  phone: Type.String(),
+});
+
+export type SignalWireSenderOverride = Static<typeof SignalWireSenderOverride>;
+
+export const SignalWireOverride = Type.Object({
+  providerOverride: Type.Literal(SmsProviderType.SignalWire),
+  senderOverride: Type.Optional(SignalWireSenderOverride),
+});
+
+export type SignalWireOverride = Static<typeof SignalWireOverride>;
+
 export const TestSmsOverride = Type.Object({
   providerOverride: Type.Literal(SmsProviderType.Test),
   senderOverride: Type.Optional(Type.Null()),
@@ -1072,6 +1091,7 @@ export type TestSmsOverride = Static<typeof TestSmsOverride>;
 export const SmsProviderOverride = Type.Union([
   NoSmsProviderOverride,
   TwilioOverride,
+  SignalWireOverride,
   TestSmsOverride,
 ]);
 
@@ -1080,6 +1100,7 @@ export type SmsProviderOverride = Static<typeof SmsProviderOverride>;
 export const SmsMessageVariant = Type.Union([
   Type.Composite([BaseSmsMessageVariant, NoSmsProviderOverride]),
   Type.Composite([BaseSmsMessageVariant, TwilioOverride]),
+  Type.Composite([BaseSmsMessageVariant, SignalWireOverride]),
   Type.Composite([BaseSmsMessageVariant, TestSmsOverride]),
 ]);
 
@@ -2738,7 +2759,8 @@ export const SubscriptionParams = Type.Object(
     ),
     showAllChannels: Type.Optional(
       Type.String({
-        description: "Show subscription groups for all channels instead of just the changed channel.",
+        description:
+          "Show subscription groups for all channels instead of just the changed channel.",
       }),
     ),
   },
@@ -3594,6 +3616,16 @@ export const TwilioSecret = Type.Object({
 
 export type TwilioSecret = Static<typeof TwilioSecret>;
 
+export const SignalWireSecret = Type.Object({
+  type: Type.Literal(SmsProviderType.SignalWire),
+  project: Type.Optional(Type.String()),
+  token: Type.Optional(Type.String()),
+  spaceUrl: Type.Optional(Type.String()),
+  phone: Type.Optional(Type.String()),
+});
+
+export type SignalWireSecret = Static<typeof SignalWireSecret>;
+
 export const TestSmsSecret = Type.Object({
   type: Type.Literal(SmsProviderType.Test),
 });
@@ -3608,7 +3640,11 @@ export const TestSmsProvider = Type.Object({
 
 export type TestSmsProvider = Static<typeof TestSmsProvider>;
 
-export const SmsProviderSecret = Type.Union([TwilioSecret, TestSmsSecret]);
+export const SmsProviderSecret = Type.Union([
+  TwilioSecret,
+  TestSmsSecret,
+  SignalWireSecret,
+]);
 
 export type SmsProviderSecret = Static<typeof SmsProviderSecret>;
 
@@ -3620,8 +3656,17 @@ export const TwilioSmsProvider = Type.Object({
 
 export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
 
+export const SignalWireSmsProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Optional(Type.Literal(SmsProviderType.SignalWire)),
+});
+
+export type SignalWireSmsProvider = Static<typeof SignalWireSmsProvider>;
+
 export const PersistedSmsProvider = Type.Union([
   TwilioSmsProvider,
+  SignalWireSmsProvider,
   TestSmsProvider,
 ]);
 
@@ -3645,6 +3690,14 @@ export const SmsTwilioSuccess = Type.Object({
 
 export type SmsTwilioSuccess = Static<typeof SmsTwilioSuccess>;
 
+export const SmsSignalWireSuccess = Type.Object({
+  type: Type.Literal(SmsProviderType.SignalWire),
+  status: Type.String(),
+  sid: Type.String(),
+});
+
+export type SmsSignalWireSuccess = Static<typeof SmsSignalWireSuccess>;
+
 export const SmsTestSuccess = Type.Object({
   type: Type.Literal(SmsProviderType.Test),
 });
@@ -3653,6 +3706,7 @@ export type SmsTestSuccess = Static<typeof SmsTestSuccess>;
 
 export const SmsServiceProviderSuccess = Type.Union([
   SmsTwilioSuccess,
+  SmsSignalWireSuccess,
   SmsTestSuccess,
 ]);
 
@@ -4063,8 +4117,24 @@ export const MessageTwilioServiceFailure = Type.Object({
   message: Type.Optional(Type.String()),
 });
 
+export type MessageTwilioServiceFailure = Static<
+  typeof MessageTwilioServiceFailure
+>;
+
+export const MessageSignalWireServiceFailure = Type.Object({
+  type: Type.Literal(SmsProviderType.SignalWire),
+  errorCode: Type.String(),
+  errorMessage: Type.Optional(Type.String()),
+  status: Type.String(),
+});
+
+export type MessageSignalWireServiceFailure = Static<
+  typeof MessageSignalWireServiceFailure
+>;
+
 export const SmsServiceProviderFailure = Type.Union([
   MessageTwilioServiceFailure,
+  MessageSignalWireServiceFailure,
 ]);
 
 export type SmsServiceProviderFailure = Static<
@@ -5461,6 +5531,7 @@ export const BaseBroadcastSmsMessageVariant = Type.Object({
 export const BroadcastSmsMessageVariant = Type.Union([
   Type.Composite([BaseBroadcastSmsMessageVariant, NoSmsProviderOverride]),
   Type.Composite([BaseBroadcastSmsMessageVariant, TwilioOverride]),
+  Type.Composite([BaseBroadcastSmsMessageVariant, SignalWireOverride]),
   Type.Composite([BaseBroadcastSmsMessageVariant, TestSmsOverride]),
 ]);
 

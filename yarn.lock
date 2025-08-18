@@ -8857,6 +8857,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@signalwire/compatibility-api@npm:^3.1.4":
+  version: 3.1.4
+  resolution: "@signalwire/compatibility-api@npm:3.1.4"
+  dependencies:
+    axios: "npm:^0.26.1"
+    dayjs: "npm:^1.8.29"
+    https-proxy-agent: "npm:^5.0.0"
+    jsonwebtoken: "npm:9.0.0"
+    lodash: "npm:^4.17.21"
+    q: "npm:2.0.x"
+    qs: "npm:^6.9.4"
+    rootpath: "npm:^0.1.2"
+    scmp: "npm:^2.1.0"
+    url-parse: "npm:^1.5.9"
+    xmlbuilder: "npm:^13.0.2"
+  checksum: 10/e05c9155b1d88d6650c74ce59e3c547eb2977fb7dc9612d2ec04e8111d00113308c6658164513b111cb9caa6af0e256e3d0e57c212642b7ff364f5ad8884d1d0
+  languageName: node
+  linkType: hard
+
 "@sinclair/typebox@npm:0.34.37":
   version: 0.34.37
   resolution: "@sinclair/typebox@npm:0.34.37"
@@ -12936,6 +12955,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"asap@npm:^2.0.0":
+  version: 2.0.6
+  resolution: "asap@npm:2.0.6"
+  checksum: 10/b244c0458c571945e4b3be0b14eb001bea5596f9868cc50cc711dc03d58a7e953517d3f0dad81ccde3ff37d1f074701fa76a6f07d41aaa992d7204a37b915dda
+  languageName: node
+  linkType: hard
+
 "asn1.js@npm:^5.4.1":
   version: 5.4.1
   resolution: "asn1.js@npm:5.4.1"
@@ -13195,6 +13221,7 @@ __metadata:
     "@opentelemetry/semantic-conventions": "npm:1.12.0"
     "@sendgrid/helpers": "npm:^7.7.0"
     "@sendgrid/mail": "npm:^7.7.0"
+    "@signalwire/compatibility-api": "npm:^3.1.4"
     "@sinclair/typebox": "npm:0.34.37"
     "@temporalio/activity": "npm:1.11.6"
     "@temporalio/client": "npm:1.11.6"
@@ -14913,6 +14940,13 @@ __metadata:
   version: 1.11.10
   resolution: "dayjs@npm:1.11.10"
   checksum: 10/27e8f5bc01c0a76f36c656e62ab7f08c2e7b040b09e613cd4844abf03fb258e0350f0a83b02c887b84d771c1f11e092deda0beef8c6df2a1afbc3f6c1fade279
+  languageName: node
+  linkType: hard
+
+"dayjs@npm:^1.8.29":
+  version: 1.11.13
+  resolution: "dayjs@npm:1.11.13"
+  checksum: 10/7374d63ab179b8d909a95e74790def25c8986e329ae989840bacb8b1888be116d20e1c4eee75a69ea0dfbae13172efc50ef85619d304ee7ca3c01d5878b704f5
   languageName: node
   linkType: hard
 
@@ -20617,7 +20651,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsonwebtoken@npm:^9.0.0":
+"jsonwebtoken@npm:9.0.0, jsonwebtoken@npm:^9.0.0":
   version: 9.0.0
   resolution: "jsonwebtoken@npm:9.0.0"
   dependencies:
@@ -24315,6 +24349,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"pop-iterate@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "pop-iterate@npm:1.0.1"
+  checksum: 10/2592dc52592ab1d2999bd4944c70ce5f6e5e2e01bcd4259cf51d792c5c1d1fb0dfc54f29f6b795083a6ec60490676e8044c6e1a7e8992f67bd9242b2d3581841
+  languageName: node
+  linkType: hard
+
 "postcss-import@npm:^15.1.0":
   version: 15.1.0
   resolution: "postcss-import@npm:15.1.0"
@@ -25085,6 +25126,17 @@ __metadata:
     proxy-from-env: "npm:1.1.0"
     puppeteer-core: "npm:19.11.1"
   checksum: 10/f7ca1aa2804f5a4aff5abe828aeb9dd2a18565b6b9bc31646abc5fe327656cc87749f9b60c5b15c70ec28bb93a510bf1f1bc61b9da1688b401d55783835d998e
+  languageName: node
+  linkType: hard
+
+"q@npm:2.0.x":
+  version: 2.0.3
+  resolution: "q@npm:2.0.3"
+  dependencies:
+    asap: "npm:^2.0.0"
+    pop-iterate: "npm:^1.0.1"
+    weak-map: "npm:^1.0.5"
+  checksum: 10/bb13cad24aa30949f5e6d2d775e5a20782315e9f1a970dc870ed3777b5df5a9d8be1cf90cfd5109ffd08a6416e0641357ac75a81b4426c81b169f1420a8a2eab
   languageName: node
   linkType: hard
 
@@ -26176,6 +26228,13 @@ __metadata:
   bin:
     rollup: dist/bin/rollup
   checksum: 10/60a1d6548fa1e612209f9f98f83c73a213f27569abddcbfb246af08455d730f367d95f6bd541b58c9e1e643c181463db27326c712aa81efd4071372a4d3481b9
+  languageName: node
+  linkType: hard
+
+"rootpath@npm:^0.1.2":
+  version: 0.1.2
+  resolution: "rootpath@npm:0.1.2"
+  checksum: 10/10d9c6773afd6e92c24a481312321c553e96d099ec4905209c0401f8d3425fb051a009999df1db06b32d3629899145eebb45d0bf81ff937b0b5f7096d8b81853
   languageName: node
   linkType: hard
 
@@ -29018,6 +29077,13 @@ __metadata:
   dependencies:
     defaults: "npm:^1.0.3"
   checksum: 10/182ebac8ca0b96845fae6ef44afd4619df6987fe5cf552fdee8396d3daa1fb9b8ec5c6c69855acb7b3c1231571393bd1f0a4cdc4028d421575348f64bb0a8817
+  languageName: node
+  linkType: hard
+
+"weak-map@npm:^1.0.5":
+  version: 1.0.8
+  resolution: "weak-map@npm:1.0.8"
+  checksum: 10/562041d8b8691b88bed0455e964712efdfc1a8b1db6c06da0adb2d1461e0568e11192bbceb7bd7bc7e1936ea4303d8e71cada9047c611ba3a350f11b49fdb662
   languageName: node
   linkType: hard
 
