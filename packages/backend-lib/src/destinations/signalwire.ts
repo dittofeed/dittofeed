@@ -7,20 +7,14 @@ import * as R from "remeda";
 import config from "../config";
 import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
-import { MessageTags } from "../types";
-
-export interface SignalWireNonRetryableError {
-  errorCode: number;
-  errorMessage?: string;
-  status: string;
-}
+import {
+  MessageSignalWireServiceFailure,
+  MessageTags,
+  SmsProviderType,
+  SmsSignalWireSuccess,
+} from "../types";
 
 export type SignalWireHandlingApplicationError = Error;
-
-export interface SignalWireSuccess {
-  sid: string;
-  status: string;
-}
 
 export const SignalWireResult = Type.Object({
   sid: Type.String(),
@@ -60,8 +54,8 @@ export async function sendSms({
   disableCallback?: boolean;
 }): Promise<
   Result<
-    SignalWireSuccess,
-    SignalWireNonRetryableError | SignalWireHandlingApplicationError
+    SmsSignalWireSuccess,
+    MessageSignalWireServiceFailure | SignalWireHandlingApplicationError
   >
 > {
   const client = RestClient(project, token, {
@@ -88,7 +82,7 @@ export async function sendSms({
 
     // check status and error_code if neither indicate an error, return a success result
     if (!errorCode) {
-      return ok({ sid, status });
+      return ok({ sid, status, type: SmsProviderType.SignalWire });
     }
     logger().debug(
       {
