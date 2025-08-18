@@ -98,6 +98,7 @@ export async function sendSms({
       );
     }
     return err({
+      type: SmsProviderType.SignalWire,
       errorCode,
       errorMessage,
       status,
