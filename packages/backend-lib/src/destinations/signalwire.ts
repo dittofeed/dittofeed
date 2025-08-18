@@ -1,9 +1,17 @@
+import type * as RT from "@signalwire/realtime-api";
 import { SignalWire } from "@signalwire/realtime-api";
 import { Static, Type } from "@sinclair/typebox";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
 import logger from "../logger";
+import { MessageTags } from "../types";
+
+export type MessageSendParams = Parameters<RT.Messaging.Messaging["send"]>[0];
+
+export type ExtendedMessageSendParams = MessageSendParams & {
+  callbackUrl: string;
+};
 
 export interface SignalWireNonRetryableError {
   errorCode: string;
@@ -46,6 +54,7 @@ export async function sendSms({
   to,
   body,
   from,
+  tags,
 }: {
   workspaceId: string;
   project: string;
@@ -53,7 +62,7 @@ export async function sendSms({
   body: string;
   token: string;
   from: string;
-  // FIXME add tags
+  tags?: MessageTags;
 }): Promise<
   Result<
     SignalWireSuccess,
