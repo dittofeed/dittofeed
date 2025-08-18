@@ -20,6 +20,7 @@ export const DEBUG_USER_ID1 = "1b9858de-907d-493f-a067-b3c8effecb0b" as const;
 
 export enum SecretNames {
   Twilio = "twilio-key",
+  SignalWire = "signalwire",
   SendGrid = "sendgrid",
   AmazonSes = "amazonses",
   Resend = "resend",
@@ -40,6 +41,7 @@ export enum DataSources {
 export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<SmsProviderType, string> =
   {
     [SmsProviderType.Twilio]: SecretNames.Twilio,
+    [SmsProviderType.SignalWire]: SecretNames.SignalWire,
     [SmsProviderType.Test]: SecretNames.SmsTestProvider,
   };
 
