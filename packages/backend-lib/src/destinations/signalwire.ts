@@ -1,4 +1,4 @@
-import { Messaging, SignalWire } from "@signalwire/realtime-api";
+import { SignalWire } from "@signalwire/realtime-api";
 import { Static, Type } from "@sinclair/typebox";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
@@ -7,7 +7,7 @@ import logger from "../logger";
 
 export interface SignalWireNonRetryableError {
   errorCode: string;
-  errorMessage: string;
+  errorMessage?: string;
   status: string;
 }
 
@@ -25,7 +25,20 @@ export const SignalWireResult = Type.Object({
   status: Type.String(),
 });
 
+export type SignalWireResult = Static<typeof SignalWireResult>;
+
 export const SIGNAL_WIRE_FAILURE_STATUSES = new Set(["failed", "undelivered"]);
+
+export const SIGNAL_WIRE_RETRYABLE_ERROR_CODES = new Set([
+  "rate_limit_exceeded",
+  "gateway_unavailable",
+  "internal_error",
+  "query_processing_failed",
+  "insufficient_balance",
+  "max_queued_messages_exceeded",
+  "cannot_process",
+  "upload_error",
+]);
 
 export async function sendSms({
   project,
@@ -71,9 +84,19 @@ export async function sendSms({
       error_message: errorMessage,
     } = verifiedResult.value;
     // check status and error_code if neither indicate an error, return a success result
-    if (!SIGNAL_WIRE_FAILURE_STATUSES.has(status) && !errorCode) {
+    if (!errorCode) {
       return ok({ sid, status });
     }
+    if (SIGNAL_WIRE_RETRYABLE_ERROR_CODES.has(errorCode)) {
+      throw new Error(
+        `transient signalwire error: code=${errorCode} message=${errorMessage ?? ""}`,
+      );
+    }
+    return err({
+      errorCode,
+      errorMessage: errorMessage ?? undefined,
+      status,
+    });
   } catch (error) {
     logger().error(
       {
