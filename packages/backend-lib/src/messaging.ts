@@ -50,6 +50,7 @@ import {
   SENDGRID_ID_HEADER,
   sendMail as sendMailSendgrid,
 } from "./destinations/sendgrid";
+import { sendSms as sendSmsSignalWire } from "./destinations/signalwire";
 import {
   sendMail as sendMailSmtp,
   SendSmtpMailParams,
@@ -108,6 +109,9 @@ import {
   NonRetryableMessageSendFailure,
   ParsedWebhookBody,
   Secret,
+  SignalWireSecret,
+  SignalWireSenderOverride,
+  SmsMessageVariant,
   SmsProvider,
   SmsProviderOverride,
   SmsProviderSecret,
@@ -1796,23 +1800,27 @@ export async function sendSms(
         });
       }
 
-      let sender: TwilioSender;
-      const { senderOverride } = params;
-      if (providerOverride === SmsProviderType.Twilio && senderOverride) {
-        switch (senderOverride.type) {
+      let senderOverride: TwilioSender | null = null;
+      if (
+        params.providerOverride === SmsProviderType.Twilio &&
+        params.senderOverride
+      ) {
+        switch (params.senderOverride.type) {
           case TwilioSenderOverrideType.MessageSid:
-            sender = {
-              messagingServiceSid: senderOverride.messagingServiceSid,
+            senderOverride = {
+              messagingServiceSid: params.senderOverride.messagingServiceSid,
             };
             break;
           case TwilioSenderOverrideType.PhoneNumber:
-            sender = {
-              from: senderOverride.phone,
+            senderOverride = {
+              from: params.senderOverride.phone,
             };
             break;
-          default:
-            assertUnreachable(senderOverride);
         }
+      }
+      let sender: TwilioSender;
+      if (senderOverride) {
+        sender = senderOverride;
       } else if (messagingServiceSid) {
         sender = {
           messagingServiceSid,
@@ -1862,6 +1870,111 @@ export async function sendSms(
           provider: {
             type: SmsProviderType.Twilio,
             sid: result.value.sid,
+          },
+        },
+      });
+    }
+    case SmsProviderType.SignalWire: {
+      const configResult = schemaValidateWithErr(
+        parsedConfigResult.value,
+        SignalWireSecret,
+      );
+      if (configResult.isErr()) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: configResult.error.message,
+          },
+        });
+      }
+
+      const { project, token, spaceUrl } = configResult.value;
+
+      if (!project) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing project in SignalWire provider config`,
+          },
+        });
+      }
+
+      if (!token) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing token in SignalWire provider config`,
+          },
+        });
+      }
+
+      if (!spaceUrl) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing spaceUrl in SignalWire provider config`,
+          },
+        });
+      }
+
+      let from: string;
+      const { senderOverride } = params;
+      if (
+        params.providerOverride === SmsProviderType.SignalWire &&
+        senderOverride
+      ) {
+        // When providerOverride is SignalWire, senderOverride is SignalWireSenderOverride
+        const signalWireSender = senderOverride as SignalWireSenderOverride;
+        from = signalWireSender.phone;
+      } else {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message:
+              "SignalWire provider requires a senderOverride with a phone number",
+          },
+        });
+      }
+
+      const result = await sendSmsSignalWire({
+        project,
+        token,
+        spaceUrl,
+        body,
+        to,
+        from,
+        tags: messageTags,
+        disableCallback,
+      });
+
+      if (result.isErr()) {
+        if (result.error instanceof Error) {
+          throw result.error;
+        }
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Sms,
+            provider: result.error,
+          },
+        });
+      }
+
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Sms,
+          body,
+          to,
+          provider: {
+            type: SmsProviderType.SignalWire,
+            sid: result.value.sid,
+            status: result.value.status,
           },
         },
       });

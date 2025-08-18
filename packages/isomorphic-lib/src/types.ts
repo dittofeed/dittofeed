@@ -1063,8 +1063,12 @@ export const TwilioOverride = Type.Object({
 
 export type TwilioOverride = Static<typeof TwilioOverride>;
 
+export enum SignalWireSenderOverrideType {
+  PhoneNumber = "PhoneNumber",
+}
+
 export const SignalWireSenderOverride = Type.Object({
-  type: Type.Literal(TwilioSenderOverrideType.PhoneNumber),
+  type: Type.Literal(SignalWireSenderOverrideType.PhoneNumber),
   phone: Type.String(),
 });
 
