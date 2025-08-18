@@ -1,20 +1,16 @@
-import type * as RT from "@signalwire/realtime-api";
-import { SignalWire } from "@signalwire/realtime-api";
+import { RestClient } from "@signalwire/compatibility-api";
 import { Static, Type } from "@sinclair/typebox";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+import qs from "querystring";
+import * as R from "remeda";
 
+import config from "../config";
+import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
 import { MessageTags } from "../types";
 
-export type MessageSendParams = Parameters<RT.Messaging.Messaging["send"]>[0];
-
-export type ExtendedMessageSendParams = MessageSendParams & {
-  callbackUrl: string;
-};
-
 export interface SignalWireNonRetryableError {
-  errorCode: string;
+  errorCode: number;
   errorMessage?: string;
   status: string;
 }
@@ -35,17 +31,13 @@ export const SignalWireResult = Type.Object({
 
 export type SignalWireResult = Static<typeof SignalWireResult>;
 
-export const SIGNAL_WIRE_FAILURE_STATUSES = new Set(["failed", "undelivered"]);
-
 export const SIGNAL_WIRE_RETRYABLE_ERROR_CODES = new Set([
-  "rate_limit_exceeded",
-  "gateway_unavailable",
-  "internal_error",
-  "query_processing_failed",
-  "insufficient_balance",
-  "max_queued_messages_exceeded",
-  "cannot_process",
-  "upload_error",
+  // application error
+  30008,
+  // throughput limit exceeded
+  30022,
+  // t-mobile limit exceeded
+  30027,
 ]);
 
 export async function sendSms({
@@ -55,63 +47,74 @@ export async function sendSms({
   body,
   from,
   tags,
+  spaceUrl,
+  disableCallback = false,
 }: {
-  workspaceId: string;
   project: string;
   to: string;
   body: string;
   token: string;
   from: string;
+  spaceUrl: string;
   tags?: MessageTags;
+  disableCallback?: boolean;
 }): Promise<
   Result<
     SignalWireSuccess,
     SignalWireNonRetryableError | SignalWireHandlingApplicationError
   >
 > {
-  const client = await SignalWire({
-    project,
-    token,
+  const client = RestClient(project, token, {
+    signalwireSpaceUrl: spaceUrl,
   });
   try {
-    // FIXME add callback url with tags as query params
-    const result: unknown = await client.messaging.send({
-      from,
-      to,
-      body,
-    });
-
-    const verifiedResult = schemaValidateWithErr(result, SignalWireResult);
-    if (verifiedResult.isErr()) {
-      return err(verifiedResult.error);
+    let statusCallback: string | undefined;
+    if (!disableCallback) {
+      const baseCallbackUrl = `${config().dashboardUrl}/api/public/webhooks/signalwire`;
+      let encodedQueryParams = "";
+      if (tags) {
+        const metadataTags = R.pick(tags, MESSAGE_METADATA_FIELDS);
+        encodedQueryParams = `?${qs.stringify(metadataTags)}`;
+      }
+      statusCallback = `${baseCallbackUrl}${encodedQueryParams}`;
     }
+    const { sid, status, errorCode, errorMessage } =
+      await client.messages.create({
+        from,
+        to,
+        body,
+        statusCallback,
+      });
 
-    const {
-      sid,
-      status,
-      error_code: errorCode,
-      error_message: errorMessage,
-    } = verifiedResult.value;
     // check status and error_code if neither indicate an error, return a success result
     if (!errorCode) {
       return ok({ sid, status });
     }
+    logger().debug(
+      {
+        errorCode,
+        errorMessage,
+        status,
+      },
+      "signalwire error value",
+    );
     if (SIGNAL_WIRE_RETRYABLE_ERROR_CODES.has(errorCode)) {
       throw new Error(
-        `transient signalwire error: code=${errorCode} message=${errorMessage ?? ""}`,
+        `transient signalwire error: code=${errorCode} message=${errorMessage}`,
       );
     }
     return err({
       errorCode,
-      errorMessage: errorMessage ?? undefined,
+      errorMessage,
       status,
     });
   } catch (error) {
+    // FIXME handle non-retryable errors see the shape of the error
     logger().error(
       {
         err: error,
       },
-      "transient signalwire error",
+      "thrown signalwire error",
     );
     throw error;
   }
