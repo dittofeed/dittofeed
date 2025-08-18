@@ -1955,9 +1955,6 @@ export async function sendSms(
       });
 
       if (result.isErr()) {
-        if (result.error instanceof Error) {
-          throw result.error;
-        }
         return err({
           type: InternalEventType.MessageFailure,
           variant: {

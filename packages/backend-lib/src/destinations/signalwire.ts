@@ -52,12 +52,7 @@ export async function sendSms({
   spaceUrl: string;
   tags?: MessageTags;
   disableCallback?: boolean;
-}): Promise<
-  Result<
-    SmsSignalWireSuccess,
-    MessageSignalWireServiceFailure | SignalWireHandlingApplicationError
-  >
-> {
+}): Promise<Result<SmsSignalWireSuccess, MessageSignalWireServiceFailure>> {
   const client = RestClient(project, token, {
     signalwireSpaceUrl: spaceUrl,
   });
