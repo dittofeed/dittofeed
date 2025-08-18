@@ -2738,7 +2738,8 @@ export const SubscriptionParams = Type.Object(
     ),
     showAllChannels: Type.Optional(
       Type.String({
-        description: "Show subscription groups for all channels instead of just the changed channel.",
+        description:
+          "Show subscription groups for all channels instead of just the changed channel.",
       }),
     ),
   },
