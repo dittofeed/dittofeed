@@ -535,7 +535,8 @@ function MessageNodeFields({
     if (nodeProps.senderOverride) {
       switch (nodeProps.senderOverride.type) {
         case SignalWireSenderOverrideType.PhoneNumber:
-          signalWireSenderOverrideType = SignalWireSenderOverrideType.PhoneNumber;
+          signalWireSenderOverrideType =
+            SignalWireSenderOverrideType.PhoneNumber;
           signalWireOverrideConfigEl = (
             <TextField
               label="Phone Number"

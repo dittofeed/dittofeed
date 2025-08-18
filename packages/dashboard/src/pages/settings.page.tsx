@@ -1295,11 +1295,14 @@ function DefaultSmsConfig() {
       case SmsProviderType.Twilio:
         name = "Twilio";
         break;
+      case SmsProviderType.SignalWire:
+        name = "SignalWire";
+        break;
       case SmsProviderType.Test:
         name = "Test";
         break;
       default:
-        assertUnreachable(type as never, `Unknown email provider type ${type}`);
+        assertUnreachable(type as never, `Unknown sms provider type ${type}`);
     }
     return {
       value: ep.id,
@@ -1460,12 +1463,101 @@ function Twilios() {
   );
 }
 
+function SignalWireConfig() {
+  const secretAvailability = useSecretAvailability();
+  return (
+    <Fields
+      sections={[
+        {
+          id: "signalwire-section",
+          fieldGroups: [
+            {
+              id: "signalwire-fields",
+              name: "SignalWire",
+              fields: [
+                {
+                  id: "signalwire-project",
+                  type: "secret",
+                  fieldProps: {
+                    name: SecretNames.SignalWire,
+                    secretKey: "project",
+                    label: "Project ID",
+                    helperText: "SignalWire Project ID",
+                    type: SmsProviderType.SignalWire,
+                    saved: isSecretSaved(
+                      SecretNames.SignalWire,
+                      "project",
+                      secretAvailability,
+                    ),
+                  },
+                },
+                {
+                  id: "signalwire-token",
+                  type: "secret",
+                  fieldProps: {
+                    name: SecretNames.SignalWire,
+                    secretKey: "token",
+                    label: "API Token",
+                    helperText:
+                      "SignalWire API token used to authenticate requests",
+                    type: SmsProviderType.SignalWire,
+                    saved: isSecretSaved(
+                      SecretNames.SignalWire,
+                      "token",
+                      secretAvailability,
+                    ),
+                  },
+                },
+                {
+                  id: "signalwire-space-url",
+                  type: "secret",
+                  fieldProps: {
+                    name: SecretNames.SignalWire,
+                    secretKey: "spaceUrl",
+                    label: "Space URL",
+                    helperText:
+                      "SignalWire Space URL (e.g., https://yourspace.signalwire.com)",
+                    type: SmsProviderType.SignalWire,
+                    saved: isSecretSaved(
+                      SecretNames.SignalWire,
+                      "spaceUrl",
+                      secretAvailability,
+                    ),
+                  },
+                },
+                {
+                  id: "signalwire-phone",
+                  type: "secret",
+                  fieldProps: {
+                    name: SecretNames.SignalWire,
+                    secretKey: "phone",
+                    label: "Default Phone Number",
+                    helperText:
+                      "Default phone number for sending SMS (optional, can be overridden per message)",
+                    type: SmsProviderType.SignalWire,
+                    saved: isSecretSaved(
+                      SecretNames.SignalWire,
+                      "phone",
+                      secretAvailability,
+                    ),
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
 function SmsChannelConfig() {
   return (
     <>
       <SectionSubHeader id={settingsSectionIds.smsChannel} title="SMS" />
       <DefaultSmsConfig />
       <Twilios />
+      <SignalWireConfig />
     </>
   );
 }

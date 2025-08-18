@@ -103,8 +103,17 @@ export async function getOrCreateSmsProviders({
       case SmsProviderType.Test:
         type = SmsProviderType.Test;
         break;
+      case SmsProviderType.SignalWire:
+        type = SmsProviderType.SignalWire;
+        break;
       default:
-        logger().error(`Unknown email provider type: ${ep.type}`);
+        logger().error(
+          {
+            workspaceId,
+            smsProviderType: ep.type,
+          },
+          "Unknown sms provider type",
+        );
         return [];
     }
     return {

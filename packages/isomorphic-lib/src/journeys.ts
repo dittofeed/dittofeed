@@ -49,7 +49,7 @@ export function getJourneyConstraintViolations({
   const constraintViolations: JourneyConstraintViolation[] = [];
 
   if (definition) {
-    const segmentsById = new Map(segments?.map((s) => [s.id, s]));
+    const segmentsById = new Map(segments.map((s) => [s.id, s]));
     const hasEventEntry =
       definition.entryNode.type === JourneyNodeType.EventEntryNode;
 
