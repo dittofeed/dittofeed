@@ -32,6 +32,7 @@ import {
 export interface InsertUserEvent {
   messageRaw: string | Record<string, unknown>;
   processingTime?: string;
+  serverTime?: string;
   messageId: string;
 }
 
@@ -59,11 +60,13 @@ async function insertUserEventsDirect({
       processing_time: string | null;
       workspace_id: string;
       message_id: string;
+      server_time: string | null;
     } = {
       workspace_id: workspaceId,
       message_raw: e.messageRaw,
       processing_time: e.processingTime ?? null,
       message_id: e.messageId,
+      server_time: e.serverTime ?? null,
     };
     return value;
   });
@@ -75,7 +78,7 @@ async function insertUserEventsDirect({
   };
 
   await clickhouseClient().insert({
-    table: `user_events_v2 (message_raw, processing_time, workspace_id, message_id)`,
+    table: `user_events_v2 (message_raw, processing_time, workspace_id, message_id, server_time)`,
     values,
     clickhouse_settings: settings,
     format: "JSONEachRow",
@@ -107,12 +110,13 @@ export async function insertUserEvents({
       ).send({
         topic: userEventsTopicName,
         messages: userEventsWithDefault.map(
-          ({ messageRaw, messageId, processingTime }) => ({
+          ({ messageRaw, messageId, processingTime, serverTime }) => ({
             key: messageId,
             value: JSON.stringify({
               processing_time: processingTime,
               workspace_id: workspaceId,
               message_id: messageId,
+              server_time: serverTime,
               message_raw: messageRaw,
             }),
           }),

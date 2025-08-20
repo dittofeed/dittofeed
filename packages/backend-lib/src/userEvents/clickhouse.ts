@@ -141,6 +141,7 @@ export async function createUserEventsTables() {
             )
           ),
           processing_time DateTime64(3) DEFAULT now64(3),
+          server_time DateTime64(3),
           message_raw String,
           workspace_id String,
           INDEX message_id_idx message_id TYPE minmax GRANULARITY 4
