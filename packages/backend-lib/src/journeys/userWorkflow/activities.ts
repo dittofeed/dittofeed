@@ -55,7 +55,7 @@ export { findAllUserPropertyAssignments } from "../../userProperties";
 
 export async function getEventsById(
   params: GetEventsByIdParams,
-  metadata: { journeyId?: string; userId: string },
+  metadata?: { journeyId?: string; userId: string },
 ): Promise<UserWorkflowTrackEvent[]> {
   const events = await gebi(params);
   if (events.length !== params.eventIds.length) {
@@ -66,8 +66,8 @@ export async function getEventsById(
       {
         workspaceId: params.workspaceId,
         missing,
-        journeyId: metadata.journeyId,
-        userId: metadata.userId,
+        journeyId: metadata?.journeyId,
+        userId: metadata?.userId,
       },
       "not all events found for user journey",
     );
