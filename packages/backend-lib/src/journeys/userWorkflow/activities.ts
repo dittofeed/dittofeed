@@ -113,6 +113,7 @@ async function sendMessageInner({
         },
         "event ids do not match",
       );
+      throw new Error("not all events found");
     }
     context = eventsById.flatMap((e) => e.properties ?? []);
   } else if (deprecatedContext) {
@@ -419,12 +420,15 @@ export async function getSegmentAssignment(
           const missing = params.eventIds.filter(
             (id) => !events.some((e) => e.messageId === id),
           );
-          logger().error({
-            workspaceId,
-            missing,
-          });
+          logger().error(
+            {
+              workspaceId,
+              missing,
+            },
+            "event ids do not match",
+          );
         }
-        break;
+        throw new Error("not all events found");
       }
     }
     const definitionResult = schemaValidateWithErr(
