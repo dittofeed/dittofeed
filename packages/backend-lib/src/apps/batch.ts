@@ -13,6 +13,7 @@ export interface SubmitBatchOptions {
 export function buildBatchUserEvents(
   data: BatchAppData,
   {
+    // allow processing time to be provided for testing
     processingTime,
   }: {
     processingTime?: number;
@@ -59,6 +60,7 @@ export function buildBatchUserEvents(
       processingTime: processingTime
         ? new Date(processingTime).toISOString()
         : undefined,
+      serverTime: new Date().toISOString(),
     };
   });
 }
