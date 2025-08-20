@@ -55,16 +55,19 @@ export { findAllUserPropertyAssignments } from "../../userProperties";
 
 export async function getEventsById(
   params: GetEventsByIdParams,
+  metadata: { journeyId?: string; userId: string },
 ): Promise<UserWorkflowTrackEvent[]> {
   const events = await gebi(params);
   if (events.length !== params.eventIds.length) {
     const missing = params.eventIds.filter(
       (id) => !events.some((e) => e.messageId === id),
     );
-    logger().error(
+    logger().info(
       {
         workspaceId: params.workspaceId,
         missing,
+        journeyId: metadata.journeyId,
+        userId: metadata.userId,
       },
       "not all events found for user journey",
     );
@@ -73,9 +76,26 @@ export async function getEventsById(
   return events;
 }
 
-export function getEventsByIdWithRetry(params: GetEventsByIdParams) {
-  // Defaults to 10 retries
-  return pRetry(() => getEventsById(params));
+export async function getEventsByIdWithRetry(
+  params: GetEventsByIdParams,
+  metadata: { journeyId?: string; userId: string },
+) {
+  try {
+    // Defaults to 10 retries
+    const events = await pRetry(() => getEventsById(params, metadata));
+    return events;
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+        workspaceId: params.workspaceId,
+        journeyId: metadata.journeyId,
+        userId: metadata.userId,
+      },
+      "not all events found for user journey after retries",
+    );
+    throw e;
+  }
 }
 
 type BaseSendParams = {
@@ -121,10 +141,16 @@ async function sendMessageInner({
   if (events) {
     context = events.flatMap((e) => e.properties ?? []);
   } else if (rest.eventIds) {
-    const eventsById = await getEventsByIdWithRetry({
-      workspaceId,
-      eventIds: rest.eventIds,
-    });
+    const eventsById = await getEventsByIdWithRetry(
+      {
+        workspaceId,
+        eventIds: rest.eventIds,
+      },
+      {
+        journeyId,
+        userId,
+      },
+    );
     context = eventsById.flatMap((e) => e.properties ?? []);
   } else if (deprecatedContext) {
     context = [deprecatedContext];
@@ -422,10 +448,15 @@ export async function getSegmentAssignment(
         events = params.events;
         break;
       case GetSegmentAssignmentVersion.V2: {
-        events = await getEventsByIdWithRetry({
-          workspaceId,
-          eventIds: params.eventIds,
-        });
+        events = await getEventsByIdWithRetry(
+          {
+            workspaceId,
+            eventIds: params.eventIds,
+          },
+          {
+            userId,
+          },
+        );
         break;
       }
     }
