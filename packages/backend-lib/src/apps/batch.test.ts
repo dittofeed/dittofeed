@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
 
+import { query } from "../clickhouse";
 import { EventType } from "../types";
 import { findUserEvents } from "../userEvents";
 import { buildBatchUserEvents, submitBatch } from "./batch";
@@ -282,6 +283,79 @@ describe("batch", () => {
             ip: "192.168.1.1", // From batch
             source: "test-batch", // From batch
           });
+        }
+      });
+    });
+
+    describe("server_timestamp verification", () => {
+      it("should set server_timestamp columns to current time when writing batch data", async () => {
+        // Memorize current timestamp before batch submission
+        const beforeTimestamp = Date.now();
+
+        const messageId1 = uuid();
+        const messageId2 = uuid();
+
+        const batchData = {
+          context: {
+            source: "server-timestamp-test",
+          },
+          batch: [
+            {
+              type: EventType.Track as const,
+              event: "Server Timestamp Test Event 1",
+              userId: "test-user-1",
+              messageId: messageId1,
+              properties: {
+                testProp: "value1",
+              },
+            },
+            {
+              type: EventType.Identify as const,
+              userId: "test-user-2",
+              messageId: messageId2,
+              traits: {
+                email: "test2@example.com",
+              },
+            },
+          ],
+        };
+
+        await submitBatch({
+          workspaceId: testWorkspaceId,
+          data: batchData,
+        });
+
+        // Query user_events_v2 table directly using ClickHouse query method
+        const result = await query({
+          query: `
+            SELECT message_id, server_time
+            FROM user_events_v2
+            WHERE workspace_id = {workspaceId:String}
+              AND message_id IN ({messageId1:String}, {messageId2:String})
+            ORDER BY message_id
+          `,
+          query_params: {
+            workspaceId: testWorkspaceId,
+            messageId1,
+            messageId2,
+          },
+        });
+
+        const rows = await result.json();
+        expect(rows).toHaveLength(2);
+
+        // Verify that server_timestamp columns exceed the memorized timestamp
+        for (const row of rows) {
+          const rowData = row as { message_id: string; server_time: string };
+
+          // ClickHouse returns timestamps in format "YYYY-MM-DD HH:mm:ss.SSS" which needs to be treated as UTC
+          const serverTimestamp = new Date(`${rowData.server_time}Z`).getTime();
+
+          expect(serverTimestamp).toBeGreaterThanOrEqual(beforeTimestamp);
+
+          // Also verify it's not too far in the future (within 10 seconds)
+          const afterTimestamp = Date.now();
+          expect(serverTimestamp).toBeLessThanOrEqual(afterTimestamp + 10000);
         }
       });
     });
