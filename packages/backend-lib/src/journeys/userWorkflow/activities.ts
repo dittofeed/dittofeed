@@ -2,6 +2,7 @@ import { Histogram, SpanStatusCode } from "@opentelemetry/api";
 import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { err, ok } from "neverthrow";
 import pRetry from "p-retry";
 import { omit } from "remeda";
 
