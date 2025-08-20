@@ -101,6 +101,19 @@ async function sendMessageInner({
       workspaceId,
       eventIds: rest.eventIds,
     });
+    if (eventsById.length !== rest.eventIds.length) {
+      const missing = rest.eventIds.filter(
+        (id) => !eventsById.some((e) => e.messageId === id),
+      );
+      logger().error(
+        {
+          workspaceId,
+          queried: rest.eventIds,
+          missing,
+        },
+        "event ids do not match",
+      );
+    }
     context = eventsById.flatMap((e) => e.properties ?? []);
   } else if (deprecatedContext) {
     context = [deprecatedContext];
@@ -402,6 +415,15 @@ export async function getSegmentAssignment(
           workspaceId,
           eventIds: params.eventIds,
         });
+        if (events.length !== params.eventIds.length) {
+          const missing = params.eventIds.filter(
+            (id) => !events.some((e) => e.messageId === id),
+          );
+          logger().error({
+            workspaceId,
+            missing,
+          });
+        }
         break;
       }
     }
