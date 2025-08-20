@@ -796,13 +796,15 @@ export async function findUserEventsById({
   return await resultSet.json<UserEventsWithTraits>();
 }
 
+export interface GetEventsByIdParams {
+  workspaceId: string;
+  eventIds: string[];
+}
+
 export async function getEventsById({
   workspaceId,
   eventIds,
-}: {
-  workspaceId: string;
-  eventIds: string[];
-}): Promise<UserWorkflowTrackEvent[]> {
+}: GetEventsByIdParams): Promise<UserWorkflowTrackEvent[]> {
   const events = await findUserEvents({
     workspaceId,
     messageId: eventIds,

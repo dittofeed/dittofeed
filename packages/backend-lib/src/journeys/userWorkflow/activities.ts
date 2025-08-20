@@ -3,6 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok } from "neverthrow";
+import pRetry from "p-retry";
 import { omit } from "remeda";
 
 import { submitTrack } from "../../apps/track";
@@ -41,7 +42,7 @@ import {
   TrackData,
   UserWorkflowTrackEvent,
 } from "../../types";
-import { getEventsById as gebi } from "../../userEvents";
+import { getEventsById as gebi, GetEventsByIdParams } from "../../userEvents";
 import { findAllUserPropertyAssignments } from "../../userProperties";
 import {
   recordNodeProcessed,
@@ -52,7 +53,50 @@ import { GetSegmentAssignmentVersion } from "./types";
 export { findNextLocalizedTime, getUserPropertyDelay } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
 
-export { gebi as getEventsById };
+export async function getEventsById(
+  params: GetEventsByIdParams,
+  metadata: { journeyId?: string; userId: string },
+): Promise<UserWorkflowTrackEvent[]> {
+  const events = await gebi(params);
+  if (events.length !== params.eventIds.length) {
+    const missing = params.eventIds.filter(
+      (id) => !events.some((e) => e.messageId === id),
+    );
+    logger().info(
+      {
+        workspaceId: params.workspaceId,
+        missing,
+        journeyId: metadata.journeyId,
+        userId: metadata.userId,
+      },
+      "not all events found for user journey",
+    );
+    throw new Error("not all events found for user journey");
+  }
+  return events;
+}
+
+export async function getEventsByIdWithRetry(
+  params: GetEventsByIdParams,
+  metadata: { journeyId?: string; userId: string },
+) {
+  try {
+    // Defaults to 10 retries
+    const events = await pRetry(() => getEventsById(params, metadata));
+    return events;
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+        workspaceId: params.workspaceId,
+        journeyId: metadata.journeyId,
+        userId: metadata.userId,
+      },
+      "not all events found for user journey after retries",
+    );
+    throw e;
+  }
+}
 
 type BaseSendParams = {
   userId: string;
@@ -97,23 +141,16 @@ async function sendMessageInner({
   if (events) {
     context = events.flatMap((e) => e.properties ?? []);
   } else if (rest.eventIds) {
-    const eventsById = await gebi({
-      workspaceId,
-      eventIds: rest.eventIds,
-    });
-    if (eventsById.length !== rest.eventIds.length) {
-      const missing = rest.eventIds.filter(
-        (id) => !eventsById.some((e) => e.messageId === id),
-      );
-      logger().error(
-        {
-          workspaceId,
-          queried: rest.eventIds,
-          missing,
-        },
-        "event ids do not match",
-      );
-    }
+    const eventsById = await getEventsByIdWithRetry(
+      {
+        workspaceId,
+        eventIds: rest.eventIds,
+      },
+      {
+        journeyId,
+        userId,
+      },
+    );
     context = eventsById.flatMap((e) => e.properties ?? []);
   } else if (deprecatedContext) {
     context = [deprecatedContext];
@@ -411,19 +448,15 @@ export async function getSegmentAssignment(
         events = params.events;
         break;
       case GetSegmentAssignmentVersion.V2: {
-        events = await gebi({
-          workspaceId,
-          eventIds: params.eventIds,
-        });
-        if (events.length !== params.eventIds.length) {
-          const missing = params.eventIds.filter(
-            (id) => !events.some((e) => e.messageId === id),
-          );
-          logger().error({
+        events = await getEventsByIdWithRetry(
+          {
             workspaceId,
-            missing,
-          });
-        }
+            eventIds: params.eventIds,
+          },
+          {
+            userId,
+          },
+        );
         break;
       }
     }
