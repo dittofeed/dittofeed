@@ -66,9 +66,9 @@ export async function getEventsById(
         workspaceId: params.workspaceId,
         missing,
       },
-      "event ids do not match",
+      "not all events found for user journey",
     );
-    throw new Error("not all events found");
+    throw new Error("not all events found for user journey");
   }
   return events;
 }
