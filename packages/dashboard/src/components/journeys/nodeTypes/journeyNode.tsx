@@ -38,6 +38,7 @@ import {
   JourneyUiNodeDefinition,
   JourneyUiNodeTypeProps,
 } from "../../../lib/types";
+import { useJourneyQuery } from "../../../lib/useJourneyQuery";
 import { useJourneyStatsQueryV2 } from "../../../lib/useJourneyStatsQueryV2";
 import { useMessageTemplatesQuery } from "../../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
@@ -364,7 +365,8 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
     "absolute",
   );
 
-  const { id: journeyId } = path.query;
+  const journeyId =
+    typeof path.query.id === "string" ? path.query.id : undefined;
   const config = useMemo(
     () => journNodeTypeToConfig(data.nodeTypeProps),
     [data.nodeTypeProps],
@@ -373,7 +375,17 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
     setSelectedNodeId(id);
   }, [id, setSelectedNodeId]);
 
+  const { data: journeyData } = useJourneyQuery(journeyId);
+  const node = useMemo(() => {
+    if (!journeyData) {
+      return null;
+    }
+    return journeyData.definition?.nodes.find((n) => n.id === id);
+  }, [journeyData, id]);
+
   const isSelected = selectedNodeId === id;
+  const areStatsEnabled =
+    isSelected && node?.type === JourneyNodeType.MessageNode;
 
   // New journey stats query
   const { data: journeyStatsData, isLoading: isStatsLoading } =
@@ -384,7 +396,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
         endDate: dateRangeValue.endDate.toISOString(),
       },
       {
-        enabled: typeof journeyId === "string" && isSelected,
+        enabled: areStatsEnabled,
         placeholderData: (previousData) => previousData,
       },
     );
@@ -430,7 +442,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyUiNodeDefinition>) {
 
   // Process the new journey stats data
   const nodeStats = useMemo(() => {
-    if (!isSelected) {
+    if (!areStatsEnabled) {
       return null;
     }
 
