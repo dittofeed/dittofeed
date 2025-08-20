@@ -4,7 +4,6 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { db, insert } from "../db";
 import { segment as dbSegment, workspace as dbWorkspace } from "../db/schema";
-import logger from "../logger";
 import { toSegmentResource } from "../segments";
 import {
   ComputedPropertyStepEnum,
@@ -323,6 +322,7 @@ describe("periods", () => {
       const dueWorkspaces = await findDueWorkspaceMinTos({
         now,
         interval,
+        limit: 5000,
       });
 
       const dueWorkspace = dueWorkspaces.find(
@@ -340,6 +340,7 @@ describe("periods", () => {
       const dueWorkspaces = await findDueWorkspaceMinTos({
         now,
         interval,
+        limit: 5000,
       });
 
       const dueWorkspace = dueWorkspaces.find(
