@@ -93,6 +93,26 @@ type ReceivedSegmentUpdate = Pick<
   "currentlyInSegment" | "segmentVersion"
 >;
 
+export function getKeyedUserJourneyWorkflowIdInner({
+  workspaceId,
+  userId,
+  journeyId,
+  eventKey,
+  eventKeyValue,
+}: {
+  workspaceId: string;
+  userId: string;
+  journeyId: string;
+  eventKey: string;
+  eventKeyValue: string;
+}): string | null {
+  const combined = uuidV5(
+    [userId, eventKey, eventKeyValue].join("-"),
+    workspaceId,
+  );
+  return `user-journey-keyed-${workspaceId}-${journeyId}-${combined}`;
+}
+
 export function getKeyedUserJourneyWorkflowId({
   workspaceId,
   userId,
@@ -124,9 +144,13 @@ export function getKeyedUserJourneyWorkflowId({
     key = "messageId";
     keyValue = event.messageId;
   }
-
-  const combined = uuidV5([userId, key, keyValue].join("-"), workspaceId);
-  return `user-journey-keyed-${workspaceId}-${journeyId}-${combined}`;
+  return getKeyedUserJourneyWorkflowIdInner({
+    workspaceId,
+    userId,
+    journeyId,
+    eventKey: key,
+    eventKeyValue: keyValue,
+  });
 }
 
 export function getUserJourneyWorkflowId({

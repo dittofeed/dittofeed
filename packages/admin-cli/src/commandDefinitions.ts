@@ -32,6 +32,7 @@ import * as schema from "backend-lib/src/db/schema";
 import { workspace as dbWorkspace } from "backend-lib/src/db/schema";
 import { findBaseDir } from "backend-lib/src/dir";
 import { addFeatures, removeFeatures } from "backend-lib/src/features";
+import { getKeyedUserJourneyWorkflowIdInner } from "backend-lib/src/journeys/userWorkflow";
 import logger from "backend-lib/src/logger";
 import { publicDrizzleMigrate } from "backend-lib/src/migrate";
 import { onboardUser } from "backend-lib/src/onboarding";
@@ -1393,6 +1394,56 @@ export function createCommands(yargs: Argv): Argv {
         logger().info("Event export completed successfully.");
         await sourceClient.close();
         await destinationClient.close();
+      },
+    )
+    .command(
+      "keyed-user-journey-workflow-id",
+      "Generate a keyed user journey workflow ID.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            demandOption: true,
+            describe: "The workspace ID",
+          },
+          "user-id": {
+            type: "string",
+            alias: "u",
+            demandOption: true,
+            describe: "The user ID",
+          },
+          "journey-id": {
+            type: "string",
+            alias: "j",
+            demandOption: true,
+            describe: "The journey ID",
+          },
+          "event-key": {
+            type: "string",
+            alias: "k",
+            demandOption: true,
+            describe: "The event key",
+          },
+          "event-key-value": {
+            type: "string",
+            alias: "v",
+            demandOption: true,
+            describe: "The event key value",
+          },
+        }),
+      async ({ workspaceId, userId, journeyId, eventKey, eventKeyValue }) => {
+        const workflowId = getKeyedUserJourneyWorkflowIdInner({
+          workspaceId,
+          userId,
+          journeyId,
+          eventKey,
+          eventKeyValue,
+        });
+        logger().info(
+          { workflowId },
+          "Generated keyed user journey workflow ID",
+        );
       },
     )
     .command(
