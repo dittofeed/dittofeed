@@ -2,7 +2,7 @@ import { Histogram, SpanStatusCode } from "@opentelemetry/api";
 import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { err, ok } from "neverthrow";
+import pRetry from "p-retry";
 import { omit } from "remeda";
 
 import { submitTrack } from "../../apps/track";
@@ -41,7 +41,7 @@ import {
   TrackData,
   UserWorkflowTrackEvent,
 } from "../../types";
-import { getEventsById as gebi } from "../../userEvents";
+import { getEventsById as gebi, GetEventsByIdParams } from "../../userEvents";
 import { findAllUserPropertyAssignments } from "../../userProperties";
 import {
   recordNodeProcessed,
@@ -52,7 +52,30 @@ import { GetSegmentAssignmentVersion } from "./types";
 export { findNextLocalizedTime, getUserPropertyDelay } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
 
-export { gebi as getEventsById };
+export async function getEventsById(
+  params: GetEventsByIdParams,
+): Promise<UserWorkflowTrackEvent[]> {
+  const events = await gebi(params);
+  if (events.length !== params.eventIds.length) {
+    const missing = params.eventIds.filter(
+      (id) => !events.some((e) => e.messageId === id),
+    );
+    logger().error(
+      {
+        workspaceId: params.workspaceId,
+        missing,
+      },
+      "event ids do not match",
+    );
+    throw new Error("not all events found");
+  }
+  return events;
+}
+
+export function getEventsByIdWithRetry(params: GetEventsByIdParams) {
+  // Defaults to 10 retries
+  return pRetry(() => getEventsById(params));
+}
 
 type BaseSendParams = {
   userId: string;
@@ -97,24 +120,10 @@ async function sendMessageInner({
   if (events) {
     context = events.flatMap((e) => e.properties ?? []);
   } else if (rest.eventIds) {
-    const eventsById = await gebi({
+    const eventsById = await getEventsByIdWithRetry({
       workspaceId,
       eventIds: rest.eventIds,
     });
-    if (eventsById.length !== rest.eventIds.length) {
-      const missing = rest.eventIds.filter(
-        (id) => !eventsById.some((e) => e.messageId === id),
-      );
-      logger().error(
-        {
-          workspaceId,
-          queried: rest.eventIds,
-          missing,
-        },
-        "event ids do not match",
-      );
-      throw new Error("not all events found");
-    }
     context = eventsById.flatMap((e) => e.properties ?? []);
   } else if (deprecatedContext) {
     context = [deprecatedContext];
@@ -412,23 +421,11 @@ export async function getSegmentAssignment(
         events = params.events;
         break;
       case GetSegmentAssignmentVersion.V2: {
-        events = await gebi({
+        events = await getEventsByIdWithRetry({
           workspaceId,
           eventIds: params.eventIds,
         });
-        if (events.length !== params.eventIds.length) {
-          const missing = params.eventIds.filter(
-            (id) => !events.some((e) => e.messageId === id),
-          );
-          logger().error(
-            {
-              workspaceId,
-              missing,
-            },
-            "event ids do not match",
-          );
-        }
-        throw new Error("not all events found");
+        break;
       }
     }
     const definitionResult = schemaValidateWithErr(
