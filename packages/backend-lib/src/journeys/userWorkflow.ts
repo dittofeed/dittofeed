@@ -49,6 +49,13 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 export const segmentUpdateSignal =
   wf.defineSignal<[SegmentUpdate]>("segmentUpdate");
 
+export interface ReEvaluateSegmentsParams {
+  segmentIds?: string[];
+}
+
+export const reEvaluateSegmentsSignal =
+  wf.defineSignal<[ReEvaluateSegmentsParams]>("reEvaluateSegments");
+
 export enum TrackSignalParamsVersion {
   V1 = 1,
   V2 = 2,
@@ -496,6 +503,56 @@ export async function userJourneyWorkflow(
       currentlyInSegment: update.currentlyInSegment,
       segmentVersion: update.segmentVersion,
     });
+  });
+
+  wf.setHandler(reEvaluateSegmentsSignal, async (params) => {
+    logger.info("re-evaluating segments", {
+      workflow: WORKFLOW_NAME,
+      journeyId,
+      userId,
+      workspaceId,
+      segmentIds: params.segmentIds,
+    });
+
+    const segmentIdsToEvaluate =
+      params.segmentIds ?? Array.from(segmentAssignments.keys());
+    const nowMs = Date.now();
+
+    await Promise.all(
+      segmentIdsToEvaluate.map(async (segmentId) => {
+        const assignment = await getSegmentAssignmentHandler({
+          segmentId,
+          now: nowMs,
+        });
+
+        if (assignment === null) {
+          logger.warn("segment assignment returned null during re-evaluation", {
+            workflow: WORKFLOW_NAME,
+            journeyId,
+            userId,
+            workspaceId,
+            segmentId,
+          });
+          return;
+        }
+
+        segmentAssignments.set(segmentId, {
+          currentlyInSegment: assignment.inSegment,
+          segmentVersion: nowMs,
+        });
+
+        logger.info("segment re-evaluated", {
+          workflow: WORKFLOW_NAME,
+          journeyId,
+          userId,
+          workspaceId,
+          segmentId,
+          inSegment: assignment.inSegment,
+        });
+      }),
+    );
+
+    reportWorkflowInfoHandler();
   });
 
   let currentNode: JourneyNode = definition.entryNode;
