@@ -83,3 +83,81 @@ OPEN_ID_RETURN_TO_QUERY_PARAM=logout_uri
   - Set Allowed sign-out URLs: `https://<your-dittofeed-instance>/dashboard/signout/complete`
   - Select the "OAuth 2.0 grant types": Authorization code grant
   - Select the "OpenID Connect scopes": Email, OpenID, and Profile
+
+### Keycloak
+
+In order to configure Keycloak as an OIDC provider for multi-tenancy, use the following environment variables.
+
+```bash .env
+OPEN_ID_CLIENT_ID='<your-keycloak-client-id>'
+OPEN_ID_CLIENT_SECRET='<your-keycloak-client-secret>'
+SECRET_KEY='<your-secret-key>'
+AUTH_MODE='multi-tenant'
+AUTH_PROVIDER='keycloak'
+SIGNOUT_URL='/dashboard/signout'
+OPEN_ID_ISSUER='https://<your-keycloak-domain>/realms/<your-realm-name>'
+OPEN_ID_AUTHORIZATION_URL='https://<your-keycloak-domain>/realms/<your-realm-name>/protocol/openid-connect/auth'
+OPEN_ID_TOKEN_URL='https://<your-keycloak-domain>/realms/<your-realm-name>/protocol/openid-connect/token'
+OPEN_ID_USER_INFO_URL='https://<your-keycloak-domain>/realms/<your-realm-name>/protocol/openid-connect/userinfo'
+OPEN_ID_END_SESSION_ENDPOINT='https://<your-keycloak-domain>/realms/<your-realm-name>/protocol/openid-connect/logout'
+OPEN_ID_RETURN_TO_QUERY_PARAM='post_logout_redirect_uri'
+```
+
+#### Configuring Keycloak
+
+1. **Access Keycloak Admin Console**
+   - Navigate to `https://<your-keycloak-domain>`
+   - Login with admin credentials
+
+2. **Create a Realm**
+   - Click on the dropdown in the top-left corner (likely showing "Master")
+   - Click "Create Realm"
+   - Name it `dittofeed` (or your preferred realm name)
+   - Click "Create"
+
+3. **Create an OpenID Connect Client**
+   - Navigate to **Clients** → **Create client**
+   - **General Settings:**
+     - Client type: `OpenID Connect`
+     - Client ID: `dittofeed-client` (this will be your `OPEN_ID_CLIENT_ID`)
+   - Click **Next**
+   - **Capability config:**
+     - Client authentication: `ON`
+     - Authorization: `OFF` (unless you need fine-grained permissions)
+     - Standard flow: `ON`
+     - Direct access grants: `OFF`
+   - Click **Next**
+   - **Login settings:**
+     - Valid redirect URIs: 
+       - `https://<your-dittofeed-domain>/dashboard/oauth2/callback`
+     - Valid post logout redirect URIs:
+       - `https://<your-dittofeed-domain>/dashboard/signout/complete`
+     - Web origins:
+       - `https://<your-dittofeed-domain>`
+   - Click **Save**
+
+4. **Get Client Secret**
+   - Navigate to **Clients** → Select `dittofeed-client`
+   - Go to the **Credentials** tab
+   - Copy the **Client secret** (this will be your `OPEN_ID_CLIENT_SECRET`)
+
+5. **Configure Client Scopes**
+   - The default scopes (openid, profile, email) should be sufficient
+   - If needed, navigate to **Client scopes** to customize
+
+#### Verifying the Configuration
+
+You can verify your Keycloak OIDC configuration by accessing the discovery endpoint:
+
+```
+https://<your-keycloak-domain>/realms/dittofeed/.well-known/openid-configuration
+```
+
+This endpoint will show all available OIDC endpoints for your realm.
+
+#### Notes
+
+- The `AUTH_PROVIDER` environment variable should be set to `keycloak` for proper provider identification
+- The `OPEN_ID_RETURN_TO_QUERY_PARAM` for Keycloak is `post_logout_redirect_uri`.
+- Ensure your Keycloak instance is accessible from your Dittofeed application
+- For production deployments, always use HTTPS for all URLs
