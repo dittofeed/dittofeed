@@ -259,7 +259,7 @@ export async function searchDeliveries({
       )}`
     : "";
   const broadcastIdClause = broadcastId
-    ? `AND JSONExtractString(properties, 'broadcastId') = ${queryBuilder.addQueryValue(
+    ? `AND parsed_properties.broadcastId = ${queryBuilder.addQueryValue(
         broadcastId,
         "String",
       )}`
@@ -522,6 +522,7 @@ export async function searchDeliveries({
           min(event_time) sent_at,
           user_or_anonymous_id,
           origin_message_id,
+          anyIf(parsed_properties, parsed_properties.messageId != '') parsed_properties,
           any(triggering_message_id) as triggering_message_id,
           workspace_id,
           is_anonymous
@@ -529,12 +530,17 @@ export async function searchDeliveries({
           SELECT
             uev.workspace_id,
             uev.user_or_anonymous_id,
-            if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'properties'), '') properties,
+            if(uev.event = 'DFInternalMessageSent', uev.properties, '') properties,
             if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'context'), '') context,
             uev.event,
             uev.event_time,
-            if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, JSON_VALUE(uev.properties, '$.messageId')) origin_message_id,
-            if(uev.event = '${InternalEventType.MessageSent}', JSON_VALUE(uev.message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
+            if(
+              uev.properties != '',
+              JSONExtract(uev.properties, 'Tuple(messageId String, triggeringMessageId String, broadcastId String)'),
+              CAST(('', '', ''), 'Tuple(messageId String, triggeringMessageId String, broadcastId String)')
+            ) AS parsed_properties,
+            if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, parsed_properties.messageId) origin_message_id,
+            if(uev.event = '${InternalEventType.MessageSent}', parsed_properties.triggeringMessageId, '') triggering_message_id,
             JSONExtractBool(uev.message_raw, 'context', 'hidden') as hidden,
             uev.anonymous_id != '' as is_anonymous
           FROM user_events_v2 AS uev
