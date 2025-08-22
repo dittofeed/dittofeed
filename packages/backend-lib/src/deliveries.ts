@@ -253,10 +253,7 @@ export async function searchDeliveries({
   const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
   const eventList = queryBuilder.addQueryValue(EmailEventList, "Array(String)");
   const journeyIdClause = journeyId
-    ? `AND JSONExtractString(properties, 'journeyId') = ${queryBuilder.addQueryValue(
-        journeyId,
-        "String",
-      )}`
+    ? `AND parsed_properties.journeyId = ${queryBuilder.addQueryValue(journeyId, "String")}`
     : "";
   const broadcastIdClause = broadcastId
     ? `AND parsed_properties.broadcastId = ${queryBuilder.addQueryValue(
@@ -296,11 +293,8 @@ export async function searchDeliveries({
         "Array(String)",
       )}`
     : "";
-  const templateIdClause = templateIds
-    ? `AND JSON_VALUE(properties, '$.templateId') IN ${queryBuilder.addQueryValue(
-        templateIds,
-        "Array(String)",
-      )}`
+  const templateIdHavingClause = templateIds
+    ? `AND parsed_properties.templateId IN ${queryBuilder.addQueryValue(templateIds, "Array(String)")}`
     : "";
   const statusClause = statuses
     ? `AND last_event IN ${queryBuilder.addQueryValue(
@@ -536,8 +530,8 @@ export async function searchDeliveries({
             uev.event_time,
             if(
               uev.properties != '',
-              JSONExtract(uev.properties, 'Tuple(messageId String, triggeringMessageId String, broadcastId String)'),
-              CAST(('', '', ''), 'Tuple(messageId String, triggeringMessageId String, broadcastId String)')
+              JSONExtract(uev.properties, 'Tuple(messageId String, triggeringMessageId String, broadcastId String, journeyId String, templateId String)'),
+              CAST(('', '', '', '', ''), 'Tuple(messageId String, triggeringMessageId String, broadcastId String, journeyId String, templateId String)')
             ) AS parsed_properties,
             if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, parsed_properties.messageId) origin_message_id,
             if(uev.event = '${InternalEventType.MessageSent}', parsed_properties.triggeringMessageId, '') triggering_message_id,
@@ -551,7 +545,6 @@ export async function searchDeliveries({
             ${channelClause}
             ${toClause}
             ${fromClause}
-            ${templateIdClause}
             ${startDateClause}
             ${endDateClause}
             ${groupIdClause}
@@ -562,6 +555,7 @@ export async function searchDeliveries({
           AND properties != ''
           ${journeyIdClause}
           ${broadcastIdClause}
+          ${templateIdHavingClause}
           ${userIdClause}
           ${statusClause}
     ) AS inner_grouped
