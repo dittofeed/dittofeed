@@ -9,12 +9,14 @@ export function TimezoneAutocomplete({
   handler,
   disableClearable,
   defaultToLocal,
+  label,
 }: {
   value?: string;
   disabled?: boolean;
   handler: TimezoneChangeHandler;
   disableClearable?: boolean;
   defaultToLocal?: boolean;
+  label?: string;
 }) {
   const timezones = useMemo(() => Intl.supportedValuesOf("timeZone"), []);
 
@@ -45,7 +47,7 @@ export function TimezoneAutocomplete({
         handler(tz);
       }}
       renderInput={(params) => (
-        <TextField {...params} label="Timezone" variant="outlined" />
+        <TextField {...params} label={label ?? "Timezone"} variant="outlined" />
       )}
     />
   );

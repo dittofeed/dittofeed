@@ -51,6 +51,7 @@ import {
   BroadcastStateUpdater,
   useBroadcastSteps,
 } from "./broadcastsShared";
+import InfoTooltip from "../infoTooltip";
 
 // Helper function to convert 'yyyy-MM-dd HH:mm' string to CalendarDateTime
 function stringToCalendarDateTime(
@@ -344,12 +345,15 @@ export default function Configuration({
               style={{ padding: 8 }}
             />
           </Popover>
-          <TimezoneAutocomplete
-            defaultToLocal
-            value={broadcast.config.defaultTimezone}
-            handler={handleTimezoneChange}
-            disabled={broadcast.status !== "Draft"}
-          />
+          <Stack direction="row" spacing={1} alignItems="center">
+            <TimezoneAutocomplete
+              value={broadcast.config.defaultTimezone}
+              handler={handleTimezoneChange}
+              disabled={broadcast.status !== "Draft"}
+              label="Default Timezone"
+            />
+            <InfoTooltip title="The default timezone for users for which a timezone can not be determined." />
+          </Stack>
         </>
       )}
       {!state.configuration?.hideRateLimit && (
