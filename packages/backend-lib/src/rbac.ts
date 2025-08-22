@@ -80,9 +80,10 @@ export async function getWorkspaceMemberRoles({
 
 export async function createWorkspaceMemberRole({
   workspaceId,
-  email,
+  email: providedEmail,
   role,
 }: CreateWorkspaceMemberRoleRequest): Promise<WorkspaceMemberRoleResource> {
+  const email = providedEmail.trim();
   const workspace = await db().query.workspace.findFirst({
     where: eq(schema.workspace.id, workspaceId),
   });
