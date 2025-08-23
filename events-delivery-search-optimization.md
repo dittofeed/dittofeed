@@ -144,12 +144,46 @@ ADD COLUMN delivery_from String DEFAULT if(event_type = 'track' AND startsWith(e
 
 ### Solution 2: Create a Materialized View for Internal Events (RECOMMENDED)
 
-Create a specialized materialized view that only includes internal events:
+Create a specialized table and materialized view for internal events:
 
 ```sql
-CREATE MATERIALIZED VIEW internal_events_mv
+-- Step 1: Create the target table to store internal events with parsed fields
+CREATE TABLE IF NOT EXISTS internal_events (
+  workspace_id String,
+  user_or_anonymous_id String,
+  user_id String,
+  anonymous_id String,
+  message_id String,
+  event String,
+  event_type Enum(
+    'identify' = 1,
+    'track' = 2,
+    'page' = 3,
+    'screen' = 4,
+    'group' = 5,
+    'alias' = 6
+  ),
+  event_time DateTime64(3),
+  processing_time DateTime64(3),
+  properties String,
+  template_id String,
+  broadcast_id String,
+  journey_id String,
+  triggering_message_id String,
+  channel_type String,
+  delivery_to String,
+  delivery_from String,
+  origin_message_id String,
+  INDEX idx_template_id template_id TYPE bloom_filter(0.01) GRANULARITY 4,
+  INDEX idx_broadcast_id broadcast_id TYPE bloom_filter(0.01) GRANULARITY 4,
+  INDEX idx_journey_id journey_id TYPE bloom_filter(0.01) GRANULARITY 4
+)
 ENGINE = MergeTree()
-ORDER BY (workspace_id, processing_time, user_or_anonymous_id, event, message_id)
+ORDER BY (workspace_id, processing_time, user_or_anonymous_id, event, message_id);
+
+-- Step 2: Create the materialized view that populates the table
+CREATE MATERIALIZED VIEW IF NOT EXISTS internal_events_mv
+TO internal_events
 AS SELECT
   workspace_id,
   user_or_anonymous_id,
@@ -171,12 +205,6 @@ AS SELECT
   JSONExtractString(properties, 'messageId') as origin_message_id
 FROM user_events_v2
 WHERE event_type = 'track' AND startsWith(event, 'DF');  -- Only internal (DF-prefixed) track events
-
--- Add indexes on the materialized view
-ALTER TABLE internal_events_mv
-ADD INDEX idx_template_id template_id TYPE bloom_filter(0.01) GRANULARITY 4,
-ADD INDEX idx_broadcast_id broadcast_id TYPE bloom_filter(0.01) GRANULARITY 4,
-ADD INDEX idx_journey_id journey_id TYPE bloom_filter(0.01) GRANULARITY 4;
 ```
 
 **Advantages:**
@@ -185,11 +213,13 @@ ADD INDEX idx_journey_id journey_id TYPE bloom_filter(0.01) GRANULARITY 4;
 - Can be optimized with different sort order and indexes specific to delivery queries
 - Main table remains unchanged - no impact on write performance for user events
 - Much smaller storage footprint than Solution 1 (only stores internal events)
+- Materialized view acts as an automatic ETL pipeline, parsing JSON once at insert time
 
 **Disadvantages:**
-- Requires code changes to query the new view for delivery/internal event queries
-- Slight storage duplication for internal events only
-- Need to maintain consistency between queries on main table vs materialized view
+- Requires code changes to query the new `internal_events` table for delivery/internal event queries
+- Storage duplication for internal events (stored in both `user_events_v2` and `internal_events`)
+- Need to maintain query routing logic between the two tables
+- Materialized view adds slight overhead to inserts of internal events (but only internal events)
 
 ### Solution 3: Hybrid Approach with Projection
 
@@ -228,16 +258,19 @@ ALTER TABLE user_events_v2 ADD PROJECTION delivery_projection (
 
 Given that these properties only exist in internal events, **Solution 2 (Materialized View)** is now the recommended approach. This avoids the inefficiency of adding sparse columns to the main table.
 
-#### Phase 1: Create the Materialized View
-1. Create `internal_events_mv` with pre-parsed JSON fields
-2. The view will automatically populate with new internal events going forward
-3. Backfill historical data by recreating the view with `POPULATE` keyword if needed
+#### Phase 1: Create the Table and Materialized View
+1. Create the `internal_events` table with pre-parsed field columns
+2. Create `internal_events_mv` materialized view that writes TO the table
+3. The view will automatically populate the table with new internal events going forward
+4. For historical data, you can either:
+   - Recreate the view with `POPULATE` keyword (be careful with large datasets)
+   - Manually insert historical data with a one-time query
 
 #### Phase 2: Update Query Logic
-1. Modify `searchDeliveries` to query `internal_events_mv` instead of `user_events_v2`
-2. Update `findManyEventsWithCount` to use `internal_events_mv` when filtering by internal event properties
+1. Modify `searchDeliveries` to query `internal_events` table instead of `user_events_v2`
+2. Update `findManyEventsWithCount` to use `internal_events` when filtering by internal event properties
 3. Implement query routing logic: 
-   - Use `internal_events_mv` for queries filtering on templateId, broadcastId, journeyId
+   - Use `internal_events` table for queries filtering on templateId, broadcastId, journeyId
    - Use `user_events_v2` for general event queries
 
 #### Phase 3: Monitor and Optimize
@@ -364,19 +397,19 @@ SELECT
   JSON_VALUE(properties, '$.variant.type') as channel_type
 FROM user_events_v2
 WHERE
-  event IN [...]
-  AND JSONExtractString(properties, 'broadcastId') = 'broadcast456'  -- Scans all rows
+  event IN ['DFInternalMessageSent', 'DFEmailDelivered', ...]
+  AND JSONExtractString(properties, 'broadcastId') = 'broadcast456'  -- Parses JSON for ALL rows
 
--- searchDeliveries after
+-- searchDeliveries after (using internal_events table)
 SELECT
   ...,
-  template_id,      -- Direct column access
-  broadcast_id,     -- Direct column access  
-  channel_type      -- Direct column access
-FROM user_events_v2
+  template_id,      -- Direct column access, no JSON parsing
+  broadcast_id,     -- Direct column access, no JSON parsing
+  channel_type      -- Direct column access, no JSON parsing
+FROM internal_events
 WHERE
-  event IN [...]
-  AND broadcast_id = 'broadcast456'  -- Uses bloom filter index
+  event IN ['DFInternalMessageSent', 'DFEmailDelivered', ...]
+  AND broadcast_id = 'broadcast456'  -- Uses bloom filter index, no parsing
 ```
 
 ## High Level Goals
