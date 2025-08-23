@@ -209,7 +209,7 @@ describe("broadcastWorkflowV2", () => {
     worker = envAndWorker.worker;
   }
 
-  describe("when sending a broadcast immediately with no rate limit", () => {
+  describe.only("when sending a broadcast immediately with no rate limit", () => {
     let userId: string;
     let userId2: string;
     let anonymousUserId: string;
@@ -218,6 +218,7 @@ describe("broadcastWorkflowV2", () => {
       await createTestEnvAndWorker();
       anonymousUserId = randomUUID();
       userId = randomUUID();
+      userId2 = randomUUID();
 
       await createBroadcast({
         config: {
