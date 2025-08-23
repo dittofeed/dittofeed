@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS internal_events (
   INDEX idx_journey_id journey_id TYPE bloom_filter(0.01) GRANULARITY 4
 )
 ENGINE = MergeTree()
-ORDER BY (workspace_id, processing_time, user_or_anonymous_id, event, message_id);
+ORDER BY (workspace_id, processing_time, event, user_or_anonymous_id, message_id);
 
 -- Step 2: Create the materialized view that populates the table
 CREATE MATERIALIZED VIEW IF NOT EXISTS internal_events_mv
@@ -199,11 +199,9 @@ WHERE event_type = 'track' AND startsWith(event, 'DF');  -- Only internal (DF-pr
 3. Implement query routing logic: 
    - Use `internal_events` table for queries filtering on templateId, broadcastId, journeyId
    - Use `user_events_v2` for general event queries
-
-#### Phase 3: Monitor and Optimize
-1. Add bloom filter indexes on frequently filtered columns
-2. Consider adjusting the sort order based on actual query patterns
-3. Monitor query performance improvements
+4. Ensure tests pass.
+    - `yarn jest packages/backend-lib/src/deliveries.test.ts`
+    - `yarn jest packages/backend-lib/src/userEvents.test.ts`
 
 ### Performance Impact Analysis
 
