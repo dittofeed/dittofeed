@@ -241,7 +241,10 @@ export async function searchDeliveries({
   broadcastId,
   triggeringProperties: triggeringPropertiesInput,
   contextValues: contextValuesInput,
-}: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
+  abortSignal,
+}: SearchDeliveriesRequest & {
+  abortSignal?: AbortSignal;
+}): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const triggeringProperties = triggeringPropertiesInput
     ? triggeringPropertiesInput.map(({ key, value }) => ({ key, value }))
@@ -585,6 +588,7 @@ export async function searchDeliveries({
       date_time_output_format: "iso",
       function_json_value_return_type_allow_complex: 1,
     },
+    abort_signal: abortSignal,
   });
 
   const items: SearchDeliveriesResponseItem[] = [];

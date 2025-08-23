@@ -3,6 +3,7 @@ import {
   buildDeliveriesFile,
   searchDeliveries,
 } from "backend-lib/src/deliveries";
+import logger from "backend-lib/src/logger";
 import {
   DownloadDeliveriesRequest,
   SearchDeliveriesRequest,
@@ -25,7 +26,23 @@ export default async function deliveriesController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const deliveries = await searchDeliveries(request.query);
+      const controller = new AbortController();
+      request.raw.on("close", () => {
+        if (request.raw.destroyed) {
+          logger().info(
+            {
+              workspaceId: request.query.workspaceId,
+            },
+            "delivery search aborted",
+          );
+          controller.abort();
+        }
+      });
+
+      const deliveries = await searchDeliveries({
+        ...request.query,
+        abortSignal: controller.signal,
+      });
       return reply.status(200).send(deliveries);
     },
   );
