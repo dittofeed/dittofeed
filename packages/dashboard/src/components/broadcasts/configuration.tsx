@@ -44,6 +44,7 @@ import { getWarningStyles } from "../../lib/warningTheme";
 import { AuthorizeGmail } from "../authorizeGmail";
 import { Calendar } from "../calendar";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
+import InfoTooltip from "../infoTooltip";
 import { TimeField } from "../timeField";
 import { TimezoneAutocomplete } from "../timezoneAutocomplete";
 import {
@@ -51,7 +52,6 @@ import {
   BroadcastStateUpdater,
   useBroadcastSteps,
 } from "./broadcastsShared";
-import InfoTooltip from "../infoTooltip";
 
 // Helper function to convert 'yyyy-MM-dd HH:mm' string to CalendarDateTime
 function stringToCalendarDateTime(
@@ -352,7 +352,7 @@ export default function Configuration({
               disabled={broadcast.status !== "Draft"}
               label="Default Timezone"
             />
-            <InfoTooltip title="The default timezone for users for which a timezone can not be determined." />
+            <InfoTooltip title="The timezone used by default if a user’s timezone cannot be determined." />
           </Stack>
         </>
       )}
