@@ -516,7 +516,7 @@ export async function searchDeliveries({
           min(event_time) sent_at,
           user_or_anonymous_id,
           origin_message_id,
-          anyIf(parsed_properties, parsed_properties.messageId != '') parsed_properties,
+          anyIf(parsed_properties, inner_extracted.properties != '') parsed_properties,
           any(triggering_message_id) as triggering_message_id,
           workspace_id,
           is_anonymous
