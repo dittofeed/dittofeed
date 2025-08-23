@@ -93,6 +93,13 @@ However, when workspaces contain many large events within a short time period, s
 
 ## Possible Solutions
 
-- add new columns to the `user_events_v2` table, e.g. `templateId`, `broadcastId`, `journeyId` that are pre-parsed from the `properties` field at write time.
-- create a new table that is a materialized view of the `user_events_v2` table, with the new columns, along with a sort key that allows for efficient filtering, and joining on the `user_events_v2` table.
-- we may wan to create one or more skip indexes on either the `user_events_v2` table, or the new table, to allow for efficient filtering on the parsed `properties` fields.
+- Add new columns to the `user_events_v2` table, e.g. `templateId`, `broadcastId`, `journeyId` that are pre-parsed from the `properties` field at write time.
+- Create a new table that is a materialized view of the `user_events_v2` table, with the new columns, along with a sort key that allows for efficient filtering, and joining on the `user_events_v2` table.
+- We may wan to create one or more skip indexes on either the `user_events_v2` table, or the new table, to allow for efficient filtering on the parsed `properties` fields.
+
+If you can think of other solutions, please let me know. I'm very open to suggestions.
+
+## High Level Goals
+
+- The number 1 most important goal is to make the `searchDeliveries` and `findManyEventsWithCount` functions fast, by improving their query CPU usage.
+- The table `user_events_v2` is the most frequently written to table in the database, so writes should not be made overly expensive.
