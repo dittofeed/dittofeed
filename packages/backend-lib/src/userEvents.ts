@@ -362,11 +362,11 @@ function buildUserEventQueryClauses(
       : "";
 
   const broadcastIdClause = broadcastId
-    ? `AND JSONExtractString(properties, 'broadcastId') = ${qb.addQueryValue(broadcastId, "String")}`
+    ? `AND parsed_properties.broadcastId = ${qb.addQueryValue(broadcastId, "String")}`
     : "";
 
   const journeyIdClause = journeyId
-    ? `AND JSONExtractString(properties, 'journeyId') = ${qb.addQueryValue(journeyId, "String")}`
+    ? `AND parsed_properties.journeyId = ${qb.addQueryValue(journeyId, "String")}`
     : "";
 
   const eventTypeClause = eventType
@@ -438,7 +438,12 @@ function buildUserEventInnerQuery(
         event_type,
         processing_time,
         JSONExtractRaw(message_raw, 'traits') AS traits,
-        JSONExtractRaw(message_raw, 'properties') AS properties${contextField}
+        JSONExtractRaw(message_raw, 'properties') AS properties,
+        if(
+          JSONExtractRaw(message_raw, 'properties') != '',
+          JSONExtract(JSONExtractRaw(message_raw, 'properties'), 'Tuple(broadcastId String, journeyId String)'),
+          CAST(('', ''), 'Tuple(broadcastId String, journeyId String)')
+        ) AS parsed_properties${contextField}
     FROM user_events_v2
     WHERE
       ${workspaceIdClause}
