@@ -174,6 +174,18 @@ async function getUnmessagedUsers(
   const nowDate = new Date(params.now);
 
   // TODO implement timezones
+  logger().debug(
+    {
+      workspaceId: params.workspaceId,
+      broadcastId,
+      userCount: users.length,
+      userIds: users.map((u) => u.id),
+      limit: params.limit,
+      startDate: new Date(params.now - 1000 * 60 * 60 * 24).toISOString(),
+      endDate: nowDate.toISOString(),
+    },
+    "getUnmessagedUsers: calling searchDeliveries",
+  );
   const alreadySent = await searchDeliveries({
     workspaceId: params.workspaceId,
     broadcastId,
@@ -182,6 +194,15 @@ async function getUnmessagedUsers(
     endDate: nowDate.toISOString(),
     startDate: new Date(params.now - 1000 * 60 * 60 * 24).toISOString(),
   });
+  logger().debug(
+    {
+      alreadySentCount: alreadySent.items.length,
+      alreadySentUserIds: alreadySent.items.map((i) => i.userId),
+      cursor: alreadySent.cursor ?? null,
+      previousCursor: alreadySent.previousCursor ?? null,
+    },
+    "getUnmessagedUsers: searchDeliveries returned",
+  );
   logger().debug(
     {
       users,
