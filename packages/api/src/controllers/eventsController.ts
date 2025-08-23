@@ -42,7 +42,7 @@ export default async function eventsController(fastify: FastifyInstance) {
 
       const { events: eventsRaw, count } = await findManyEventsWithCount({
         ...request.query,
-        signal: abortController.signal,
+        abortSignal: abortController.signal,
       });
 
       const events: GetEventsResponseItem[] = eventsRaw.flatMap(
