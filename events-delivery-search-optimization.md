@@ -103,3 +103,4 @@ If you can think of other solutions, please let me know. I'm very open to sugges
 
 - The number 1 most important goal is to make the `searchDeliveries` and `findManyEventsWithCount` functions fast, by improving their query CPU usage.
 - The table `user_events_v2` is the most frequently written to table in the database, so writes should not be made overly expensive.
+- Solutions should be prioritized based on how conventional they are based on ClickHouse community recommendations. Frequent consultation of the web for the purpose of establishing best practices is encouraged.
