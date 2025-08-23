@@ -209,7 +209,7 @@ describe("broadcastWorkflowV2", () => {
     worker = envAndWorker.worker;
   }
 
-  describe.only("when sending a broadcast immediately with no rate limit", () => {
+  describe("when sending a broadcast immediately with no rate limit", () => {
     let userId: string;
     let userId2: string;
     let anonymousUserId: string;

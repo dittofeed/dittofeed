@@ -173,62 +173,14 @@ async function getUnmessagedUsers(
   }).then(unwrap);
   const nowDate = new Date(params.now);
 
-  // TODO implement timezones
-  logger().debug(
-    {
-      workspaceId: params.workspaceId,
-      broadcastId,
-      userCount: users.length,
-      userIds: users.map((u) => u.id),
-      limit: params.limit,
-      startDate: new Date(params.now - 1000 * 60 * 60 * 24).toISOString(),
-      endDate: nowDate.toISOString(),
-    },
-    "getUnmessagedUsers: calling searchDeliveries",
-  );
-  // FIXME new deliveries search implementation is producing no results
-  // event when all of the filters are removed
-  // the test is not changed
   const alreadySent = await searchDeliveries({
     workspaceId: params.workspaceId,
-    // broadcastId,
-    // userId: users.map((user) => user.id),
-    // limit: params.limit,
-    // endDate: nowDate.toISOString(),
-    // startDate: new Date(params.now - 1000 * 60 * 60 * 24).toISOString(),
+    broadcastId,
+    userId: users.map((user) => user.id),
+    limit: params.limit,
+    endDate: nowDate.toISOString(),
+    startDate: new Date(params.now - 1000 * 60 * 60 * 24).toISOString(),
   });
-  // [00:18:13 UTC] DEBUG: getUnmessagedUsers: calling searchDeliveries
-  //     workspaceId: "be0acfaa-4d22-49dd-8b65-1e6722aad5d1"
-  //     broadcastId: "de1c494d-1ba0-49d4-9bf7-0d96b4fc03df"
-  //     userCount: 2
-  //     userIds: [
-  //       "6a3a9941-b919-4015-b8af-333610cfe343",
-  //       "e18c6ec0-0f96-491a-bb63-aaa7970d2ade"
-  //     ]
-  //     limit: 100
-  //     startDate: "2025-08-22T00:18:13.951Z"
-  //     endDate: "2025-08-23T00:18:13.951Z"
-  // [00:18:14 UTC] DEBUG: getUnmessagedUsers: searchDeliveries returned
-  //     alreadySentCount: 0
-  //     alreadySentUserIds: []
-  //     cursor: null
-  //     previousCursor: null
-  logger().debug(
-    {
-      alreadySentCount: alreadySent.items.length,
-      alreadySentUserIds: alreadySent.items.map((i) => i.userId),
-      cursor: alreadySent.cursor ?? null,
-      previousCursor: alreadySent.previousCursor ?? null,
-    },
-    "getUnmessagedUsers: searchDeliveries returned",
-  );
-  logger().debug(
-    {
-      users,
-      alreadySent,
-    },
-    "Broadcast users",
-  );
   return {
     users: users.filter(
       (user) => !alreadySent.items.some((item) => item.userId === user.id),
