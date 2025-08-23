@@ -142,7 +142,6 @@ export async function insertUserEvents({
 }
 
 export type UserEventsWithTraits = UserEvent & {
-  traits: string;
   properties: string;
   context?: string;
 };
@@ -361,6 +360,8 @@ function buildUserEventQueryClauses(
       ? `AND event IN ${qb.addQueryValue(event, "Array(String)")}`
       : "";
 
+  const needsParsedProperties = broadcastId || journeyId;
+
   const broadcastIdClause = broadcastId
     ? `AND parsed_properties.broadcastId = ${qb.addQueryValue(broadcastId, "String")}`
     : "";
@@ -384,6 +385,7 @@ function buildUserEventQueryClauses(
     broadcastIdClause,
     journeyIdClause,
     eventTypeClause,
+    needsParsedProperties,
   };
 }
 
@@ -420,11 +422,20 @@ function buildUserEventInnerQuery(
     journeyIdClause,
     eventTypeClause,
     messageIdClause,
+    needsParsedProperties,
   } = clauses;
 
   const contextField = includeContext
     ? ", JSONExtractString(message_raw, 'context') AS context"
     : "";
+
+  const parsedPropertiesField = needsParsedProperties
+    ? `if(
+          properties != '',
+          JSONExtract(properties, 'Tuple(broadcastId String, journeyId String)'),
+          CAST(('', ''), 'Tuple(broadcastId String, journeyId String)')
+        ) AS parsed_properties`
+    : "CAST(('', ''), 'Tuple(broadcastId String, journeyId String)') AS parsed_properties";
 
   return `
     SELECT
@@ -437,13 +448,8 @@ function buildUserEventInnerQuery(
         event,
         event_type,
         processing_time,
-        JSONExtractRaw(message_raw, 'traits') AS traits,
-        JSONExtractRaw(message_raw, 'properties') AS properties,
-        if(
-          JSONExtractRaw(message_raw, 'properties') != '',
-          JSONExtract(JSONExtractRaw(message_raw, 'properties'), 'Tuple(broadcastId String, journeyId String)'),
-          CAST(('', ''), 'Tuple(broadcastId String, journeyId String)')
-        ) AS parsed_properties${contextField}
+        properties,
+        ${parsedPropertiesField}${contextField}
     FROM user_events_v2
     WHERE
       ${workspaceIdClause}
@@ -726,8 +732,8 @@ export async function buildEventsFile(params: DownloadEventsRequest): Promise<{
     anonymousId: event.anonymous_id || "",
     processingTime: event.processing_time,
     eventTime: event.event_time,
-    traits: event.traits,
-    properties: event.properties,
+    traits: event.event_type === EventType.Identify ? event.properties : "",
+    properties: event.event_type === EventType.Identify ? "" : event.properties,
   }));
 
   // Define CSV headers
