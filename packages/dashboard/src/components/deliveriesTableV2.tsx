@@ -67,7 +67,7 @@ interface State {
   deliveriesBody: DeliveriesBodyState;
 }
 
-const defaultTimeOptionId = TimeOptionId.LastSevenDays;
+const defaultTimeOptionId = TimeOptionId.Last24Hours;
 
 const timeOptions = [
   {
