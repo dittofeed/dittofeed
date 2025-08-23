@@ -115,34 +115,7 @@ After analyzing the codebase, I've identified the following performance bottlene
 - Currently, we're parsing JSON for ALL events even though only DF-prefixed track events contain these fields
 - This wastes significant CPU on empty extractions for the majority of events
 
-## Proposed Solutions
-
-### Solution 1: Add Conditional Materialized Columns 
-
-Add new columns with conditional DEFAULT expressions that only extract for internal events:
-
-```sql
-ALTER TABLE user_events_v2 
-ADD COLUMN template_id String DEFAULT if(event_type = 'track' AND startsWith(event, 'DF'), JSONExtractString(properties, 'templateId'), ''),
-ADD COLUMN broadcast_id String DEFAULT if(event_type = 'track' AND startsWith(event, 'DF'), JSONExtractString(properties, 'broadcastId'), ''),
-ADD COLUMN journey_id String DEFAULT if(event_type = 'track' AND startsWith(event, 'DF'), JSONExtractString(properties, 'journeyId'), ''),
-ADD COLUMN triggering_message_id String DEFAULT if(event_type = 'track' AND startsWith(event, 'DF'), JSONExtractString(properties, 'triggeringMessageId'), ''),
-ADD COLUMN channel_type String DEFAULT if(event_type = 'track' AND startsWith(event, 'DF'), JSON_VALUE(properties, '$.variant.type'), ''),
-ADD COLUMN delivery_to String DEFAULT if(event_type = 'track' AND startsWith(event, 'DF'), JSON_VALUE(properties, '$.variant.to'), ''),
-ADD COLUMN delivery_from String DEFAULT if(event_type = 'track' AND startsWith(event, 'DF'), JSON_VALUE(properties, '$.variant.from'), '');
-```
-
-**Advantages:**
-- Only parses JSON for internal events (not user events)
-- Minimal code changes required
-- No data duplication beyond the column storage
-
-**Disadvantages:**
-- Still adds columns to main table with mostly empty values
-- Increases storage for all rows even though most are empty
-- Not optimal for such sparse data
-
-### Solution 2: Create a Materialized View for Internal Events (RECOMMENDED)
+## Proposed Solution: Materialized View for Internal Events
 
 Create a specialized table and materialized view for internal events:
 
@@ -201,51 +174,16 @@ WHERE event_type = 'track' AND startsWith(event, 'DF');  -- Only internal (DF-pr
 - Pre-parsed JSON fields eliminate runtime parsing completely
 - Can be optimized with different sort order and indexes specific to delivery queries
 - Main table remains unchanged - no impact on write performance for user events
-- Much smaller storage footprint than Solution 1 (only stores internal events)
+- Much smaller storage footprint (only stores internal events, not all events)
 - Materialized view acts as an automatic ETL pipeline, parsing JSON once at insert time
 
-**Disadvantages:**
+**Trade-offs:**
 - Requires code changes to query the new `internal_events` table for delivery/internal event queries
 - Storage duplication for internal events (stored in both `user_events_v2` and `internal_events`)
 - Need to maintain query routing logic between the two tables
 - Materialized view adds slight overhead to inserts of internal events (but only internal events)
 
-### Solution 3: Hybrid Approach with Projection
-
-Use ClickHouse projections to create an alternative storage layout:
-
-```sql
-ALTER TABLE user_events_v2 ADD PROJECTION delivery_projection (
-  SELECT 
-    workspace_id,
-    user_or_anonymous_id,
-    message_id,
-    event,
-    event_time,
-    processing_time,
-    JSONExtractString(properties, 'templateId') as template_id,
-    JSONExtractString(properties, 'broadcastId') as broadcast_id,
-    JSONExtractString(properties, 'journeyId') as journey_id,
-    properties
-  ORDER BY workspace_id, template_id, broadcast_id, journey_id, processing_time
-);
-```
-
-**Advantages:**
-- ClickHouse automatically chooses the best projection for queries
-- No code changes required
-- Data consistency guaranteed
-
-**Disadvantages:**
-- Increases storage requirements
-- Limited flexibility in projection definition
-- May not be used for all query patterns
-
-## Implementation Recommendations
-
-### Recommended Approach: Solution 2 - Materialized View for Internal Events
-
-Given that these properties only exist in internal events, **Solution 2 (Materialized View)** is now the recommended approach. This avoids the inefficiency of adding sparse columns to the main table.
+## Implementation Strategy
 
 #### Phase 1: Create the Table and Materialized View
 1. Create the `internal_events` table with pre-parsed field columns
@@ -288,40 +226,40 @@ Before implementation, it would be valuable to measure in production:
 
 This data will help validate the expected performance improvements.
 
-### Alternative Considerations
+### Alternative Optimizations
 
-If the materialized view approach doesn't provide sufficient performance improvements, consider:
+If this approach doesn't provide sufficient performance improvements, consider:
 
-1. **Partial Materialized View**: Create a materialized view only for the most recent data (e.g., last 30 days)
-2. **Tiered Storage**: Move older events to a different table with a different schema
-3. **Distributed Processing**: Use ClickHouse's distributed tables for horizontal scaling
-4. **Aggregated View**: For `searchDeliveries`, consider a pre-aggregated materialized view that groups events by messageId
+1. **Partial Materialized View**: Create a view only for recent data (e.g., last 30 days) if most queries focus on recent events
+2. **Pre-Aggregated View**: For `searchDeliveries`, create an additional view that pre-groups events by messageId to eliminate the GROUP BY at query time
+3. **Tiered Storage**: Move older events to separate tables with different schemas or compression settings
 
 ## Migration Strategy
 
 ### Step-by-Step Migration Plan
 
 1. **Testing Environment**
-   - Implement changes in a test environment first
-   - Benchmark query performance before and after changes
-   - Validate data consistency
+   - Create the `internal_events` table and materialized view in test environment
+   - Validate that the materialized view correctly populates with internal events
+   - Test query performance against the new table vs. original table
 
 2. **Production Rollout**
-   - Add columns during low-traffic periods
-   - Backfill data in batches to avoid system overload
-   - Monitor system metrics during migration
+   - Deploy the table and materialized view during low-traffic periods
+   - Monitor that the materialized view is correctly processing new internal events
+   - Consider manually backfilling historical data if needed
 
 3. **Code Updates**
-   - Update queries to use new columns with feature flags
+   - Update delivery/internal event queries to use `internal_events` table
+   - Implement query routing logic with feature flags
    - Gradually roll out to a percentage of queries
-   - Monitor for any issues or performance regressions
+   - Monitor for performance improvements and any issues
 
 ### Rollback Plan
 
 If issues arise:
-1. Queries can immediately revert to using JSONExtract
-2. New columns can be dropped without data loss
-3. The original `properties` field remains unchanged
+1. Queries can immediately revert to using `user_events_v2` table
+2. Drop the materialized view and table without affecting the main table
+3. No impact on existing functionality since `user_events_v2` remains unchanged
 
 ## Best Practices and ClickHouse Recommendations
 
@@ -329,8 +267,8 @@ If issues arise:
 
 1. **Compute on Write**: Pre-computing values at insert time is more efficient than compute-on-read
 2. **Skip Indexes**: Bloom filters are ideal for columns with moderate cardinality (like templateId, journeyId)
-3. **Column Types**: Using `LowCardinality(String)` for columns with limited unique values can improve compression
-4. **DEFAULT vs MATERIALIZED**: DEFAULT columns are preferred as they don't take space for NULL values
+3. **Materialized Views**: Used as ETL pipelines to transform data during inserts
+4. **Targeted Processing**: Only process events that contain the fields of interest
 
 ### Monitoring and Optimization
 
@@ -363,12 +301,12 @@ WHERE
 ### After Optimization
 
 ```sql
--- findManyEventsWithCount optimized query
+-- findManyEventsWithCount optimized query (for internal events)
 SELECT
   *,
   broadcast_id,
   journey_id
-FROM user_events_v2
+FROM internal_events
 WHERE
   workspace_id = 'workspace123'
   AND broadcast_id = 'broadcast456'  -- Direct column access with bloom filter
