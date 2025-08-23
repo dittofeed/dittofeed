@@ -57,10 +57,7 @@ describe("apps", () => {
         const { events } = await findManyEventsWithCount({
           workspaceId,
         });
-        expect(events.map((er) => er.properties || er.traits)).toEqual([
-          "{}",
-          "{}",
-        ]);
+        expect(events.map((er) => er.properties)).toEqual(["{}", "{}"]);
       });
     });
   });
