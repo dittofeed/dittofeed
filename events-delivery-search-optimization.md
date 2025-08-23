@@ -161,9 +161,9 @@ AS SELECT
   JSONExtractString(properties, 'broadcastId') as broadcast_id,
   JSONExtractString(properties, 'journeyId') as journey_id,
   JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
-  JSON_VALUE(properties, '$.variant.type') as channel_type,
-  JSON_VALUE(properties, '$.variant.to') as delivery_to,
-  JSON_VALUE(properties, '$.variant.from') as delivery_from,
+  JSONExtractString(properties, 'variant', 'type') as channel_type,
+  JSONExtractString(properties, 'variant', 'to') as delivery_to,
+  JSONExtractString(properties, 'variant', 'from') as delivery_from,
   JSONExtractString(properties, 'messageId') as origin_message_id
 FROM user_events_v2
 WHERE event_type = 'track' AND startsWith(event, 'DF');  -- Only internal (DF-prefixed) track events
@@ -194,14 +194,241 @@ WHERE event_type = 'track' AND startsWith(event, 'DF');  -- Only internal (DF-pr
    - Manually insert historical data with a one-time query
 
 #### Phase 2: Update Query Logic
-1. Modify `searchDeliveries` to query `internal_events` table instead of `user_events_v2`
-2. Update `findManyEventsWithCount` to use `internal_events` when filtering by internal event properties
-3. Implement query routing logic: 
-   - Use `internal_events` table for queries filtering on templateId, broadcastId, journeyId
-   - Use `user_events_v2` for general event queries
-4. Ensure tests pass.
-    - `yarn jest packages/backend-lib/src/deliveries.test.ts`
-    - `yarn jest packages/backend-lib/src/userEvents.test.ts`
+
+##### 2.1 Sample Query Transformations for `searchDeliveries`
+
+**Current Query (simplified from deliveries.ts:534-563):**
+```sql
+-- Inner query that extracts JSON at query time
+SELECT
+  argMax(event, event_time) last_event,
+  anyIf(properties, properties != '') properties,
+  max(event_time) updated_at,
+  min(event_time) sent_at,
+  user_or_anonymous_id,
+  origin_message_id,
+  any(triggering_message_id) as triggering_message_id,
+  workspace_id
+FROM (
+  SELECT
+    workspace_id,
+    user_or_anonymous_id,
+    if(event = 'DFInternalMessageSent', properties, '') properties,
+    event,
+    event_time,
+    -- CPU-intensive JSON parsing happens here for ALL rows before filtering
+    if(
+      properties != '',
+      JSONExtract(properties, 'Tuple(messageId String, triggeringMessageId String, broadcastId String, journeyId String, templateId String)'),
+      CAST(('', '', '', '', ''), 'Tuple(messageId String, triggeringMessageId String, broadcastId String, journeyId String, templateId String)')
+    ) AS parsed_properties,
+    if(event = 'DFInternalMessageSent', message_id, parsed_properties.messageId) origin_message_id
+  FROM user_events_v2
+  WHERE
+    event IN ['DFInternalMessageSent', 'DFEmailDelivered', 'DFSmsSent', ...]
+    AND workspace_id = 'workspace123'
+    -- Additional JSON parsing for channel filtering
+    AND JSON_VALUE(properties, '$.variant.type') = 'email'
+)
+GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
+HAVING
+  -- Filtering happens AFTER the expensive JSON parsing
+  parsed_properties.broadcastId = 'broadcast456'
+  AND parsed_properties.journeyId = 'journey789'
+```
+
+**New Query using `internal_events` table (two-step pattern):**
+```sql
+-- Optimized query using nested subquery pattern
+SELECT
+  argMax(event, event_time) last_event,
+  anyIf(properties, properties != '') properties,
+  max(event_time) updated_at,
+  min(event_time) sent_at,
+  user_or_anonymous_id,
+  origin_message_id,
+  any(triggering_message_id) as triggering_message_id,
+  workspace_id,
+  max(processing_time) as processing_time
+FROM (
+  SELECT
+    workspace_id,
+    user_or_anonymous_id,
+    if(event = 'DFInternalMessageSent', properties, '') properties,
+    event,
+    event_time,
+    processing_time,
+    if(event = 'DFInternalMessageSent', message_id, JSONExtractString(properties, 'messageId')) origin_message_id,
+    JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id
+  FROM user_events_v2
+  WHERE
+    workspace_id = 'workspace123'
+    AND message_id IN (
+      -- Nested query to internal_events for efficient filtering
+      SELECT DISTINCT message_id
+      FROM internal_events
+      WHERE
+        event IN ['DFInternalMessageSent', 'DFEmailDelivered', 'DFSmsSent', ...]
+        AND workspace_id = 'workspace123'
+        -- Direct column comparison with bloom filter indexes - no JSON parsing
+        AND broadcast_id = 'broadcast456'
+        AND journey_id = 'journey789'
+        AND channel_type = 'email'
+    )
+)
+GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
+ORDER BY processing_time DESC
+```
+
+##### 2.2 Sample Query Transformations for `findManyEventsWithCount`
+
+**Current Query (simplified from userEvents.ts:441-466):**
+```sql
+-- Current implementation that checks for internal event properties
+SELECT
+  workspace_id,
+  user_id,
+  user_or_anonymous_id,
+  event_time,
+  message_id,
+  event,
+  event_type,
+  processing_time,
+  properties,
+  -- Conditional JSON parsing based on whether filters are present
+  if(
+    properties != '',
+    JSONExtract(properties, 'Tuple(broadcastId String, journeyId String)'),
+    CAST(('', ''), 'Tuple(broadcastId String, journeyId String)')
+  ) AS parsed_properties
+FROM user_events_v2
+WHERE
+  workspace_id = 'workspace123'
+  AND processing_time >= '2024-01-01 00:00:00'
+  AND processing_time <= '2024-01-31 23:59:59'
+  -- JSON extraction in WHERE clause for filtering
+  AND parsed_properties.broadcastId = 'broadcast456'
+  AND parsed_properties.journeyId = 'journey789'
+ORDER BY processing_time DESC
+LIMIT 100
+```
+
+**New Query when internal event filters are present (two-step pattern):**
+```sql
+-- Optimized query using nested subquery pattern
+SELECT
+  workspace_id,
+  user_id,
+  user_or_anonymous_id,
+  event_time,
+  message_id,
+  event,
+  event_type,
+  processing_time,
+  properties
+FROM user_events_v2
+WHERE
+  workspace_id = 'workspace123'
+  AND message_id IN (
+    -- Nested query to internal_events for efficient filtering
+    SELECT message_id
+    FROM internal_events
+    WHERE
+      workspace_id = 'workspace123'
+      AND processing_time >= '2024-01-01 00:00:00'
+      AND processing_time <= '2024-01-31 23:59:59'
+      -- Direct column comparison with bloom filter indexes
+      AND broadcast_id = 'broadcast456'
+      AND journey_id = 'journey789'
+    ORDER BY processing_time DESC
+    LIMIT 100
+  )
+ORDER BY processing_time DESC
+```
+
+**Query for non-internal events (unchanged):**
+```sql
+-- When NO internal event filters are present, continue using user_events_v2
+SELECT
+  workspace_id,
+  user_id,
+  user_or_anonymous_id,
+  event_time,
+  message_id,
+  event,
+  event_type,
+  processing_time,
+  properties
+FROM user_events_v2
+WHERE
+  workspace_id = 'workspace123'
+  AND event_type = 'identify'  -- Example: non-internal event query
+  AND user_id = 'user123'
+ORDER BY processing_time DESC
+LIMIT 100
+```
+
+##### 2.3 Key Design Decision: Two-Step Query Pattern
+
+The optimized approach uses a two-step pattern:
+
+1. **First step**: Use `internal_events` table to efficiently filter events based on pre-parsed fields (broadcastId, journeyId, templateId, etc.) and get the relevant message_ids
+2. **Second step**: Use the filtered message_ids to fetch full event data from `user_events_v2`
+
+This approach provides:
+- **Performance**: JSON parsing only happens during materialized view insertion, not at query time
+- **Completeness**: We still get all event fields from the main table (not just the extracted ones)
+- **Efficiency**: The IN clause with message_ids is much faster than parsing JSON for all rows
+
+Note: `event_time` and `processing_time` can differ significantly due to clock skew, network failures with retries, etc.
+
+##### 2.4 Performance Comparison Queries
+
+To validate the optimization, compare the performance of queries before and after:
+
+```sql
+-- Query to benchmark current approach (with JSON parsing)
+EXPLAIN ESTIMATE
+SELECT count()
+FROM user_events_v2
+WHERE
+  event_type = 'track' 
+  AND startsWith(event, 'DF')
+  AND workspace_id = 'workspace123'
+  AND JSONExtractString(properties, 'broadcastId') = 'broadcast456'
+  AND JSONExtractString(properties, 'journeyId') = 'journey789';
+
+-- Query to benchmark new approach (no JSON parsing)
+EXPLAIN ESTIMATE
+SELECT count()
+FROM internal_events
+WHERE
+  workspace_id = 'workspace123'
+  AND broadcast_id = 'broadcast456'
+  AND journey_id = 'journey789';
+```
+
+Monitor actual query performance:
+```sql
+-- Track performance improvements
+SELECT 
+  query_kind,
+  query,
+  query_duration_ms,
+  read_rows,
+  read_bytes,
+  memory_usage
+FROM system.query_log
+WHERE 
+  event_date = today()
+  AND type = 'QueryFinish'
+  AND (
+    query LIKE '%internal_events%'
+    OR (query LIKE '%user_events_v2%' AND query LIKE '%JSONExtract%')
+  )
+ORDER BY event_time DESC
+LIMIT 100;
+```
 
 ### Performance Impact Analysis
 
