@@ -103,22 +103,27 @@ type TimeOption = MinuteTimeOption | CustomTimeOption;
 
 const defaultTimeOption = {
   type: "minutes",
-  id: "last-7-days",
-  minutes: 7 * 24 * 60,
-  label: "Last 7 days",
+  id: "last-hour",
+  minutes: 60,
+  label: "Last hour",
 } as const;
 
 const defaultTimeOptionId = defaultTimeOption.id;
 
 const timeOptions: TimeOption[] = [
-  { type: "minutes", id: "last-hour", minutes: 60, label: "Last hour" },
+  defaultTimeOption,
   {
     type: "minutes",
     id: "last-24-hours",
     minutes: 24 * 60,
     label: "Last 24 hours",
   },
-  defaultTimeOption,
+  {
+    type: "minutes",
+    id: "last-7-days",
+    minutes: 7 * 24 * 60,
+    label: "Last 7 days",
+  },
   {
     type: "minutes",
     id: "last-30-days",

@@ -32,9 +32,18 @@ export default async function eventsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { events: eventsRaw, count } = await findManyEventsWithCount(
-        request.query,
-      );
+      // Create an AbortController that will be aborted when the request is closed
+      const abortController = new AbortController();
+
+      // Abort the controller when the request connection is closed
+      request.raw.on("close", () => {
+        abortController.abort();
+      });
+
+      const { events: eventsRaw, count } = await findManyEventsWithCount({
+        ...request.query,
+        abortSignal: abortController.signal,
+      });
 
       const events: GetEventsResponseItem[] = eventsRaw.flatMap(
         ({

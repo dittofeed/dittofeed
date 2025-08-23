@@ -469,7 +469,10 @@ export async function findUserEvents({
   eventType,
   messageId,
   includeContext,
-}: GetEventsRequest): Promise<UserEventsWithTraits[]> {
+  abortSignal,
+}: GetEventsRequest & { abortSignal?: AbortSignal }): Promise<
+  UserEventsWithTraits[]
+> {
   const qb = new ClickHouseQueryBuilder();
 
   const workspaceIdClause = await buildWorkspaceIdClause(workspaceId, qb);
@@ -513,6 +516,7 @@ export async function findUserEvents({
     query: eventsQuery,
     format: "JSONEachRow",
     query_params: qb.getQueries(),
+    abort_signal: abortSignal,
   });
   logger().debug(
     { eventsQuery, queryParams: qb.getQueries() },
@@ -534,7 +538,10 @@ export async function findUserEventCount({
   eventType,
   messageId,
   includeContext,
-}: Omit<GetEventsRequest, "limit" | "offset">): Promise<number> {
+  abortSignal,
+}: Omit<GetEventsRequest, "limit" | "offset"> & {
+  abortSignal?: AbortSignal;
+}): Promise<number> {
   const qb = new ClickHouseQueryBuilder();
 
   const workspaceIdClause = await buildWorkspaceIdClause(workspaceId, qb);
@@ -572,6 +579,7 @@ export async function findUserEventCount({
     query: countQuery,
     format: "JSONEachRow",
     query_params: qb.getQueries(),
+    abort_signal: abortSignal,
   });
 
   const countResults = await countResultSet.json<{ count: number }>();
@@ -592,7 +600,8 @@ export async function findManyEventsWithCount({
   eventType,
   messageId,
   includeContext,
-}: GetEventsRequest): Promise<{
+  abortSignal,
+}: GetEventsRequest & { abortSignal?: AbortSignal }): Promise<{
   events: UserEventsWithTraits[];
   count: number;
 }> {
@@ -611,6 +620,7 @@ export async function findManyEventsWithCount({
       eventType,
       messageId,
       includeContext,
+      abortSignal,
     }),
     findUserEventCount({
       workspaceId,
@@ -624,6 +634,7 @@ export async function findManyEventsWithCount({
       eventType,
       messageId,
       includeContext,
+      abortSignal,
     }),
   ]);
 
