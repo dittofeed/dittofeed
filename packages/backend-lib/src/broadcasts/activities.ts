@@ -173,7 +173,6 @@ async function getUnmessagedUsers(
   }).then(unwrap);
   const nowDate = new Date(params.now);
 
-  // TODO implement timezones
   const alreadySent = await searchDeliveries({
     workspaceId: params.workspaceId,
     broadcastId,
@@ -182,13 +181,6 @@ async function getUnmessagedUsers(
     endDate: nowDate.toISOString(),
     startDate: new Date(params.now - 1000 * 60 * 60 * 24).toISOString(),
   });
-  logger().debug(
-    {
-      users,
-      alreadySent,
-    },
-    "Broadcast users",
-  );
   return {
     users: users.filter(
       (user) => !alreadySent.items.some((item) => item.userId === user.id),

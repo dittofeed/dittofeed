@@ -218,6 +218,7 @@ describe("broadcastWorkflowV2", () => {
       await createTestEnvAndWorker();
       anonymousUserId = randomUUID();
       userId = randomUUID();
+      userId2 = randomUUID();
 
       await createBroadcast({
         config: {
