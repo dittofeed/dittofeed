@@ -54,17 +54,9 @@ export default async function eventsController(fastify: FastifyInstance) {
           anonymous_id,
           event,
           event_time,
-          traits,
           properties,
         }) => {
-          let colsolidatedTraits: string;
-          if (traits.length) {
-            colsolidatedTraits = traits;
-          } else if (properties.length) {
-            colsolidatedTraits = properties;
-          } else {
-            colsolidatedTraits = "{}";
-          }
+          const colsolidatedTraits = properties.length ? properties : "{}";
           return {
             messageId: message_id,
             processingTime: processing_time,
