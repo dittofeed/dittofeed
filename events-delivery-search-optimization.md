@@ -380,6 +380,8 @@ This approach provides:
 - **Completeness**: We still get all event fields from the main table (not just the extracted ones)
 - **Efficiency**: The IN clause with message_ids is much faster than parsing JSON for all rows
 
+**Query Routing Rule**: If a query filters on `broadcastId`, `journeyId`, or `templateId`, we route it to the `internal_events` table. This assumes these fields are used by internal events. If users happen to use these same field names in their external events, those won't be found - this is an acceptable trade-off for the performance gain.
+
 Note: `event_time` and `processing_time` can differ significantly due to clock skew, network failures with retries, etc.
 
 ##### 2.4 Performance Comparison Queries
