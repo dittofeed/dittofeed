@@ -432,6 +432,12 @@ ORDER BY event_time DESC
 LIMIT 100;
 ```
 
+### Phase 3. QA in Production
+
+1. Generate isolated queries to create new table and view.
+2. Generate isolated query to backfill the new table with historical data.
+3. Write two scripts in `packages/admin-cli/src/commandDefinitions.ts` to generate query strings from dynamic parameters, that I can use to test the performance of queries. This may require refactoring of the existing backend code into a new function for generating the query prior to executing it.
+
 ### Performance Impact Analysis
 
 #### Expected Improvements
