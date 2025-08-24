@@ -45,6 +45,24 @@ packages/backend-lib/src/journeys.ts
 packages/backend-lib/src/journeys/userWorkflow/lifecycle.ts
 ```
 
+#### 🔄 **How This Fixes Our Use Case**
+
+**Before (Broken):**
+```
+User: ADDED_TO_CART (cartId: "123") → Journey starts
+Journey: Enters wait-for "checked out" segment
+User: CHECKED_OUT (cartId: "123") → Event dropped (name mismatch)
+Journey: Times out → Sends reminder ❌
+```
+
+**After (Fixed):**
+```
+User: ADDED_TO_CART (cartId: "123") → Journey starts
+Journey: Enters wait-for "checked out" segment
+User: CHECKED_OUT (cartId: "123") → Event signaled to existing workflow ✅
+Workflow: Receives event → Updates segment → Journey proceeds ✅
+```
+
 ### Development Workflow
 
 1. **Make your changes** to the codebase
