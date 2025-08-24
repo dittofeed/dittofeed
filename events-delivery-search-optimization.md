@@ -551,16 +551,42 @@ WHERE event_type = 'track' AND startsWith(event, 'DF');
 
 Generate events search query with debug output:
 ```bash
-yarn workspace admin-cli run generate-events-search-query \
-  --workspaceId "550e8400-e29b-41d4-a716-446655440000" \
-  --cursor "1234567890" \
-  --limit "100" \
-  --events "page_view,button_click" \
-  --startEventTime "1234567890000" \
-  --endEventTime "1234567890000"
+yarn admin generate-events-search-query \
+  --workspace-id "550e8400-e29b-41d4-a716-446655440000" \
+  --journey-id "journey-123" \
+  --broadcast-id "broadcast-456" \
+  --limit 100 \
+  --offset 0
 ```
 
-This will output the complete ClickHouse query with all parameters substituted, ready for production testing and performance analysis.
+Generate deliveries search query with debug output:
+```bash
+yarn admin generate-deliveries-search-query \
+  --workspace-id "550e8400-e29b-41d4-a716-446655440000" \
+  --journey-id "journey-123" \
+  --broadcast-id "broadcast-456" \
+  --template-ids "template-1" "template-2" \
+  --channels "Email" "Sms" \
+  --statuses "DFEmailDelivered" "DFEmailOpened" \
+  --sort-by "sentAt" \
+  --sort-direction "Desc" \
+  --limit 20
+```
+
+Advanced deliveries search with user and date filtering:
+```bash
+yarn admin generate-deliveries-search-query \
+  --workspace-id "550e8400-e29b-41d4-a716-446655440000" \
+  --user-id "user-123" "user-456" \
+  --start-date "2024-01-01T00:00:00Z" \
+  --end-date "2024-01-31T23:59:59Z" \
+  --to "test@example.com" \
+  --from "noreply@company.com" \
+  --channels "Email" \
+  --limit 50
+```
+
+These commands will output the complete ClickHouse query with all parameters substituted, ready for production testing and performance analysis.
 
 ### Performance Impact Analysis
 
