@@ -6,8 +6,10 @@ import { submitBatch } from "backend-lib/src/apps/batch";
 import { bootstrapClickhouse, bootstrapKafka } from "backend-lib/src/bootstrap";
 import {
   clickhouseClient,
+  ClickHouseQueryBuilder,
   createClickhouseClient,
 } from "backend-lib/src/clickhouse";
+import { buildUserEventsQuery } from "backend-lib/src/userEvents";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
@@ -1470,6 +1472,55 @@ export function createCommands(yargs: Argv): Argv {
         );
         logger().info(users, "Users");
       },
+    )
+    .command(
+      "generate-events-search-query", 
+      "Generate optimized events search query for performance testing.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", alias: "w", demandOption: true },
+          "journey-id": { type: "string", alias: "j" },
+          "broadcast-id": { type: "string", alias: "b" },
+          "event-type": { type: "string", alias: "et" },
+          event: { type: "string", alias: "e", array: true },
+          "user-id": { type: "string", alias: "u" },
+          "start-date": { type: "number", alias: "s" },
+          "end-date": { type: "number", alias: "ed" },
+          limit: { type: "number", alias: "l", default: 100 },
+          offset: { type: "number", alias: "o", default: 0 },
+        }),
+      async ({ 
+        workspaceId, 
+        journeyId, 
+        broadcastId, 
+        eventType,
+        event,
+        userId, 
+        startDate, 
+        endDate, 
+        limit,
+        offset
+      }) => {
+        const debugQb = new ClickHouseQueryBuilder({ debug: true });
+        const { query } = await buildUserEventsQuery({
+          workspaceId,
+          limit,
+          offset,
+          journeyId,
+          broadcastId,
+          eventType,
+          event,
+          userId,
+          startDate,
+          endDate,
+        }, debugQb);
+
+        const productionQuery = query.replace(/user_events_v2/g, "dittofeed.user_events_v2")
+                                     .replace(/internal_events/g, "dittofeed.internal_events");
+
+        logger().info("Generated optimized events search query:");
+        console.log(productionQuery);
+      }
     )
     .command(
       "seed-delivery-events",

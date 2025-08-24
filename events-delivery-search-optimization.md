@@ -444,6 +444,8 @@ LIMIT 100;
 ```bash
 LOG_LEVEL=debug yarn jest packages/backend-lib/src/userEvents.test.ts
 LOG_LEVEL=debug yarn jest packages/backend-lib/src/deliveries.test.ts
+# run type checking
+yarn workspace backend-lib check
 ```
 
 You can also add debug logging to the `searchDeliveries` and `findManyEventsWithCount` functions:
@@ -461,7 +463,91 @@ logger().debug({ key: value }, "message")
 
 Note that these commands should include the `dittofeed.` database name preceding the table names, unlike in production where the database name is omitted due to being set from the client.
 
-#### 3.1 Sample Query Generating Commands
+#### 3.1 Isolated Queries for Production Setup
+
+**Create the internal_events table:**
+
+```sql
+CREATE TABLE IF NOT EXISTS dittofeed.internal_events (
+  workspace_id String,
+  user_or_anonymous_id String,
+  user_id String,
+  anonymous_id String,
+  message_id String,
+  event String,
+  event_time DateTime64(3),
+  processing_time DateTime64(3),
+  properties String,
+  template_id String,
+  broadcast_id String,
+  journey_id String,
+  triggering_message_id String,
+  channel_type String,
+  delivery_to String,
+  delivery_from String,
+  origin_message_id String,
+  INDEX idx_template_id template_id TYPE bloom_filter(0.01) GRANULARITY 4,
+  INDEX idx_broadcast_id broadcast_id TYPE bloom_filter(0.01) GRANULARITY 4,
+  INDEX idx_journey_id journey_id TYPE bloom_filter(0.01) GRANULARITY 4
+)
+ENGINE = MergeTree()
+ORDER BY (workspace_id, processing_time, event, user_or_anonymous_id, message_id);
+```
+
+**Create the materialized view to populate internal_events:**
+
+```sql
+CREATE MATERIALIZED VIEW IF NOT EXISTS dittofeed.internal_events_mv
+TO dittofeed.internal_events
+AS SELECT
+  workspace_id,
+  user_or_anonymous_id,
+  user_id,
+  anonymous_id,
+  message_id,
+  event,
+  event_time,
+  processing_time,
+  properties,
+  JSONExtractString(properties, 'templateId') as template_id,
+  JSONExtractString(properties, 'broadcastId') as broadcast_id,
+  JSONExtractString(properties, 'journeyId') as journey_id,
+  JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
+  JSONExtractString(properties, 'variant', 'type') as channel_type,
+  JSONExtractString(properties, 'variant', 'to') as delivery_to,
+  JSONExtractString(properties, 'variant', 'from') as delivery_from,
+  JSONExtractString(properties, 'messageId') as origin_message_id
+FROM dittofeed.user_events_v2
+WHERE event_type = 'track' AND startsWith(event, 'DF');
+```
+
+**Backfill historical data (run after creating table and view):**
+
+```sql
+INSERT INTO dittofeed.internal_events
+SELECT
+  workspace_id,
+  user_or_anonymous_id,
+  user_id,
+  anonymous_id,
+  message_id,
+  event,
+  event_time,
+  processing_time,
+  properties,
+  JSONExtractString(properties, 'templateId') as template_id,
+  JSONExtractString(properties, 'broadcastId') as broadcast_id,
+  JSONExtractString(properties, 'journeyId') as journey_id,
+  JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
+  JSONExtractString(properties, 'variant', 'type') as channel_type,
+  JSONExtractString(properties, 'variant', 'to') as delivery_to,
+  JSONExtractString(properties, 'variant', 'from') as delivery_from,
+  JSONExtractString(properties, 'messageId') as origin_message_id
+FROM dittofeed.user_events_v2
+WHERE event_type = 'track' AND startsWith(event, 'DF');
+```
+
+#### Sample Query Generating Commands
 
 ```bash
 # FIXME

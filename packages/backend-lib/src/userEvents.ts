@@ -549,42 +549,18 @@ function buildUserEventInnerQuery(
   `;
 }
 
-export async function findUserEvents({
-  workspaceId,
-  limit = 100,
-  offset = 0,
-  startDate,
-  endDate,
-  userId,
-  searchTerm,
-  event,
-  broadcastId,
-  journeyId,
-  eventType,
-  messageId,
-  includeContext,
-  abortSignal,
-}: GetEventsRequest & { abortSignal?: AbortSignal }): Promise<
-  UserEventsWithTraits[]
-> {
-  const qb = new ClickHouseQueryBuilder();
+export async function buildUserEventsQuery(
+  params: GetEventsRequest,
+  qb: ClickHouseQueryBuilder,
+  includeContext?: boolean,
+): Promise<{
+  query: string;
+  queryParams: Record<string, unknown>;
+}> {
+  const { workspaceId, limit = 100, offset = 0 } = params;
 
   const workspaceIdClause = await buildWorkspaceIdClause(workspaceId, qb);
-  const queryClauses = buildUserEventQueryClauses(
-    {
-      workspaceId,
-      startDate,
-      endDate,
-      userId,
-      searchTerm,
-      event,
-      broadcastId,
-      journeyId,
-      eventType,
-      messageId,
-    },
-    qb,
-  );
+  const queryClauses = buildUserEventQueryClauses(params, qb);
 
   const paginationClause = limit
     ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
@@ -606,16 +582,57 @@ export async function findUserEvents({
     ${paginationClause}
   `;
 
+  return {
+    query: eventsQuery,
+    queryParams: qb.getQueries(),
+  };
+}
+
+export async function findUserEvents({
+  workspaceId,
+  limit = 100,
+  offset = 0,
+  startDate,
+  endDate,
+  userId,
+  searchTerm,
+  event,
+  broadcastId,
+  journeyId,
+  eventType,
+  messageId,
+  includeContext,
+  abortSignal,
+}: GetEventsRequest & { abortSignal?: AbortSignal }): Promise<
+  UserEventsWithTraits[]
+> {
+  const qb = new ClickHouseQueryBuilder();
+  const { query: eventsQuery, queryParams } = await buildUserEventsQuery(
+    {
+      workspaceId,
+      limit,
+      offset,
+      startDate,
+      endDate,
+      userId,
+      searchTerm,
+      event,
+      broadcastId,
+      journeyId,
+      eventType,
+      messageId,
+    },
+    qb,
+    includeContext,
+  );
+
   const eventsResultSet = await chQuery({
     query: eventsQuery,
     format: "JSONEachRow",
-    query_params: qb.getQueries(),
+    query_params: queryParams,
     abort_signal: abortSignal,
   });
-  logger().debug(
-    { eventsQuery, queryParams: qb.getQueries() },
-    "findUserEvents query",
-  );
+  logger().debug({ eventsQuery, queryParams }, "findUserEvents query");
 
   return await eventsResultSet.json<UserEventsWithTraits>();
 }

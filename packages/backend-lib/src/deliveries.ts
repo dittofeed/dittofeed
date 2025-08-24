@@ -255,37 +255,53 @@ export async function searchDeliveries({
   const queryBuilder = new ClickHouseQueryBuilder();
   const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
   const eventList = queryBuilder.addQueryValue(EmailEventList, "Array(String)");
-  
+
   // Build internal_events filter conditions using pre-parsed fields
   const internalEventsConditions: string[] = [];
   internalEventsConditions.push(`workspace_id = ${workspaceIdParam}`);
   internalEventsConditions.push(`event IN ${eventList}`);
-  
+
   if (journeyId) {
-    internalEventsConditions.push(`journey_id = ${queryBuilder.addQueryValue(journeyId, "String")}`);
+    internalEventsConditions.push(
+      `journey_id = ${queryBuilder.addQueryValue(journeyId, "String")}`,
+    );
   }
   if (broadcastId) {
-    internalEventsConditions.push(`broadcast_id = ${queryBuilder.addQueryValue(broadcastId, "String")}`);
+    internalEventsConditions.push(
+      `broadcast_id = ${queryBuilder.addQueryValue(broadcastId, "String")}`,
+    );
   }
   if (templateIds) {
-    internalEventsConditions.push(`template_id IN ${queryBuilder.addQueryValue(templateIds, "Array(String)")}`);
+    internalEventsConditions.push(
+      `template_id IN ${queryBuilder.addQueryValue(templateIds, "Array(String)")}`,
+    );
   }
   if (channels) {
-    internalEventsConditions.push(`channel_type IN ${queryBuilder.addQueryValue(channels, "Array(String)")}`);
+    internalEventsConditions.push(
+      `channel_type IN ${queryBuilder.addQueryValue(channels, "Array(String)")}`,
+    );
   }
   if (to) {
-    internalEventsConditions.push(`delivery_to IN ${queryBuilder.addQueryValue(to, "Array(String)")}`);
+    internalEventsConditions.push(
+      `delivery_to IN ${queryBuilder.addQueryValue(to, "Array(String)")}`,
+    );
   }
   if (from) {
-    internalEventsConditions.push(`delivery_from IN ${queryBuilder.addQueryValue(from, "Array(String)")}`);
+    internalEventsConditions.push(
+      `delivery_from IN ${queryBuilder.addQueryValue(from, "Array(String)")}`,
+    );
   }
   if (startDate) {
-    internalEventsConditions.push(`processing_time >= parseDateTimeBestEffort(${queryBuilder.addQueryValue(startDate, "String")}, 'UTC')`);
+    internalEventsConditions.push(
+      `processing_time >= parseDateTimeBestEffort(${queryBuilder.addQueryValue(startDate, "String")}, 'UTC')`,
+    );
   }
   if (endDate) {
-    internalEventsConditions.push(`processing_time <= parseDateTimeBestEffort(${queryBuilder.addQueryValue(endDate, "String")}, 'UTC')`);
+    internalEventsConditions.push(
+      `processing_time <= parseDateTimeBestEffort(${queryBuilder.addQueryValue(endDate, "String")}, 'UTC')`,
+    );
   }
-  
+
   let userIdClause = "";
   if (userId) {
     if (Array.isArray(userId)) {
@@ -538,7 +554,7 @@ export async function searchDeliveries({
           INNER JOIN (
             SELECT DISTINCT message_id, template_id, broadcast_id, journey_id, triggering_message_id, origin_message_id
             FROM internal_events
-            WHERE ${internalEventsConditions.join(' AND ')}
+            WHERE ${internalEventsConditions.join(" AND ")}
           ) AS ie ON uev.message_id = ie.message_id
           WHERE
             uev.workspace_id = ${workspaceIdParam}
