@@ -7,10 +7,12 @@ describe("user workflows activity test", () => {
   let workspaceId: string;
   beforeEach(async () => {
     workspaceId = randomUUID();
-    await db().insert(schema.workspace).values({
-      id: workspaceId,
-      name: "test",
-    });
+    await db()
+      .insert(schema.workspace)
+      .values({
+        id: workspaceId,
+        name: `user-workflow-activity-test-${workspaceId}`,
+      });
   });
   describe("sendMessageFactory", () => {
     describe("with events in context", () => {
