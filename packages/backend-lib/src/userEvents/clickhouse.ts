@@ -428,6 +428,7 @@ export async function createKafkaTables({
     // This table is used in the kafka write mode to buffer messages from kafka
     // to clickhouse. It's useful for processing a high volume of messages
     // without burdening clickhouse with excessive memory usage.
+    // TODO: add server_time column
     `
       CREATE TABLE IF NOT EXISTS user_events_queue_v2
       (message_raw String, workspace_id String, message_id String)

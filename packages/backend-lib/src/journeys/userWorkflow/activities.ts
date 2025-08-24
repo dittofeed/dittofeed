@@ -224,6 +224,14 @@ export function sendMessageFactory(sender: Sender) {
       ),
     });
     if (!journey || journey.status !== "Running") {
+      logger().debug(
+        {
+          journeyId: params.journeyId,
+          workspaceId: params.workspaceId,
+          journeyStatus: journey?.status,
+        },
+        "journey not found or not running",
+      );
       return false;
     }
 
