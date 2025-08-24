@@ -181,12 +181,12 @@ export function buildDeliverySearchQuery(
   ];
   if (startDate) {
     innerExtractedClauses.push(
-      `uev.processing_time >= ${qb.addQueryValue(startDate, "String")}`,
+      `uev.processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')`,
     );
   }
   if (endDate) {
     innerExtractedClauses.push(
-      `uev.processing_time <= ${qb.addQueryValue(endDate, "String")}`,
+      `uev.processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')`,
     );
   }
   if (groupId) {
@@ -393,7 +393,6 @@ export function buildDeliverySearchQuery(
           min(event_time) sent_at,
           user_or_anonymous_id,
           origin_message_id,
-          tuple(any(inner_extracted.template_id), any(inner_extracted.broadcast_id), any(inner_extracted.journey_id)) as parsed_properties,
           any(triggering_message_id) as triggering_message_id,
           workspace_id,
           is_anonymous
@@ -405,9 +404,6 @@ export function buildDeliverySearchQuery(
             if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'context'), '') context,
             uev.event,
             uev.event_time,
-            ie.template_id,
-            ie.broadcast_id,
-            ie.journey_id,
             if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, ie.origin_message_id) origin_message_id,
             if(uev.event = '${InternalEventType.MessageSent}', ie.triggering_message_id, '') triggering_message_id,
             uev.hidden,
