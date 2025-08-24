@@ -515,7 +515,7 @@ export async function searchDeliveries({
           min(event_time) sent_at,
           user_or_anonymous_id,
           origin_message_id,
-          tuple(inner_extracted.template_id, inner_extracted.broadcast_id, inner_extracted.journey_id) as parsed_properties,
+          tuple(any(inner_extracted.template_id), any(inner_extracted.broadcast_id), any(inner_extracted.journey_id)) as parsed_properties,
           any(triggering_message_id) as triggering_message_id,
           workspace_id,
           is_anonymous
