@@ -1,4 +1,7 @@
-import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
+import { 
+  WorkflowExecutionAlreadyStartedError,
+  WorkflowNotFoundError 
+} from "@temporalio/common";
 import { JourneyNodeType, MakeRequired } from "isomorphic-lib/src/types";
 
 import { jsonValue } from "../../jsonPath";
@@ -95,13 +98,40 @@ export async function startKeyedUserJourney({
     });
   } catch (e) {
     if (e instanceof WorkflowExecutionAlreadyStartedError) {
-      logger().info("User journey already started.", {
+      logger().info("User journey already started, signaling existing workflow.", {
         workflowId,
         journeyId,
         userId,
         workspaceId,
         eventKey: definition.entryNode.key,
       });
+      
+      // Signal the existing workflow with the new event
+      try {
+        await workflowClient.getHandle(workflowId).signal(trackSignal, {
+          version: TrackSignalParamsVersion.V2,
+          messageId: event.messageId,
+        });
+        logger().info("Successfully signaled existing workflow.", {
+          workflowId,
+          messageId: event.messageId,
+        });
+      } catch (signalError) {
+        if (signalError instanceof WorkflowNotFoundError) {
+          logger().info("Workflow no longer exists, likely completed or failed.", {
+            workflowId,
+            messageId: event.messageId,
+          });
+          // Don't throw - this is expected if workflow already completed
+          return;
+        }
+        logger().error("Failed to signal existing workflow.", {
+          workflowId,
+          messageId: event.messageId,
+          error: signalError,
+        });
+        throw signalError;
+      }
       return;
     }
     throw e;

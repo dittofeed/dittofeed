@@ -21,6 +21,7 @@ import { err, ok, Result } from "neverthrow";
 import NodeCache from "node-cache";
 import { PostgresError } from "pg-error-enum";
 import { validate as validateUuid } from "uuid";
+import { WorkflowNotFoundError } from "@temporalio/common";
 
 import {
   ClickHouseQueryBuilder,
@@ -30,9 +31,14 @@ import {
 import { enqueueRecompute } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import { QUEUE_ITEM_PRIORITIES } from "./constants";
 import { Db, db, insert, QueryError, queryResult } from "./db";
+import { jsonValue } from "./jsonPath";
 import * as schema from "./db/schema";
+import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import {
+  getKeyedUserJourneyWorkflowIdInner,
   segmentUpdateSignal,
+  trackSignal,
+  TrackSignalParamsVersion,
   userJourneyWorkflow,
 } from "./journeys/userWorkflow";
 import {
@@ -73,6 +79,7 @@ import {
   SegmentUpdate,
   SmsStats,
   UpsertJourneyResource,
+  UserWorkflowTrackEvent,
   WorkspaceQueueItemType,
 } from "./types";
 
@@ -723,6 +730,108 @@ export type TriggerEventEntryJourneysOptions = Omit<
 >;
 
 /**
+ * Signal existing keyed workflows that might need this event for segment evaluation.
+ * This handles the case where a different event (e.g., CHECKED_OUT) needs to be 
+ * signaled to workflows started by a different entry event (e.g., ADDED_TO_CART).
+ */
+async function signalExistingKeyedWorkflows({
+  workspaceId,
+  userId,
+  event,
+  journeyDetails,
+}: {
+  workspaceId: string;
+  userId: string;
+  event: UserWorkflowTrackEvent;
+  journeyDetails: EventTriggerJourneyDetails[];
+}): Promise<Promise<unknown>[]> {
+  const workflowClient = await connectWorkflowClient();
+  const signalPromises: Promise<unknown>[] = [];
+
+  // For each journey that uses event keys, try to signal existing workflows
+  for (const { journeyId, definition } of journeyDetails) {
+    if (definition.entryNode.type !== JourneyNodeType.EventEntryNode) {
+      continue;
+    }
+
+    const entryNode = definition.entryNode;
+    if (!entryNode.key) {
+      continue; // Only keyed journeys can have cross-event signaling
+    }
+
+    // Extract the key value from the current event
+    const eventKeyValue = jsonValue({
+      data: event.properties,
+      path: entryNode.key,
+    })
+      .map((v) => {
+        if (typeof v === "string" || typeof v === "number") {
+          return v.toString();
+        }
+        return undefined;
+      })
+      .unwrapOr(undefined);
+
+    if (!eventKeyValue) {
+      continue; // Event doesn't have the key this journey uses
+    }
+
+    // Generate the workflow ID for this journey/user/key combination
+    const workflowId = getKeyedUserJourneyWorkflowIdInner({
+      workspaceId,
+      userId,
+      journeyId,
+      eventKey: entryNode.key,
+      eventKeyValue,
+    });
+
+    if (!workflowId) {
+      continue;
+    }
+
+    // Try to signal the existing workflow
+    const signalPromise = (async () => {
+      try {
+        await workflowClient.getHandle(workflowId).signal(trackSignal, {
+          version: TrackSignalParamsVersion.V2,
+          messageId: event.messageId,
+        });
+        logger().info("Successfully signaled existing keyed workflow.", {
+          workflowId,
+          journeyId,
+          eventType: event.event,
+          messageId: event.messageId,
+          eventKey: entryNode.key,
+          eventKeyValue,
+        });
+      } catch (error) {
+        if (error instanceof WorkflowNotFoundError) {
+          // This is expected if no workflow exists for this key
+          logger().debug("No existing workflow found for signaling.", {
+            workflowId,
+            journeyId,
+            eventType: event.event,
+            eventKey: entryNode.key,
+            eventKeyValue,
+          });
+        } else {
+          logger().error("Failed to signal existing keyed workflow.", {
+            workflowId,
+            journeyId,
+            eventType: event.event,
+            error,
+          });
+        }
+      }
+    })();
+
+    signalPromises.push(signalPromise);
+  }
+
+  return signalPromises;
+}
+
+/**
  * Abstracts the triggerEventEntryJourneys function for ease of testing.
  * @param journeyCache - A cache of journey details for a given workspace.
  * @param startKeyedJourneyImpl - The implementation of startKeyedUserJourney to use.
@@ -812,7 +921,15 @@ export function triggerEventEntryJourneysFactory({
         });
       },
     );
-    await Promise.all(starts);
+    // Also signal existing keyed workflows that might be waiting for this event
+    const signalPromises = await signalExistingKeyedWorkflows({
+      workspaceId,
+      userId,
+      event: triggerEvent,
+      journeyDetails,
+    });
+
+    await Promise.all([...starts, ...signalPromises]);
   };
 }
 
