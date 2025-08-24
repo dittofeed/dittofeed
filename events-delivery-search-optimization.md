@@ -549,9 +549,18 @@ WHERE event_type = 'track' AND startsWith(event, 'DF');
 
 #### Sample Query Generating Commands
 
+Generate events search query with debug output:
 ```bash
-# FIXME
+yarn workspace admin-cli run generate-events-search-query \
+  --workspaceId "550e8400-e29b-41d4-a716-446655440000" \
+  --cursor "1234567890" \
+  --limit "100" \
+  --events "page_view,button_click" \
+  --startEventTime "1234567890000" \
+  --endEventTime "1234567890000"
 ```
+
+This will output the complete ClickHouse query with all parameters substituted, ready for production testing and performance analysis.
 
 ### Performance Impact Analysis
 

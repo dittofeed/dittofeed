@@ -38,20 +38,6 @@ import {
   SortDirectionEnum,
 } from "./types";
 
-export const SearchDeliveryRow = Type.Object({
-  last_event: Type.String(),
-  properties: Type.String(),
-  updated_at: Type.String(),
-  sent_at: Type.String(),
-  origin_message_id: Type.String(),
-  triggering_message_id: Type.Optional(Type.String()),
-  workspace_id: Type.String(),
-  user_or_anonymous_id: Type.String(),
-  is_anonymous: Type.Number(),
-});
-
-export type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
-
 const OffsetKey = "o" as const;
 
 // TODO use real token / cursor, not just encoded offset
@@ -85,166 +71,34 @@ function serializeCursorOffset(offset: number): string {
   });
 }
 
-export function parseSearchDeliveryRow(
-  row: SearchDeliveryRow,
-): SearchDeliveriesResponseItem | null {
-  const properties = row.properties.length
-    ? (JSON.parse(row.properties) as Record<string, unknown>)
-    : {};
-  const unvalidatedItem = omit(
-    {
-      sentAt: row.sent_at,
-      updatedAt: row.updated_at,
-      status: row.last_event,
-      originMessageId: row.origin_message_id,
-      triggeringMessageId: row.triggering_message_id,
-      userId: row.user_or_anonymous_id,
-      isAnonymous: row.is_anonymous === 1 ? true : undefined,
-      channel:
-        properties.channnel ??
-        properties.messageType ??
-        properties.type ??
-        ChannelType.Email,
-      to: properties.to ?? properties.email,
-      ...properties,
-    } as Record<string, unknown>,
-    ["email"],
-  );
+export async function buildDeliverySearchQuery(
+  params: SearchDeliveriesRequest,
+  qb: ClickHouseQueryBuilder,
+): Promise<{
+  query: string;
+  queryParams: Record<string, unknown>;
+}> {
+  const {
+    workspaceId,
+    cursor,
+    limit = 20,
+    journeyId,
+    sortBy = SearchDeliveriesRequestSortByEnum.sentAt,
+    sortDirection = SortDirectionEnum.Desc,
+    channels,
+    userId,
+    to,
+    from,
+    statuses,
+    templateIds,
+    startDate,
+    endDate,
+    groupId,
+    broadcastId,
+    triggeringProperties: triggeringPropertiesInput,
+    contextValues: contextValuesInput,
+  } = params;
 
-  const itemResult = schemaValidateWithErr(
-    unvalidatedItem,
-    SearchDeliveriesResponseItem,
-  );
-
-  if (itemResult.isErr()) {
-    logger().error(
-      {
-        unvalidatedItem,
-        err: itemResult.error,
-      },
-      "Failed to parse delivery item from clickhouse",
-    );
-    return null;
-  }
-  return itemResult.value;
-}
-
-export async function getDeliveryBody({
-  workspaceId,
-  userId,
-  ...rest
-}: GetDeliveryBodyRequest): Promise<MessageSendSuccessVariant | null> {
-  const qb = new ClickHouseQueryBuilder();
-  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-  const userIdParam = qb.addQueryValue(userId, "String");
-  let templateClause = "";
-  let journeyClause = "";
-  let triggeringMessageIdClause = "";
-  let messageIdClause = "";
-
-  // Build OR conditions instead of exclusive if/else
-  const conditions: string[] = [];
-
-  if (typeof rest.triggeringMessageId === "string") {
-    triggeringMessageIdClause = `JSONExtractString(properties, 'triggeringMessageId') = ${qb.addQueryValue(
-      rest.triggeringMessageId,
-      "String",
-    )}`;
-    if (typeof rest.templateId === "string") {
-      templateClause = `JSONExtractString(properties, 'templateId') = ${qb.addQueryValue(
-        rest.templateId,
-        "String",
-      )}`;
-      conditions.push(`(${triggeringMessageIdClause} AND ${templateClause})`);
-    } else {
-      conditions.push(`(${triggeringMessageIdClause})`);
-    }
-  }
-
-  if (typeof rest.messageId === "string") {
-    messageIdClause = `message_id = ${qb.addQueryValue(
-      rest.messageId,
-      "String",
-    )}`;
-    conditions.push(`(${messageIdClause})`);
-  }
-
-  if (
-    typeof rest.journeyId === "string" &&
-    typeof rest.templateId === "string"
-  ) {
-    journeyClause = `JSONExtractString(properties, 'journeyId') = ${qb.addQueryValue(
-      rest.journeyId,
-      "String",
-    )}`;
-    templateClause = `JSONExtractString(properties, 'templateId') = ${qb.addQueryValue(
-      rest.templateId,
-      "String",
-    )}`;
-    conditions.push(`(${journeyClause} AND ${templateClause})`);
-  }
-
-  const orCondition =
-    conditions.length > 0 ? `AND (${conditions.join(" OR ")})` : "";
-  const query = `
-    SELECT
-      properties
-    FROM user_events_v2
-    WHERE
-      event = '${InternalEventType.MessageSent}'
-      AND workspace_id = ${workspaceIdParam}
-      AND event_type = 'track'
-      AND user_or_anonymous_id = ${userIdParam}
-      ${orCondition}
-    ORDER BY processing_time DESC
-    LIMIT 1
-  `;
-  const result = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-    format: "JSONEachRow",
-  });
-  const results = await result.json();
-  const delivery = results[0] as { properties: string } | undefined;
-  if (!delivery) {
-    return null;
-  }
-  const propertiesResult = jsonParseSafe(delivery.properties);
-  if (propertiesResult.isErr()) {
-    return null;
-  }
-
-  const parsedResult = schemaValidateWithErr(
-    propertiesResult.value,
-    MessageSendSuccessContents,
-  ).unwrapOr(null);
-
-  return parsedResult?.variant ?? null;
-}
-
-export async function searchDeliveries({
-  workspaceId,
-  cursor,
-  limit = 20,
-  journeyId,
-  sortBy = SearchDeliveriesRequestSortByEnum.sentAt,
-  sortDirection = SortDirectionEnum.Desc,
-  channels,
-  userId,
-  to,
-  from,
-  statuses,
-  templateIds,
-  startDate,
-  endDate,
-  groupId,
-  broadcastId,
-  triggeringProperties: triggeringPropertiesInput,
-  contextValues: contextValuesInput,
-  abortSignal,
-}: SearchDeliveriesRequest & {
-  abortSignal?: AbortSignal;
-}): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const triggeringProperties = triggeringPropertiesInput
     ? triggeringPropertiesInput.map(({ key, value }) => ({ key, value }))
@@ -252,9 +106,9 @@ export async function searchDeliveries({
   const contextValues = contextValuesInput
     ? contextValuesInput.map(({ key, value }) => ({ key, value }))
     : undefined;
-  const queryBuilder = new ClickHouseQueryBuilder();
-  const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
-  const eventList = queryBuilder.addQueryValue(EmailEventList, "Array(String)");
+
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const eventList = qb.addQueryValue(EmailEventList, "Array(String)");
 
   // Build internal_events filter conditions using pre-parsed fields
   const internalEventsConditions: string[] = [];
@@ -263,54 +117,54 @@ export async function searchDeliveries({
 
   if (journeyId) {
     internalEventsConditions.push(
-      `journey_id = ${queryBuilder.addQueryValue(journeyId, "String")}`,
+      `journey_id = ${qb.addQueryValue(journeyId, "String")}`,
     );
   }
   if (broadcastId) {
     internalEventsConditions.push(
-      `broadcast_id = ${queryBuilder.addQueryValue(broadcastId, "String")}`,
+      `broadcast_id = ${qb.addQueryValue(broadcastId, "String")}`,
     );
   }
   if (templateIds) {
     internalEventsConditions.push(
-      `template_id IN ${queryBuilder.addQueryValue(templateIds, "Array(String)")}`,
+      `template_id IN ${qb.addQueryValue(templateIds, "Array(String)")}`,
     );
   }
   if (channels) {
     internalEventsConditions.push(
-      `channel_type IN ${queryBuilder.addQueryValue(channels, "Array(String)")}`,
+      `channel_type IN ${qb.addQueryValue(channels, "Array(String)")}`,
     );
   }
   if (to) {
     internalEventsConditions.push(
-      `delivery_to IN ${queryBuilder.addQueryValue(to, "Array(String)")}`,
+      `delivery_to IN ${qb.addQueryValue(to, "Array(String)")}`,
     );
   }
   if (from) {
     internalEventsConditions.push(
-      `delivery_from IN ${queryBuilder.addQueryValue(from, "Array(String)")}`,
+      `delivery_from IN ${qb.addQueryValue(from, "Array(String)")}`,
     );
   }
   if (startDate) {
     internalEventsConditions.push(
-      `processing_time >= parseDateTimeBestEffort(${queryBuilder.addQueryValue(startDate, "String")}, 'UTC')`,
+      `processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')`,
     );
   }
   if (endDate) {
     internalEventsConditions.push(
-      `processing_time <= parseDateTimeBestEffort(${queryBuilder.addQueryValue(endDate, "String")}, 'UTC')`,
+      `processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')`,
     );
   }
 
   let userIdClause = "";
   if (userId) {
     if (Array.isArray(userId)) {
-      userIdClause = `AND user_or_anonymous_id IN ${queryBuilder.addQueryValue(
+      userIdClause = `AND user_or_anonymous_id IN ${qb.addQueryValue(
         userId,
         "Array(String)",
       )}`;
     } else {
-      userIdClause = `AND user_or_anonymous_id = ${queryBuilder.addQueryValue(
+      userIdClause = `AND user_or_anonymous_id = ${qb.addQueryValue(
         userId,
         "String",
       )}`;
@@ -318,7 +172,7 @@ export async function searchDeliveries({
   }
   // Status filtering is still applied in the HAVING clause since it operates on the aggregated data
   const statusClause = statuses
-    ? `AND last_event IN ${queryBuilder.addQueryValue(
+    ? `AND last_event IN ${qb.addQueryValue(
         statuses,
         "Array(String)",
       )}`
@@ -326,7 +180,7 @@ export async function searchDeliveries({
   let groupIdClause = "";
   if (groupId) {
     const groupIdArray = Array.isArray(groupId) ? groupId : [groupId];
-    const groupIdParams = queryBuilder.addQueryValue(
+    const groupIdParams = qb.addQueryValue(
       groupIdArray,
       "Array(String)",
     );
@@ -390,12 +244,12 @@ export async function searchDeliveries({
         if (!key) {
           return null;
         }
-        const keyParam = queryBuilder.addQueryValue(key, "String");
+        const keyParam = qb.addQueryValue(key, "String");
 
         // For a single key, build an OR over all values provided for that key
         const valueConditions = map(keyItems, ({ value }) => {
           if (typeof value === "string") {
-            const stringParam = queryBuilder.addQueryValue(value, "String");
+            const stringParam = qb.addQueryValue(value, "String");
             const stringScalarCheck = `(JSONExtractString(${targetExpr}, ${keyParam}) = ${stringParam})`;
             const arrayStringCheck = `has(JSONExtract(${targetExpr}, ${keyParam}, 'Array(String)'), ${stringParam})`;
             // Attempt numeric match via safe cast in ClickHouse
@@ -407,11 +261,11 @@ export async function searchDeliveries({
           }
           if (typeof value === "number") {
             const roundedValue = Math.floor(value);
-            const intParam = queryBuilder.addQueryValue(roundedValue, "Int64");
+            const intParam = qb.addQueryValue(roundedValue, "Int64");
             const numberScalarCheck = `(JSONExtractInt(${targetExpr}, ${keyParam}) = ${intParam})`;
             const arrayIntCheck = `has(JSONExtract(${targetExpr}, ${keyParam}, 'Array(Int64)'), ${intParam})`;
             // Also allow matching if the stored value is stringified
-            const stringParam = queryBuilder.addQueryValue(
+            const stringParam = qb.addQueryValue(
               String(roundedValue),
               "String",
             );
@@ -583,12 +437,217 @@ export async function searchDeliveries({
     }
     ${finalWhereClause}
     ORDER BY ${sortByClause}
-    LIMIT ${queryBuilder.addQueryValue(offset, "UInt64")},${queryBuilder.addQueryValue(limit, "UInt64")}
+    LIMIT ${qb.addQueryValue(offset, "UInt64")},${qb.addQueryValue(limit, "UInt64")}
   `;
+
+  return {
+    query,
+    queryParams: qb.getQueries(),
+  };
+}
+
+export const SearchDeliveryRow = Type.Object({
+  last_event: Type.String(),
+  properties: Type.String(),
+  updated_at: Type.String(),
+  sent_at: Type.String(),
+  origin_message_id: Type.String(),
+  triggering_message_id: Type.Optional(Type.String()),
+  workspace_id: Type.String(),
+  user_or_anonymous_id: Type.String(),
+  is_anonymous: Type.Number(),
+});
+
+export type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
+
+export function parseSearchDeliveryRow(
+  row: SearchDeliveryRow,
+): SearchDeliveriesResponseItem | null {
+  const properties = row.properties.length
+    ? (JSON.parse(row.properties) as Record<string, unknown>)
+    : {};
+  const unvalidatedItem = omit(
+    {
+      sentAt: row.sent_at,
+      updatedAt: row.updated_at,
+      status: row.last_event,
+      originMessageId: row.origin_message_id,
+      triggeringMessageId: row.triggering_message_id,
+      userId: row.user_or_anonymous_id,
+      isAnonymous: row.is_anonymous === 1 ? true : undefined,
+      channel:
+        properties.channnel ??
+        properties.messageType ??
+        properties.type ??
+        ChannelType.Email,
+      to: properties.to ?? properties.email,
+      ...properties,
+    } as Record<string, unknown>,
+    ["email"],
+  );
+
+  const itemResult = schemaValidateWithErr(
+    unvalidatedItem,
+    SearchDeliveriesResponseItem,
+  );
+
+  if (itemResult.isErr()) {
+    logger().error(
+      {
+        unvalidatedItem,
+        err: itemResult.error,
+      },
+      "Failed to parse delivery item from clickhouse",
+    );
+    return null;
+  }
+  return itemResult.value;
+}
+
+export async function getDeliveryBody({
+  workspaceId,
+  userId,
+  ...rest
+}: GetDeliveryBodyRequest): Promise<MessageSendSuccessVariant | null> {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userIdParam = qb.addQueryValue(userId, "String");
+  let templateClause = "";
+  let journeyClause = "";
+  let triggeringMessageIdClause = "";
+  let messageIdClause = "";
+
+  // Build OR conditions instead of exclusive if/else
+  const conditions: string[] = [];
+
+  if (typeof rest.triggeringMessageId === "string") {
+    triggeringMessageIdClause = `JSONExtractString(properties, 'triggeringMessageId') = ${qb.addQueryValue(
+      rest.triggeringMessageId,
+      "String",
+    )}`;
+    if (typeof rest.templateId === "string") {
+      templateClause = `JSONExtractString(properties, 'templateId') = ${qb.addQueryValue(
+        rest.templateId,
+        "String",
+      )}`;
+      conditions.push(`(${triggeringMessageIdClause} AND ${templateClause})`);
+    } else {
+      conditions.push(`(${triggeringMessageIdClause})`);
+    }
+  }
+
+  if (typeof rest.messageId === "string") {
+    messageIdClause = `message_id = ${qb.addQueryValue(
+      rest.messageId,
+      "String",
+    )}`;
+    conditions.push(`(${messageIdClause})`);
+  }
+
+  if (
+    typeof rest.journeyId === "string" &&
+    typeof rest.templateId === "string"
+  ) {
+    journeyClause = `JSONExtractString(properties, 'journeyId') = ${qb.addQueryValue(
+      rest.journeyId,
+      "String",
+    )}`;
+    templateClause = `JSONExtractString(properties, 'templateId') = ${qb.addQueryValue(
+      rest.templateId,
+      "String",
+    )}`;
+    conditions.push(`(${journeyClause} AND ${templateClause})`);
+  }
+
+  const orCondition =
+    conditions.length > 0 ? `AND (${conditions.join(" OR ")})` : "";
+  const query = `
+    SELECT
+      properties
+    FROM user_events_v2
+    WHERE
+      event = '${InternalEventType.MessageSent}'
+      AND workspace_id = ${workspaceIdParam}
+      AND event_type = 'track'
+      AND user_or_anonymous_id = ${userIdParam}
+      ${orCondition}
+    ORDER BY processing_time DESC
+    LIMIT 1
+  `;
+  const result = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+    format: "JSONEachRow",
+  });
+  const results = await result.json();
+  const delivery = results[0] as { properties: string } | undefined;
+  if (!delivery) {
+    return null;
+  }
+  const propertiesResult = jsonParseSafe(delivery.properties);
+  if (propertiesResult.isErr()) {
+    return null;
+  }
+
+  const parsedResult = schemaValidateWithErr(
+    propertiesResult.value,
+    MessageSendSuccessContents,
+  ).unwrapOr(null);
+
+  return parsedResult?.variant ?? null;
+}
+
+export async function searchDeliveries({
+  workspaceId,
+  cursor,
+  limit = 20,
+  journeyId,
+  sortBy = SearchDeliveriesRequestSortByEnum.sentAt,
+  sortDirection = SortDirectionEnum.Desc,
+  channels,
+  userId,
+  to,
+  from,
+  statuses,
+  templateIds,
+  startDate,
+  endDate,
+  groupId,
+  broadcastId,
+  triggeringProperties: triggeringPropertiesInput,
+  contextValues: contextValuesInput,
+  abortSignal,
+}: SearchDeliveriesRequest & {
+  abortSignal?: AbortSignal;
+}): Promise<SearchDeliveriesResponse> {
+  const queryBuilder = new ClickHouseQueryBuilder();
+  
+  const { query, queryParams } = await buildDeliverySearchQuery({
+    workspaceId,
+    cursor,
+    limit,
+    journeyId,
+    sortBy,
+    sortDirection,
+    channels,
+    userId,
+    to,
+    from,
+    statuses,
+    templateIds,
+    startDate,
+    endDate,
+    groupId,
+    broadcastId,
+    triggeringProperties: triggeringPropertiesInput,
+    contextValues: contextValuesInput,
+  }, queryBuilder);
+
+  const offset = parseCursorOffset(cursor);
 
   const result = await chQuery({
     query,
-    query_params: queryBuilder.getQueries(),
+    query_params: queryParams,
     format: "JSONEachRow",
     clickhouse_settings: {
       date_time_output_format: "iso",

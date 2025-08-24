@@ -9,6 +9,7 @@ import {
   ClickHouseQueryBuilder,
   createClickhouseClient,
 } from "backend-lib/src/clickhouse";
+import { buildDeliverySearchQuery } from "backend-lib/src/deliveries";
 import { buildUserEventsQuery } from "backend-lib/src/userEvents";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
@@ -1519,6 +1520,74 @@ export function createCommands(yargs: Argv): Argv {
                                      .replace(/internal_events/g, "dittofeed.internal_events");
 
         logger().info("Generated optimized events search query:");
+        console.log(productionQuery);
+      }
+    )
+    .command(
+      "generate-deliveries-search-query", 
+      "Generate optimized deliveries search query for performance testing.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", alias: "w", demandOption: true },
+          "journey-id": { type: "string", alias: "j" },
+          "broadcast-id": { type: "string", alias: "b" },
+          "template-ids": { type: "string", alias: "t", array: true },
+          channels: { type: "string", alias: "c", array: true, choices: ["Email", "MobilePush", "Sms", "Webhook"] },
+          "user-id": { type: "string", alias: "u", array: true },
+          to: { type: "string", array: true },
+          from: { type: "string", array: true },
+          statuses: { type: "string", alias: "s", array: true },
+          "start-date": { type: "string", alias: "sd" },
+          "end-date": { type: "string", alias: "ed" },
+          "group-id": { type: "string", alias: "g", array: true },
+          "sort-by": { type: "string", choices: ["sentAt", "status", "from", "to"], default: "sentAt" },
+          "sort-direction": { type: "string", choices: ["Asc", "Desc"], default: "Desc" },
+          limit: { type: "number", alias: "l", default: 20 },
+          cursor: { type: "string" },
+        }),
+      async ({ 
+        workspaceId, 
+        journeyId, 
+        broadcastId, 
+        templateIds,
+        channels,
+        userId, 
+        to,
+        from,
+        statuses,
+        startDate, 
+        endDate, 
+        groupId,
+        sortBy,
+        sortDirection,
+        limit,
+        cursor
+      }) => {
+        const debugQb = new ClickHouseQueryBuilder({ debug: true });
+        const { query } = await buildDeliverySearchQuery({
+          workspaceId,
+          journeyId,
+          broadcastId,
+          templateIds,
+          channels: channels as ("Email" | "MobilePush" | "Sms" | "Webhook")[] | undefined,
+          userId,
+          to,
+          from,
+          statuses,
+          startDate,
+          endDate,
+          groupId,
+          sortBy: sortBy as "from" | "to" | "sentAt" | "status" | undefined,
+          sortDirection: sortDirection as "Asc" | "Desc" | undefined,
+          limit,
+          cursor,
+        }, debugQb);
+
+        const productionQuery = query.replace(/user_events_v2/g, "dittofeed.user_events_v2")
+                                     .replace(/internal_events/g, "dittofeed.internal_events")
+                                     .replace(/group_user_assignments/g, "dittofeed.group_user_assignments");
+
+        logger().info("Generated optimized deliveries search query:");
         console.log(productionQuery);
       }
     )
