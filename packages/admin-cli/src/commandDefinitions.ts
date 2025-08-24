@@ -1485,8 +1485,8 @@ export function createCommands(yargs: Argv): Argv {
           "event-type": { type: "string", alias: "et" },
           event: { type: "string", alias: "e", array: true },
           "user-id": { type: "string", alias: "u" },
-          "start-date": { type: "number", alias: "s" },
-          "end-date": { type: "number", alias: "ed" },
+          "start-date": { type: "string", alias: "s" },
+          "end-date": { type: "string", alias: "ed" },
           limit: { type: "number", alias: "l", default: 100 },
           offset: { type: "number", alias: "o", default: 0 },
         }),
@@ -1512,8 +1512,8 @@ export function createCommands(yargs: Argv): Argv {
           eventType,
           event,
           userId,
-          startDate,
-          endDate,
+          startDate: startDate ? new Date(startDate).getTime() : undefined,
+          endDate: endDate ? new Date(endDate).getTime() : undefined,
         }, debugQb);
 
         const productionQuery = query.replace(/user_events_v2/g, "dittofeed.user_events_v2")

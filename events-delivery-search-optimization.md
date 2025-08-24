@@ -465,6 +465,16 @@ Note that these commands should include the `dittofeed.` database name preceding
 
 #### 3.1 Isolated Queries for Production Setup
 
+**Add hidden column to user_events_v2:**
+
+```sql
+ALTER TABLE dittofeed.user_events_v2 ADD COLUMN hidden Boolean DEFAULT JSONExtractBool(
+  message_raw,
+  'context',
+  'hidden'
+);
+```
+
 **Create the internal_events table:**
 
 ```sql
@@ -555,6 +565,8 @@ yarn admin generate-events-search-query \
   --workspace-id "550e8400-e29b-41d4-a716-446655440000" \
   --journey-id "journey-123" \
   --broadcast-id "broadcast-456" \
+  --start-date "2024-01-01T00:00:00Z" \
+  --end-date "2024-01-31T23:59:59Z" \
   --limit 100 \
   --offset 0
 ```
@@ -568,6 +580,8 @@ yarn admin generate-deliveries-search-query \
   --template-ids "template-1" "template-2" \
   --channels "Email" "Sms" \
   --statuses "DFEmailDelivered" "DFEmailOpened" \
+  --start-date "2024-01-01T00:00:00Z" \
+  --end-date "2024-01-31T23:59:59Z" \
   --sort-by "sentAt" \
   --sort-direction "Desc" \
   --limit 20

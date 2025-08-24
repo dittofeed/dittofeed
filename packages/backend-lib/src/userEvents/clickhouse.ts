@@ -140,6 +140,11 @@ export async function createUserEventsTables() {
               JSONExtract(message_raw, 'properties', 'Nullable(String)')
             )
           ),
+          hidden Boolean DEFAULT JSONExtractBool(
+            message_raw,
+            'context',
+            'hidden'
+          ),
           processing_time DateTime64(3) DEFAULT now64(3),
           server_time DateTime64(3),
           message_raw String,

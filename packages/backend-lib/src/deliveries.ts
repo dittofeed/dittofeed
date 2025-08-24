@@ -71,13 +71,13 @@ function serializeCursorOffset(offset: number): string {
   });
 }
 
-export async function buildDeliverySearchQuery(
+export function buildDeliverySearchQuery(
   params: SearchDeliveriesRequest,
   qb: ClickHouseQueryBuilder,
-): Promise<{
+): {
   query: string;
   queryParams: Record<string, unknown>;
-}> {
+} {
   const {
     workspaceId,
     cursor,
@@ -172,20 +172,28 @@ export async function buildDeliverySearchQuery(
   }
   // Status filtering is still applied in the HAVING clause since it operates on the aggregated data
   const statusClause = statuses
-    ? `AND last_event IN ${qb.addQueryValue(
-        statuses,
-        "Array(String)",
-      )}`
+    ? `AND last_event IN ${qb.addQueryValue(statuses, "Array(String)")}`
     : "";
-  let groupIdClause = "";
+
+  const innerExtractedClauses: string[] = [
+    `uev.workspace_id = ${workspaceIdParam}`,
+    `uev.hidden = false`,
+  ];
+  if (startDate) {
+    innerExtractedClauses.push(
+      `uev.processing_time >= ${qb.addQueryValue(startDate, "String")}`,
+    );
+  }
+  if (endDate) {
+    innerExtractedClauses.push(
+      `uev.processing_time <= ${qb.addQueryValue(endDate, "String")}`,
+    );
+  }
   if (groupId) {
     const groupIdArray = Array.isArray(groupId) ? groupId : [groupId];
-    const groupIdParams = qb.addQueryValue(
-      groupIdArray,
-      "Array(String)",
-    );
-    groupIdClause = `
-      AND (workspace_id, user_or_anonymous_id) IN (
+    const groupIdParams = qb.addQueryValue(groupIdArray, "Array(String)");
+    innerExtractedClauses.push(`
+      (workspace_id, user_or_anonymous_id) IN (
         SELECT
           workspace_id,
           user_id
@@ -205,7 +213,7 @@ export async function buildDeliverySearchQuery(
             user_id
         )
         WHERE is_assigned = true
-      )`;
+      )`);
   }
 
   // Helper to build tolerant conditions for JSON fields on either the triggering event properties
@@ -402,7 +410,7 @@ export async function buildDeliverySearchQuery(
             ie.journey_id,
             if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, ie.origin_message_id) origin_message_id,
             if(uev.event = '${InternalEventType.MessageSent}', ie.triggering_message_id, '') triggering_message_id,
-            JSONExtractBool(uev.message_raw, 'context', 'hidden') as hidden,
+            uev.hidden,
             uev.anonymous_id != '' as is_anonymous
           FROM user_events_v2 AS uev
           INNER JOIN (
@@ -411,9 +419,7 @@ export async function buildDeliverySearchQuery(
             WHERE ${internalEventsConditions.join(" AND ")}
           ) AS ie ON uev.message_id = ie.message_id
           WHERE
-            uev.workspace_id = ${workspaceIdParam}
-            AND hidden = False
-            ${groupIdClause}
+            ${innerExtractedClauses.join(" AND ")}
         ) AS inner_extracted
         GROUP BY workspace_id, user_or_anonymous_id, origin_message_id, is_anonymous
         HAVING
@@ -621,27 +627,30 @@ export async function searchDeliveries({
   abortSignal?: AbortSignal;
 }): Promise<SearchDeliveriesResponse> {
   const queryBuilder = new ClickHouseQueryBuilder();
-  
-  const { query, queryParams } = await buildDeliverySearchQuery({
-    workspaceId,
-    cursor,
-    limit,
-    journeyId,
-    sortBy,
-    sortDirection,
-    channels,
-    userId,
-    to,
-    from,
-    statuses,
-    templateIds,
-    startDate,
-    endDate,
-    groupId,
-    broadcastId,
-    triggeringProperties: triggeringPropertiesInput,
-    contextValues: contextValuesInput,
-  }, queryBuilder);
+
+  const { query, queryParams } = buildDeliverySearchQuery(
+    {
+      workspaceId,
+      cursor,
+      limit,
+      journeyId,
+      sortBy,
+      sortDirection,
+      channels,
+      userId,
+      to,
+      from,
+      statuses,
+      templateIds,
+      startDate,
+      endDate,
+      groupId,
+      broadcastId,
+      triggeringProperties: triggeringPropertiesInput,
+      contextValues: contextValuesInput,
+    },
+    queryBuilder,
+  );
 
   const offset = parseCursorOffset(cursor);
 
