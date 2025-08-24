@@ -459,6 +459,8 @@ logger().debug({ key: value }, "message")
 3. Write two scripts in `packages/admin-cli/src/commandDefinitions.ts` to generate query strings from dynamic parameters, that I can use to test the performance of queries. This may require refactoring of the existing backend code into a new function for generating the query prior to executing it.
 4. Modify this section of this document to add sample query generating commands of the form `yarn admin <command> <args>`.
 
+Note that these commands should include the `dittofeed.` database name preceding the table names, unlike in production where the database name is omitted due to being set from the client.
+
 #### 3.1 Sample Query Generating Commands
 
 ```bash
