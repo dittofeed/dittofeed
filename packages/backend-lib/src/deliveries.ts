@@ -255,15 +255,37 @@ export async function searchDeliveries({
   const queryBuilder = new ClickHouseQueryBuilder();
   const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
   const eventList = queryBuilder.addQueryValue(EmailEventList, "Array(String)");
-  const journeyIdClause = journeyId
-    ? `AND parsed_properties.journeyId = ${queryBuilder.addQueryValue(journeyId, "String")}`
-    : "";
-  const broadcastIdClause = broadcastId
-    ? `AND parsed_properties.broadcastId = ${queryBuilder.addQueryValue(
-        broadcastId,
-        "String",
-      )}`
-    : "";
+  
+  // Build internal_events filter conditions using pre-parsed fields
+  const internalEventsConditions: string[] = [];
+  internalEventsConditions.push(`workspace_id = ${workspaceIdParam}`);
+  internalEventsConditions.push(`event IN ${eventList}`);
+  
+  if (journeyId) {
+    internalEventsConditions.push(`journey_id = ${queryBuilder.addQueryValue(journeyId, "String")}`);
+  }
+  if (broadcastId) {
+    internalEventsConditions.push(`broadcast_id = ${queryBuilder.addQueryValue(broadcastId, "String")}`);
+  }
+  if (templateIds) {
+    internalEventsConditions.push(`template_id IN ${queryBuilder.addQueryValue(templateIds, "Array(String)")}`);
+  }
+  if (channels) {
+    internalEventsConditions.push(`channel_type IN ${queryBuilder.addQueryValue(channels, "Array(String)")}`);
+  }
+  if (to) {
+    internalEventsConditions.push(`delivery_to IN ${queryBuilder.addQueryValue(to, "Array(String)")}`);
+  }
+  if (from) {
+    internalEventsConditions.push(`delivery_from IN ${queryBuilder.addQueryValue(from, "Array(String)")}`);
+  }
+  if (startDate) {
+    internalEventsConditions.push(`processing_time >= parseDateTimeBestEffort(${queryBuilder.addQueryValue(startDate, "String")}, 'UTC')`);
+  }
+  if (endDate) {
+    internalEventsConditions.push(`processing_time <= parseDateTimeBestEffort(${queryBuilder.addQueryValue(endDate, "String")}, 'UTC')`);
+  }
+  
   let userIdClause = "";
   if (userId) {
     if (Array.isArray(userId)) {
@@ -278,38 +300,12 @@ export async function searchDeliveries({
       )}`;
     }
   }
-  const channelClause = channels
-    ? `AND JSON_VALUE(properties, '$.variant.type') IN ${queryBuilder.addQueryValue(
-        channels,
-        "Array(String)",
-      )}`
-    : "";
-  const toClause = to
-    ? `AND JSON_VALUE(properties, '$.variant.to') IN ${queryBuilder.addQueryValue(
-        to,
-        "Array(String)",
-      )}`
-    : "";
-  const fromClause = from
-    ? `AND JSON_VALUE(properties, '$.variant.from') IN ${queryBuilder.addQueryValue(
-        from,
-        "Array(String)",
-      )}`
-    : "";
-  const templateIdHavingClause = templateIds
-    ? `AND parsed_properties.templateId IN ${queryBuilder.addQueryValue(templateIds, "Array(String)")}`
-    : "";
+  // Status filtering is still applied in the HAVING clause since it operates on the aggregated data
   const statusClause = statuses
     ? `AND last_event IN ${queryBuilder.addQueryValue(
         statuses,
         "Array(String)",
       )}`
-    : "";
-  const startDateClause = startDate
-    ? `AND processing_time >= parseDateTimeBestEffort(${queryBuilder.addQueryValue(startDate, "String")}, 'UTC')`
-    : "";
-  const endDateClause = endDate
-    ? `AND processing_time <= parseDateTimeBestEffort(${queryBuilder.addQueryValue(endDate, "String")}, 'UTC')`
     : "";
   let groupIdClause = "";
   if (groupId) {
@@ -519,7 +515,7 @@ export async function searchDeliveries({
           min(event_time) sent_at,
           user_or_anonymous_id,
           origin_message_id,
-          anyIf(parsed_properties, inner_extracted.properties != '') parsed_properties,
+          tuple(inner_extracted.template_id, inner_extracted.broadcast_id, inner_extracted.journey_id) as parsed_properties,
           any(triggering_message_id) as triggering_message_id,
           workspace_id,
           is_anonymous
@@ -531,34 +527,28 @@ export async function searchDeliveries({
             if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'context'), '') context,
             uev.event,
             uev.event_time,
-            if(
-              uev.properties != '',
-              JSONExtract(uev.properties, 'Tuple(messageId String, triggeringMessageId String, broadcastId String, journeyId String, templateId String)'),
-              CAST(('', '', '', '', ''), 'Tuple(messageId String, triggeringMessageId String, broadcastId String, journeyId String, templateId String)')
-            ) AS parsed_properties,
-            if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, parsed_properties.messageId) origin_message_id,
-            if(uev.event = '${InternalEventType.MessageSent}', parsed_properties.triggeringMessageId, '') triggering_message_id,
+            ie.template_id,
+            ie.broadcast_id,
+            ie.journey_id,
+            if(uev.event = '${InternalEventType.MessageSent}', uev.message_id, ie.origin_message_id) origin_message_id,
+            if(uev.event = '${InternalEventType.MessageSent}', ie.triggering_message_id, '') triggering_message_id,
             JSONExtractBool(uev.message_raw, 'context', 'hidden') as hidden,
             uev.anonymous_id != '' as is_anonymous
           FROM user_events_v2 AS uev
+          INNER JOIN (
+            SELECT DISTINCT message_id, template_id, broadcast_id, journey_id, triggering_message_id, origin_message_id
+            FROM internal_events
+            WHERE ${internalEventsConditions.join(' AND ')}
+          ) AS ie ON uev.message_id = ie.message_id
           WHERE
-            uev.event in ${eventList}
-            AND uev.workspace_id = ${workspaceIdParam}
+            uev.workspace_id = ${workspaceIdParam}
             AND hidden = False
-            ${channelClause}
-            ${toClause}
-            ${fromClause}
-            ${startDateClause}
-            ${endDateClause}
             ${groupIdClause}
         ) AS inner_extracted
         GROUP BY workspace_id, user_or_anonymous_id, origin_message_id, is_anonymous
         HAVING
           origin_message_id != ''
           AND properties != ''
-          ${journeyIdClause}
-          ${broadcastIdClause}
-          ${templateIdHavingClause}
           ${userIdClause}
           ${statusClause}
     ) AS inner_grouped

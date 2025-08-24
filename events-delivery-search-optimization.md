@@ -383,7 +383,11 @@ This approach provides:
 - **Completeness**: We still get all event fields from the main table (not just the extracted ones)
 - **Efficiency**: The IN clause with message_ids is much faster than parsing JSON for all rows
 
-**Query Routing Rule**: If a query filters on `broadcastId`, `journeyId`, or `templateId`, we route it to the `internal_events` table. This assumes these fields are used by internal events. If users happen to use these same field names in their external events, those won't be found - this is an acceptable trade-off for the performance gain.
+**Query Routing Rule**: For delivery queries (`searchDeliveries`), we will ALWAYS use the `internal_events` table unconditionally, regardless of filter presence. This approach is justified because:
+1. Delivery queries only care about internal (DF-prefixed) track events, which the `internal_events` table is pre-filtered for
+2. The `internal_events` table has an optimized sort key `(workspace_id, processing_time, event, user_or_anonymous_id, message_id)` with `event` in a forward position, unlike the base `user_events_v2` table which does not include `event` in the sort key.
+3. This eliminates the need for conditional query routing logic and ensures consistent performance for all delivery queries
+4. Even when no internal event filters are present, querying the smaller, pre-filtered `internal_events` table will be faster than scanning the full `user_events_v2` table
 
 Note: `event_time` and `processing_time` can differ significantly due to clock skew, network failures with retries, etc.
 
@@ -433,6 +437,19 @@ WHERE
   )
 ORDER BY event_time DESC
 LIMIT 100;
+```
+
+#### Phase 2.5 Running Tests
+
+```bash
+LOG_LEVEL=debug yarn jest packages/backend-lib/src/userEvents.test.ts
+LOG_LEVEL=debug yarn jest packages/backend-lib/src/deliveries.test.ts
+```
+
+You can also add debug logging to the `searchDeliveries` and `findManyEventsWithCount` functions:
+
+```typescript
+logger().debug({ key: value }, "message")
 ```
 
 ### Phase 3. QA in Production
