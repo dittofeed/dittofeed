@@ -186,6 +186,9 @@ WHERE event_type = 'track' AND startsWith(event, 'DF');  -- Only internal (DF-pr
 ## Implementation Strategy
 
 #### Phase 1: Create the Table and Materialized View
+
+This phase will involve modifying the `packages/backend-lib/src/userEvents/clickhouse.ts` file.
+
 1. Create the `internal_events` table with pre-parsed field columns
 2. Create `internal_events_mv` materialized view that writes TO the table
 3. The view will automatically populate the table with new internal events going forward
