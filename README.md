@@ -15,16 +15,16 @@
 
 ## 🔧 Development Build & Deployment (For Team Members)
 
-This repository contains **custom modifications** to the Dittofeed open source codebase. If you need to run your changes locally or deploy them, follow these steps:
+This repository contains **custom modifications** to the Dittofeed open source codebase. The `docker-compose.lite.yaml` file has been configured to automatically build the Docker image from the `packages/lite/Dockerfile` instead of using pre-built images. If you need to run your changes locally or deploy them, follow these steps:
 
 ### Quick Start for Development
 
 ```bash
-# Build the custom Dittofeed image
-docker build -f packages/lite/Dockerfile -t my-dittofeed:latest .
-
-# Run the application with docker-compose
+# Run the application with docker-compose (automatically builds the image)
 docker compose -f docker-compose.lite.yaml up -d
+
+# Or force a rebuild if you've made changes
+docker compose -f docker-compose.lite.yaml up -d --build
 ```
 
 ### What's Different from Open Source
@@ -66,13 +66,13 @@ Workflow: Receives event → Updates segment → Journey proceeds ✅
 ### Development Workflow
 
 1. **Make your changes** to the codebase
-2. **Build the image** with your changes:
-   ```bash
-   docker build -f packages/lite/Dockerfile -t my-dittofeed:latest .
-   ```
-3. **Run the application**:
+2. **Run the application** (automatically builds the image):
    ```bash
    docker compose -f docker-compose.lite.yaml up -d
+   ```
+3. **Force rebuild** if you've made changes:
+   ```bash
+   docker compose -f docker-compose.lite.yaml up -d --build
    ```
 4. **View logs** (if needed):
    ```bash
