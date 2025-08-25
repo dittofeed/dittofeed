@@ -32,53 +32,48 @@ docker compose -f docker-compose.lite.yaml up -d --build
 This fork includes the following **custom changes**:
 
 #### 🐛 **Keyed Performed Segment Bug Fix**
-- **Issue**: "Keyed performed" segments in event-triggered journeys were not evaluating correctly when subsequent events (e.g., `CHECKED_OUT`) occurred after journey entry (e.g., `ADDED_TO_CART`)
+- **Issue**: "Keyed performed" segments in event-triggered journeys were not evaluating correctly when subsequent events (e.g., `CHECK_OUT`) occurred after journey entry (e.g., `ADD_TO_CART`)
 - **Root Cause**: Events with different names weren't being routed to existing keyed workflows for segment re-evaluation
 - **Fix**: Enhanced event routing system to signal existing keyed workflows across different event types
 - **Files Modified**:
   - `packages/backend-lib/src/journeys.ts` - Added `signalExistingKeyedWorkflows()` function
   - `packages/backend-lib/src/journeys/userWorkflow/lifecycle.ts` - Fixed workflow signaling when workflows already exist
 
-#### 📂 **Files Changed**
-```
-packages/backend-lib/src/journeys.ts
-packages/backend-lib/src/journeys/userWorkflow/lifecycle.ts
-```
-
 #### 🔄 **How This Fixes Our Use Case**
+
+![Dittofeed Journey Builder](journey.png)
 
 **Before (Broken):**
 ```
-User: ADDED_TO_CART (cartId: "123") → Journey starts
-Journey: Enters wait-for "checked out" segment
-User: CHECKED_OUT (cartId: "123") → Event dropped (name mismatch)
+User: ADD_TO_CART (cartId: "123") → Journey starts
+Journey: Enters wait-for "checkedOut" segment
+User: CHECK_OUT (cartId: "123") → Event dropped (name mismatch)
 Journey: Times out → Sends reminder ❌
 ```
 
 **After (Fixed):**
 ```
-User: ADDED_TO_CART (cartId: "123") → Journey starts
-Journey: Enters wait-for "checked out" segment
-User: CHECKED_OUT (cartId: "123") → Event signaled to existing workflow ✅
+User: ADD_TO_CART (cartId: "123") → Journey starts
+Journey: Enters wait-for "checkedOut" segment
+User: CHECK_OUT (cartId: "123") → Event signaled to existing workflow ✅
 Workflow: Receives event → Updates segment → Journey proceeds ✅
 ```
 
 ### Development Workflow
 
-1. **Make your changes** to the codebase
-2. **Run the application** (automatically builds the image):
+1. **Run the application** (automatically builds the image):
    ```bash
    docker compose -f docker-compose.lite.yaml up -d
    ```
-3. **Force rebuild** if you've made changes:
+2. **Force rebuild** if you've made changes:
    ```bash
    docker compose -f docker-compose.lite.yaml up -d --build
    ```
-4. **View logs** (if needed):
+3. **View logs** (if needed):
    ```bash
    docker compose -f docker-compose.lite.yaml logs -f
    ```
-5. **Stop the application**:
+4. **Stop the application**:
    ```bash
    docker compose -f docker-compose.lite.yaml down
    ```
