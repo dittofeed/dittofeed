@@ -9,6 +9,7 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { omit } from "remeda";
 import { v5 as uuidV5 } from "uuid";
 
@@ -170,14 +171,14 @@ export function getUserJourneyWorkflowId({
   return `user-journey-${userId}-${journeyId}`;
 }
 
-export enum UserJourneyWorkflowVersion {
-  V1 = 1,
-  V2 = 2,
-  V3 = 3,
-}
+export const UserJourneyWorkflowVersion = {
+  V1: 1,
+  V2: 2,
+  V3: 3,
+} as const;
 
 export interface UserJourneyWorkflowPropsV3 {
-  version: UserJourneyWorkflowVersion.V3;
+  version: typeof UserJourneyWorkflowVersion.V3;
   workspaceId: string;
   userId: string;
   definition: JourneyDefinition;
@@ -189,7 +190,7 @@ export interface UserJourneyWorkflowPropsV3 {
 }
 
 export interface UserJourneyWorkflowPropsV2 {
-  version: UserJourneyWorkflowVersion.V2;
+  version: typeof UserJourneyWorkflowVersion.V2;
   workspaceId: string;
   userId: string;
   definition: JourneyDefinition;
@@ -205,7 +206,7 @@ export interface UserJourneyWorkflowPropsV1 {
   journeyId: string;
   eventKey?: string;
   context?: Record<string, JSONValue>;
-  version?: UserJourneyWorkflowVersion.V1;
+  version?: typeof UserJourneyWorkflowVersion.V1;
   shouldContinueAsNew?: boolean;
 }
 
@@ -793,10 +794,24 @@ export async function userJourneyWorkflow(
       }
       case JourneyNodeType.MessageNode: {
         const messageId = uuid4();
-        const triggeringMessageId =
-          props.version === UserJourneyWorkflowVersion.V2
-            ? props.event?.messageId
-            : undefined;
+        let triggeringMessageId: string | undefined;
+        switch (props.version) {
+          case undefined:
+          case UserJourneyWorkflowVersion.V1: {
+            break;
+          }
+          case UserJourneyWorkflowVersion.V2: {
+            triggeringMessageId = props.event?.messageId;
+            break;
+          }
+          case UserJourneyWorkflowVersion.V3: {
+            triggeringMessageId = props.messageId;
+            break;
+          }
+          default: {
+            assertUnreachable(props);
+          }
+        }
         const messagePayload: Omit<activities.SendParams, "templateId"> = {
           userId,
           workspaceId,
