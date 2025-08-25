@@ -413,7 +413,11 @@ export function buildDeliverySearchQuery(
             SELECT DISTINCT message_id, template_id, broadcast_id, journey_id, triggering_message_id, origin_message_id
             FROM internal_events
             WHERE ${internalEventsConditions.join(" AND ")}
-          ) AS ie ON uev.message_id = ie.message_id
+          ) AS ie ON
+            uev.message_id = ie.message_id
+            AND uev.workspace_id = ie.workspace_id
+            AND uev.user_or_anonymous_id = ie.user_or_anonymous_id
+            AND uev.processing_time = ie.processing_time
           WHERE
             ${innerExtractedClauses.join(" AND ")}
         ) AS inner_extracted
