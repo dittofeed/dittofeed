@@ -788,7 +788,7 @@ describe("broadcastWorkflowV2", () => {
       });
     });
 
-    it.only("should mark the broadcast as failed", async () => {
+    it("should mark the broadcast as failed", async () => {
       await worker.runUntil(async () => {
         await testEnv.client.workflow.execute(broadcastWorkflowV2, {
           workflowId: generateBroadcastWorkflowV2Id({
