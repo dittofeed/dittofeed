@@ -258,3 +258,60 @@ export async function upgradeV021Pre() {
 
   logger().info("Pre-upgrade steps for v0.21.0 completed.");
 }
+
+export async function backfillInternalEvents({
+  // defaults to 1 day in minutes
+  intervalMinutes = 1440,
+}: {
+  intervalMinutes: number;
+}) {
+  // Find start date:
+  // - First check if internal_events has any data, if so the processing_time start date will be the most recent processing_time from the table.
+  // - If not, look up the earliest possible processing_time from user_events_v2 as the start date.
+  // - Then iterate over all rows in user_events_v2, checking the processing_time and event_time columns.
+
+  // Iterate over chunks of user_events_v2, using the intervalMinutes to determine the window of processing_time's to process.
+  // INSERT INTO dittofeed.internal_events (
+  //   workspace_id,
+  //   user_or_anonymous_id,
+  //   user_id,
+  //   anonymous_id,
+  //   message_id,
+  //   event,
+  //   event_time,        -- event_time is column 7
+  //   processing_time,   -- processing_time is column 8
+  //   properties,
+  //   template_id,
+  //   broadcast_id,
+  //   journey_id,
+  //   triggering_message_id,
+  //   channel_type,
+  //   delivery_to,
+  //   delivery_from,
+  //   origin_message_id,
+  //   hidden
+  // )
+  // SELECT
+  //   workspace_id,
+  //   user_or_anonymous_id,
+  //   user_id,
+  //   anonymous_id,
+  //   message_id,
+  //   event,
+  //   event_time,        -- Selecting event_time for column 7
+  //   processing_time,   -- Selecting processing_time for column 8
+  //   properties,
+  //   JSONExtractString(properties, 'templateId') as template_id,
+  //   JSONExtractString(properties, 'broadcastId') as broadcast_id,
+  //   JSONExtractString(properties, 'journeyId') as journey_id,
+  //   JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
+  //   JSONExtractString(properties, 'variant', 'type') as channel_type,
+  //   JSONExtractString(properties, 'variant', 'to') as delivery_to,
+  //   JSONExtractString(properties, 'variant', 'from') as delivery_from,
+  //   JSONExtractString(properties, 'messageId') as origin_message_id,
+  //   hidden
+  // FROM dittofeed.user_events_v2
+  // WHERE event_type = 'track' AND startsWith(event, 'DF');
+  logger().info("Backfilling internal events");
+  logger().info("Done.");
+}
