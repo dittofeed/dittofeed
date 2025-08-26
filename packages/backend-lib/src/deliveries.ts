@@ -415,8 +415,8 @@ export function buildDeliverySearchQuery(
         workspace_id,
         user_or_anonymous_id,
         origin_message_id,
-        argMax(event, event_time) as event,
-        max(event_time) as event_time
+        argMax(event, event_time) as last_event,
+        max(event_time) as max_event_time
       FROM internal_events
       WHERE
         ${statusEventsConditions.join(" AND ")}
@@ -443,11 +443,11 @@ export function buildDeliverySearchQuery(
         : ""
     }
     SELECT
-      if(se.origin_message_id != '', se.event, '${InternalEventType.MessageSent}') as last_event,
+      if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}') as last_event,
       uev.properties as properties,
       JSONExtractString(uev.message_raw, 'context') as context,
-      if(se.origin_message_id != '', se.event_time, uev.event_time) as updated_at,
-      uev.event_time as sent_at,
+      if(se.origin_message_id != '', se.max_event_time, ms.event_time) as updated_at,
+      ms.event_time as sent_at,
       ms.user_or_anonymous_id as user_or_anonymous_id,
       ms.message_id as origin_message_id,
       ms.triggering_message_id as triggering_message_id,
