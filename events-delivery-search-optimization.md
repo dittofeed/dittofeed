@@ -815,7 +815,120 @@ ORDER BY sent_at DESC, origin_message_id ASC
 LIMIT {v8:UInt64},{v9:UInt64}
 ```
 
+I'm struggling to figure out how to adapt these aspects of the existing query to our new optimized query. Specifically, it seems that filtering on the triggering events properties or context values would force us to paginate over the outer query, rather than the `message_sends` CTE. If we maintain the limit on message_sends, it would potentially cause us to miss some events.
 
+#### Solution: Conditional Query Strategy
+
+**Key Insights:**
+1. The `internal_events` table is much smaller than `user_events_v2` within any given date range
+2. `user_events_v2` rows can be extremely large (100s of KB in rare cases due to large properties)
+3. The WHERE...IN clause is sufficient to prevent OOM when fetching from `user_events_v2`
+4. We can load all matching rows from `internal_events` without memory issues
+
+**Strategy:**
+- **Case A (99% of queries - no context/triggering filters):** Keep LIMIT in the inner query for optimal performance
+- **Case B (1 customer - with context/triggering filters):** Move LIMIT to outer query to ensure correctness
+
+**Why This Works:**
+- `internal_events` is pre-filtered (only DF events) and has extracted fields, making it orders of magnitude smaller
+- The WHERE...IN clause with the complete sort key prevents loading too many large rows from `user_events_v2`
+- Moving the LIMIT to the outer query when needed trades performance for correctness, but avoids OOM
+
+**Sample Query with Outer LIMIT (for context/triggering property filtering):**
+
+```sql
+WITH message_sends AS (
+    SELECT
+        workspace_id,
+        user_or_anonymous_id,
+        processing_time,
+        message_id,
+        event_time,
+        triggering_message_id,
+        context  -- Assuming we add this field
+    FROM dittofeed.internal_events
+    WHERE
+        workspace_id = 'e42785e7-db2d-41be-85dc-48c95201c932'
+        AND event = 'DFInternalMessageSent'
+        AND processing_time >= parseDateTimeBestEffort('2025-08-18T00:00:00Z', 'UTC')
+        AND processing_time <= parseDateTimeBestEffort('2025-08-23T23:59:59Z', 'UTC')
+        AND broadcast_id = '44cd622f-4eef-4ab9-8d67-b361054c973a'
+        AND hidden = false
+        -- NO LIMIT HERE when filtering on context/triggering properties
+    ORDER BY processing_time DESC
+),
+status_events AS (
+    -- ... same as before
+),
+triggering_events AS (
+    -- Fetch triggering event properties efficiently
+    SELECT
+        message_id,
+        properties
+    FROM dittofeed.user_events_v2
+    WHERE 
+        workspace_id = 'e42785e7-db2d-41be-85dc-48c95201c932'
+        AND message_id IN (
+            SELECT DISTINCT triggering_message_id 
+            FROM message_sends 
+            WHERE triggering_message_id != ''
+        )
+)
+SELECT
+    ms.workspace_id,
+    ms.user_or_anonymous_id,
+    ms.processing_time,
+    ms.message_id,
+    ms.triggering_message_id,
+    if(se.origin_message_id != '', se.event, 'DFInternalMessageSent') as status,
+    uev.properties,
+    ms.context,
+    te.properties as triggering_properties
+FROM message_sends ms
+LEFT JOIN status_events se ON
+    ms.workspace_id = se.workspace_id
+    AND ms.message_id = se.origin_message_id
+    AND ms.user_or_anonymous_id = se.user_or_anonymous_id
+INNER JOIN (
+    SELECT
+        workspace_id,
+        user_or_anonymous_id,
+        processing_time,
+        event_time,
+        message_id,
+        properties
+    FROM dittofeed.user_events_v2
+    WHERE
+        (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id) IN (
+            SELECT
+                workspace_id,
+                processing_time,
+                user_or_anonymous_id,
+                event_time,
+                message_id
+            FROM message_sends
+        )
+) AS uev ON
+    ms.workspace_id = uev.workspace_id
+    AND ms.user_or_anonymous_id = uev.user_or_anonymous_id
+    AND ms.processing_time = uev.processing_time
+    AND ms.event_time = uev.event_time
+    AND ms.message_id = uev.message_id
+LEFT JOIN triggering_events te ON ms.triggering_message_id = te.message_id
+WHERE
+    -- Apply context filter
+    (ms.context IS NULL OR JSONExtractString(ms.context, 'field') = 'value')
+    AND
+    -- Apply triggering property filter
+    (te.properties IS NULL OR JSONExtractString(te.properties, 'field') = 'value')
+    -- Note that the full context and triggering properties query logic is not
+    -- implemented here, which requires a more complex query checking both
+    -- string, int64, and array values.
+ORDER BY ms.processing_time DESC
+LIMIT 10;  -- LIMIT applied after filtering
+```
+
+**Implementation Note:** The delivery search function should detect whether context or triggering property filters are present and choose the appropriate query strategy. Given the rarity of this use case, the performance trade-off is acceptable.
 
 
 ### Performance Impact Analysis
