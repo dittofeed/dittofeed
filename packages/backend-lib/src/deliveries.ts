@@ -168,32 +168,32 @@ export function buildDeliverySearchQuery(
       );
     }
   }
-  // if (groupId) {
-  //   const groupIdArray = Array.isArray(groupId) ? groupId : [groupId];
-  //   const groupIdParams = qb.addQueryValue(groupIdArray, "Array(String)");
-  //   messageSendsConditions.push(`
-  //     (workspace_id, user_or_anonymous_id) IN (
-  //       SELECT
-  //         workspace_id,
-  //         user_id
-  //       FROM (
-  //         SELECT
-  //           workspace_id,
-  //           group_id,
-  //           user_id,
-  //           argMax(assigned, assigned_at) as is_assigned
-  //         FROM group_user_assignments
-  //         WHERE
-  //           workspace_id = ${workspaceIdParam}
-  //         GROUP BY
-  //           workspace_id,
-  //           group_id,
-  //           user_id
-  //         HAVING group_id IN ${groupIdParams}
-  //       )
-  //       WHERE is_assigned = true
-  //     )`);
-  // }
+  if (groupId) {
+    const groupIdArray = Array.isArray(groupId) ? groupId : [groupId];
+    const groupIdParams = qb.addQueryValue(groupIdArray, "Array(String)");
+    messageSendsConditions.push(`
+      (workspace_id, user_or_anonymous_id) IN (
+        SELECT
+          workspace_id,
+          user_id
+        FROM (
+          SELECT
+            workspace_id,
+            group_id,
+            user_id,
+            argMax(assigned, assigned_at) as is_assigned
+          FROM group_user_assignments
+          WHERE
+            workspace_id = ${workspaceIdParam}
+          GROUP BY
+            workspace_id,
+            group_id,
+            user_id
+          HAVING group_id IN ${groupIdParams}
+        )
+        WHERE is_assigned = true
+      )`);
+  }
 
   // Build status_events CTE conditions - exclude MessageSent as that's the initial event, not a status update
   const statusEventsList = StatusEventsList;
@@ -700,13 +700,6 @@ export async function searchDeliveries({
 
   const offset = parseCursorOffset(cursor);
 
-  logger().debug(
-    {
-      query,
-      queryParams,
-    },
-    "searchDeliveries query",
-  );
   const result = await chQuery({
     query,
     query_params: queryParams,

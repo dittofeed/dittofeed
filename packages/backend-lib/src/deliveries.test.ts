@@ -923,7 +923,7 @@ describe("deliveries", () => {
       });
     });
 
-    describe("when searching by status", () => {
+    describe.only("when searching by status", () => {
       beforeEach(async () => {
         const userId = randomUUID();
         const now = new Date();
@@ -1096,7 +1096,7 @@ describe("deliveries", () => {
       });
     });
 
-    describe.only("when filtering by user id", () => {
+    describe("when filtering by user id", () => {
       let userId: string;
       beforeEach(async () => {
         userId = randomUUID();
