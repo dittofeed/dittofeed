@@ -668,9 +668,28 @@ export function createCommands(yargs: Argv): Argv {
             describe:
               "Optional list of workspace IDs to process (if not provided, processes all workspaces)",
           },
+          "start-date": {
+            type: "string",
+            alias: "s",
+            describe:
+              "Manual start date override in ISO format (e.g., '2023-01-01T00:00:00Z')",
+          },
+          "end-date": {
+            type: "string",
+            alias: "e",
+            describe:
+              "Manual end date override in ISO format (e.g., '2023-12-31T23:59:59Z')",
+          },
+          "force-full-backfill": {
+            type: "boolean",
+            alias: "f",
+            default: false,
+            describe:
+              "Skip internal_events check and always start from earliest user_events_v2 date",
+          },
         }),
-      async ({ intervalMinutes, workspaceIds }) => {
-        await backfillInternalEvents({ intervalMinutes, workspaceIds });
+      async ({ intervalMinutes, workspaceIds, startDate, endDate, forceFullBackfill }) => {
+        await backfillInternalEvents({ intervalMinutes, workspaceIds, startDate, endDate, forceFullBackfill });
       },
     )
     .command(
