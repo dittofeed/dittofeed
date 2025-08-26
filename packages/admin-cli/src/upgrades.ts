@@ -267,8 +267,10 @@ export async function upgradeV021Pre() {
 export async function backfillInternalEvents({
   // defaults to 1 day in minutes
   intervalMinutes = 1440,
+  workspaceIds,
 }: {
   intervalMinutes: number;
+  workspaceIds?: string[];
 }) {
   logger().info("Backfilling internal events");
 
@@ -279,8 +281,14 @@ export async function backfillInternalEvents({
 
   try {
     // Check if internal_events has any data
+    const qb = new ClickHouseQueryBuilder();
+    const workspaceFilter = workspaceIds
+      ? `WHERE workspace_id IN ${qb.addQueryValue(workspaceIds, "Array(String)")}`
+      : "";
+
     const internalEventsResult = await query({
-      query: "SELECT max(processing_time) as max_time FROM internal_events",
+      query: `SELECT max(processing_time) as max_time FROM internal_events ${workspaceFilter}`,
+      query_params: qb.getQueries(),
       clickhouse_settings: { wait_end_of_query: 1 },
     });
 
@@ -306,9 +314,14 @@ export async function backfillInternalEvents({
       );
     } else {
       // Get earliest processing_time from user_events_v2
+      const userEventsQb = new ClickHouseQueryBuilder();
+      const userEventsWorkspaceFilter = workspaceIds
+        ? `AND workspace_id IN ${userEventsQb.addQueryValue(workspaceIds, "Array(String)")}`
+        : "";
+
       const userEventsResult = await query({
-        query:
-          "SELECT min(processing_time) as min_time FROM user_events_v2 WHERE event_type = 'track' AND startsWith(event, 'DF')",
+        query: `SELECT min(processing_time) as min_time FROM user_events_v2 WHERE event_type = 'track' AND startsWith(event, 'DF') ${userEventsWorkspaceFilter}`,
+        query_params: userEventsQb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
       });
 
@@ -368,12 +381,18 @@ export async function backfillInternalEvents({
 
     try {
       // Use query builder for proper parameterization
-      const qb = new ClickHouseQueryBuilder();
-      const startTimeParam = qb.addQueryValue(
+      const insertQb = new ClickHouseQueryBuilder();
+      const startTimeParam = insertQb.addQueryValue(
         currentStart.toISOString(),
         "String",
       );
-      const endTimeParam = qb.addQueryValue(currentEnd.toISOString(), "String");
+      const endTimeParam = insertQb.addQueryValue(
+        currentEnd.toISOString(),
+        "String",
+      );
+      const insertWorkspaceFilter = workspaceIds
+        ? `AND workspace_id IN ${insertQb.addQueryValue(workspaceIds, "Array(String)")}`
+        : "";
 
       const insertQuery = `
         INSERT INTO internal_events (
@@ -421,12 +440,13 @@ export async function backfillInternalEvents({
           AND startsWith(event, 'DF')
           AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
           AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+          ${insertWorkspaceFilter}
         ORDER BY processing_time ASC
       `;
 
       await command({
         query: insertQuery,
-        query_params: qb.getQueries(),
+        query_params: insertQb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
       });
 

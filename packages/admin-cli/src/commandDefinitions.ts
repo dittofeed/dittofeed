@@ -658,11 +658,19 @@ export function createCommands(yargs: Argv): Argv {
             type: "number",
             alias: "i",
             default: 1440,
-            describe: "Interval in minutes for processing chunks (default: 1 day)",
+            describe:
+              "Interval in minutes for processing chunks (default: 1 day)",
+          },
+          "workspace-ids": {
+            type: "string",
+            alias: "w",
+            array: true,
+            describe:
+              "Optional list of workspace IDs to process (if not provided, processes all workspaces)",
           },
         }),
-      async ({ intervalMinutes }) => {
-        await backfillInternalEvents({ intervalMinutes });
+      async ({ intervalMinutes, workspaceIds }) => {
+        await backfillInternalEvents({ intervalMinutes, workspaceIds });
       },
     )
     .command(
