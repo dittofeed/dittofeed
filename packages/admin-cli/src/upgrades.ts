@@ -1,4 +1,9 @@
-import { command } from "backend-lib/src/clickhouse";
+/* eslint-disable no-await-in-loop */
+import {
+  ClickHouseQueryBuilder,
+  command,
+  query,
+} from "backend-lib/src/clickhouse";
 import {
   startComputePropertiesWorkflow,
   terminateComputePropertiesWorkflow,
@@ -257,4 +262,215 @@ export async function upgradeV021Pre() {
   await createGroupTables();
 
   logger().info("Pre-upgrade steps for v0.21.0 completed.");
+}
+
+export async function backfillInternalEvents({
+  // defaults to 1 day in minutes
+  intervalMinutes = 1440,
+  workspaceIds,
+}: {
+  intervalMinutes: number;
+  workspaceIds?: string[];
+}) {
+  logger().info("Backfilling internal events");
+
+  // Find start date:
+  // - First check if internal_events has any data, if so the processing_time start date will be the most recent processing_time from the table.
+  // - If not, look up the earliest possible processing_time from user_events_v2 as the start date.
+  let startDate: Date;
+
+  try {
+    // Check if internal_events has any data
+    const qb = new ClickHouseQueryBuilder();
+    const workspaceFilter = workspaceIds
+      ? `WHERE workspace_id IN ${qb.addQueryValue(workspaceIds, "Array(String)")}`
+      : "";
+
+    const internalEventsResult = await query({
+      query: `SELECT max(processing_time) as max_time FROM internal_events ${workspaceFilter}`,
+      query_params: qb.getQueries(),
+      clickhouse_settings: { wait_end_of_query: 1 },
+    });
+
+    const maxTimeResult = await internalEventsResult.json<{
+      max_time: string;
+    }>();
+
+    logger().debug(
+      { maxTimeResult },
+      "Raw max time result from internal_events",
+    );
+
+    const maxTime = maxTimeResult[0]?.max_time;
+    if (
+      maxTime &&
+      maxTime !== "0000-00-00 00:00:00" &&
+      maxTime !== "1970-01-01 00:00:00.000"
+    ) {
+      startDate = new Date(`${maxTime}Z`);
+      logger().info(
+        { startDate, rawMaxTime: maxTime },
+        "Found existing internal_events data, starting from max processing_time",
+      );
+    } else {
+      // Get earliest processing_time from user_events_v2
+      const userEventsQb = new ClickHouseQueryBuilder();
+      const userEventsWorkspaceFilter = workspaceIds
+        ? `AND workspace_id IN ${userEventsQb.addQueryValue(workspaceIds, "Array(String)")}`
+        : "";
+
+      const userEventsResult = await query({
+        query: `SELECT min(processing_time) as min_time FROM user_events_v2 WHERE event_type = 'track' AND startsWith(event, 'DF') ${userEventsWorkspaceFilter}`,
+        query_params: userEventsQb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+
+      const minTimeResult = await userEventsResult.json<{ min_time: string }>();
+      const minTime = minTimeResult[0]?.min_time;
+
+      logger().debug(
+        { minTimeResult, minTime },
+        "Raw min time result from user_events_v2",
+      );
+
+      if (
+        minTime &&
+        minTime !== "0000-00-00 00:00:00" &&
+        minTime !== "1970-01-01 00:00:00.000"
+      ) {
+        startDate = new Date(`${minTime}Z`);
+        logger().info(
+          { startDate, rawMinTime: minTime },
+          "Starting from earliest DF event in user_events_v2",
+        );
+      } else {
+        logger().info(
+          "No valid DF event timestamps found in user_events_v2, nothing to backfill",
+        );
+        return;
+      }
+    }
+  } catch (error) {
+    logger().error({ error }, "Error finding start date");
+    throw error;
+  }
+
+  const endDate = new Date();
+
+  logger().info(
+    { startDate, endDate, intervalMinutes },
+    "Processing date range",
+  );
+
+  // Process in chunks based on intervalMinutes
+  let currentStart = startDate;
+
+  // eslint-disable-next-line no-await-in-loop -- Sequential processing required for backfill
+  while (currentStart < endDate) {
+    const currentEnd = new Date(
+      currentStart.getTime() + intervalMinutes * 60 * 1000,
+    );
+
+    logger().info(
+      {
+        currentStart: currentStart.toISOString(),
+        currentEnd: currentEnd.toISOString(),
+      },
+      "Processing chunk",
+    );
+
+    try {
+      // Use query builder for proper parameterization
+      const insertQb = new ClickHouseQueryBuilder();
+      const startTimeParam = insertQb.addQueryValue(
+        currentStart.toISOString(),
+        "String",
+      );
+      const endTimeParam = insertQb.addQueryValue(
+        currentEnd.toISOString(),
+        "String",
+      );
+      const insertWorkspaceFilter = workspaceIds
+        ? `AND workspace_id IN ${insertQb.addQueryValue(workspaceIds, "Array(String)")}`
+        : "";
+
+      const insertQuery = `
+        INSERT INTO internal_events (
+          workspace_id,
+          user_or_anonymous_id,
+          user_id,
+          anonymous_id,
+          message_id,
+          event,
+          event_time,
+          processing_time,
+          properties,
+          template_id,
+          broadcast_id,
+          journey_id,
+          triggering_message_id,
+          channel_type,
+          delivery_to,
+          delivery_from,
+          origin_message_id,
+          hidden
+        )
+        SELECT
+          workspace_id,
+          user_or_anonymous_id,
+          user_id,
+          anonymous_id,
+          message_id,
+          event,
+          event_time,
+          processing_time,
+          properties,
+          JSONExtractString(properties, 'templateId') as template_id,
+          JSONExtractString(properties, 'broadcastId') as broadcast_id,
+          JSONExtractString(properties, 'journeyId') as journey_id,
+          JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
+          JSONExtractString(properties, 'variant', 'type') as channel_type,
+          JSONExtractString(properties, 'variant', 'to') as delivery_to,
+          JSONExtractString(properties, 'variant', 'from') as delivery_from,
+          JSONExtractString(properties, 'messageId') as origin_message_id,
+          hidden
+        FROM user_events_v2
+        WHERE
+          event_type = 'track'
+          AND startsWith(event, 'DF')
+          AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
+          AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+          ${insertWorkspaceFilter}
+        ORDER BY processing_time ASC
+      `;
+
+      await command({
+        query: insertQuery,
+        query_params: insertQb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+
+      logger().info(
+        {
+          currentStart: currentStart.toISOString(),
+          currentEnd: currentEnd.toISOString(),
+        },
+        "Chunk processed successfully",
+      );
+    } catch (error) {
+      logger().error(
+        {
+          error,
+          currentStart: currentStart.toISOString(),
+          currentEnd: currentEnd.toISOString(),
+        },
+        "Error processing chunk",
+      );
+      throw error;
+    }
+
+    currentStart = currentEnd;
+  }
+
+  logger().info("Backfilling internal events completed");
 }
