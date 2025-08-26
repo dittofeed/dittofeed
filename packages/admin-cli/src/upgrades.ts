@@ -294,23 +294,6 @@ export async function backfillInternalEvents({
         "Found existing internal_events data, starting from max processing_time",
       );
     } else {
-      // First check if there are any DF events at all
-      const dfCountResult = await query({
-        query:
-          "SELECT count() as count FROM user_events_v2 WHERE event_type = 'track' AND startsWith(event, 'DF')",
-        clickhouse_settings: { wait_end_of_query: 1 },
-      });
-
-      const dfCountData = await dfCountResult.json<{ count: string | number }>();
-      const dfCount = typeof dfCountData[0]?.count === 'string' ? parseInt(dfCountData[0].count, 10) : dfCountData[0]?.count ?? 0;
-      
-      logger().info({ dfCount }, "Found DF events in user_events_v2");
-
-      if (dfCount === 0) {
-        logger().info("No DF events found in user_events_v2, nothing to backfill");
-        return;
-      }
-
       // Get earliest processing_time from user_events_v2
       const userEventsResult = await query({
         query:
