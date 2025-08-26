@@ -271,6 +271,7 @@ export async function backfillInternalEvents({
   // - Then iterate over all rows in user_events_v2, checking the processing_time and event_time columns.
 
   // Iterate over chunks of user_events_v2, using the intervalMinutes to determine the window of processing_time's to process.
+  // Use the following query as a template.
   // INSERT INTO dittofeed.internal_events (
   //   workspace_id,
   //   user_or_anonymous_id,
@@ -311,7 +312,12 @@ export async function backfillInternalEvents({
   //   JSONExtractString(properties, 'messageId') as origin_message_id,
   //   hidden
   // FROM dittofeed.user_events_v2
-  // WHERE event_type = 'track' AND startsWith(event, 'DF');
+  // WHERE
+  //  event_type = 'track'
+  //  AND startsWith(event, 'DF')
+  //  AND processing_time >= ${startDate}
+  //  AND processing_time < ${endDate}
+  // ORDER BY processing_time ASC
   logger().info("Backfilling internal events");
   logger().info("Done.");
 }
