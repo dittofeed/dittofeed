@@ -9,8 +9,6 @@ import {
   ClickHouseQueryBuilder,
   createClickhouseClient,
 } from "backend-lib/src/clickhouse";
-import { buildDeliverySearchQuery } from "backend-lib/src/deliveries";
-import { buildUserEventsQuery } from "backend-lib/src/userEvents";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
@@ -33,6 +31,7 @@ import backendConfig, { SECRETS } from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { workspace as dbWorkspace } from "backend-lib/src/db/schema";
+import { buildDeliverySearchQuery } from "backend-lib/src/deliveries";
 import { findBaseDir } from "backend-lib/src/dir";
 import { addFeatures, removeFeatures } from "backend-lib/src/features";
 import { getKeyedUserJourneyWorkflowIdInner } from "backend-lib/src/journeys/userWorkflow";
@@ -43,6 +42,7 @@ import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
 import { transferResources } from "backend-lib/src/transferResources";
 import { NodeEnvEnum, UserEvent, Workspace } from "backend-lib/src/types";
+import { buildUserEventsQuery } from "backend-lib/src/userEvents";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { deleteAllUsers, getUsers } from "backend-lib/src/users";
 import {
