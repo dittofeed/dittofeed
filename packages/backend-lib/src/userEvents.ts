@@ -496,11 +496,15 @@ function buildUserEventInnerQuery(
       FROM user_events_v2
       WHERE
         ${workspaceIdClause}
-        AND message_id IN (
-          SELECT message_id
+        AND (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id) IN (
+          SELECT
+            workspace_id,
+            processing_time,
+            user_or_anonymous_id,
+            event_time,
+            message_id
           FROM internal_events
           WHERE ${internalEventsConditions.join(" AND ")}
-          ORDER BY processing_time DESC
         )
         ${userIdClause}
         ${searchClause}

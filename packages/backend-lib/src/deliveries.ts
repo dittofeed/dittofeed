@@ -699,6 +699,13 @@ export async function searchDeliveries({
   );
 
   const offset = parseCursorOffset(cursor);
+  logger().debug(
+    {
+      query,
+      queryParams,
+    },
+    "searchDeliveries query",
+  );
 
   const result = await chQuery({
     query,
