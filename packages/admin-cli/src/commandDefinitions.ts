@@ -87,6 +87,7 @@ import { hubspotSync } from "./hubspot";
 import { resetWorkspaceData } from "./reset";
 import { spawnWithEnv } from "./spawn";
 import {
+  backfillInternalEvents,
   disentangleResendSendgrid,
   upgradeV010Post,
   upgradeV010Pre,
@@ -646,6 +647,22 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await upgradeV021Pre();
+      },
+    )
+    .command(
+      "backfill-internal-events",
+      "Backfill internal_events table from user_events_v2 data.",
+      (cmd) =>
+        cmd.options({
+          "interval-minutes": {
+            type: "number",
+            alias: "i",
+            default: 1440,
+            describe: "Interval in minutes for processing chunks (default: 1 day)",
+          },
+        }),
+      async ({ intervalMinutes }) => {
+        await backfillInternalEvents({ intervalMinutes });
       },
     )
     .command(

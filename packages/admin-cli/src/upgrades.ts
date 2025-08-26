@@ -1,4 +1,5 @@
-import { command } from "backend-lib/src/clickhouse";
+/* eslint-disable no-await-in-loop */
+import { command, query, ClickHouseQueryBuilder } from "backend-lib/src/clickhouse";
 import {
   startComputePropertiesWorkflow,
   terminateComputePropertiesWorkflow,
@@ -265,59 +266,230 @@ export async function backfillInternalEvents({
 }: {
   intervalMinutes: number;
 }) {
+  logger().info("Backfilling internal events");
+
   // Find start date:
   // - First check if internal_events has any data, if so the processing_time start date will be the most recent processing_time from the table.
   // - If not, look up the earliest possible processing_time from user_events_v2 as the start date.
-  // - Then iterate over all rows in user_events_v2, checking the processing_time and event_time columns.
+  let startDate: Date;
 
-  // Iterate over chunks of user_events_v2, using the intervalMinutes to determine the window of processing_time's to process.
-  // Use the following query as a template.
-  // INSERT INTO dittofeed.internal_events (
-  //   workspace_id,
-  //   user_or_anonymous_id,
-  //   user_id,
-  //   anonymous_id,
-  //   message_id,
-  //   event,
-  //   event_time,        -- event_time is column 7
-  //   processing_time,   -- processing_time is column 8
-  //   properties,
-  //   template_id,
-  //   broadcast_id,
-  //   journey_id,
-  //   triggering_message_id,
-  //   channel_type,
-  //   delivery_to,
-  //   delivery_from,
-  //   origin_message_id,
-  //   hidden
-  // )
-  // SELECT
-  //   workspace_id,
-  //   user_or_anonymous_id,
-  //   user_id,
-  //   anonymous_id,
-  //   message_id,
-  //   event,
-  //   event_time,        -- Selecting event_time for column 7
-  //   processing_time,   -- Selecting processing_time for column 8
-  //   properties,
-  //   JSONExtractString(properties, 'templateId') as template_id,
-  //   JSONExtractString(properties, 'broadcastId') as broadcast_id,
-  //   JSONExtractString(properties, 'journeyId') as journey_id,
-  //   JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
-  //   JSONExtractString(properties, 'variant', 'type') as channel_type,
-  //   JSONExtractString(properties, 'variant', 'to') as delivery_to,
-  //   JSONExtractString(properties, 'variant', 'from') as delivery_from,
-  //   JSONExtractString(properties, 'messageId') as origin_message_id,
-  //   hidden
-  // FROM dittofeed.user_events_v2
-  // WHERE
-  //  event_type = 'track'
-  //  AND startsWith(event, 'DF')
-  //  AND processing_time >= ${startDate}
-  //  AND processing_time < ${endDate}
-  // ORDER BY processing_time ASC
-  logger().info("Backfilling internal events");
-  logger().info("Done.");
+  try {
+    // Check if internal_events has any data
+    const internalEventsResult = await query({
+      query: "SELECT max(processing_time) as max_time FROM internal_events",
+      clickhouse_settings: { wait_end_of_query: 1 },
+    });
+
+    const maxTimeResult = await internalEventsResult.json<{
+      max_time: string;
+    }>();
+
+    logger().debug({ maxTimeResult }, "Raw max time result from internal_events");
+
+    const maxTime = maxTimeResult[0]?.max_time;
+    if (maxTime && maxTime !== "0000-00-00 00:00:00" && maxTime !== "1970-01-01 00:00:00.000") {
+      startDate = new Date(maxTime);
+      logger().info(
+        { startDate, rawMaxTime: maxTime },
+        "Found existing internal_events data, starting from max processing_time",
+      );
+    } else {
+      // First check if there are any DF events at all
+      const dfCountResult = await query({
+        query:
+          "SELECT count() as count FROM user_events_v2 WHERE event_type = 'track' AND startsWith(event, 'DF')",
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+
+      const dfCountData = await dfCountResult.json<{ count: string | number }>();
+      const dfCount = typeof dfCountData[0]?.count === 'string' ? parseInt(dfCountData[0].count, 10) : dfCountData[0]?.count ?? 0;
+      
+      logger().info({ dfCount }, "Found DF events in user_events_v2");
+
+      if (dfCount === 0) {
+        logger().info("No DF events found in user_events_v2, nothing to backfill");
+        return;
+      }
+
+      // Get earliest processing_time from user_events_v2
+      const userEventsResult = await query({
+        query:
+          "SELECT min(processing_time) as min_time FROM user_events_v2 WHERE event_type = 'track' AND startsWith(event, 'DF')",
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+
+      const minTimeResult = await userEventsResult.json<{ min_time: string }>();
+      const minTime = minTimeResult[0]?.min_time;
+
+      logger().debug({ minTimeResult, minTime }, "Raw min time result from user_events_v2");
+
+      if (minTime && minTime !== "0000-00-00 00:00:00" && minTime !== "1970-01-01 00:00:00.000") {
+        startDate = new Date(minTime);
+        logger().info(
+          { startDate, rawMinTime: minTime },
+          "Starting from earliest DF event in user_events_v2",
+        );
+      } else {
+        logger().info(
+          "No valid DF event timestamps found in user_events_v2, nothing to backfill",
+        );
+        return;
+      }
+    }
+  } catch (error) {
+    logger().error({ error }, "Error finding start date");
+    throw error;
+  }
+
+  // Get the latest processing_time from user_events_v2 to know when to stop
+  const endResult = await query({
+    query:
+      "SELECT max(processing_time) as max_time FROM user_events_v2 WHERE event_type = 'track' AND startsWith(event, 'DF')",
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+
+  const endTimeResult = await endResult.json<{ max_time: string }>();
+  const maxEndTime = endTimeResult[0]?.max_time;
+  const endDate = maxEndTime && maxEndTime !== "0000-00-00 00:00:00" && maxEndTime !== "1970-01-01 00:00:00.000"
+    ? new Date(maxEndTime)
+    : new Date();
+
+  logger().info(
+    { startDate, endDate, intervalMinutes },
+    "Processing date range",
+  );
+
+  // Process in chunks based on intervalMinutes
+  let currentStart = startDate;
+  let processedCount = 0;
+
+  // eslint-disable-next-line no-await-in-loop -- Sequential processing required for backfill
+  while (currentStart < endDate) {
+    const currentEnd = new Date(
+      currentStart.getTime() + intervalMinutes * 60 * 1000,
+    );
+
+    logger().info(
+      {
+        currentStart: currentStart.toISOString(),
+        currentEnd: currentEnd.toISOString(),
+      },
+      "Processing chunk",
+    );
+
+    try {
+      // Use query builder for proper parameterization
+      const qb = new ClickHouseQueryBuilder();
+      const startTimeParam = qb.addQueryValue(currentStart.toISOString(), "String");
+      const endTimeParam = qb.addQueryValue(currentEnd.toISOString(), "String");
+
+      const insertQuery = `
+        INSERT INTO internal_events (
+          workspace_id,
+          user_or_anonymous_id,
+          user_id,
+          anonymous_id,
+          message_id,
+          event,
+          event_time,
+          processing_time,
+          properties,
+          template_id,
+          broadcast_id,
+          journey_id,
+          triggering_message_id,
+          channel_type,
+          delivery_to,
+          delivery_from,
+          origin_message_id,
+          hidden
+        )
+        SELECT
+          workspace_id,
+          user_or_anonymous_id,
+          user_id,
+          anonymous_id,
+          message_id,
+          event,
+          event_time,
+          processing_time,
+          properties,
+          JSONExtractString(properties, 'templateId') as template_id,
+          JSONExtractString(properties, 'broadcastId') as broadcast_id,
+          JSONExtractString(properties, 'journeyId') as journey_id,
+          JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
+          JSONExtractString(properties, 'variant', 'type') as channel_type,
+          JSONExtractString(properties, 'variant', 'to') as delivery_to,
+          JSONExtractString(properties, 'variant', 'from') as delivery_from,
+          JSONExtractString(properties, 'messageId') as origin_message_id,
+          hidden
+        FROM user_events_v2
+        WHERE
+          event_type = 'track'
+          AND startsWith(event, 'DF')
+          AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
+          AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+        ORDER BY processing_time ASC
+      `;
+
+      // Get count of rows to be processed first
+      const countQuery = `
+        SELECT count() as count 
+        FROM user_events_v2
+        WHERE
+          event_type = 'track'
+          AND startsWith(event, 'DF')
+          AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
+          AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+      `;
+
+      const countResult = await query({
+        query: countQuery,
+        query_params: qb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+
+      const countData = await countResult.json<{ count: string | number }>();
+      const chunkCountRaw = countData[0]?.count ?? 0;
+      const chunkCount = typeof chunkCountRaw === 'string' ? parseInt(chunkCountRaw, 10) : chunkCountRaw;
+
+      // Only run insert if there are rows to process
+      if (chunkCount > 0) {
+        await command({
+          query: insertQuery,
+          query_params: qb.getQueries(),
+          clickhouse_settings: { wait_end_of_query: 1 },
+        });
+      }
+
+      processedCount += chunkCount;
+
+      logger().info(
+        {
+          chunkProcessed: chunkCount,
+          totalProcessed: processedCount,
+          currentStart: currentStart.toISOString(),
+          currentEnd: currentEnd.toISOString(),
+        },
+        "Chunk processed successfully",
+      );
+    } catch (error) {
+      logger().error(
+        {
+          error,
+          currentStart: currentStart.toISOString(),
+          currentEnd: currentEnd.toISOString(),
+        },
+        "Error processing chunk",
+      );
+      throw error;
+    }
+
+    currentStart = currentEnd;
+  }
+
+  logger().info(
+    { totalProcessed: processedCount },
+    "Backfilling internal events completed",
+  );
 }
