@@ -815,7 +815,6 @@ ORDER BY sent_at DESC, origin_message_id ASC
 LIMIT {v8:UInt64},{v9:UInt64}
 ```
 
-I'm struggling to figure out how to adapt these aspects of the existing query to our new optimized query. Specifically, it seems that filtering on the triggering events properties or context values would force us to paginate over the outer query, rather the the `message_sends` CTE. If we maintain the limit on message_sends, it would potentially cause us to miss some events.
 
 
 
