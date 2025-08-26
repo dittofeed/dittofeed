@@ -166,7 +166,8 @@ AS SELECT
   JSONExtractString(properties, 'variant', 'type') as channel_type,
   JSONExtractString(properties, 'variant', 'to') as delivery_to,
   JSONExtractString(properties, 'variant', 'from') as delivery_from,
-  JSONExtractString(properties, 'messageId') as origin_message_id
+  JSONExtractString(properties, 'messageId') as origin_message_id,
+  hidden
 FROM user_events_v2
 WHERE event_type = 'track' AND startsWith(event, 'DF');  -- Only internal (DF-prefixed) track events
 ```
@@ -498,6 +499,7 @@ CREATE TABLE IF NOT EXISTS dittofeed.internal_events (
   delivery_to String,
   delivery_from String,
   origin_message_id String,
+  hidden Boolean,
   INDEX idx_template_id template_id TYPE bloom_filter(0.01) GRANULARITY 4,
   INDEX idx_broadcast_id broadcast_id TYPE bloom_filter(0.01) GRANULARITY 4,
   INDEX idx_journey_id journey_id TYPE bloom_filter(0.01) GRANULARITY 4
@@ -528,7 +530,8 @@ AS SELECT
   JSONExtractString(properties, 'variant', 'type') as channel_type,
   JSONExtractString(properties, 'variant', 'to') as delivery_to,
   JSONExtractString(properties, 'variant', 'from') as delivery_from,
-  JSONExtractString(properties, 'messageId') as origin_message_id
+  JSONExtractString(properties, 'messageId') as origin_message_id,
+  hidden
 FROM dittofeed.user_events_v2
 WHERE event_type = 'track' AND startsWith(event, 'DF');
 ```
@@ -554,7 +557,8 @@ INSERT INTO dittofeed.internal_events (
   channel_type,
   delivery_to,
   delivery_from,
-  origin_message_id
+  origin_message_id,
+  hidden
 )
 SELECT
   workspace_id,
@@ -573,7 +577,8 @@ SELECT
   JSONExtractString(properties, 'variant', 'type') as channel_type,
   JSONExtractString(properties, 'variant', 'to') as delivery_to,
   JSONExtractString(properties, 'variant', 'from') as delivery_from,
-  JSONExtractString(properties, 'messageId') as origin_message_id
+  JSONExtractString(properties, 'messageId') as origin_message_id,
+  hidden
 FROM dittofeed.user_events_v2
 WHERE event_type = 'track' AND startsWith(event, 'DF');
 ```
@@ -647,6 +652,7 @@ with message_sends as (
         and processing_time >= parseDateTimeBestEffort('2025-08-18T00:00:00Z', 'UTC')
         and processing_time <= parseDateTimeBestEffort('2025-08-23T23:59:59Z', 'UTC')
         and broadcast_id = '44cd622f-4eef-4ab9-8d67-b361054c973a'
+        and hidden = false
         limit 10
 ),
 status_events as (
@@ -696,7 +702,6 @@ inner join (
                 message_id
             FROM message_sends
         )
-        and hidden = false
 ) as uev on
     message_sends.workspace_id = uev.workspace_id
     and message_sends.user_or_anonymous_id = uev.user_or_anonymous_id

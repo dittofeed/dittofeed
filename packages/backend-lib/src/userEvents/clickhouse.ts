@@ -341,6 +341,7 @@ export async function createUserEventsTables() {
         delivery_to String,
         delivery_from String,
         origin_message_id String,
+        hidden Boolean,
         INDEX idx_template_id template_id TYPE bloom_filter(0.01) GRANULARITY 4,
         INDEX idx_broadcast_id broadcast_id TYPE bloom_filter(0.01) GRANULARITY 4,
         INDEX idx_journey_id journey_id TYPE bloom_filter(0.01) GRANULARITY 4
@@ -418,7 +419,8 @@ export async function createUserEventsTables() {
         JSONExtractString(properties, 'variant', 'type') as channel_type,
         JSONExtractString(properties, 'variant', 'to') as delivery_to,
         JSONExtractString(properties, 'variant', 'from') as delivery_from,
-        JSONExtractString(properties, 'messageId') as origin_message_id
+        JSONExtractString(properties, 'messageId') as origin_message_id,
+        hidden
       FROM user_events_v2
       WHERE event_type = 'track' AND startsWith(event, 'DF');
     `,
