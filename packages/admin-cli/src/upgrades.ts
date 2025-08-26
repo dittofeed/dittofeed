@@ -268,52 +268,30 @@ export async function backfillInternalEvents({
   // defaults to 1 day in minutes
   intervalMinutes = 1440,
   workspaceIds,
+  startDate: startDateOverride,
+  endDate: endDateOverride,
+  forceFullBackfill = false,
 }: {
   intervalMinutes: number;
   workspaceIds?: string[];
+  startDate?: string;
+  endDate?: string;
+  forceFullBackfill?: boolean;
 }) {
   logger().info("Backfilling internal events");
 
-  // Find start date:
-  // - First check if internal_events has any data, if so the processing_time start date will be the most recent processing_time from the table.
-  // - If not, look up the earliest possible processing_time from user_events_v2 as the start date.
+  // Determine start date
   let startDate: Date;
-
-  try {
-    // Check if internal_events has any data
-    const qb = new ClickHouseQueryBuilder();
-    const workspaceFilter = workspaceIds
-      ? `WHERE workspace_id IN ${qb.addQueryValue(workspaceIds, "Array(String)")}`
-      : "";
-
-    const internalEventsResult = await query({
-      query: `SELECT max(processing_time) as max_time FROM internal_events ${workspaceFilter}`,
-      query_params: qb.getQueries(),
-      clickhouse_settings: { wait_end_of_query: 1 },
-    });
-
-    const maxTimeResult = await internalEventsResult.json<{
-      max_time: string;
-    }>();
-
-    logger().debug(
-      { maxTimeResult },
-      "Raw max time result from internal_events",
+  if (startDateOverride) {
+    startDate = new Date(startDateOverride);
+    logger().info(
+      { startDate, override: startDateOverride },
+      "Using manual start date override",
     );
-
-    const maxTime = maxTimeResult[0]?.max_time;
-    if (
-      maxTime &&
-      maxTime !== "0000-00-00 00:00:00" &&
-      maxTime !== "1970-01-01 00:00:00.000"
-    ) {
-      startDate = new Date(`${maxTime}Z`);
-      logger().info(
-        { startDate, rawMaxTime: maxTime },
-        "Found existing internal_events data, starting from max processing_time",
-      );
-    } else {
-      // Get earliest processing_time from user_events_v2
+  } else if (forceFullBackfill) {
+    // Skip internal_events check and always use min from user_events_v2
+    logger().info("Force full backfill enabled, skipping internal_events check");
+    try {
       const userEventsQb = new ClickHouseQueryBuilder();
       const userEventsWorkspaceFilter = workspaceIds
         ? `AND workspace_id IN ${userEventsQb.addQueryValue(workspaceIds, "Array(String)")}`
@@ -330,7 +308,7 @@ export async function backfillInternalEvents({
 
       logger().debug(
         { minTimeResult, minTime },
-        "Raw min time result from user_events_v2",
+        "Raw min time result from user_events_v2 (force full backfill)",
       );
 
       if (
@@ -341,7 +319,7 @@ export async function backfillInternalEvents({
         startDate = new Date(`${minTime}Z`);
         logger().info(
           { startDate, rawMinTime: minTime },
-          "Starting from earliest DF event in user_events_v2",
+          "Starting from earliest DF event in user_events_v2 (force full backfill)",
         );
       } else {
         logger().info(
@@ -349,13 +327,99 @@ export async function backfillInternalEvents({
         );
         return;
       }
+    } catch (error) {
+      logger().error({ error }, "Error finding start date");
+      throw error;
     }
-  } catch (error) {
-    logger().error({ error }, "Error finding start date");
-    throw error;
+  } else {
+    // Find start date:
+    // - First check if internal_events has any data, if so the processing_time start date will be the most recent processing_time from the table.
+    // - If not, look up the earliest possible processing_time from user_events_v2 as the start date.
+    try {
+      // Check if internal_events has any data
+      const qb = new ClickHouseQueryBuilder();
+      const workspaceFilter = workspaceIds
+        ? `WHERE workspace_id IN ${qb.addQueryValue(workspaceIds, "Array(String)")}`
+        : "";
+
+      const internalEventsResult = await query({
+        query: `SELECT max(processing_time) as max_time FROM internal_events ${workspaceFilter}`,
+        query_params: qb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+
+      const maxTimeResult = await internalEventsResult.json<{
+        max_time: string;
+      }>();
+
+      logger().debug(
+        { maxTimeResult },
+        "Raw max time result from internal_events",
+      );
+
+      const maxTime = maxTimeResult[0]?.max_time;
+      if (
+        maxTime &&
+        maxTime !== "0000-00-00 00:00:00" &&
+        maxTime !== "1970-01-01 00:00:00.000"
+      ) {
+        startDate = new Date(`${maxTime}Z`);
+        logger().info(
+          { startDate, rawMaxTime: maxTime },
+          "Found existing internal_events data, starting from max processing_time",
+        );
+      } else {
+        // Get earliest processing_time from user_events_v2
+        const userEventsQb = new ClickHouseQueryBuilder();
+        const userEventsWorkspaceFilter = workspaceIds
+          ? `AND workspace_id IN ${userEventsQb.addQueryValue(workspaceIds, "Array(String)")}`
+          : "";
+
+        const userEventsResult = await query({
+          query: `SELECT min(processing_time) as min_time FROM user_events_v2 WHERE event_type = 'track' AND startsWith(event, 'DF') ${userEventsWorkspaceFilter}`,
+          query_params: userEventsQb.getQueries(),
+          clickhouse_settings: { wait_end_of_query: 1 },
+        });
+
+        const minTimeResult = await userEventsResult.json<{ min_time: string }>();
+        const minTime = minTimeResult[0]?.min_time;
+
+        logger().debug(
+          { minTimeResult, minTime },
+          "Raw min time result from user_events_v2",
+        );
+
+        if (
+          minTime &&
+          minTime !== "0000-00-00 00:00:00" &&
+          minTime !== "1970-01-01 00:00:00.000"
+        ) {
+          startDate = new Date(`${minTime}Z`);
+          logger().info(
+            { startDate, rawMinTime: minTime },
+            "Starting from earliest DF event in user_events_v2",
+          );
+        } else {
+          logger().info(
+            "No valid DF event timestamps found in user_events_v2, nothing to backfill",
+          );
+          return;
+        }
+      }
+    } catch (error) {
+      logger().error({ error }, "Error finding start date");
+      throw error;
+    }
   }
 
-  const endDate = new Date();
+  // Determine end date
+  const endDate = endDateOverride ? new Date(endDateOverride) : new Date();
+  if (endDateOverride) {
+    logger().info(
+      { endDate, override: endDateOverride },
+      "Using manual end date override",
+    );
+  }
 
   logger().info(
     { startDate, endDate, intervalMinutes },
