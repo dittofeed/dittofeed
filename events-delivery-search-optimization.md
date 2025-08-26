@@ -711,7 +711,112 @@ inner join (
 limit 10;
 ```
 
-This query currently gives an out of memory error. Note that the source of this error is the `inner join dittofeed.user_events_v2` clause, and when this is removed the query runs successfully and executes extremely quickly. 
+#### 4.2 New Query With Triggering Properties or Context Filter
+
+Our existing deliveries search query optionally searches over either the `"DFMessageSent"` event's context values, or the triggering events properties. Here's an example of the existing query:
+
+```sql
+SELECT
+    inner_grouped.last_event,
+    inner_grouped.properties,
+    inner_grouped.context,
+    inner_grouped.updated_at,
+    inner_grouped.sent_at,
+    inner_grouped.user_or_anonymous_id,
+    inner_grouped.origin_message_id,
+    inner_grouped.triggering_message_id,
+    inner_grouped.workspace_id,
+    inner_grouped.is_anonymous
+FROM (
+    SELECT
+        argMax(event, event_time) last_event,
+        anyIf(properties, properties != '') properties,
+        anyIf(context, context != '') context,
+        max(event_time) updated_at,
+        min(event_time) sent_at,
+        user_or_anonymous_id,
+        origin_message_id,
+        any(triggering_message_id) as triggering_message_id,
+        workspace_id,
+        is_anonymous
+    FROM (
+        SELECT
+            uev.workspace_id,
+            uev.user_or_anonymous_id,
+            if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'properties'), '') properties,
+            if(uev.event = 'DFInternalMessageSent', JSONExtractString(uev.message_raw, 'context'), '') context,
+            uev.event,
+            uev.event_time,
+            if(uev.event = 'DFInternalMessageSent', uev.message_id, JSON_VALUE(uev.properties, '$.messageId')) origin_message_id,
+            if(uev.event = 'DFInternalMessageSent', JSON_VALUE(uev.message_raw, '$.properties.triggeringMessageId'), '') triggering_message_id,
+            JSONExtractBool(uev.message_raw, 'context', 'hidden') as hidden,
+            uev.anonymous_id != '' as is_anonymous
+        FROM user_events_v2 AS uev
+        WHERE
+            uev.event in {v1:Array(String)}
+            AND uev.workspace_id = {v0:String}
+            AND hidden = False
+            AND processing_time >= parseDateTimeBestEffort({v2:String}, 'UTC')
+            AND processing_time <= parseDateTimeBestEffort({v3:String}, 'UTC')
+    ) AS inner_extracted
+    GROUP BY workspace_id, user_or_anonymous_id, origin_message_id, is_anonymous
+    HAVING
+        origin_message_id != ''
+        AND properties != ''
+) AS inner_grouped
+LEFT JOIN (
+    SELECT
+        message_id,
+        properties
+    FROM user_events_v2
+    WHERE workspace_id = {v0:String}
+) AS triggering_events ON inner_grouped.triggering_message_id = triggering_events.message_id
+WHERE 1=1 
+    AND (
+        (
+            triggering_events.properties IS NOT NULL 
+            AND (
+                (
+                    (
+                        (JSONExtractString(triggering_events.properties, {v4:String}) = {v5:String}) 
+                        OR has(JSONExtract(triggering_events.properties, {v4:String}, 'Array(String)'), {v5:String}) 
+                        OR (
+                            (toInt64OrNull({v5:String})) IS NOT NULL 
+                            AND (
+                                (JSONExtractInt(triggering_events.properties, {v4:String}) = toInt64OrNull({v5:String})) 
+                                OR has(JSONExtract(triggering_events.properties, {v4:String}, 'Array(Int64)'), ifNull(toInt64OrNull({v5:String}), 0))
+                            )
+                        )
+                    )
+                )
+            )
+        ) 
+        OR (
+            inner_grouped.context IS NOT NULL 
+            AND inner_grouped.context != '' 
+            AND (
+                (
+                    (
+                        (JSONExtractString(inner_grouped.context, {v6:String}) = {v7:String}) 
+                        OR has(JSONExtract(inner_grouped.context, {v6:String}, 'Array(String)'), {v7:String}) 
+                        OR (
+                            (toInt64OrNull({v7:String})) IS NOT NULL 
+                            AND (
+                                (JSONExtractInt(inner_grouped.context, {v6:String}) = toInt64OrNull({v7:String})) 
+                                OR has(JSONExtract(inner_grouped.context, {v6:String}, 'Array(Int64)'), ifNull(toInt64OrNull({v7:String}), 0))
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
+ORDER BY sent_at DESC, origin_message_id ASC
+LIMIT {v8:UInt64},{v9:UInt64}
+```
+
+I'm struggling to figure out how to adapt these aspects of the existing query to our new optimized query. Specifically, it seems that filtering on the triggering events properties or context values would force us to paginate over the outer query, rather the the `message_sends` CTE. If we maintain the limit on message_sends, it would potentially cause us to miss some events.
+
 
 
 ### Performance Impact Analysis
