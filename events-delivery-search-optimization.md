@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS internal_events (
   message_id String,
   event String,
   processing_time DateTime64(3),
+  event_time DateTime64(3),
   properties String,
   template_id String,
   broadcast_id String,
@@ -155,6 +156,7 @@ AS SELECT
   anonymous_id,
   message_id,
   event,
+  event_time,
   processing_time,
   properties,
   JSONExtractString(properties, 'templateId') as template_id,
@@ -534,7 +536,26 @@ WHERE event_type = 'track' AND startsWith(event, 'DF');
 **Backfill historical data (run after creating table and view):**
 
 ```sql
-INSERT INTO dittofeed.internal_events
+-- IMPORTANT: Column order must match table definition exactly!
+INSERT INTO dittofeed.internal_events (
+  workspace_id,
+  user_or_anonymous_id,
+  user_id,
+  anonymous_id,
+  message_id,
+  event,
+  event_time,        -- event_time is column 7
+  processing_time,   -- processing_time is column 8
+  properties,
+  template_id,
+  broadcast_id,
+  journey_id,
+  triggering_message_id,
+  channel_type,
+  delivery_to,
+  delivery_from,
+  origin_message_id
+)
 SELECT
   workspace_id,
   user_or_anonymous_id,
@@ -542,8 +563,8 @@ SELECT
   anonymous_id,
   message_id,
   event,
-  event_time,
-  processing_time,
+  event_time,        -- Selecting event_time for column 7
+  processing_time,   -- Selecting processing_time for column 8
   properties,
   JSONExtractString(properties, 'templateId') as template_id,
   JSONExtractString(properties, 'broadcastId') as broadcast_id,
@@ -601,6 +622,92 @@ yarn admin generate-deliveries-search-query \
 ```
 
 These commands will output the complete ClickHouse query with all parameters substituted, ready for production testing and performance analysis.
+
+### Phase 4. Query Performance Improvements
+
+The existing delivery search queries above are still extremely slow, when filtering on `broadcastId` or `journeyId`. In the following phase we will implement a new query that ideally improves on the existing one.
+
+#### 4.1 New Query First Draft
+
+Here's a sample query that I'm proposing to replace the existing one.
+
+```sql
+with message_sends as (
+    select
+        workspace_id,
+        user_or_anonymous_id,
+        processing_time,
+        message_id,
+        event_time,
+        triggering_message_id
+    from dittofeed.internal_events
+    where
+        workspace_id = 'e42785e7-db2d-41be-85dc-48c95201c932'
+        and event = 'DFInternalMessageSent'
+        and processing_time >= parseDateTimeBestEffort('2025-08-18T00:00:00Z', 'UTC')
+        and processing_time <= parseDateTimeBestEffort('2025-08-23T23:59:59Z', 'UTC')
+        and broadcast_id = '44cd622f-4eef-4ab9-8d67-b361054c973a'
+        limit 10
+),
+status_events as (
+    select
+        workspace_id,
+        user_or_anonymous_id,
+        processing_time,
+        origin_message_id,
+        event
+    from dittofeed.internal_events
+    where
+        workspace_id = 'e42785e7-db2d-41be-85dc-48c95201c932'
+        and event in ('DFEmailDelivered', 'DFEmailOpened', 'DFEmailClicked', 'DFEmailDropped', 'DFEmailBounced', 'DFEmailMarkedSpam', 'DFSmsDelivered', 'DFSmsFailed')
+        and processing_time >= parseDateTimeBestEffort('2025-08-18T00:00:00Z', 'UTC')
+        and processing_time <= parseDateTimeBestEffort('2025-08-23T23:59:59Z', 'UTC')
+        and broadcast_id = '44cd622f-4eef-4ab9-8d67-b361054c973a'
+)
+select
+    message_sends.workspace_id,
+    message_sends.user_or_anonymous_id,
+    message_sends.processing_time,
+    message_sends.message_id,
+    message_sends.triggering_message_id,
+    if(status_events.origin_message_id != '', status_events.event, 'DFInternalMessageSent') as status,
+    uev.properties
+from message_sends
+left join status_events on
+    message_sends.workspace_id = status_events.workspace_id
+    and message_sends.message_id = status_events.origin_message_id
+    and message_sends.user_or_anonymous_id = status_events.user_or_anonymous_id
+inner join (
+    select
+        workspace_id,
+        user_or_anonymous_id,
+        processing_time,
+        event_time,
+        message_id,
+        properties
+    from dittofeed.user_events_v2
+    where
+        (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id) IN (
+            SELECT
+                workspace_id,
+                processing_time,
+                user_or_anonymous_id,
+                event_time,
+                message_id
+            FROM message_sends
+        )
+        and hidden = false
+) as uev on
+    message_sends.workspace_id = uev.workspace_id
+    and message_sends.user_or_anonymous_id = uev.user_or_anonymous_id
+    and message_sends.processing_time = uev.processing_time
+    and message_sends.event_time = uev.event_time
+    and message_sends.message_id = uev.message_id
+limit 10;
+```
+
+This query currently gives an out of memory error. Note that the source of this error is the `inner join dittofeed.user_events_v2` clause, and when this is removed the query runs successfully and executes extremely quickly. 
+
 
 ### Performance Impact Analysis
 
