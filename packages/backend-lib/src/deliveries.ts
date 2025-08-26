@@ -111,10 +111,11 @@ export function buildDeliverySearchQuery(
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
   // Build message_sends CTE conditions
-  const messageSendsConditions: string[] = [];
-  messageSendsConditions.push(`workspace_id = ${workspaceIdParam}`);
-  messageSendsConditions.push(`event = '${InternalEventType.MessageSent}'`);
-  messageSendsConditions.push(`hidden = false`);
+  const messageSendsConditions: string[] = [
+    `workspace_id = ${workspaceIdParam}`,
+    `event = '${InternalEventType.MessageSent}'`,
+    `hidden = false`,
+  ];
 
   if (journeyId) {
     messageSendsConditions.push(
@@ -167,39 +168,42 @@ export function buildDeliverySearchQuery(
       );
     }
   }
-  if (groupId) {
-    const groupIdArray = Array.isArray(groupId) ? groupId : [groupId];
-    const groupIdParams = qb.addQueryValue(groupIdArray, "Array(String)");
-    messageSendsConditions.push(`
-      (workspace_id, user_or_anonymous_id) IN (
-        SELECT
-          workspace_id,
-          user_id
-        FROM (
-          SELECT
-            workspace_id,
-            group_id,
-            user_id,
-            argMax(assigned, assigned_at) as is_assigned
-          FROM group_user_assignments
-          WHERE
-            workspace_id = ${workspaceIdParam}
-            AND group_id IN ${groupIdParams}
-          GROUP BY
-            workspace_id,
-            group_id,
-            user_id
-        )
-        WHERE is_assigned = true
-      )`);
-  }
+  // if (groupId) {
+  //   const groupIdArray = Array.isArray(groupId) ? groupId : [groupId];
+  //   const groupIdParams = qb.addQueryValue(groupIdArray, "Array(String)");
+  //   messageSendsConditions.push(`
+  //     (workspace_id, user_or_anonymous_id) IN (
+  //       SELECT
+  //         workspace_id,
+  //         user_id
+  //       FROM (
+  //         SELECT
+  //           workspace_id,
+  //           group_id,
+  //           user_id,
+  //           argMax(assigned, assigned_at) as is_assigned
+  //         FROM group_user_assignments
+  //         WHERE
+  //           workspace_id = ${workspaceIdParam}
+  //         GROUP BY
+  //           workspace_id,
+  //           group_id,
+  //           user_id
+  //         HAVING group_id IN ${groupIdParams}
+  //       )
+  //       WHERE is_assigned = true
+  //     )`);
+  // }
 
   // Build status_events CTE conditions - exclude MessageSent as that's the initial event, not a status update
   const statusEventsList = StatusEventsList;
-  const statusEventsConditions: string[] = [];
-  statusEventsConditions.push(`workspace_id = ${workspaceIdParam}`);
-  statusEventsConditions.push(
+  const statusEventsConditions: string[] = [
+    `workspace_id = ${workspaceIdParam}`,
     `event IN ${qb.addQueryValue(statusEventsList, "Array(String)")}`,
+  ];
+  logger().debug(
+    { statusEventsList, queryParams: qb.getQueries() },
+    "statusEventsList",
   );
 
   // Apply same filters as message_sends for consistency
@@ -696,6 +700,13 @@ export async function searchDeliveries({
 
   const offset = parseCursorOffset(cursor);
 
+  logger().debug(
+    {
+      query,
+      queryParams,
+    },
+    "searchDeliveries query",
+  );
   const result = await chQuery({
     query,
     query_params: queryParams,

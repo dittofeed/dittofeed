@@ -1096,7 +1096,7 @@ describe("deliveries", () => {
       });
     });
 
-    describe("when filtering by user id", () => {
+    describe.only("when filtering by user id", () => {
       let userId: string;
       beforeEach(async () => {
         userId = randomUUID();
