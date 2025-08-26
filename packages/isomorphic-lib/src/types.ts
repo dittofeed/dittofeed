@@ -101,6 +101,17 @@ export enum InternalEventType {
   UserGroupAssignment = "DFUserGroupAssignment",
 }
 
+export const StatusEventsList = [
+  InternalEventType.EmailDropped,
+  InternalEventType.EmailDelivered,
+  InternalEventType.EmailOpened,
+  InternalEventType.EmailClicked,
+  InternalEventType.EmailBounced,
+  InternalEventType.EmailMarkedSpam,
+  InternalEventType.SmsDelivered,
+  InternalEventType.SmsFailed,
+] as const;
+
 export enum CursorDirectionEnum {
   After = "after",
   Before = "before",
