@@ -923,7 +923,7 @@ describe("deliveries", () => {
       });
     });
 
-    describe.only("when searching by status", () => {
+    describe("when searching by status", () => {
       beforeEach(async () => {
         const userId = randomUUID();
         const now = new Date();

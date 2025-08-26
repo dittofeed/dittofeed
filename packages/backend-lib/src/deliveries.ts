@@ -487,7 +487,7 @@ export function buildDeliverySearchQuery(
       AND ms.message_id = uev.message_id
     ${hasValidTriggeringPropsTrigger ? `LEFT JOIN triggering_events ON ms.triggering_message_id = triggering_events.message_id` : ""}
     ${finalWhereClause}
-    ${statuses ? `${finalWhereClause ? "AND" : "WHERE"} if(se.origin_message_id != '', se.event, '${InternalEventType.MessageSent}') IN ${qb.addQueryValue(statuses, "Array(String)")}` : ""}
+    ${statuses ? `${finalWhereClause ? "AND" : "WHERE"} if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}') IN ${qb.addQueryValue(statuses, "Array(String)")}` : ""}
     ORDER BY ${sortByClause}
     ${outerLimit}
   `;
