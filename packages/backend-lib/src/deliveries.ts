@@ -36,6 +36,7 @@ import {
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
   SortDirectionEnum,
+  StatusEventsList,
 } from "./types";
 
 const OffsetKey = "o" as const;
@@ -193,11 +194,12 @@ export function buildDeliverySearchQuery(
       )`);
   }
 
-  // Build status_events CTE conditions
+  // Build status_events CTE conditions - exclude MessageSent as that's the initial event, not a status update
+  const statusEventsList = StatusEventsList;
   const statusEventsConditions: string[] = [];
   statusEventsConditions.push(`workspace_id = ${workspaceIdParam}`);
   statusEventsConditions.push(
-    `event IN ${qb.addQueryValue(EmailEventList, "Array(String)")}`,
+    `event IN ${qb.addQueryValue(statusEventsList, "Array(String)")}`,
   );
 
   // Apply same filters as message_sends for consistency
@@ -404,29 +406,19 @@ export function buildDeliverySearchQuery(
       ORDER BY processing_time DESC
       ${innerLimit}
     ),
-    status_events_raw AS (
+    status_events AS (
       SELECT
         workspace_id,
         user_or_anonymous_id,
-        processing_time,
         origin_message_id,
-        event,
-        event_time
+        argMax(event, event_time) as event,
+        max(event_time) as event_time
       FROM internal_events
       WHERE
         ${statusEventsConditions.join(" AND ")}
         AND origin_message_id IN (
           SELECT message_id FROM message_sends
         )
-    ),
-    status_events AS (
-      SELECT
-        workspace_id,
-        user_or_anonymous_id,
-        origin_message_id,
-        argMax(event, processing_time) as event,
-        max(event_time) as event_time
-      FROM status_events_raw
       GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     )${
       hasValidTriggeringPropsTrigger
@@ -448,13 +440,13 @@ export function buildDeliverySearchQuery(
     }
     SELECT
       if(se.origin_message_id != '', se.event, '${InternalEventType.MessageSent}') as last_event,
-      uev.properties,
+      uev.properties as properties,
       JSONExtractString(uev.message_raw, 'context') as context,
       if(se.origin_message_id != '', se.event_time, uev.event_time) as updated_at,
       uev.event_time as sent_at,
       ms.user_or_anonymous_id as user_or_anonymous_id,
       ms.message_id as origin_message_id,
-      ms.triggering_message_id,
+      ms.triggering_message_id as triggering_message_id,
       ms.workspace_id as workspace_id,
       if(uev.anonymous_id != '', 1, 0) as is_anonymous
     FROM message_sends ms
@@ -703,114 +695,6 @@ export async function searchDeliveries({
   );
 
   const offset = parseCursorOffset(cursor);
-
-  // Debug logging for test debugging
-  logger().debug(
-    {
-      workspaceId,
-      journeyId,
-      broadcastId,
-      templateIds,
-      statuses,
-      query: query.substring(0, 500),
-    },
-    "Executing searchDeliveries query",
-  );
-
-  // Debug: Check if internal_events has data
-  if (process.env.NODE_ENV === "test") {
-    // First check count
-    const countQuery = `SELECT count() FROM internal_events WHERE workspace_id = {v0:String}`;
-    const countResult = await chQuery({
-      query: countQuery,
-      query_params: { v0: workspaceId },
-      format: "JSONEachRow",
-    });
-    const countRows = (await countResult.json()) as Array<
-      Record<string, unknown>
-    >;
-
-    // If empty, try to populate from user_events_v2
-    const count = Number(countRows[0]?.["count()"] ?? 0);
-    logger().debug(
-      { workspaceId, internalEventsCount: count },
-      "Initial internal_events count",
-    );
-
-    if (count === 0) {
-      // Check how many DF events exist in user_events_v2
-      const sourceCountQuery = `
-        SELECT count() FROM user_events_v2 
-        WHERE workspace_id = {v0:String} 
-          AND event_type = 'track' 
-          AND startsWith(event, 'DF')
-      `;
-      const sourceCountResult = await chQuery({
-        query: sourceCountQuery,
-        query_params: { v0: workspaceId },
-        format: "JSONEachRow",
-      });
-      const sourceCountRows = (await sourceCountResult.json()) as Array<
-        Record<string, unknown>
-      >;
-      const sourceCount = Number(sourceCountRows[0]?.["count()"] ?? 0);
-      logger().debug(
-        { workspaceId, dfEventsCount: sourceCount },
-        "DF events in user_events_v2",
-      );
-
-      if (sourceCount > 0) {
-        const populateQuery = `
-          INSERT INTO internal_events
-          SELECT
-            workspace_id,
-            user_or_anonymous_id,
-            user_id,
-            anonymous_id,
-            message_id,
-            event,
-            event_time,
-            processing_time,
-            properties,
-            JSONExtractString(properties, 'templateId') as template_id,
-            JSONExtractString(properties, 'broadcastId') as broadcast_id,
-            JSONExtractString(properties, 'journeyId') as journey_id,
-            JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
-            JSONExtractString(properties, 'variant', 'type') as channel_type,
-            JSONExtractString(properties, 'variant', 'to') as delivery_to,
-            JSONExtractString(properties, 'variant', 'from') as delivery_from,
-            JSONExtractString(properties, 'messageId') as origin_message_id,
-            hidden
-          FROM user_events_v2
-          WHERE workspace_id = {v0:String} 
-            AND event_type = 'track' 
-            AND startsWith(event, 'DF')
-        `;
-        await chQuery({
-          query: populateQuery,
-          query_params: { v0: workspaceId },
-        });
-      }
-
-      // Check count again
-      const afterCountResult = await chQuery({
-        query: countQuery,
-        query_params: { v0: workspaceId },
-        format: "JSONEachRow",
-      });
-      const afterCountRows = (await afterCountResult.json()) as Array<
-        Record<string, unknown>
-      >;
-      logger().debug(
-        {
-          workspaceId,
-          beforeCount: countRows[0],
-          afterCount: afterCountRows[0],
-        },
-        "Debug: internal_events populated for test",
-      );
-    }
-  }
 
   const result = await chQuery({
     query,
