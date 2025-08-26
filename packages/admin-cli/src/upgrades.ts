@@ -361,7 +361,6 @@ export async function backfillInternalEvents({
 
   // Process in chunks based on intervalMinutes
   let currentStart = startDate;
-  let processedCount = 0;
 
   // eslint-disable-next-line no-await-in-loop -- Sequential processing required for backfill
   while (currentStart < endDate) {
@@ -432,42 +431,14 @@ export async function backfillInternalEvents({
         ORDER BY processing_time ASC
       `;
 
-      // Get count of rows to be processed first
-      const countQuery = `
-        SELECT count() as count 
-        FROM user_events_v2
-        WHERE
-          event_type = 'track'
-          AND startsWith(event, 'DF')
-          AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
-          AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
-      `;
-
-      const countResult = await query({
-        query: countQuery,
+      await command({
+        query: insertQuery,
         query_params: qb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
       });
 
-      const countData = await countResult.json<{ count: string | number }>();
-      const chunkCountRaw = countData[0]?.count ?? 0;
-      const chunkCount = typeof chunkCountRaw === 'string' ? parseInt(chunkCountRaw, 10) : chunkCountRaw;
-
-      // Only run insert if there are rows to process
-      if (chunkCount > 0) {
-        await command({
-          query: insertQuery,
-          query_params: qb.getQueries(),
-          clickhouse_settings: { wait_end_of_query: 1 },
-        });
-      }
-
-      processedCount += chunkCount;
-
       logger().info(
         {
-          chunkProcessed: chunkCount,
-          totalProcessed: processedCount,
           currentStart: currentStart.toISOString(),
           currentEnd: currentEnd.toISOString(),
         },
@@ -488,8 +459,5 @@ export async function backfillInternalEvents({
     currentStart = currentEnd;
   }
 
-  logger().info(
-    { totalProcessed: processedCount },
-    "Backfilling internal events completed",
-  );
+  logger().info("Backfilling internal events completed");
 }
