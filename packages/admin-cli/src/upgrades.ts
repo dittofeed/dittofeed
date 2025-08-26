@@ -1,5 +1,9 @@
 /* eslint-disable no-await-in-loop */
-import { command, query, ClickHouseQueryBuilder } from "backend-lib/src/clickhouse";
+import {
+  ClickHouseQueryBuilder,
+  command,
+  query,
+} from "backend-lib/src/clickhouse";
 import {
   startComputePropertiesWorkflow,
   terminateComputePropertiesWorkflow,
@@ -284,11 +288,18 @@ export async function backfillInternalEvents({
       max_time: string;
     }>();
 
-    logger().debug({ maxTimeResult }, "Raw max time result from internal_events");
+    logger().debug(
+      { maxTimeResult },
+      "Raw max time result from internal_events",
+    );
 
     const maxTime = maxTimeResult[0]?.max_time;
-    if (maxTime && maxTime !== "0000-00-00 00:00:00" && maxTime !== "1970-01-01 00:00:00.000") {
-      startDate = new Date(maxTime);
+    if (
+      maxTime &&
+      maxTime !== "0000-00-00 00:00:00" &&
+      maxTime !== "1970-01-01 00:00:00.000"
+    ) {
+      startDate = new Date(`${maxTime}Z`);
       logger().info(
         { startDate, rawMaxTime: maxTime },
         "Found existing internal_events data, starting from max processing_time",
@@ -304,10 +315,17 @@ export async function backfillInternalEvents({
       const minTimeResult = await userEventsResult.json<{ min_time: string }>();
       const minTime = minTimeResult[0]?.min_time;
 
-      logger().debug({ minTimeResult, minTime }, "Raw min time result from user_events_v2");
+      logger().debug(
+        { minTimeResult, minTime },
+        "Raw min time result from user_events_v2",
+      );
 
-      if (minTime && minTime !== "0000-00-00 00:00:00" && minTime !== "1970-01-01 00:00:00.000") {
-        startDate = new Date(minTime);
+      if (
+        minTime &&
+        minTime !== "0000-00-00 00:00:00" &&
+        minTime !== "1970-01-01 00:00:00.000"
+      ) {
+        startDate = new Date(`${minTime}Z`);
         logger().info(
           { startDate, rawMinTime: minTime },
           "Starting from earliest DF event in user_events_v2",
@@ -324,18 +342,7 @@ export async function backfillInternalEvents({
     throw error;
   }
 
-  // Get the latest processing_time from user_events_v2 to know when to stop
-  const endResult = await query({
-    query:
-      "SELECT max(processing_time) as max_time FROM user_events_v2 WHERE event_type = 'track' AND startsWith(event, 'DF')",
-    clickhouse_settings: { wait_end_of_query: 1 },
-  });
-
-  const endTimeResult = await endResult.json<{ max_time: string }>();
-  const maxEndTime = endTimeResult[0]?.max_time;
-  const endDate = maxEndTime && maxEndTime !== "0000-00-00 00:00:00" && maxEndTime !== "1970-01-01 00:00:00.000"
-    ? new Date(maxEndTime)
-    : new Date();
+  const endDate = new Date();
 
   logger().info(
     { startDate, endDate, intervalMinutes },
@@ -362,7 +369,10 @@ export async function backfillInternalEvents({
     try {
       // Use query builder for proper parameterization
       const qb = new ClickHouseQueryBuilder();
-      const startTimeParam = qb.addQueryValue(currentStart.toISOString(), "String");
+      const startTimeParam = qb.addQueryValue(
+        currentStart.toISOString(),
+        "String",
+      );
       const endTimeParam = qb.addQueryValue(currentEnd.toISOString(), "String");
 
       const insertQuery = `
