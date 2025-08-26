@@ -650,7 +650,7 @@ describe("broadcastWorkflowV2", () => {
         await handle.result();
         expect(senderMock).toHaveBeenCalledTimes(2);
 
-        let deliveries = await searchDeliveries({
+        const deliveries = await searchDeliveries({
           workspaceId: workspace.id,
           broadcastId: broadcast.id,
         });
@@ -746,6 +746,70 @@ describe("broadcastWorkflowV2", () => {
       describe("when using a rate limit", () => {
         it("should send messages to all users at the specified rate within each timezone", async () => {});
       });
+    });
+  });
+  describe("when sendMessage throws an error", () => {
+    let userId: string;
+
+    beforeEach(async () => {
+      userId = randomUUID();
+
+      await createTestEnvAndWorker({
+        sendMessageOverride: () => {
+          throw new Error("sendMessage failed");
+        },
+      });
+
+      await createBroadcast({
+        config: {
+          type: "V2",
+          message: { type: ChannelType.Email },
+        },
+      });
+
+      await insertUserPropertyAssignments([
+        {
+          workspaceId: workspace.id,
+          userId,
+          userPropertyId: idUserProperty.id,
+          value: userId,
+        },
+        {
+          workspaceId: workspace.id,
+          userId,
+          userPropertyId: emailUserProperty.id,
+          value: "test@test.com",
+        },
+      ]);
+
+      await updateUserSubscriptions({
+        workspaceId: workspace.id,
+        userUpdates: [{ userId, changes: { [subscriptionGroupId]: true } }],
+      });
+    });
+
+    it("should mark the broadcast as failed", async () => {
+      await worker.runUntil(async () => {
+        await testEnv.client.workflow.execute(broadcastWorkflowV2, {
+          workflowId: generateBroadcastWorkflowV2Id({
+            workspaceId: workspace.id,
+            broadcastId: broadcast.id,
+          }),
+          taskQueue: "default",
+          args: [
+            {
+              workspaceId: workspace.id,
+              broadcastId: broadcast.id,
+            } satisfies BroadcastWorkflowV2Params,
+          ],
+        });
+      });
+
+      const updatedBroadcast = await getBroadcast({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
+      });
+      expect(updatedBroadcast?.status).toBe("Failed");
     });
   });
 });
