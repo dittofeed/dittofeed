@@ -137,19 +137,19 @@ export async function getChartData({
 
     if (filters.journeyIds && filters.journeyIds.length > 0) {
       sentConditions.push(
-        `JSONExtractString(properties, 'journeyId') IN ${qb.addQueryValue(filters.journeyIds, "Array(String)")}`,
+        `journey_id IN ${qb.addQueryValue(filters.journeyIds, "Array(String)")}`,
       );
     }
 
     if (filters.broadcastIds && filters.broadcastIds.length > 0) {
       sentConditions.push(
-        `JSONExtractString(properties, 'broadcastId') IN ${qb.addQueryValue(filters.broadcastIds, "Array(String)")}`,
+        `broadcast_id IN ${qb.addQueryValue(filters.broadcastIds, "Array(String)")}`,
       );
     }
 
     if (filters.channels && filters.channels.length > 0) {
       sentConditions.push(
-        `JSON_VALUE(properties, '$.variant.type') IN ${qb.addQueryValue(filters.channels, "Array(String)")}`,
+        `channel_type IN ${qb.addQueryValue(filters.channels, "Array(String)")}`,
       );
     }
 
@@ -161,7 +161,7 @@ export async function getChartData({
 
     if (filters.templateIds && filters.templateIds.length > 0) {
       sentConditions.push(
-        `JSONExtractString(properties, 'templateId') IN ${qb.addQueryValue(filters.templateIds, "Array(String)")}`,
+        `template_id IN ${qb.addQueryValue(filters.templateIds, "Array(String)")}`,
       );
     }
 
@@ -176,18 +176,16 @@ export async function getChartData({
   if (groupBy) {
     switch (groupBy) {
       case "journey":
-        selectClause = "JSONExtractString(properties, 'journeyId') as groupKey";
+        selectClause = "journey_id as groupKey";
         break;
       case "broadcast":
-        selectClause =
-          "JSONExtractString(properties, 'broadcastId') as groupKey";
+        selectClause = "broadcast_id as groupKey";
         break;
       case "messageTemplate":
-        selectClause =
-          "JSONExtractString(properties, 'templateId') as groupKey";
+        selectClause = "template_id as groupKey";
         break;
       case "channel":
-        selectClause = "JSON_VALUE(properties, '$.variant.type') as groupKey";
+        selectClause = "channel_type as groupKey";
         break;
       case "provider":
         selectClause =
@@ -236,27 +234,26 @@ export async function getChartData({
   const query = `
     WITH sent_messages AS (
       SELECT
-        uev.message_id AS origin_message_id,
-        ${timeFunction} AS timestamp,
-        ${groupSelectClause.replace(/properties/g, "uev.properties")}
-      FROM user_events_v2 AS uev
+        ie.message_id AS origin_message_id,
+        ${timeFunction.replace(/processing_time/g, "ie.processing_time")} AS timestamp,
+        ${groupSelectClause.replace(/properties/g, "ie.properties")}
+      FROM internal_events AS ie
       WHERE
-        uev.workspace_id = ${workspaceIdParam}
-        AND uev.processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
-        AND uev.processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
-        AND uev.event_type = 'track'
-        AND uev.event = '${InternalEventType.MessageSent}'
-        ${sentFilterClauses.replace(/properties/g, "uev.properties")}
+        ie.workspace_id = ${workspaceIdParam}
+        AND ie.processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
+        AND ie.processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
+        AND ie.event = '${InternalEventType.MessageSent}'
+        AND ie.hidden = false
+        ${sentFilterClauses}
     ),
     status_events AS (
       SELECT
-        JSON_VALUE(uev.properties, '$.messageId') AS origin_message_id,
-        uev.event
-      FROM user_events_v2 AS uev
+        ie.origin_message_id,
+        ie.event
+      FROM internal_events AS ie
       WHERE
-        uev.workspace_id = ${workspaceIdParam}
-        AND uev.event_type = 'track'
-        AND uev.event IN (
+        ie.workspace_id = ${workspaceIdParam}
+        AND ie.event IN (
           '${InternalEventType.EmailDelivered}',
           '${InternalEventType.SmsDelivered}',
           '${InternalEventType.EmailOpened}',
@@ -264,7 +261,7 @@ export async function getChartData({
           '${InternalEventType.EmailBounced}',
           '${InternalEventType.SmsFailed}'
         )
-        AND JSON_VALUE(uev.properties, '$.messageId') IN (SELECT origin_message_id FROM sent_messages)
+        AND ie.origin_message_id IN (SELECT origin_message_id FROM sent_messages)
     ),
     message_flags AS (
       SELECT
@@ -408,19 +405,19 @@ export async function getSummarizedData({
 
     if (filters.journeyIds && filters.journeyIds.length > 0) {
       conditions.push(
-        `JSONExtractString(properties, 'journeyId') IN ${qb.addQueryValue(filters.journeyIds, "Array(String)")}`,
+        `journey_id IN ${qb.addQueryValue(filters.journeyIds, "Array(String)")}`,
       );
     }
 
     if (filters.broadcastIds && filters.broadcastIds.length > 0) {
       conditions.push(
-        `JSONExtractString(properties, 'broadcastId') IN ${qb.addQueryValue(filters.broadcastIds, "Array(String)")}`,
+        `broadcast_id IN ${qb.addQueryValue(filters.broadcastIds, "Array(String)")}`,
       );
     }
 
     if (filters.channel) {
       conditions.push(
-        `JSON_VALUE(properties, '$.variant.type') = ${qb.addQueryValue(filters.channel, "String")}`,
+        `channel_type = ${qb.addQueryValue(filters.channel, "String")}`,
       );
     }
 
@@ -432,7 +429,7 @@ export async function getSummarizedData({
 
     if (filters.templateIds && filters.templateIds.length > 0) {
       conditions.push(
-        `JSONExtractString(properties, 'templateId') IN ${qb.addQueryValue(filters.templateIds, "Array(String)")}`,
+        `template_id IN ${qb.addQueryValue(filters.templateIds, "Array(String)")}`,
       );
     }
 
@@ -514,25 +511,24 @@ export async function getSummarizedData({
   const query = `
     WITH sent_messages AS (
       SELECT
-        uev.message_id AS origin_message_id
-      FROM user_events_v2 AS uev
+        ie.message_id AS origin_message_id
+      FROM internal_events AS ie
       WHERE
-        uev.workspace_id = ${workspaceIdParam}
-        AND uev.processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
-        AND uev.processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
-        AND uev.event_type = 'track'
-        AND uev.event = '${InternalEventType.MessageSent}'
-        ${sentSummaryFilterClauses.replace(/properties/g, "uev.properties")}
+        ie.workspace_id = ${workspaceIdParam}
+        AND ie.processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
+        AND ie.processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
+        AND ie.event = '${InternalEventType.MessageSent}'
+        AND ie.hidden = false
+        ${sentSummaryFilterClauses}
     ),
     status_events AS (
       SELECT
-        JSON_VALUE(uev.properties, '$.messageId') AS origin_message_id,
-        uev.event
-      FROM user_events_v2 AS uev
+        ie.origin_message_id,
+        ie.event
+      FROM internal_events AS ie
       WHERE
-        uev.workspace_id = ${workspaceIdParam}
-        AND uev.event_type = 'track'
-        AND uev.event IN (
+        ie.workspace_id = ${workspaceIdParam}
+        AND ie.event IN (
           '${InternalEventType.EmailDelivered}',
           '${InternalEventType.SmsDelivered}',
           '${InternalEventType.EmailOpened}',
@@ -540,7 +536,7 @@ export async function getSummarizedData({
           '${InternalEventType.EmailBounced}',
           '${InternalEventType.SmsFailed}'
         )
-        AND JSON_VALUE(uev.properties, '$.messageId') IN (SELECT origin_message_id FROM sent_messages)
+        AND ie.origin_message_id IN (SELECT origin_message_id FROM sent_messages)
     ),
     message_final_states AS (
       SELECT
@@ -647,15 +643,14 @@ export async function getJourneyEditorStats({
     WITH message_events AS (
       SELECT
         event,
-        if(event = '${InternalEventType.MessageSent}', message_id, JSON_VALUE(properties, '$.messageId')) as origin_message_id,
+        if(event = '${InternalEventType.MessageSent}', message_id, origin_message_id) as origin_message_id,
         JSON_VALUE(properties, '$.nodeId') as node_id
-      FROM user_events_v2
+      FROM internal_events
       WHERE
         workspace_id = ${workspaceIdParam}
         AND processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
         AND processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
-        AND event_type = 'track'
-        AND JSONExtractString(properties, 'journeyId') = ${journeyIdParam}
+        AND journey_id = ${journeyIdParam}
         AND event IN (
           '${InternalEventType.MessageSent}',
           '${InternalEventType.EmailDelivered}',
@@ -666,6 +661,7 @@ export async function getJourneyEditorStats({
           '${InternalEventType.SmsFailed}'
         )
         AND JSON_VALUE(properties, '$.nodeId') != ''
+        AND hidden = false
     ),
     message_states_per_node AS (
       SELECT
