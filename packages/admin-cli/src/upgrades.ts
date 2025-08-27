@@ -521,7 +521,6 @@ export async function backfillInternalEvents({
             AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
             AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
             ${insertWorkspaceFilter}
-          ORDER BY processing_time ASC
           LIMIT ${limitParam} OFFSET ${offsetParam}
         `;
 
