@@ -519,10 +519,7 @@ export async function backfillInternalEvents({
         clickhouse_settings: { wait_end_of_query: 1 },
       });
       const writtenRowsString = insertResult.summary?.written_rows;
-      if (!writtenRowsString) {
-        throw new Error("No written rows found in insert result");
-      }
-      const writtenRows = parseInt(writtenRowsString);
+      const writtenRows = writtenRowsString ? parseInt(writtenRowsString) : 0;
 
       logger().info(
         {
