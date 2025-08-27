@@ -24,6 +24,7 @@ import {
 } from "backend-lib/src/userEvents/clickhouse";
 import { and, eq, inArray } from "drizzle-orm";
 import { SecretNames } from "isomorphic-lib/src/constants";
+import { parseInt } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
@@ -271,12 +272,15 @@ export async function backfillInternalEvents({
   startDate: startDateOverride,
   endDate: endDateOverride,
   forceFullBackfill = false,
+  // defaults to 10000 rows per batch within a time window
+  limit = 10000,
 }: {
   intervalMinutes: number;
   workspaceIds?: string[];
   startDate?: string;
   endDate?: string;
   forceFullBackfill?: boolean;
+  limit?: number;
 }) {
   logger().info("Backfilling internal events");
 
@@ -290,7 +294,9 @@ export async function backfillInternalEvents({
     );
   } else if (forceFullBackfill) {
     // Skip internal_events check and always use min from user_events_v2
-    logger().info("Force full backfill enabled, skipping internal_events check");
+    logger().info(
+      "Force full backfill enabled, skipping internal_events check",
+    );
     try {
       const userEventsQb = new ClickHouseQueryBuilder();
       const userEventsWorkspaceFilter = workspaceIds
@@ -328,7 +334,7 @@ export async function backfillInternalEvents({
         return;
       }
     } catch (error) {
-      logger().error({ error }, "Error finding start date");
+      logger().error({ err: error }, "Error finding start date");
       throw error;
     }
   } else {
@@ -381,7 +387,9 @@ export async function backfillInternalEvents({
           clickhouse_settings: { wait_end_of_query: 1 },
         });
 
-        const minTimeResult = await userEventsResult.json<{ min_time: string }>();
+        const minTimeResult = await userEventsResult.json<{
+          min_time: string;
+        }>();
         const minTime = minTimeResult[0]?.min_time;
 
         logger().debug(
@@ -407,7 +415,7 @@ export async function backfillInternalEvents({
         }
       }
     } catch (error) {
-      logger().error({ error }, "Error finding start date");
+      logger().error({ err: error }, "Error finding start date");
       throw error;
     }
   }
@@ -422,7 +430,7 @@ export async function backfillInternalEvents({
   }
 
   logger().info(
-    { startDate, endDate, intervalMinutes },
+    { startDate, endDate, intervalMinutes, limit },
     "Processing date range",
   );
 
@@ -440,97 +448,131 @@ export async function backfillInternalEvents({
         currentStart: currentStart.toISOString(),
         currentEnd: currentEnd.toISOString(),
       },
-      "Processing chunk",
+      "Processing time chunk",
     );
 
-    try {
-      // Use query builder for proper parameterization
-      const insertQb = new ClickHouseQueryBuilder();
-      const startTimeParam = insertQb.addQueryValue(
-        currentStart.toISOString(),
-        "String",
-      );
-      const endTimeParam = insertQb.addQueryValue(
-        currentEnd.toISOString(),
-        "String",
-      );
-      const insertWorkspaceFilter = workspaceIds
-        ? `AND workspace_id IN ${insertQb.addQueryValue(workspaceIds, "Array(String)")}`
-        : "";
+    // Process the time chunk with limit/offset pagination
+    let offset = 0;
+    let totalProcessedInChunk = 0;
 
-      const insertQuery = `
-        INSERT INTO internal_events (
-          workspace_id,
-          user_or_anonymous_id,
-          user_id,
-          anonymous_id,
-          message_id,
-          event,
-          event_time,
-          processing_time,
-          properties,
-          template_id,
-          broadcast_id,
-          journey_id,
-          triggering_message_id,
-          channel_type,
-          delivery_to,
-          delivery_from,
-          origin_message_id,
-          hidden
-        )
-        SELECT
-          workspace_id,
-          user_or_anonymous_id,
-          user_id,
-          anonymous_id,
-          message_id,
-          event,
-          event_time,
-          processing_time,
-          properties,
-          JSONExtractString(properties, 'templateId') as template_id,
-          JSONExtractString(properties, 'broadcastId') as broadcast_id,
-          JSONExtractString(properties, 'journeyId') as journey_id,
-          JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
-          JSONExtractString(properties, 'variant', 'type') as channel_type,
-          JSONExtractString(properties, 'variant', 'to') as delivery_to,
-          JSONExtractString(properties, 'variant', 'from') as delivery_from,
-          JSONExtractString(properties, 'messageId') as origin_message_id,
-          hidden
-        FROM user_events_v2
-        WHERE
-          event_type = 'track'
-          AND startsWith(event, 'DF')
-          AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
-          AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
-          ${insertWorkspaceFilter}
-        ORDER BY processing_time ASC
-      `;
+    // eslint-disable-next-line no-await-in-loop -- Sequential processing required for backfill
+    while (true) {
+      try {
+        // Use query builder for proper parameterization
+        const insertQb = new ClickHouseQueryBuilder();
+        const startTimeParam = insertQb.addQueryValue(
+          currentStart.toISOString(),
+          "String",
+        );
+        const endTimeParam = insertQb.addQueryValue(
+          currentEnd.toISOString(),
+          "String",
+        );
+        const limitParam = insertQb.addQueryValue(limit, "UInt64");
+        const offsetParam = insertQb.addQueryValue(offset, "UInt64");
+        const insertWorkspaceFilter = workspaceIds
+          ? `AND workspace_id IN ${insertQb.addQueryValue(workspaceIds, "Array(String)")}`
+          : "";
 
-      await command({
-        query: insertQuery,
-        query_params: insertQb.getQueries(),
-        clickhouse_settings: { wait_end_of_query: 1 },
-      });
+        const insertQuery = `
+          INSERT INTO internal_events (
+            workspace_id,
+            user_or_anonymous_id,
+            user_id,
+            anonymous_id,
+            message_id,
+            event,
+            event_time,
+            processing_time,
+            properties,
+            template_id,
+            broadcast_id,
+            journey_id,
+            triggering_message_id,
+            channel_type,
+            delivery_to,
+            delivery_from,
+            origin_message_id,
+            hidden
+          )
+          SELECT
+            workspace_id,
+            user_or_anonymous_id,
+            user_id,
+            anonymous_id,
+            message_id,
+            event,
+            event_time,
+            processing_time,
+            properties,
+            JSONExtractString(properties, 'templateId') as template_id,
+            JSONExtractString(properties, 'broadcastId') as broadcast_id,
+            JSONExtractString(properties, 'journeyId') as journey_id,
+            JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
+            JSONExtractString(properties, 'variant', 'type') as channel_type,
+            JSONExtractString(properties, 'variant', 'to') as delivery_to,
+            JSONExtractString(properties, 'variant', 'from') as delivery_from,
+            JSONExtractString(properties, 'messageId') as origin_message_id,
+            hidden
+          FROM user_events_v2
+          WHERE
+            event_type = 'track'
+            AND startsWith(event, 'DF')
+            AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
+            AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+            ${insertWorkspaceFilter}
+          ORDER BY processing_time ASC
+          LIMIT ${limitParam} OFFSET ${offsetParam}
+        `;
 
-      logger().info(
-        {
-          currentStart: currentStart.toISOString(),
-          currentEnd: currentEnd.toISOString(),
-        },
-        "Chunk processed successfully",
-      );
-    } catch (error) {
-      logger().error(
-        {
-          error,
-          currentStart: currentStart.toISOString(),
-          currentEnd: currentEnd.toISOString(),
-        },
-        "Error processing chunk",
-      );
-      throw error;
+        const insertResult = await command({
+          query: insertQuery,
+          query_params: insertQb.getQueries(),
+          clickhouse_settings: { wait_end_of_query: 1 },
+        });
+        const writtenRowsString = insertResult.summary?.written_rows;
+        const writtenRows = writtenRowsString ? parseInt(writtenRowsString) : 0;
+
+        totalProcessedInChunk += writtenRows;
+
+        logger().info(
+          {
+            currentStart: currentStart.toISOString(),
+            currentEnd: currentEnd.toISOString(),
+            offset,
+            writtenRows,
+            totalProcessedInChunk,
+          },
+          "Batch processed successfully",
+        );
+
+        // If we got fewer rows than the limit, we've reached the end of data for this time chunk
+        if (writtenRows < limit) {
+          logger().info(
+            {
+              currentStart: currentStart.toISOString(),
+              currentEnd: currentEnd.toISOString(),
+              totalProcessedInChunk,
+            },
+            "Completed time chunk - fewer rows than limit",
+          );
+          break;
+        }
+
+        offset += limit;
+      } catch (error) {
+        logger().error(
+          {
+            err: error,
+            currentStart: currentStart.toISOString(),
+            currentEnd: currentEnd.toISOString(),
+            offset,
+            limit,
+          },
+          "Error processing batch",
+        );
+        throw error;
+      }
     }
 
     currentStart = currentEnd;
