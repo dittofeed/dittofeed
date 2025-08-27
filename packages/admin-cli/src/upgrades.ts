@@ -24,6 +24,7 @@ import {
 } from "backend-lib/src/userEvents/clickhouse";
 import { and, eq, inArray } from "drizzle-orm";
 import { SecretNames } from "isomorphic-lib/src/constants";
+import { parseInt } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
@@ -290,7 +291,9 @@ export async function backfillInternalEvents({
     );
   } else if (forceFullBackfill) {
     // Skip internal_events check and always use min from user_events_v2
-    logger().info("Force full backfill enabled, skipping internal_events check");
+    logger().info(
+      "Force full backfill enabled, skipping internal_events check",
+    );
     try {
       const userEventsQb = new ClickHouseQueryBuilder();
       const userEventsWorkspaceFilter = workspaceIds
@@ -381,7 +384,9 @@ export async function backfillInternalEvents({
           clickhouse_settings: { wait_end_of_query: 1 },
         });
 
-        const minTimeResult = await userEventsResult.json<{ min_time: string }>();
+        const minTimeResult = await userEventsResult.json<{
+          min_time: string;
+        }>();
         const minTime = minTimeResult[0]?.min_time;
 
         logger().debug(
@@ -508,11 +513,16 @@ export async function backfillInternalEvents({
         ORDER BY processing_time ASC
       `;
 
-      await command({
+      const insertResult = await command({
         query: insertQuery,
         query_params: insertQb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
       });
+      const writtenRowsString = insertResult.summary?.written_rows;
+      if (!writtenRowsString) {
+        throw new Error("No written rows found in insert result");
+      }
+      const writtenRows = parseInt(writtenRowsString);
 
       logger().info(
         {

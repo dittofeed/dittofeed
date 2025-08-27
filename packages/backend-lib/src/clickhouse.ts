@@ -4,6 +4,7 @@ import {
   BaseResultSet,
   ClickHouseClient,
   createClient,
+  InsertResult,
   Row,
 } from "@clickhouse/client";
 import { NodeClickHouseClient } from "@clickhouse/client/dist/client";
