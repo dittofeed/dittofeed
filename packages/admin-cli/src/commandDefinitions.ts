@@ -687,9 +687,30 @@ export function createCommands(yargs: Argv): Argv {
             describe:
               "Skip internal_events check and always start from earliest user_events_v2 date",
           },
+          limit: {
+            type: "number",
+            alias: "l",
+            default: 10000,
+            describe:
+              "Number of rows to process per batch within each time window (default: 10000)",
+          },
         }),
-      async ({ intervalMinutes, workspaceIds, startDate, endDate, forceFullBackfill }) => {
-        await backfillInternalEvents({ intervalMinutes, workspaceIds, startDate, endDate, forceFullBackfill });
+      async ({
+        intervalMinutes,
+        workspaceIds,
+        startDate,
+        endDate,
+        forceFullBackfill,
+        limit,
+      }) => {
+        await backfillInternalEvents({
+          intervalMinutes,
+          workspaceIds,
+          startDate,
+          endDate,
+          forceFullBackfill,
+          limit,
+        });
       },
     )
     .command(
