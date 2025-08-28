@@ -579,3 +579,34 @@ export async function backfillInternalEvents({
 
   logger().info("Backfilling internal events completed");
 }
+
+export async function addServerTimeColumn() {
+  const serverTimeColumnQuery = `
+    ALTER TABLE user_events_v2
+    ADD COLUMN IF NOT EXISTS server_time DateTime64(3);
+  `;
+  await command({
+    query: serverTimeColumnQuery,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+}
+
+export async function addHiddenColumn() {
+  const hiddenColumnQuery = `
+    ALTER TABLE user_events_v2
+    ADD COLUMN IF NOT EXISTS hidden Boolean DEFAULT JSONExtractBool(
+      message_raw,
+      'context',
+      'hidden'
+    );
+  `;
+  await command({
+    query: hiddenColumnQuery,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+}
+
+export async function createInternalEventsTable() {
+  const createTableQuery = `
+  `;
+}
