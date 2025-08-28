@@ -5,7 +5,11 @@ import {
   query,
 } from "backend-lib/src/clickhouse";
 import {
+  resetComputePropertiesWorkflows,
+  resetGlobalCron,
   startComputePropertiesWorkflow,
+  startComputePropertiesWorkflowGlobal,
+  stopComputePropertiesWorkflowGlobal,
   terminateComputePropertiesWorkflow,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
 import { db, insert } from "backend-lib/src/db";
@@ -644,5 +648,11 @@ export async function upgradeV023Pre() {
 
 export async function upgradeV023Post() {
   logger().info("Performing post-upgrade steps for v0.23.0");
+  await resetComputePropertiesWorkflows({
+    all: true,
+  });
+  await resetGlobalCron();
+  await stopComputePropertiesWorkflowGlobal();
+  await startComputePropertiesWorkflowGlobal();
   logger().info("Post-upgrade steps for v0.23.0 completed.");
 }
