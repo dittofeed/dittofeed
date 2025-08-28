@@ -643,6 +643,7 @@ export async function upgradeV023Pre() {
   await createInternalEventsTable({
     backfillLimit: 50000,
   });
+  await publicDrizzleMigrate();
   logger().info("Pre-upgrade steps for v0.23.0 completed.");
 }
 
