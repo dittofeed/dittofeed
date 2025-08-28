@@ -616,8 +616,10 @@ export async function addHiddenColumn() {
 
 export async function createInternalEventsTable({
   backfillLimit = 50000,
+  intervalMinutes = 1440,
 }: {
   backfillLimit?: number;
+  intervalMinutes?: number;
 }) {
   logger().info("Creating internal events table and materialized view");
   await command({
@@ -633,17 +635,25 @@ export async function createInternalEventsTable({
   await backfillInternalEvents({
     forceFullBackfill: true,
     limit: backfillLimit,
+    intervalMinutes,
   });
 }
 
-export async function upgradeV023Pre() {
+export async function upgradeV023Pre({
+  internalEventsBackfillLimit = 50000,
+  internalEventsBackfillIntervalMinutes = 1440,
+}: {
+  internalEventsBackfillLimit?: number;
+  internalEventsBackfillIntervalMinutes?: number;
+}) {
   logger().info("Performing pre-upgrade steps for v0.23.0");
   await addServerTimeColumn();
   await addHiddenColumn();
-  await createInternalEventsTable({
-    backfillLimit: 50000,
-  });
   await publicDrizzleMigrate();
+  await createInternalEventsTable({
+    backfillLimit: internalEventsBackfillLimit,
+    intervalMinutes: internalEventsBackfillIntervalMinutes,
+  });
   logger().info("Pre-upgrade steps for v0.23.0 completed.");
 }
 

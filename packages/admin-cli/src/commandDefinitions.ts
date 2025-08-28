@@ -15,7 +15,6 @@ import {
   getQueueStateQuery,
 } from "backend-lib/src/computedProperties/computePropertiesQueueWorkflow";
 import {
-  resetComputePropertiesWorkflow,
   resetComputePropertiesWorkflows,
   resetGlobalCron,
   startComputePropertiesWorkflow,
@@ -94,6 +93,8 @@ import {
   upgradeV010Pre,
   upgradeV012Pre,
   upgradeV021Pre,
+  upgradeV023Post,
+  upgradeV023Pre,
 } from "./upgrades";
 
 export function createCommands(yargs: Argv): Argv {
@@ -592,6 +593,44 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await upgradeV021Pre();
+      },
+    )
+    .command(
+      "upgrade-0-23-0-pre",
+      "Run the pre-upgrade steps for the 0.23.0 prior to updating your Dittofeed application version.",
+      (cmd) =>
+        cmd.options({
+          "internal-events-backfill-limit": {
+            type: "number",
+            alias: "i",
+            default: 50000,
+            describe:
+              "The page limit for the internal events backfill. Default is 50000 events per page.",
+          },
+          "internal-events-backfill-interval-minutes": {
+            type: "number",
+            alias: "i",
+            default: 1440,
+            describe:
+              "The interval in minutes for the internal events backfill. Default is 1 day.",
+          },
+        }),
+      async ({
+        internalEventsBackfillLimit,
+        internalEventsBackfillIntervalMinutes,
+      }) => {
+        await upgradeV023Pre({
+          internalEventsBackfillLimit,
+          internalEventsBackfillIntervalMinutes,
+        });
+      },
+    )
+    .command(
+      "upgrade-0-23-0-post",
+      "Run the post-upgrade steps for the 0.23.0 after updating your Dittofeed application version.",
+      (y) => y,
+      async () => {
+        await upgradeV023Post();
       },
     )
     .command(
