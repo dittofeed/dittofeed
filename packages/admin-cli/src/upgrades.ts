@@ -18,6 +18,8 @@ import {
   Workspace,
 } from "backend-lib/src/types";
 import {
+  CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
+  CREATE_INTERNAL_EVENTS_TABLE_QUERY,
   createUserEventsTables,
   GROUP_MATERIALIZED_VIEWS,
   GROUP_TABLES,
@@ -275,7 +277,7 @@ export async function backfillInternalEvents({
   // defaults to 10000 rows per batch within a time window
   limit = 10000,
 }: {
-  intervalMinutes: number;
+  intervalMinutes?: number;
   workspaceIds?: string[];
   startDate?: string;
   endDate?: string;
@@ -581,6 +583,7 @@ export async function backfillInternalEvents({
 }
 
 export async function addServerTimeColumn() {
+  logger().info("Adding server_time column to user_events_v2");
   const serverTimeColumnQuery = `
     ALTER TABLE user_events_v2
     ADD COLUMN IF NOT EXISTS server_time DateTime64(3);
@@ -592,6 +595,7 @@ export async function addServerTimeColumn() {
 }
 
 export async function addHiddenColumn() {
+  logger().info("Adding hidden column to user_events_v2");
   const hiddenColumnQuery = `
     ALTER TABLE user_events_v2
     ADD COLUMN IF NOT EXISTS hidden Boolean DEFAULT JSONExtractBool(
@@ -606,7 +610,39 @@ export async function addHiddenColumn() {
   });
 }
 
-export async function createInternalEventsTable() {
-  const createTableQuery = `
-  `;
+export async function createInternalEventsTable({
+  backfillLimit = 50000,
+}: {
+  backfillLimit?: number;
+}) {
+  logger().info("Creating internal events table and materialized view");
+  await command({
+    query: CREATE_INTERNAL_EVENTS_TABLE_QUERY,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  await command({
+    query: CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  logger().info("Backfilling internal events");
+
+  await backfillInternalEvents({
+    forceFullBackfill: true,
+    limit: backfillLimit,
+  });
+}
+
+export async function upgradeV023Pre() {
+  logger().info("Performing pre-upgrade steps for v0.23.0");
+  await addServerTimeColumn();
+  await addHiddenColumn();
+  await createInternalEventsTable({
+    backfillLimit: 50000,
+  });
+  logger().info("Pre-upgrade steps for v0.23.0 completed.");
+}
+
+export async function upgradeV023Post() {
+  logger().info("Performing post-upgrade steps for v0.23.0");
+  logger().info("Post-upgrade steps for v0.23.0 completed.");
 }

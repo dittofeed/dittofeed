@@ -3,8 +3,16 @@ import {
   WorkflowExecutionAlreadyStartedError,
   WorkflowNotFoundError,
 } from "@temporalio/common";
+import { inArray, SQL } from "drizzle-orm";
+import {
+  FeatureNamesEnum,
+  WorkspaceStatusDbEnum,
+  WorkspaceTypeAppEnum,
+} from "isomorphic-lib/src/types";
 
 import config from "../../config";
+import { db } from "../../db";
+import * as schema from "../../db/schema";
 import { GLOBAL_CRON_ID, globalCronWorkflow } from "../../globalCronWorkflow";
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
@@ -331,4 +339,72 @@ export async function enqueueRecompute({
     // Optionally re-throw or handle the error as needed
     throw e;
   }
+}
+
+export async function resetComputePropertiesWorkflows({
+  workspaceId,
+  all,
+}: {
+  workspaceId?: string;
+  all?: boolean;
+}) {
+  let condition: SQL | undefined;
+  if (!all && workspaceId) {
+    const workspaceIds = workspaceId.split(",");
+    condition = inArray(schema.workspace.id, workspaceIds);
+  }
+  const workspaces = await db().query.workspace.findMany({
+    where: condition,
+    with: {
+      features: true,
+    },
+  });
+  logger().info(
+    {
+      queue: config().computedPropertiesTaskQueue,
+    },
+    "Resetting computed properties workflows",
+  );
+  await Promise.all(
+    workspaces.map(async (workspace) => {
+      const isGlobal = workspace.features.some(
+        (f) =>
+          // defaults to true
+          config().useGlobalComputedProperties !== false ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+          (f.name === FeatureNamesEnum.ComputePropertiesGlobal && f.enabled),
+      );
+      if (
+        workspace.status !== WorkspaceStatusDbEnum.Active ||
+        workspace.type === WorkspaceTypeAppEnum.Parent ||
+        isGlobal
+      ) {
+        await terminateComputePropertiesWorkflow({
+          workspaceId: workspace.id,
+        });
+        logger().info(
+          {
+            workspaceId: workspace.id,
+            type: workspace.type,
+            status: workspace.status,
+            isGlobal,
+          },
+          "Terminated computed properties workflow",
+        );
+      } else {
+        await resetComputePropertiesWorkflow({
+          workspaceId: workspace.id,
+        });
+        logger().info(
+          {
+            workspaceId: workspace.id,
+            type: workspace.type,
+            status: workspace.status,
+          },
+          "Reset computed properties workflow",
+        );
+      }
+    }),
+  );
+  logger().info("Done.");
 }
