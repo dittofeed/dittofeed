@@ -153,7 +153,11 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
         fullWidth
       >
         <DialogTitle>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
             Email Options
             <IconButton onClick={() => setOpen(false)}>
               <CloseIcon />
