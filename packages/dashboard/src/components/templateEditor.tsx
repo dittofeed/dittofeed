@@ -480,7 +480,8 @@ export default function TemplateEditor({
           title: template.name,
           draft: template.draft,
         };
-      } else if (!template.draft) {
+        // Reset the draft when the template is published
+      } else if (!template.draft && !hidePublisher) {
         draft.editedTemplate.draft = undefined;
       }
     });
