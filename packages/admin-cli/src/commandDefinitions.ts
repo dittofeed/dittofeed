@@ -15,7 +15,7 @@ import {
   getQueueStateQuery,
 } from "backend-lib/src/computedProperties/computePropertiesQueueWorkflow";
 import {
-  resetComputePropertiesWorkflow,
+  resetComputePropertiesWorkflows,
   resetGlobalCron,
   startComputePropertiesWorkflow,
   startComputePropertiesWorkflowGlobal,
@@ -93,6 +93,8 @@ import {
   upgradeV010Pre,
   upgradeV012Pre,
   upgradeV021Pre,
+  upgradeV023Post,
+  upgradeV023Pre,
 } from "./upgrades";
 
 export function createCommands(yargs: Argv): Argv {
@@ -270,66 +272,10 @@ export function createCommands(yargs: Argv): Argv {
           },
         }),
       async ({ workspaceId, all }) => {
-        let condition: SQL | undefined;
-        if (!all && workspaceId) {
-          const workspaceIds = workspaceId.split(",");
-          condition = inArray(schema.workspace.id, workspaceIds);
-        }
-        const workspaces = await db().query.workspace.findMany({
-          where: condition,
-          with: {
-            features: true,
-          },
+        await resetComputePropertiesWorkflows({
+          workspaceId,
+          all,
         });
-        logger().info(
-          {
-            queue: backendConfig().computedPropertiesTaskQueue,
-          },
-          "Resetting computed properties workflows",
-        );
-        await Promise.all(
-          workspaces.map(async (workspace) => {
-            const isGlobal = workspace.features.some(
-              (f) =>
-                // defaults to true
-                backendConfig().useGlobalComputedProperties !== false ||
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-                (f.name === FeatureNamesEnum.ComputePropertiesGlobal &&
-                  f.enabled),
-            );
-            if (
-              workspace.status !== WorkspaceStatusDbEnum.Active ||
-              workspace.type === WorkspaceTypeAppEnum.Parent ||
-              isGlobal
-            ) {
-              await terminateComputePropertiesWorkflow({
-                workspaceId: workspace.id,
-              });
-              logger().info(
-                {
-                  workspaceId: workspace.id,
-                  type: workspace.type,
-                  status: workspace.status,
-                  isGlobal,
-                },
-                "Terminated computed properties workflow",
-              );
-            } else {
-              await resetComputePropertiesWorkflow({
-                workspaceId: workspace.id,
-              });
-              logger().info(
-                {
-                  workspaceId: workspace.id,
-                  type: workspace.type,
-                  status: workspace.status,
-                },
-                "Reset computed properties workflow",
-              );
-            }
-          }),
-        );
-        logger().info("Done.");
       },
     )
     .command(
@@ -647,6 +593,44 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await upgradeV021Pre();
+      },
+    )
+    .command(
+      "upgrade-0-23-0-pre",
+      "Run the pre-upgrade steps for the 0.23.0 prior to updating your Dittofeed application version.",
+      (cmd) =>
+        cmd.options({
+          "internal-events-backfill-limit": {
+            type: "number",
+            alias: "i",
+            default: 50000,
+            describe:
+              "The page limit for the internal events backfill. Default is 50000 events per page.",
+          },
+          "internal-events-backfill-interval-minutes": {
+            type: "number",
+            alias: "i",
+            default: 1440,
+            describe:
+              "The interval in minutes for the internal events backfill. Default is 1 day.",
+          },
+        }),
+      async ({
+        internalEventsBackfillLimit,
+        internalEventsBackfillIntervalMinutes,
+      }) => {
+        await upgradeV023Pre({
+          internalEventsBackfillLimit,
+          internalEventsBackfillIntervalMinutes,
+        });
+      },
+    )
+    .command(
+      "upgrade-0-23-0-post",
+      "Run the post-upgrade steps for the 0.23.0 after updating your Dittofeed application version.",
+      (y) => y,
+      async () => {
+        await upgradeV023Post();
       },
     )
     .command(

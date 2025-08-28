@@ -14,6 +14,60 @@ export interface InsertValue {
   messageId: string;
 }
 
+export const CREATE_INTERNAL_EVENTS_TABLE_QUERY = `
+  CREATE TABLE IF NOT EXISTS internal_events (
+    workspace_id String,
+    user_or_anonymous_id String,
+    user_id String,
+    anonymous_id String,
+    message_id String,
+    event String,
+    event_time DateTime64(3),
+    processing_time DateTime64(3),
+    properties String,
+    template_id String,
+    broadcast_id String,
+    journey_id String,
+    triggering_message_id String,
+    channel_type String,
+    delivery_to String,
+    delivery_from String,
+    origin_message_id String,
+    hidden Boolean,
+    INDEX idx_template_id template_id TYPE bloom_filter(0.01) GRANULARITY 4,
+    INDEX idx_broadcast_id broadcast_id TYPE bloom_filter(0.01) GRANULARITY 4,
+    INDEX idx_journey_id journey_id TYPE bloom_filter(0.01) GRANULARITY 4
+  )
+  ENGINE = MergeTree()
+  ORDER BY (workspace_id, processing_time, event, user_or_anonymous_id, message_id);
+`;
+
+export const CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS internal_events_mv
+  TO internal_events
+  AS SELECT
+    workspace_id,
+    user_or_anonymous_id,
+    user_id,
+    anonymous_id,
+    message_id,
+    event,
+    event_time,
+    processing_time,
+    properties,
+    JSONExtractString(properties, 'templateId') as template_id,
+    JSONExtractString(properties, 'broadcastId') as broadcast_id,
+    JSONExtractString(properties, 'journeyId') as journey_id,
+    JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
+    JSONExtractString(properties, 'variant', 'type') as channel_type,
+    JSONExtractString(properties, 'variant', 'to') as delivery_to,
+    JSONExtractString(properties, 'variant', 'from') as delivery_from,
+    JSONExtractString(properties, 'messageId') as origin_message_id,
+    hidden
+  FROM user_events_v2
+  WHERE event_type = 'track' AND startsWith(event, 'DF');
+`;
+
 export const GROUP_TABLES = [
   `
     CREATE TABLE IF NOT EXISTS group_user_assignments (
@@ -322,33 +376,7 @@ export async function createUserEventsTables() {
       `,
     // This table stores internal events with pre-parsed fields for efficient querying
     // Only processes DF-prefixed track events which contain templateId, broadcastId, etc.
-    `
-      CREATE TABLE IF NOT EXISTS internal_events (
-        workspace_id String,
-        user_or_anonymous_id String,
-        user_id String,
-        anonymous_id String,
-        message_id String,
-        event String,
-        event_time DateTime64(3),
-        processing_time DateTime64(3),
-        properties String,
-        template_id String,
-        broadcast_id String,
-        journey_id String,
-        triggering_message_id String,
-        channel_type String,
-        delivery_to String,
-        delivery_from String,
-        origin_message_id String,
-        hidden Boolean,
-        INDEX idx_template_id template_id TYPE bloom_filter(0.01) GRANULARITY 4,
-        INDEX idx_broadcast_id broadcast_id TYPE bloom_filter(0.01) GRANULARITY 4,
-        INDEX idx_journey_id journey_id TYPE bloom_filter(0.01) GRANULARITY 4
-      )
-      ENGINE = MergeTree()
-      ORDER BY (workspace_id, processing_time, event, user_or_anonymous_id, message_id);
-    `,
+    CREATE_INTERNAL_EVENTS_TABLE_QUERY,
     ...GROUP_TABLES,
   ];
 
@@ -399,31 +427,7 @@ export async function createUserEventsTables() {
         computed_at;
     `,
     // Materialized view that populates internal_events table with DF-prefixed track events
-    `
-      CREATE MATERIALIZED VIEW IF NOT EXISTS internal_events_mv
-      TO internal_events
-      AS SELECT
-        workspace_id,
-        user_or_anonymous_id,
-        user_id,
-        anonymous_id,
-        message_id,
-        event,
-        event_time,
-        processing_time,
-        properties,
-        JSONExtractString(properties, 'templateId') as template_id,
-        JSONExtractString(properties, 'broadcastId') as broadcast_id,
-        JSONExtractString(properties, 'journeyId') as journey_id,
-        JSONExtractString(properties, 'triggeringMessageId') as triggering_message_id,
-        JSONExtractString(properties, 'variant', 'type') as channel_type,
-        JSONExtractString(properties, 'variant', 'to') as delivery_to,
-        JSONExtractString(properties, 'variant', 'from') as delivery_from,
-        JSONExtractString(properties, 'messageId') as origin_message_id,
-        hidden
-      FROM user_events_v2
-      WHERE event_type = 'track' AND startsWith(event, 'DF');
-    `,
+    CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
     ...GROUP_MATERIALIZED_VIEWS,
   ];
 
