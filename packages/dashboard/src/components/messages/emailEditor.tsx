@@ -1,4 +1,5 @@
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
   Autocomplete,
@@ -151,7 +152,18 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle> Email Options </DialogTitle>
+        <DialogTitle>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            Email Options
+            <IconButton onClick={() => setOpen(false)}>
+              <CloseIcon />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
         <DialogContent>
           <Stack sx={{ pt: 1 }}>
             <TextField

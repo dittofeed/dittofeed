@@ -98,7 +98,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       if (result.isErr()) {
         logger().info(
           {
-            error: result.error,
+            err: result.error,
           },
           "Error handling sendgrid webhook.",
         );
