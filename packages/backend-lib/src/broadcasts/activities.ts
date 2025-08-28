@@ -306,7 +306,12 @@ export function sendMessagesFactory(sender: Sender) {
             workspaceId: params.workspaceId,
           });
           const messageTags: MessageTags = {
+            workspaceId: params.workspaceId,
+            broadcastId: params.broadcastId,
+            templateId: messageTemplateId,
             messageId,
+            userId: user.id,
+            channel: config.message.type,
           };
           if (params.workspaceOccupantId) {
             messageTags.workspaceOccupantId = params.workspaceOccupantId;

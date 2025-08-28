@@ -1120,7 +1120,6 @@ export function createCommands(yargs: Argv): Argv {
           "workspace-id": {
             type: "string",
             alias: "w",
-            require: true,
             describe: "The ID of the workspace to delete all users from.",
           },
           force: {
@@ -1130,22 +1129,25 @@ export function createCommands(yargs: Argv): Argv {
           },
         }),
       async ({ workspaceId, force }) => {
-        if (backendConfig().nodeEnv !== NodeEnvEnum.Development) {
-          logger().error(
-            "This command can only be run in development environment.",
-          );
-          return;
+        let workspace: Workspace | undefined;
+        if (!workspaceId) {
+          if (backendConfig().nodeEnv !== NodeEnvEnum.Development) {
+            logger().error(
+              "This command can only be run without a workspace ID in development environment.",
+            );
+            return;
+          }
+          workspace = await db().query.workspace.findFirst();
+        } else {
+          if (!validateUuid(workspaceId)) {
+            logger().error("Invalid workspace ID format.");
+            return;
+          }
+
+          workspace = await db().query.workspace.findFirst({
+            where: eq(dbWorkspace.id, workspaceId),
+          });
         }
-
-        if (!validateUuid(workspaceId)) {
-          logger().error("Invalid workspace ID format.");
-          return;
-        }
-
-        const workspace = await db().query.workspace.findFirst({
-          where: eq(dbWorkspace.id, workspaceId),
-        });
-
         if (!workspace) {
           logger().error("Workspace not found.");
           return;
@@ -1173,13 +1175,21 @@ export function createCommands(yargs: Argv): Argv {
         }
 
         logger().info(
-          `Deleting all users from workspace "${workspace.name}" (${workspace.id})...`,
+          {
+            workspaceId: workspace.id,
+            workspaceName: workspace.name,
+          },
+          `Deleting all users from workspace`,
         );
 
         try {
-          await deleteAllUsers({ workspaceId });
+          await deleteAllUsers({ workspaceId: workspace.id });
           logger().info(
-            `All users have been deleted from workspace "${workspace.name}" (${workspace.id}).`,
+            {
+              workspaceId: workspace.id,
+              workspaceName: workspace.name,
+            },
+            `All users have been deleted from workspace`,
           );
         } catch (err) {
           logger().error({ err }, "Failed to delete all users.");
