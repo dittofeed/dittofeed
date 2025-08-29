@@ -25,7 +25,7 @@ import { validate as validateUuid } from "uuid";
 
 import { submitBatch } from "./apps/batch";
 import { getObject, storage } from "./blobStorage";
-import { db, queryResult, TxQueryError, txQueryResult } from "./db";
+import { db, TxQueryError, txQueryResult } from "./db";
 import {
   defaultEmailProvider as dbDefaultEmailProvider,
   defaultSmsProvider as dbDefaultSmsProvider,
@@ -85,6 +85,7 @@ import {
   BatchMessageUsersResult,
   BatchMessageUsersResultTypeEnum,
   ChannelType,
+  EmailContentsType,
   EmailProviderSecret,
   EmailProviderType,
   EmailProviderTypeSchema,
@@ -322,35 +323,35 @@ export async function upsertMessageTemplate(
       }
       return ok(updatedTemplate);
     });
-  const result = await queryResult(
-    db()
-      .insert(dbMessageTemplate)
-      .values({
-        id: data.id,
-        workspaceId: data.workspaceId,
-        name: data.name,
-        definition: data.definition,
-        draft: data.draft,
-        resourceType: data.resourceType,
-      })
-      .onConflictDoUpdate({
-        target: data.id
-          ? [dbMessageTemplate.id]
-          : [dbMessageTemplate.workspaceId, dbMessageTemplate.name],
-        set: {
-          name: data.name,
-          definition: data.definition,
-          draft: data.draft,
-          resourceType: data.resourceType,
-        },
-        setWhere: eq(dbMessageTemplate.workspaceId, data.workspaceId),
-      })
-      .returning(),
-  );
-  if (result.isErr()) {
+  // const result = await queryResult(
+  //   db()
+  //     .insert(dbMessageTemplate)
+  //     .values({
+  //       id: data.id,
+  //       workspaceId: data.workspaceId,
+  //       name: data.name,
+  //       definition: data.definition,
+  //       draft: data.draft,
+  //       resourceType: data.resourceType,
+  //     })
+  //     .onConflictDoUpdate({
+  //       target: data.id
+  //         ? [dbMessageTemplate.id]
+  //         : [dbMessageTemplate.workspaceId, dbMessageTemplate.name],
+  //       set: {
+  //         name: data.name,
+  //         definition: data.definition,
+  //         draft: data.draft,
+  //         resourceType: data.resourceType,
+  //       },
+  //       setWhere: eq(dbMessageTemplate.workspaceId, data.workspaceId),
+  //     })
+  //     .returning(),
+  // );
+  if (txResult.isErr()) {
     if (
-      result.error.code === PostgresError.UNIQUE_VIOLATION ||
-      result.error.code === PostgresError.FOREIGN_KEY_VIOLATION
+      txResult.error.code === PostgresError.UNIQUE_VIOLATION ||
+      txResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION
     ) {
       return err({
         type: UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
@@ -358,17 +359,19 @@ export async function upsertMessageTemplate(
           "Names must be unique in workspace. Id's must be globally unique.",
       });
     }
-    throw result.error;
+    logger().error(
+      {
+        err: txResult.error,
+        data,
+      },
+      "Failed to upsert message template",
+    );
+    throw new Error(
+      `Failed to upsert message template: code=${txResult.error.code}`,
+    );
   }
 
-  const [messageTemplate] = result.value;
-  if (!messageTemplate) {
-    return err({
-      type: UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
-      message:
-        "Names must be unique in workspace. Id's must be globally unique.",
-    });
-  }
+  const messageTemplate = txResult.value;
   return ok(unwrap(enrichMessageTemplate(messageTemplate)));
 }
 
@@ -873,7 +876,9 @@ export async function sendEmail({
   }
   const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.Email];
   let emailBody: string;
-  if ("emailContentsType" in messageTemplateDefinition) {
+  if (
+    messageTemplateDefinition.emailContentsType === EmailContentsType.LowCode
+  ) {
     const mjml = toMjml({
       content: messageTemplateDefinition.body,
       mode: "render",
