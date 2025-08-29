@@ -1113,7 +1113,7 @@ export function createCommands(yargs: Argv): Argv {
           },
         }),
       async ({ workspaceId, force }) => {
-        let workspace: Workspace | undefined;
+        let maybeWorkspace: Workspace | undefined;
         if (!workspaceId) {
           if (backendConfig().nodeEnv !== NodeEnvEnum.Development) {
             logger().error(
@@ -1121,22 +1121,23 @@ export function createCommands(yargs: Argv): Argv {
             );
             return;
           }
-          workspace = await db().query.workspace.findFirst();
+          maybeWorkspace = await db().query.workspace.findFirst();
         } else {
           if (!validateUuid(workspaceId)) {
             logger().error("Invalid workspace ID format.");
             return;
           }
 
-          workspace = await db().query.workspace.findFirst({
+          maybeWorkspace = await db().query.workspace.findFirst({
             where: eq(dbWorkspace.id, workspaceId),
           });
         }
-        if (!workspace) {
+        if (!maybeWorkspace) {
           logger().error("Workspace not found.");
           return;
         }
 
+        const workspace = maybeWorkspace;
         if (!force) {
           const rl = readline.createInterface({
             input: process.stdin,
