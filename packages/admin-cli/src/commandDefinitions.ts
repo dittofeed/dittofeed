@@ -602,14 +602,14 @@ export function createCommands(yargs: Argv): Argv {
         cmd.options({
           "internal-events-backfill-limit": {
             type: "number",
-            alias: "i",
+            alias: "l",
             default: 50000,
             describe:
               "The page limit for the internal events backfill. Default is 50000 events per page.",
           },
           "internal-events-backfill-interval-minutes": {
             type: "number",
-            alias: "i",
+            alias: "m",
             default: 1440,
             describe:
               "The interval in minutes for the internal events backfill. Default is 1 day.",
