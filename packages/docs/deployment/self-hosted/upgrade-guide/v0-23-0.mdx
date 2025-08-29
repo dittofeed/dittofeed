@@ -97,17 +97,94 @@ docker compose -f docker-compose.lite.yaml up lite -d --force-recreate
 
 ### Step 5: Run the Post-Upgrade Script
 
-## Update Your Helm Chart
+```bash
+./scripts/admin-lite.sh upgrade-0-23-0-post
+```
+
+### Step 6: Stop the `admin-cli` Service
+
+Finally, stop the `admin-cli` service:
+
+```bash
+docker compose --profile admin-cli -f docker-compose.lite.yaml stop admin-cli
+```
+
+## Upgrade Dittofeed in Kubernetes
+
+### Step 1: Setting Up Your dittofeed `values.yaml` File
+
+First, add the environment variable `BOOTSTRAP: "false"` to your `values.yaml` file for the dittofeed helm chart, if it isn't set already. This will prevent your lite instance from running bootstrap operations when it restarts.
+
+```yaml values.yaml
+env:
+  - name: BOOTSTRAP
+    value: "false"
+```
+
+### Step 2: Install the `dittofeed-admin-cli` Chart
+
+Next, run the following command to install the `dittofeed-admin-cli` chart:
+
+```bash
+helm upgrade --install dittofeed-admin-cli ./dittofeed/helm-charts/dittofeed-admin-cli
+```
+
+Make sure that the `dittofeed-admin-cli` pod is running the version of the `dittofeed-admin-cli` chart that you're upgrading to.
+
+```yaml chart.yaml
+appVersion: "v0.23.0"
+```
+
+Or set the `tag` in your `values.yaml` file to `v0.21.0`:
+
+```yaml values.yaml
+image:
+  tag: v0.21.0
+```
+
+### Step 3: Run the Pre-Upgrade Script
+
+Run Dittofeed's database migrations before deploying the new version of Dittofeed:
+
+Exec into the `dittofeed-admin-cli` pod:
+
+```bash
+kubectl exec -it deployment/dittofeed-admin-cli -- /bin/bash
+```
+
+Run the migrations:
+
+```bash
+./admin.sh upgrade-0-23-0-pre
+```
+
+### Step 4: Upgrade the Dittofeed Chart
 
 Update the `tag` in your `values.yaml` file to `v0.23.0`:
 
 ```yaml values.yaml
 image:
-  tag: ${IMAGE_TAG:-v0.23.0}
+  tag: v0.23.0
 ```
 
 Upgrade the dittofeed chart:
 
 ```bash
 helm upgrade --install dittofeed ./dittofeed/helm-charts/dittofeed
+```
+
+### Step 5: Run the Post-Upgrade Script
+
+Run the post-upgrade script after the dittofeed chart is upgraded:
+
+```bash
+./admin.sh upgrade-0-23-0-post
+```
+
+### Step 6: Uninstall the `dittofeed-admin-cli` Helm Chart
+
+Finally, uninstall the `dittofeed-admin-cli` deployment:
+
+```bash
+helm uninstall dittofeed-admin-cli
 ```
