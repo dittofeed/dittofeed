@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "dittofeed.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       {{- include "dittofeed.selectorLabels" . | nindent 6 }}
