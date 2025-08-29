@@ -180,9 +180,7 @@ export async function serveWebhookTemplate({
     },
     userProperties: {
       type: CompletionStatus.Successful,
-      value: userProperties.flatMap((p) =>
-        unwrap(toUserPropertyResource(p)),
-      ),
+      value: userProperties.flatMap((p) => unwrap(toUserPropertyResource(p))),
     },
   };
 }
