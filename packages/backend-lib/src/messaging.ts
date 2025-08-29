@@ -199,6 +199,26 @@ export async function findMessageTemplate({
   });
 }
 
+function doesRequireDraftReset({
+  priorDefinition,
+  newDefinition,
+}: {
+  priorDefinition: MessageTemplateResourceDefinition;
+  newDefinition: MessageTemplateResourceDefinition;
+}): boolean {
+  if (priorDefinition.type !== newDefinition.type) {
+    return true;
+  }
+  if (
+    newDefinition.type === ChannelType.Email &&
+    priorDefinition.type === ChannelType.Email &&
+    newDefinition.emailContentsType !== priorDefinition.emailContentsType
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export async function upsertMessageTemplate(
   data: UpsertMessageTemplateResource,
 ): Promise<
@@ -268,13 +288,19 @@ export async function upsertMessageTemplate(
         );
         throw new Error("existing message template definition is invalid");
       }
+      const requiresDraftReset =
+        data.definition !== undefined &&
+        doesRequireDraftReset({
+          priorDefinition: existingDefinition.value,
+          newDefinition: data.definition,
+        });
       const updateResult = await txQueryResult(
         tx
           .update(dbMessageTemplate)
           .set({
             name: data.name,
             definition: data.definition,
-            draft: data.draft,
+            draft: requiresDraftReset ? null : data.draft,
             resourceType: data.resourceType,
           })
           .where(eq(dbMessageTemplate.id, existingTemplate.id))
