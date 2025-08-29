@@ -48,7 +48,7 @@ export default function WebhookSecretTable() {
       },
     );
     const unsavedOptions = Array.from(newSecretValues).flatMap((name) => {
-      if (config?.[name] !== undefined) {
+      if (config?.[name]) {
         return [];
       }
       return {
