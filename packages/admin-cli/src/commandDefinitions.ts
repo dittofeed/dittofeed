@@ -52,7 +52,7 @@ import {
   tombstoneWorkspace,
 } from "backend-lib/src/workspaces";
 import { randomUUID } from "crypto";
-import { and, eq, inArray, SQL } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import fs from "fs/promises";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -66,15 +66,12 @@ import {
   EmailProviderType,
   EventType,
   FeatureName,
-  FeatureNamesEnum,
   Features,
   InternalEventType,
   KnownTrackData,
   MessageTemplateResourceDefinition,
   SendgridSecret,
   UserEventV2,
-  WorkspaceStatusDbEnum,
-  WorkspaceTypeAppEnum,
 } from "isomorphic-lib/src/types";
 import path from "path";
 import readline from "readline";
