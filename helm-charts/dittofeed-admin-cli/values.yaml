@@ -4,6 +4,8 @@
 
 workspaceName: Dittofeed
 
+replicaCount: 1
+
 image:
   repository: dittofeed/dittofeed-admin-cli
   pullPolicy: IfNotPresent
