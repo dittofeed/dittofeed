@@ -56,8 +56,6 @@ export default function WebhookSecretTable() {
         saved: false,
       };
     });
-    console.log("savedOptions loc1", savedOptions);
-    console.log("unsavedOptions loc2", unsavedOptions);
     return unsavedOptions.concat(savedOptions).map(({ name, saved }) => ({
       name,
       saved,
