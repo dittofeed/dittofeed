@@ -1,0 +1,190 @@
+---
+title: "Upgrading from v0.22.0 to v0.23.0"
+---
+
+Upgrading from v0.22.0 to v0.23.0 is a multi-step process.
+
+1. Running the pre-upgrade script from the admin-cli.
+2. Updating the dittofeed image tag.
+3. Running the post-upgrade script from the admin-cli.
+
+<Warning>
+If you are on a version of dittofeed prior to v0.20.0, you will need to upgrade to v0.20.0 prior to upgrading to v0.23.0. See the [Upgrading from v0.19.0 to v0.20.0](/deployment/self-hosted/upgrade-guide/v0-20-0) guide for more information on upgrading to v0.20.0.
+</Warning>
+
+## Upgrade Dittofeed in Docker Compose
+
+### Step 1: Setting Up Your `docker-compose.lite.yaml` File
+
+First, add the environment variable `BOOTSTRAP: "false"` to your `docker-compose.lite.yaml` file, if it isn't set already. This will prevent your lite instance from running bootstrap operations when it restarts.
+
+Next, make sure you have an `admin-cli` instance specified in our `docker-compose.lite.yaml` file. We'll be using this service to run our migrations.
+
+Your `docker-compose.lite.yaml` file should look something like this:
+
+```yaml
+...
+services:
+  lite:
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.22.0}
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    environment:
+      <<: *backend-app-env
+      # uncomment while upgrading dittofeed
+      BOOTSTRAP: "false"
+    env_file:
+      - .env
+    networks:
+      - dittofeed-network-lite
+  # useful for upgrading dittofeed
+  admin-cli:
+    # the admin-cli should be on the new version v0.23.0 of dittofeed
+    image: dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.23.0}
+    entrypoint: []
+    profiles: ["admin-cli"]
+    command: tail -f /dev/null
+    tty: true
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    environment:
+      <<: *backend-app-env
+    env_file:
+      - .env
+    networks:
+      - dittofeed-network-lite
+...
+```
+
+### Step 2: Start the `admin-cli` Service
+
+Next, run the following command to start your `admin-cli` service:
+
+```bash
+docker compose --profile admin-cli -f docker-compose.lite.yaml up admin-cli -d
+```
+
+### Step 3: Run the Pre-Upgrade Script
+
+Run the pre-upgrade script to run postgres migrations and create the new clickhouse tables and views:
+
+```bash
+./scripts/admin-lite.sh upgrade-0-23-0-pre
+```
+
+### Step 4: Upgrade Your `docker-compose.lite.yaml` File
+
+Upgrade the version in your docker-compose.lite.yaml file to v0.23.0:
+
+```yaml
+...
+services:
+  lite:
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.23.0}
+...
+```
+
+```bash
+docker compose -f docker-compose.lite.yaml up lite -d --force-recreate
+```
+
+### Step 5: Run the Post-Upgrade Script
+
+```bash
+./scripts/admin-lite.sh upgrade-0-23-0-post
+```
+
+### Step 6: Stop the `admin-cli` Service
+
+Finally, stop the `admin-cli` service:
+
+```bash
+docker compose --profile admin-cli -f docker-compose.lite.yaml stop admin-cli
+```
+
+## Upgrade Dittofeed in Kubernetes
+
+### Step 1: Setting Up Your dittofeed `values.yaml` File
+
+First, add the environment variable `BOOTSTRAP: "false"` to your `values.yaml` file for the dittofeed helm chart, if it isn't set already. This will prevent your lite instance from running bootstrap operations when it restarts.
+
+```yaml values.yaml
+env:
+  - name: BOOTSTRAP
+    value: "false"
+```
+
+### Step 2: Install the `dittofeed-admin-cli` Chart
+
+Next, run the following command to install the `dittofeed-admin-cli` chart:
+
+```bash
+helm upgrade --install dittofeed-admin-cli ./dittofeed/helm-charts/dittofeed-admin-cli
+```
+
+Make sure that the `dittofeed-admin-cli` pod is running the version of the `dittofeed-admin-cli` chart that you're upgrading to.
+
+```yaml chart.yaml
+appVersion: "v0.23.0"
+```
+
+Or set the `tag` in your `values.yaml` file to `v0.21.0`:
+
+```yaml values.yaml
+image:
+  tag: v0.21.0
+```
+
+### Step 3: Run the Pre-Upgrade Script
+
+Run Dittofeed's database migrations before deploying the new version of Dittofeed:
+
+Exec into the `dittofeed-admin-cli` pod:
+
+```bash
+kubectl exec -it deployment/dittofeed-admin-cli -- /bin/bash
+```
+
+Run the migrations:
+
+```bash
+./admin.sh upgrade-0-23-0-pre
+```
+
+### Step 4: Upgrade the Dittofeed Chart
+
+Update the `tag` in your `values.yaml` file to `v0.23.0`:
+
+```yaml values.yaml
+image:
+  tag: v0.23.0
+```
+
+Upgrade the dittofeed chart:
+
+```bash
+helm upgrade --install dittofeed ./dittofeed/helm-charts/dittofeed
+```
+
+### Step 5: Run the Post-Upgrade Script
+
+Run the post-upgrade script after the dittofeed chart is upgraded:
+
+```bash
+./admin.sh upgrade-0-23-0-post
+```
+
+### Step 6: Uninstall the `dittofeed-admin-cli` Helm Chart
+
+Finally, uninstall the `dittofeed-admin-cli` deployment:
+
+```bash
+helm uninstall dittofeed-admin-cli
+```
