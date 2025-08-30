@@ -323,31 +323,6 @@ export async function upsertMessageTemplate(
       }
       return ok(updatedTemplate);
     });
-  // const result = await queryResult(
-  //   db()
-  //     .insert(dbMessageTemplate)
-  //     .values({
-  //       id: data.id,
-  //       workspaceId: data.workspaceId,
-  //       name: data.name,
-  //       definition: data.definition,
-  //       draft: data.draft,
-  //       resourceType: data.resourceType,
-  //     })
-  //     .onConflictDoUpdate({
-  //       target: data.id
-  //         ? [dbMessageTemplate.id]
-  //         : [dbMessageTemplate.workspaceId, dbMessageTemplate.name],
-  //       set: {
-  //         name: data.name,
-  //         definition: data.definition,
-  //         draft: data.draft,
-  //         resourceType: data.resourceType,
-  //       },
-  //       setWhere: eq(dbMessageTemplate.workspaceId, data.workspaceId),
-  //     })
-  //     .returning(),
-  // );
   if (txResult.isErr()) {
     if (
       txResult.error.code === PostgresError.UNIQUE_VIOLATION ||
