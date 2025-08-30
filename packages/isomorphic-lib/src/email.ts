@@ -587,8 +587,5 @@ export function defaultEmailDefinition({
 export function getEmailContentsType(
   definition: EmailTemplateResource,
 ): EmailContentsType {
-  if ("emailContentsType" in definition) {
-    return definition.emailContentsType;
-  }
-  return EmailContentsType.Code;
+  return definition.emailContentsType ?? EmailContentsType.Code;
 }

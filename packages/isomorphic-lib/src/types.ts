@@ -1610,6 +1610,7 @@ export type BaseEmailContents = Static<typeof BaseEmailContents>;
 export const CodeEmailContents = Type.Composite([
   BaseEmailContents,
   Type.Object({
+    emailContentsType: Type.Optional(Type.Literal(EmailContentsType.Code)),
     body: Type.String(),
   }),
 ]);

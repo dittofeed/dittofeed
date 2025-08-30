@@ -34,6 +34,7 @@ import {
 import {
   BatchMessageUsersResultTypeEnum,
   ChannelType,
+  EmailContentsType,
   EmailProviderType,
   EmailTemplateResource,
   InternalEventType,
@@ -563,6 +564,94 @@ describe("messaging", () => {
         ).toEqual(
           UpsertMessageTemplateValidationErrorType.UniqueConstraintViolation,
         );
+      });
+    });
+
+    describe("when template type changes from low code to code", () => {
+      it("should clear the draft when emailContentsType changes", async () => {
+        const templateName = randomUUID();
+
+        // Create a low code email template
+        const initialResult = await upsertMessageTemplate({
+          name: templateName,
+          workspaceId: workspace.id,
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "Hello",
+            emailContentsType: EmailContentsType.LowCode,
+            body: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Hello World",
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        });
+        expect(initialResult.isOk()).toBe(true);
+        if (!initialResult.isOk()) return;
+
+        // Add a draft to the template
+        const draftResult = await upsertMessageTemplate({
+          name: templateName,
+          workspaceId: workspace.id,
+          draft: {
+            type: ChannelType.Email,
+            from: "draft@company.com",
+            subject: "Draft Subject",
+            emailContentsType: EmailContentsType.LowCode,
+            body: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Draft Content",
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        });
+        expect(draftResult.isOk()).toBe(true);
+        if (!draftResult.isOk()) return;
+
+        // Verify draft exists
+        expect(draftResult.value.draft).toBeDefined();
+
+        // Change the template type to Code, which should clear the draft
+        const typeChangeResult = await upsertMessageTemplate({
+          name: templateName,
+          workspaceId: workspace.id,
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "Hello Code",
+            body: "<html><body>Hello World</body></html>",
+          },
+        });
+        expect(typeChangeResult.isOk()).toBe(true);
+        if (!typeChangeResult.isOk()) return;
+
+        // Verify draft is cleared
+        expect(typeChangeResult.value.draft).toBeUndefined();
+        if (typeChangeResult.value.definition?.type === ChannelType.Email) {
+          expect(typeChangeResult.value.definition.from).toBe(
+            "support@company.com",
+          );
+          expect(typeChangeResult.value.definition.subject).toBe("Hello Code");
+        }
       });
     });
   });
