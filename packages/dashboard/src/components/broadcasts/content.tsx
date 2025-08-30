@@ -287,7 +287,7 @@ export default function Content({ state }: { state: BroadcastState }) {
     }
 
     const contentType =
-      "emailContentsType" in messageTemplate.definition
+      messageTemplate.definition.emailContentsType === EmailContentsType.LowCode
         ? messageTemplate.definition.emailContentsType
         : EmailContentsType.Code;
     setEmailContentType(contentType);

@@ -18,6 +18,7 @@ import {
 import {
   ChannelType,
   CompletionStatus,
+  EmailContentsType,
   MessageTemplateConfiguration,
   MessageTemplateResourceDraft,
   RenderMessageTemplateRequestContent,
@@ -342,7 +343,7 @@ const draftToPreview: DraftToPreview = (
     throw new Error("Invalid channel type");
   }
   let body: RenderMessageTemplateRequestContent;
-  if ("emailContentsType" in definition) {
+  if (definition.emailContentsType === EmailContentsType.LowCode) {
     body = {
       type: RenderMessageTemplateType.Emailo,
       value: definition.body,
@@ -498,7 +499,7 @@ export default function EmailEditor({
         if (draft.type !== ChannelType.Email) {
           return null;
         }
-        if ("emailContentsType" in draft) {
+        if (draft.emailContentsType === EmailContentsType.LowCode) {
           return (
             <LowCodeEmailBodyEditor
               draft={draft}
