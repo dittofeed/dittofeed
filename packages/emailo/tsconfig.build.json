@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.build.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "module": "esnext",
     "outDir": "dist/esm",
@@ -17,11 +17,7 @@
   "exclude": ["node_modules", "dist"],
   "include": [
     "./src/**/*.ts",
-    "./test/**/*.ts",
     "./scripts/**/*.ts",
     "./src/**/*.tsx",
-    "./scripts/rpc.ts",
-    "./scripts/snippetEntry.tsx",
-    "../../node_modules/jest-expect-message/types/index.d.ts"
   ]
 }
