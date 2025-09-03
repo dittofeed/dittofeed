@@ -14,10 +14,11 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "moduleResolution": "node"
   },
-  "exclude": ["node_modules", "dist"],
-  "include": [
-    "./src/**/*.ts",
-    "./scripts/**/*.ts",
-    "./src/**/*.tsx",
-  ]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "./src/**/*.test.ts",
+    "./src/**/*.test.tsx"
+  ],
+  "include": ["./src/**/*.ts", "./scripts/**/*.ts", "./src/**/*.tsx"]
 }
