@@ -1,4 +1,5 @@
 /* eslint-disable no-await-in-loop */
+import { ActivityFailure, RetryState } from "@temporalio/common";
 import {
   continueAsNew,
   LoggerSinks,
@@ -897,7 +898,30 @@ export async function userJourneyWorkflow(
             maximumAttempts: currentNode.retryCount ?? 3,
           },
         });
-        const messageSucceeded = await sendMessageV2(sendMesssageParams);
+
+        let messageSucceeded: boolean;
+        try {
+          messageSucceeded = await sendMessageV2(sendMesssageParams);
+        } catch (err) {
+          if (
+            err instanceof ActivityFailure &&
+            err.retryState === RetryState.MAXIMUM_ATTEMPTS_REACHED
+          ) {
+            logger.error("sendMessageV2 failed after maximum retry attempts", {
+              ...defaultLoggingFields,
+              messageId,
+              err,
+            });
+            messageSucceeded = false;
+          } else {
+            logger.error("sendMessageV2 failed, retrying", {
+              ...defaultLoggingFields,
+              messageId,
+              err,
+            });
+            throw err;
+          }
+        }
 
         if (!messageSucceeded && !currentNode.skipOnFailure) {
           logger.info("message node early exit", {
