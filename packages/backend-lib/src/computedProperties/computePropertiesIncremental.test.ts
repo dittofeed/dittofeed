@@ -8105,15 +8105,17 @@ describe("computeProperties", () => {
                   }
                   return s;
                 });
-                expect(
-                  simplifiedPeriods.length,
-                  "should have the same number of periods as expected",
-                ).toHaveLength(step.periods?.length ?? 0);
+                if (step.periods) {
+                  expect(
+                    simplifiedPeriods,
+                    "should have the same number of periods as expected",
+                  ).toHaveLength(step.periods.length);
 
-                for (const expected of step.periods ?? []) {
-                  expect(simplifiedPeriods, step.description).toContain(
-                    expected,
-                  );
+                  for (const expected of step.periods) {
+                    expect(simplifiedPeriods, step.description).toContainEqual(
+                      expected,
+                    );
+                  }
                 }
               })()
             : null;
