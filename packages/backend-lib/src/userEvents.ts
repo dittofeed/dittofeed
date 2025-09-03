@@ -610,6 +610,12 @@ export async function findUserEvents({
 }: GetEventsRequest & { abortSignal?: AbortSignal }): Promise<
   UserEventsWithTraits[]
 > {
+  if (Array.isArray(messageId) && messageId.length === 0) {
+    return [];
+  }
+  if (event && event.length === 0) {
+    return [];
+  }
   const qb = new ClickHouseQueryBuilder();
   const { query: eventsQuery, queryParams } = await buildUserEventsQuery(
     {
