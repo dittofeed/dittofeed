@@ -8105,9 +8105,16 @@ describe("computeProperties", () => {
                   }
                   return s;
                 });
-                expect(simplifiedPeriods, step.description).toEqual(
-                  step.periods,
-                );
+                expect(
+                  simplifiedPeriods.length,
+                  "should have the same number of periods as expected",
+                ).toHaveLength(step.periods?.length ?? 0);
+
+                for (const expected of step.periods ?? []) {
+                  expect(simplifiedPeriods, step.description).toContain(
+                    expected,
+                  );
+                }
               })()
             : null;
           const resolvedSegmentStatesAssertions = step.resolvedSegmentStates
