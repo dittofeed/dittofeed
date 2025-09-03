@@ -1,8 +1,9 @@
 import { Histogram, SpanStatusCode } from "@opentelemetry/api";
+import { Context } from "@temporalio/activity";
 import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { err, ok } from "neverthrow";
+import { err, ok, Result } from "neverthrow";
 import pRetry from "p-retry";
 import { omit } from "remeda";
 
@@ -33,6 +34,8 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
+  MessageSendFailure,
+  MessageSuccess,
   MessageTags,
   MessageVariant,
   RenameKey,
@@ -116,11 +119,22 @@ export type SendParamsV2 = BaseSendParams & {
   events?: UserWorkflowTrackEvent[];
   eventIds?: string[];
   isHidden?: boolean;
+  retryCount?: number;
 };
 
 export type SendParamsInner = SendParamsV2 & {
   sender: (params: SendMessageParameters) => Promise<BackendMessageSendResult>;
 };
+
+interface JourneyEarlyExit {
+  type: InternalEventType.JourneyEarlyExit;
+  message: string;
+}
+
+type SendMessageInnerResult = Result<
+  MessageSuccess,
+  MessageSendFailure | JourneyEarlyExit
+>;
 
 async function sendMessageInner({
   userId,
@@ -134,8 +148,9 @@ async function sendMessageInner({
   context: deprecatedContext,
   events,
   sender,
+  retryCount,
   ...rest
-}: SendParamsInner): Promise<BackendMessageSendResult> {
+}: SendParamsInner): Promise<SendMessageInnerResult> {
   let context: Record<string, JSONValue>[] | undefined;
   // passing full events is also deprecated
   if (events) {
@@ -181,9 +196,9 @@ async function sendMessageInner({
   }
 
   if (!(journey.status === "Running" || journey.status === "Broadcast")) {
-    return ok({
-      type: InternalEventType.MessageSkipped,
-      message: "Journey is not running",
+    return err({
+      type: InternalEventType.JourneyEarlyExit,
+      message: `Journey is not running: ${journey.status}`,
     });
   }
 
@@ -200,17 +215,50 @@ async function sendMessageInner({
   if (rest.triggeringMessageId) {
     messageTags.triggeringMessageId = rest.triggeringMessageId;
   }
-  const result = await sender({
-    workspaceId,
-    useDraft: false,
-    templateId,
-    userId,
-    userPropertyAssignments,
-    subscriptionGroupDetails,
-    messageTags,
-    ...rest,
-  });
-  return result;
+
+  try {
+    const result = await sender({
+      workspaceId,
+      useDraft: false,
+      templateId,
+      userId,
+      userPropertyAssignments,
+      subscriptionGroupDetails,
+      messageTags,
+      ...rest,
+    });
+    return result;
+  } catch (senderError) {
+    // Check if we're in the final retry attempt
+    const activityInfo = Context.current().info;
+    const isLastAttempt = activityInfo.attempt >= (retryCount ?? 3);
+
+    if (isLastAttempt) {
+      logger().error("sender failed after maximum retry attempts", {
+        workspaceId,
+        userId,
+        messageId,
+        templateId,
+        attempt: activityInfo.attempt,
+        maxAttempts: retryCount,
+        err: senderError,
+      });
+
+      const senderErrorString =
+        senderError instanceof Error
+          ? senderError.message
+          : String(senderError);
+
+      // Return a MessageSkipped result instead of throwing
+      return err({
+        type: InternalEventType.JourneyEarlyExit,
+        message: `Message failed after maximum retry attempts: ${senderErrorString}`,
+      });
+    }
+
+    // Not the final attempt, rethrow to allow retry
+    throw senderError;
+  }
 }
 
 export function sendMessageFactory(sender: Sender) {

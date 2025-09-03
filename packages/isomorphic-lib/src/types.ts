@@ -99,6 +99,7 @@ export enum InternalEventType {
   UserTrackSignal = "DFUserTrackSignal",
   GroupUserAssignment = "DFGroupUserAssignment",
   UserGroupAssignment = "DFUserGroupAssignment",
+  JourneyEarlyExit = "DFJourneyEarlyExit",
 }
 
 export const StatusEventsList = [
