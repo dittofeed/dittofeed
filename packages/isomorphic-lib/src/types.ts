@@ -99,6 +99,7 @@ export enum InternalEventType {
   UserTrackSignal = "DFUserTrackSignal",
   GroupUserAssignment = "DFGroupUserAssignment",
   UserGroupAssignment = "DFUserGroupAssignment",
+  JourneyEarlyExit = "DFJourneyEarlyExit",
 }
 
 export const StatusEventsList = [
@@ -1143,6 +1144,7 @@ export const MessageNode = Type.Object(
     child: Type.String(),
     syncProperties: Type.Optional(Type.Boolean()),
     skipOnFailure: Type.Optional(Type.Boolean()),
+    retryCount: Type.Optional(Type.Number({ default: 3 })),
   },
   {
     title: "Message Node",

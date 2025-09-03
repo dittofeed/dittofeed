@@ -81,7 +81,6 @@ const {
   getSegmentAssignment,
   onNodeProcessedV2,
   isRunnable,
-  sendMessageV2,
   findNextLocalizedTime,
   getEarliestComputePropertyPeriod,
   getUserPropertyDelay,
@@ -888,10 +887,19 @@ export async function userJourneyWorkflow(
           context: entryEventProperties,
           isHidden,
         };
+        if (currentNode.retryCount) {
+          sendMesssageParams.retryCount = currentNode.retryCount;
+        }
         if (props.version === UserJourneyWorkflowVersion.V3) {
           sendMesssageParams.eventIds = Array.from(keyedEventIds);
         }
 
+        const { sendMessageV2 } = proxyActivities<typeof activities>({
+          startToCloseTimeout: "2 minutes",
+          retry: {
+            maximumAttempts: currentNode.retryCount ?? 3,
+          },
+        });
         const messageSucceeded = await sendMessageV2(sendMesssageParams);
 
         if (!messageSucceeded && !currentNode.skipOnFailure) {
