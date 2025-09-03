@@ -58,10 +58,10 @@ export async function getEventsById(
   metadata?: { journeyId?: string; userId: string },
 ): Promise<UserWorkflowTrackEvent[]> {
   const events = await gebi(params);
-  if (events.length !== params.eventIds.length) {
-    const missing = params.eventIds.filter(
-      (id) => !events.some((e) => e.messageId === id),
-    );
+  const missing = params.eventIds.filter(
+    (id) => !events.some((e) => e.messageId === id),
+  );
+  if (missing.length > 0) {
     logger().info(
       {
         workspaceId: params.workspaceId,
