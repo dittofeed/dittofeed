@@ -20,5 +20,5 @@
     "./src/**/*.test.ts",
     "./src/**/*.test.tsx"
   ],
-  "include": ["./src/**/*.ts", "./scripts/**/*.ts", "./src/**/*.tsx"]
+  "include": ["./src/**/*.ts", "./src/**/*.tsx"]
 }
