@@ -75,7 +75,7 @@ export default async function usersController(fastify: FastifyInstance) {
       schema: {
         description: "Get subscriptions for a user",
         tags: ["Users"],
-        params: GetUserSubscriptionsRequest,
+        querystring: GetUserSubscriptionsRequest,
         response: {
           200: GetUserSubscriptionsResponse,
         },
@@ -84,12 +84,12 @@ export default async function usersController(fastify: FastifyInstance) {
 
     async (request, reply) => {
       const result = await getUserSubscriptions({
-        workspaceId: request.params.workspaceId,
-        userId: request.params.userId,
+        workspaceId: request.query.workspaceId,
+        userId: request.query.userId,
       });
       return reply.status(200).send({
-        workspaceId: request.params.workspaceId,
-        userId: request.params.userId,
+        workspaceId: request.query.workspaceId,
+        userId: request.query.userId,
         subscriptionGroups: result,
       });
     },
