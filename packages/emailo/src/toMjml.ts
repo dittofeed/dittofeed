@@ -323,15 +323,25 @@ export function toMjml({
         '<mj-all font-family="Arial, Helvetica, sans-serif" font-size="12pt" line-height="inherit" color="inherit" padding="0"/>' +
         '<mj-text line-height="1.5" />' +
       "</mj-attributes>" +
+      // 👇 NEW: style for primary-section gutters (+ Gmail reset)
+      '<mj-style inline="inline">' +
+        // default gutters everywhere (Apple Mail, Outlook, Yahoo, etc.)
+        ".primary-section > table > tbody > tr > td { padding:24px 24px !important; }" +
+        "@media only screen and (max-width:480px) { .primary-section > table > tbody > tr > td { padding:16px !important; } }" +
+        // Gmail (web + apps) only → remove gutters to keep plain-text vibe
+        "u ~ div .primary-section > table > tbody > tr > td { padding:0 !important; }" +
+      "</mj-style>" +
     "</mj-head>" +
-    "<mj-body width=\"2400px\">" +
-      "<mj-section full-width=\"full-width\">" +
-        "<mj-column width=\"100%\">" +
-          "<mj-text>" +
+    '<mj-body width="2400px">' +
+      // 👇 helps the Gmail sibling selector pattern
+      '<mj-raw><div class="gmail" style="display:none">&nbsp;</div></mj-raw>' +
+      '<mj-section full-width="full-width" css-class="primary-section">' +
+        '<mj-column width="100%">' +
+          '<mj-text>' +
             resolvedContent +
-          "</mj-text>" +
-        "</mj-column>" +
-      "</mj-section>" +
-    "</mj-body>" +
-  "</mjml>";
+          '</mj-text>' +
+        '</mj-column>' +
+      '</mj-section>' +
+    '</mj-body>' +
+  '</mjml>';
 }
