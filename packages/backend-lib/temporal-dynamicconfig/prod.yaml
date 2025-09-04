@@ -2,22 +2,8 @@ limit.maxIDLength:
   - value: 255
     constraints: {}
 
-# Uncomment to enable archival (requires S3 bucket access)
-# Archival configuration for production
-# history.archival.enabled:
-#   - value: true
-#     constraints: {}
-# history.archival.enableReadFromArchival:
-#   - value: true
-#     constraints: {}
-# visibility.archival.enabled:
-#   - value: true
-#     constraints: {}
-# visibility.archival.enableReadFromArchival:
-#   - value: true
-#     constraints: {}
-
-# # Configure archival URIs for the default namespace  
+# Enable archival: use ARCHIVAL_HISTORY_STATE and ARCHIVAL_VISIBILITY_STATE env vars instead
+# Configure archival URIs for the default namespace  
 # namespace.archival.history.state:
 #   - value: "enabled"
 #     constraints:

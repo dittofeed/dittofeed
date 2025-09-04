@@ -5,23 +5,9 @@ system.forceSearchAttributesCacheRefreshOnRead:
   - value: true # Dev setup only. Please don't turn this on in production.
     constraints: {}
 
-# Enable archival uncommented when using blob-storage
-# Archival configuration
-# history.archival.enabled:
-#   - value: true
-#     constraints: {}
-# history.archival.enableReadFromArchival:
-#   - value: true
-#     constraints: {}
-# visibility.archival.enabled:
-#   - value: true
-#     constraints: {}
-# visibility.archival.enableReadFromArchival:
-#   - value: true
-#     constraints: {}
-
-# # Configure archival URIs for the default namespace
-# # For MinIO/blob-storage use:
+# Enable archival: uncomment env vars in docker-compose.yaml instead
+# Configure archival URIs for the default namespace
+# For MinIO/blob-storage use:
 # namespace.archival.history.state:
 #   - value: "enabled"
 #     constraints:
