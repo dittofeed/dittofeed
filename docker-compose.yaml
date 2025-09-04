@@ -114,6 +114,8 @@ services:
     container_name: temporal
     depends_on:
       - postgres
+      - blob-storage
+      - blob-storage-init
     environment:
       - DB=postgresql
       - DB_PORT=5432
@@ -121,6 +123,19 @@ services:
       - POSTGRES_PWD=password
       - POSTGRES_SEEDS=postgres
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/dev.yaml
+      # S3 credentials for MinIO
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+      # Tell AWS SDK to use path-style URLs for S3 (required for MinIO)
+      - AWS_S3_FORCE_PATH_STYLE=true
+      # Archival configuration via environment variables
+      - ARCHIVAL_HISTORY_STATE=enabled
+      - ARCHIVAL_VISIBILITY_STATE=enabled
+      - DEFAULT_NAMESPACE_HISTORY_ARCHIVAL_STATE=enabled
+      - DEFAULT_NAMESPACE_HISTORY_ARCHIVAL_URI=s3://temporal-archival/history
+      - DEFAULT_NAMESPACE_VISIBILITY_ARCHIVAL_STATE=enabled
+      - DEFAULT_NAMESPACE_VISIBILITY_ARCHIVAL_URI=s3://temporal-archival/visibility
     image: temporalio/auto-setup:1.18.5
     labels:
       kompose.volume.type: configMap
@@ -354,6 +369,30 @@ services:
     volumes:
       - blob-storage:/data
     command: server --console-address ":9001" /data
+    networks:
+      - dittofeed-network-dev
+  
+  blob-storage-init:
+    image: minio/mc
+    profiles: ["blob-storage"]
+    depends_on:
+      - blob-storage
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -ex
+        # Wait for MinIO to be ready
+        sleep 5
+        # Configure MinIO client
+        mc alias set myminio http://blob-storage:9000 admin password
+        # Create the temporal-archival bucket if it doesn't exist
+        mc mb myminio/temporal-archival --ignore-existing
+        # Set bucket policy to allow read/write
+        mc anonymous set public myminio/temporal-archival
+        echo "MinIO bucket initialized for Temporal archival"
+    networks:
+      - dittofeed-network-dev
 
 volumes:
   postgres:

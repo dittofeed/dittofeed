@@ -1,0 +1,29 @@
+# Uncomment to enable archival
+# limit.maxIDLength:
+#   - value: 255
+#     constraints: {}
+
+# # Archival configuration for production
+# history.archival.enabled:
+#   - value: true
+#     constraints: {}
+# history.archival.enableReadFromArchival:
+#   - value: true
+#     constraints: {}
+# visibility.archival.enabled:
+#   - value: true
+#     constraints: {}
+# visibility.archival.enableReadFromArchival:
+#   - value: true
+#     constraints: {}
+
+# # Note: In production, you should configure these URIs to point to your actual S3 bucket
+# # These are placeholders that should be overridden via environment variables
+# namespace.archival.history.state:
+#   - value: "enabled"
+#     constraints:
+#       namespace: "default"
+# namespace.archival.visibility.state:
+#   - value: "enabled"
+#     constraints:
+#       namespace: "default"

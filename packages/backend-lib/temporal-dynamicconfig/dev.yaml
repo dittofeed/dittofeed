@@ -4,3 +4,36 @@ limit.maxIDLength:
 system.forceSearchAttributesCacheRefreshOnRead:
   - value: true # Dev setup only. Please don't turn this on in production.
     constraints: {}
+
+# Enable archival uncommented when using blob-storage
+# Archival configuration
+# history.archival.enabled:
+#   - value: true
+#     constraints: {}
+# history.archival.enableReadFromArchival:
+#   - value: true
+#     constraints: {}
+# visibility.archival.enabled:
+#   - value: true
+#     constraints: {}
+# visibility.archival.enableReadFromArchival:
+#   - value: true
+#     constraints: {}
+
+# # Configure archival URIs for the default namespace
+# namespace.archival.history.state:
+#   - value: "enabled"
+#     constraints:
+#       namespace: "default"
+# namespace.archival.history.URI:
+#   - value: "s3://temporal-archival/history"
+#     constraints:
+#       namespace: "default"
+# namespace.archival.visibility.state:
+#   - value: "enabled"
+#     constraints:
+#       namespace: "default"
+# namespace.archival.visibility.URI:
+#   - value: "s3://temporal-archival/visibility"
+#     constraints:
+#       namespace: "default"
