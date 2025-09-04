@@ -121,13 +121,8 @@ services:
       - POSTGRES_PWD=password
       - POSTGRES_SEEDS=postgres
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/dev.yaml
-      # Uncomment these to enable archival (requires S3 bucket access)
-      # - ARCHIVAL_HISTORY_STATE=enabled
-      # - ARCHIVAL_VISIBILITY_STATE=enabled
       - AWS_ACCESS_KEY_ID=admin
       - AWS_SECRET_ACCESS_KEY=password
-      - AWS_REGION=us-east-1
-      - AWS_S3_FORCE_PATH_STYLE=true  # Required for MinIO
     image: temporalio/auto-setup:1.18.5
     labels:
       kompose.volume.type: configMap

@@ -5,22 +5,34 @@ system.forceSearchAttributesCacheRefreshOnRead:
   - value: true # Dev setup only. Please don't turn this on in production.
     constraints: {}
 
-# Enable archival: uncomment env vars in docker-compose.yaml instead
-# Configure archival URIs for the default namespace
-# For MinIO/blob-storage use:
-# namespace.archival.history.state:
-#   - value: "enabled"
-#     constraints:
-#       namespace: "default"
-# namespace.archival.history.URI:
-#   - value: "s3://dittofeed/temporal-archival/history?endpoint=blob-storage:9000&s3ForcePathStyle=true"
-#     constraints:
-#       namespace: "default"
-# namespace.archival.visibility.state:
-#   - value: "enabled"
-#     constraints:
-#       namespace: "default"
-# namespace.archival.visibility.URI:
-#   - value: "s3://dittofeed/temporal-archival/visibility?endpoint=blob-storage:9000&s3ForcePathStyle=true"
-#     constraints:
-#       namespace: "default"
+archival:
+  history:
+    # state: enabled       # Enable history archival
+    state: disabled
+    enableRead: true     # Allow reading from archives
+    provider:
+      s3store:
+        region: "us-east-1"                          # Can be any string, MinIO does not require real AWS region
+        endpoint: "http://minio.minio-namespace.svc.cluster.local:9000"  # MinIO service endpoint URL
+        disableSSL: true                             # Disable SSL if MinIO is running without https
+        forcePathStyle: true                         # Required for MinIO's S3 compatible path style access
+
+  visibility:
+    # state: enabled
+    state: disabled
+    enableRead: true
+    provider:
+      s3store:
+        region: "us-east-1"
+        endpoint: "http://minio.minio-namespace.svc.cluster.local:9000"
+        disableSSL: true
+        forcePathStyle: true
+
+namespaceDefaults:
+  archival:
+    history:
+      state: enabled
+      URI: "s3://your-minio-bucket/history"        # Use your MinIO bucket name
+    visibility:
+      state: enabled
+      URI: "s3://your-minio-bucket/visibility"

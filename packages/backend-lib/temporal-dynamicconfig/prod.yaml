@@ -2,21 +2,34 @@ limit.maxIDLength:
   - value: 255
     constraints: {}
 
-# Enable archival: use ARCHIVAL_HISTORY_STATE and ARCHIVAL_VISIBILITY_STATE env vars instead
-# Configure archival URIs for the default namespace  
-# namespace.archival.history.state:
-#   - value: "enabled"
-#     constraints:
-#       namespace: "default"
-# namespace.archival.history.URI:
-#   - value: "s3://dittofeed/temporal-archival/history"
-#     constraints:
-#       namespace: "default"
-# namespace.archival.visibility.state:
-#   - value: "enabled"
-#     constraints:
-#       namespace: "default"
-# namespace.archival.visibility.URI:
-#   - value: "s3://dittofeed/temporal-archival/visibility"
-#     constraints:
-#       namespace: "default"
+archival:
+  history:
+    # state: enabled       # Enable history archival
+    state: disabled
+    enableRead: true     # Allow reading from archives
+    provider:
+      s3store:
+        region: "us-east-1"                          # Can be any string, MinIO does not require real AWS region
+        endpoint: "http://minio.minio-namespace.svc.cluster.local:9000"  # MinIO service endpoint URL
+        disableSSL: true                             # Disable SSL if MinIO is running without https
+        forcePathStyle: true                         # Required for MinIO's S3 compatible path style access
+
+  visibility:
+    # state: enabled
+    state: disabled
+    enableRead: true
+    provider:
+      s3store:
+        region: "us-east-1"
+        endpoint: "http://minio.minio-namespace.svc.cluster.local:9000"
+        disableSSL: true
+        forcePathStyle: true
+
+namespaceDefaults:
+  archival:
+    history:
+      state: enabled
+      URI: "s3://your-minio-bucket/history"        # Use your MinIO bucket name
+    visibility:
+      state: enabled
+      URI: "s3://your-minio-bucket/visibility"
