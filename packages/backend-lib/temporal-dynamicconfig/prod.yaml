@@ -1,9 +1,9 @@
-# Uncomment to enable archival
-# limit.maxIDLength:
-#   - value: 255
-#     constraints: {}
+limit.maxIDLength:
+  - value: 255
+    constraints: {}
 
-# # Archival configuration for production
+# Uncomment to enable archival (requires S3 bucket access)
+# Archival configuration for production
 # history.archival.enabled:
 #   - value: true
 #     constraints: {}
@@ -17,13 +17,20 @@
 #   - value: true
 #     constraints: {}
 
-# # Note: In production, you should configure these URIs to point to your actual S3 bucket
-# # These are placeholders that should be overridden via environment variables
+# # Configure archival URIs for the default namespace  
 # namespace.archival.history.state:
 #   - value: "enabled"
 #     constraints:
 #       namespace: "default"
+# namespace.archival.history.URI:
+#   - value: "s3://dittofeed/temporal-archival/history"
+#     constraints:
+#       namespace: "default"
 # namespace.archival.visibility.state:
 #   - value: "enabled"
+#     constraints:
+#       namespace: "default"
+# namespace.archival.visibility.URI:
+#   - value: "s3://dittofeed/temporal-archival/visibility"
 #     constraints:
 #       namespace: "default"

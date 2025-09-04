@@ -21,12 +21,13 @@ system.forceSearchAttributesCacheRefreshOnRead:
 #     constraints: {}
 
 # # Configure archival URIs for the default namespace
+# # For MinIO/blob-storage use:
 # namespace.archival.history.state:
 #   - value: "enabled"
 #     constraints:
 #       namespace: "default"
 # namespace.archival.history.URI:
-#   - value: "s3://temporal-archival/history"
+#   - value: "s3://dittofeed/temporal-archival/history?endpoint=blob-storage:9000&s3ForcePathStyle=true"
 #     constraints:
 #       namespace: "default"
 # namespace.archival.visibility.state:
@@ -34,6 +35,6 @@ system.forceSearchAttributesCacheRefreshOnRead:
 #     constraints:
 #       namespace: "default"
 # namespace.archival.visibility.URI:
-#   - value: "s3://temporal-archival/visibility"
+#   - value: "s3://dittofeed/temporal-archival/visibility?endpoint=blob-storage:9000&s3ForcePathStyle=true"
 #     constraints:
 #       namespace: "default"
