@@ -553,7 +553,7 @@ function buildUserEventInnerQuery(
       ${journeyIdClause}
       ${eventTypeClause}
       ${messageIdClause}
-    ORDER BY processing_time DESC
+    ${orderByClause}
   `;
 }
 
