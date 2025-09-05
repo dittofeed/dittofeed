@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import { arrayDefault } from "isomorphic-lib/src/arrays";
 import { ok, Result } from "neverthrow";
+import { sortBy } from "remeda";
 
 import {
   clickhouseClient,
@@ -477,6 +478,9 @@ function buildUserEventInnerQuery(
     ? ", JSONExtractString(message_raw, 'context') AS context"
     : "";
 
+  // when we're filtering by messageId, we'll sort in memory. sorting in the query is expensive.
+  const orderByClause = messageIdClause ? "" : "ORDER BY processing_time DESC";
+
   // Use two-step query pattern for internal event filters
   if (hasInternalEventFilters && internalEventsConditions.length > 0) {
     // Optimized query using nested subquery pattern from internal_events
@@ -511,7 +515,7 @@ function buildUserEventInnerQuery(
         ${eventClause}
         ${eventTypeClause}
         ${messageIdClause}
-      ORDER BY processing_time DESC
+      ${orderByClause}
     `;
   }
 
@@ -644,7 +648,16 @@ export async function findUserEvents({
   });
   logger().debug({ eventsQuery, queryParams }, "findUserEvents query");
 
-  return await eventsResultSet.json<UserEventsWithTraits>();
+  const results = await eventsResultSet.json<UserEventsWithTraits>();
+  // if we're filtering by message id, we do the sorting in memory to avoid expensive sorting in the query
+  const hasMessageIdFilter = (messageId?.length ?? 0) > 0;
+  if (hasMessageIdFilter) {
+    return results;
+  }
+  return sortBy(results, [
+    (r) => new Date(r.processing_time).getTime(),
+    "desc",
+  ]);
 }
 
 export async function findUserEventCount({
@@ -920,7 +933,6 @@ export async function findUserEventsById({
         JSONExtractRaw(message_raw, 'properties') AS properties
     FROM user_events_v2
     WHERE ${whereClause}
-    ORDER BY processing_time DESC
   `;
 
   const resultSet = await chQuery({
@@ -929,7 +941,12 @@ export async function findUserEventsById({
     query_params: qb.getQueries(),
   });
 
-  return await resultSet.json<UserEventsWithTraits>();
+  const results = await resultSet.json<UserEventsWithTraits>();
+  // sort by processing time descending
+  return sortBy(results, [
+    (r) => new Date(r.processing_time).getTime(),
+    "desc",
+  ]);
 }
 
 export interface GetEventsByIdParams {
