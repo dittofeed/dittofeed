@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import { arrayDefault } from "isomorphic-lib/src/arrays";
 import { ok, Result } from "neverthrow";
+import { sortBy } from "remeda";
 
 import {
   clickhouseClient,
@@ -920,7 +921,6 @@ export async function findUserEventsById({
         JSONExtractRaw(message_raw, 'properties') AS properties
     FROM user_events_v2
     WHERE ${whereClause}
-    ORDER BY processing_time DESC
   `;
 
   const resultSet = await chQuery({
@@ -929,7 +929,12 @@ export async function findUserEventsById({
     query_params: qb.getQueries(),
   });
 
-  return await resultSet.json<UserEventsWithTraits>();
+  const results = await resultSet.json<UserEventsWithTraits>();
+  // sort by processing time descending
+  return sortBy(results, [
+    (r) => new Date(r.processing_time).getTime(),
+    "desc",
+  ]);
 }
 
 export interface GetEventsByIdParams {
