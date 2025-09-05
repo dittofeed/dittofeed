@@ -1545,6 +1545,7 @@ export function createCommands(yargs: Argv): Argv {
           "start-date": { type: "string", alias: "s" },
           "end-date": { type: "string", alias: "ed" },
           limit: { type: "number", alias: "l", default: 100 },
+          "message-id": { type: "string", alias: "m", array: true },
           offset: { type: "number", alias: "o", default: 0 },
         }),
       async ({
@@ -1558,6 +1559,7 @@ export function createCommands(yargs: Argv): Argv {
         endDate,
         limit,
         offset,
+        messageId,
       }) => {
         const debugQb = new ClickHouseQueryBuilder({ debug: true });
         const { query } = await buildUserEventsQuery(
@@ -1569,6 +1571,7 @@ export function createCommands(yargs: Argv): Argv {
             broadcastId,
             eventType,
             event,
+            messageId,
             userId,
             startDate: startDate ? new Date(startDate).getTime() : undefined,
             endDate: endDate ? new Date(endDate).getTime() : undefined,
