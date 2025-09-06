@@ -65,6 +65,19 @@ const config = {
         ],
       },
     },
+    {
+      ...BASE_CONFIG,
+      displayName: "emailo",
+      roots: ["<rootDir>/packages/emailo/src"],
+      transform: {
+        "^.+\\.tsx?$": [
+          "ts-jest",
+          {
+            tsconfig: "<rootDir>/packages/emailo/tsconfig.json",
+          },
+        ],
+      },
+    },
   ],
 };
 

@@ -1,19 +1,5 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "module": "esnext",
-    "outDir": "dist/esm",
-    "jsx": "react",
-    "jsxFactory": "React.createElement",
-    "jsxFragmentFactory": "React.Fragment",
-    "declaration": true,
-    "esModuleInterop": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "allowSyntheticDefaultImports": true,
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "moduleResolution": "node"
-  },
+  "extends": "./tsconfig.build.json",
   "exclude": ["node_modules", "dist"],
   "include": [
     "./src/**/*.ts",
@@ -21,6 +7,7 @@
     "./scripts/**/*.ts",
     "./src/**/*.tsx",
     "./scripts/rpc.ts",
-    "./scripts/snippetEntry.tsx"
+    "./scripts/snippetEntry.tsx",
+    "../../node_modules/jest-expect-message/types/index.d.ts"
   ]
 }

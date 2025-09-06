@@ -1,0 +1,21 @@
+name: emailo CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/emailo/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/emailo/**'
+  workflow_dispatch:
+
+jobs:
+  shared:
+    uses: ./.github/workflows/shared-workflow.yaml
+    with:
+      package-name: 'emailo'
+      run_tests: 'true'
