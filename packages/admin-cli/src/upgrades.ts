@@ -533,6 +533,19 @@ export async function backfillInternalEvents({
             AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
             AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
             ${insertWorkspaceFilter}
+            AND (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id) NOT IN (
+              SELECT
+                workspace_id,
+                processing_time,
+                user_or_anonymous_id,
+                event_time,
+                message_id
+              FROM internal_events
+              WHERE
+                processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
+                AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+                ${insertWorkspaceFilter}
+            )
           ORDER BY workspace_id, processing_time, user_or_anonymous_id, event_time, message_id
           LIMIT ${limitParam} OFFSET ${offsetParam}
         `;
