@@ -290,7 +290,11 @@ export async function backfillInternalEvents({
   limit?: number;
   dryRun?: boolean;
 }) {
-  logger().info(dryRun ? "Analyzing internal events backfill (dry run)" : "Backfilling internal events");
+  logger().info(
+    dryRun
+      ? "Analyzing internal events backfill (dry run)"
+      : "Backfilling internal events",
+  );
 
   // Determine start date
   let startDate: Date;
@@ -529,16 +533,17 @@ export async function backfillInternalEvents({
             AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
             AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
             ${insertWorkspaceFilter}
+          ORDER BY workspace_id, processing_time, user_or_anonymous_id, event_time, message_id
           LIMIT ${limitParam} OFFSET ${offsetParam}
         `;
 
         let writtenRows = 0;
         if (dryRun) {
           logger().info(
+            {
+              variables: insertQb.getQueries(),
+            },
             `DRY RUN - Would execute query:\n${insertQuery}`,
-          );
-          logger().info(
-            `DRY RUN - Query params: ${JSON.stringify(insertQb.getQueries())}`,
           );
           // For dry run, we don't know how many rows would be written, so we use the limit
           writtenRows = limit;
@@ -563,7 +568,9 @@ export async function backfillInternalEvents({
             totalProcessedInChunk,
             dryRun,
           },
-          dryRun ? "Batch analyzed successfully (dry run)" : "Batch processed successfully",
+          dryRun
+            ? "Batch analyzed successfully (dry run)"
+            : "Batch processed successfully",
         );
 
         // If we got fewer rows than the limit, we've reached the end of data for this time chunk
@@ -575,7 +582,9 @@ export async function backfillInternalEvents({
               totalProcessedInChunk,
               dryRun,
             },
-            dryRun ? "Completed time chunk analysis - fewer rows than limit (dry run)" : "Completed time chunk - fewer rows than limit",
+            dryRun
+              ? "Completed time chunk analysis - fewer rows than limit (dry run)"
+              : "Completed time chunk - fewer rows than limit",
           );
           break;
         }
@@ -599,7 +608,11 @@ export async function backfillInternalEvents({
     currentStart = currentEnd;
   }
 
-  logger().info(dryRun ? "Internal events backfill analysis completed (dry run)" : "Backfilling internal events completed");
+  logger().info(
+    dryRun
+      ? "Internal events backfill analysis completed (dry run)"
+      : "Backfilling internal events completed",
+  );
 }
 
 export async function addServerTimeColumn() {
