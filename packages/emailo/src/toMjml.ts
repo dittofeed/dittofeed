@@ -324,12 +324,13 @@ export function toMjml({
         '<mj-text line-height="1.5" />' +
       "</mj-attributes>" +
       // 👇 NEW: style for primary-section gutters (+ Gmail reset)
-      '<mj-style inline="inline">' +
-        // default gutters everywhere (Apple Mail, Outlook, Yahoo, etc.)
-        ".primary-section > table > tbody > tr > td { padding:24px 24px !important; }" +
-        "@media only screen and (max-width:480px) { .primary-section > table > tbody > tr > td { padding:16px !important; } }" +
+      '<mj-style>' +
+        '.primary-section > tbody > tr > td { padding:24px 24px !important; }' +
+        '@media only screen and (max-width:480px) {' +
+          '.primary-section > tbody > tr > td { padding:16px !important; }' +
+        '}' +
         // Gmail (web + apps) only → remove gutters to keep plain-text vibe
-        "u ~ div .primary-section > table > tbody > tr > td { padding:0 !important; }" +
+        "u ~ div .primary-section > tbody > tr > td { padding:0 !important; }" +
       "</mj-style>" +
     "</mj-head>" +
     '<mj-body width="2400px">' +
