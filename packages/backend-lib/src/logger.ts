@@ -99,6 +99,7 @@ export default function logger(): Logger {
       destinationStream = pinoPretty({
         translateTime: "HH:MM:ss Z",
         ignore: "pid,hostname",
+        sync: true,
       });
     } else {
       const { exportLogsHyperDx, hyperDxApiKey } = config();

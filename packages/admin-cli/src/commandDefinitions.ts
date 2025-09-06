@@ -675,6 +675,13 @@ export function createCommands(yargs: Argv): Argv {
             describe:
               "Number of rows to process per batch within each time window (default: 10000)",
           },
+          "dry-run": {
+            type: "boolean",
+            alias: "d",
+            default: false,
+            describe:
+              "Only log the insert queries without executing them",
+          },
         }),
       async ({
         intervalMinutes,
@@ -683,6 +690,7 @@ export function createCommands(yargs: Argv): Argv {
         endDate,
         forceFullBackfill,
         limit,
+        dryRun,
       }) => {
         await backfillInternalEvents({
           intervalMinutes,
@@ -691,6 +699,7 @@ export function createCommands(yargs: Argv): Argv {
           endDate,
           forceFullBackfill,
           limit,
+          dryRun,
         });
       },
     )
