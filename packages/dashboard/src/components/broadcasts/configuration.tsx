@@ -188,6 +188,11 @@ export default function Configuration({
     if (!broadcast?.subscriptionGroupId) {
       e.push("You must select a subscription group.");
     }
+    if (broadcast?.scheduledAt && !broadcast.config.defaultTimezone) {
+      e.push(
+        "You must select a timezone in which to schedule the local delivery time.",
+      );
+    }
     return e;
   }, [broadcast]);
 
@@ -346,13 +351,15 @@ export default function Configuration({
             />
           </Popover>
           <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="subtitle1">Delivery Timezone</Typography>
             <TimezoneAutocomplete
+              sx={{ width: theme.spacing(27) }}
               value={broadcast.config.defaultTimezone}
               handler={handleTimezoneChange}
               disabled={broadcast.status !== "Draft"}
-              label="Default Timezone"
+              label="Timezone"
             />
-            <InfoTooltip title="The timezone used by default if a user’s timezone cannot be determined." />
+            <InfoTooltip title="The timezone used to determine the users' local delivery time." />
           </Stack>
         </>
       )}

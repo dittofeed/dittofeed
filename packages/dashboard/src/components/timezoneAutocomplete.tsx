@@ -1,4 +1,4 @@
-import { Autocomplete, TextField } from "@mui/material";
+import { Autocomplete, SxProps, TextField, Theme } from "@mui/material";
 import { useEffect, useMemo } from "react";
 
 export type TimezoneChangeHandler = (timezone: string | null) => void;
@@ -10,6 +10,7 @@ export function TimezoneAutocomplete({
   disableClearable,
   defaultToLocal,
   label,
+  sx,
 }: {
   value?: string;
   disabled?: boolean;
@@ -17,6 +18,7 @@ export function TimezoneAutocomplete({
   disableClearable?: boolean;
   defaultToLocal?: boolean;
   label?: string;
+  sx?: SxProps<Theme>;
 }) {
   const timezones = useMemo(() => Intl.supportedValuesOf("timeZone"), []);
 
@@ -46,6 +48,7 @@ export function TimezoneAutocomplete({
       onChange={(_event, tz: string | null) => {
         handler(tz);
       }}
+      sx={sx}
       renderInput={(params) => (
         <TextField {...params} label={label ?? "Timezone"} variant="outlined" />
       )}
