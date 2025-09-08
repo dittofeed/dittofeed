@@ -164,7 +164,12 @@ export async function appendToManualSegment({
     );
     return false;
   }
-  // FIXME need to wait for events to be processed before computing properties
+  // FIXME
+  // do exponential retry until events are processed
+  // use event lookup by id
+  // keep retrying until events are processed
+  // use heartbeat to notify workflow still running
+  // set longer activity timeout
   await computePropertiesForManualSegment({
     workspaceId,
     segment: segmentResource.value,

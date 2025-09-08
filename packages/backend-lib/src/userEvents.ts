@@ -565,6 +565,9 @@ export async function buildUserEventsQuery(
   query: string;
   queryParams: Record<string, unknown>;
 }> {
+  // FIXME when doing user id sorting
+  // 1. do an inner select with no pagination to get the full keys for the user ids without pagination to take advantage of skip index, and group by message id (picking more recent processing time) to dedup
+  // 2. set limit equal to event count
   const { workspaceId, limit = 100, offset = 0 } = params;
 
   const workspaceIdClause = await buildWorkspaceIdClause(workspaceId, qb);
