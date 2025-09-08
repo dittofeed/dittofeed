@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
 
+import { submitBatch } from "../../apps/batch";
 import { insert } from "../../db";
 import * as schema from "../../db/schema";
 import {
@@ -16,6 +17,10 @@ import { getUsers } from "../../users";
 import { createWorkspace } from "../../workspaces/createWorkspace";
 import { appendToManualSegment } from "./activities";
 
+jest.mock("../../apps/batch");
+
+const mockSubmitBatch = jest.mocked(submitBatch);
+
 jest.setTimeout(15000);
 
 describe("appendToManualSegment", () => {
@@ -23,8 +28,21 @@ describe("appendToManualSegment", () => {
   let segmentId: string;
   let idUserPropertyId: string;
   let emailUserPropertyId: string;
+  let originalSubmitBatch: typeof submitBatch;
+
+  beforeAll(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    originalSubmitBatch = jest.requireActual("../../apps/batch").submitBatch;
+  });
 
   beforeEach(async () => {
+    mockSubmitBatch.mockImplementation(async (...args) => {
+      setTimeout(() => {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        void originalSubmitBatch(...args);
+      }, 3000);
+      return Promise.resolve();
+    });
     workspace = unwrap(
       await createWorkspace({
         name: randomUUID(),
