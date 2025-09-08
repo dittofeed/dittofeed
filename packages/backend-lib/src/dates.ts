@@ -4,7 +4,7 @@ import { find as findTz } from "geo-tz";
 
 import logger from "./logger";
 import { LocalTimeDelayVariantFields, UserWorkflowTrackEvent } from "./types";
-import { getEventsById } from "./userEvents";
+import { getTrackEventsById } from "./userEvents";
 import {
   findAllUserPropertyAssignments,
   findAllUserPropertyAssignmentsById,
@@ -130,7 +130,7 @@ export async function getUserPropertyDelay({
 }: GetUserPropertyDelayParams): Promise<number | null> {
   let events: UserWorkflowTrackEvent[] | undefined;
   if ("version" in rest) {
-    events = await getEventsById({
+    events = await getTrackEventsById({
       workspaceId,
       eventIds: rest.eventIds,
     });

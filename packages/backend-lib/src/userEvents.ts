@@ -339,11 +339,32 @@ function buildUserEventQueryClauses(
 
   let messageIdClause = "";
   if (messageId) {
+    let messageIdWhereClause: string;
     if (typeof messageId === "string") {
-      messageIdClause = `AND message_id = ${qb.addQueryValue(messageId, "String")}`;
+      messageIdWhereClause = `AND message_id = ${qb.addQueryValue(messageId, "String")}`;
     } else {
-      messageIdClause = `AND message_id IN ${qb.addQueryValue(messageId, "Array(String)")}`;
+      messageIdWhereClause = `AND message_id IN ${qb.addQueryValue(messageId, "Array(String)")}`;
     }
+    // using an inner query allows us to take advantage of the skip index on
+    // message_id and dedup events with the same message id
+    messageIdClause = `
+      AND (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id) IN (
+        SELECT
+          workspace_id,
+          max(processing_time),
+          user_or_anonymous_id,
+          argMax(event_time, processing_time),
+          message_id
+        FROM user_events_v2
+        WHERE
+          ${workspaceIdClause}
+          ${messageIdWhereClause}
+        GROUP BY
+          workspace_id,
+          user_or_anonymous_id,
+          message_id
+      )
+    `;
   }
 
   const searchClause = searchTerm
@@ -478,9 +499,6 @@ function buildUserEventInnerQuery(
     ? ", JSONExtractString(message_raw, 'context') AS context"
     : "";
 
-  // when we're filtering by messageId, we'll sort in memory. sorting in the query is expensive.
-  const orderByClause = messageIdClause ? "" : "ORDER BY processing_time DESC";
-
   // Use two-step query pattern for internal event filters
   if (hasInternalEventFilters && internalEventsConditions.length > 0) {
     // Optimized query using nested subquery pattern from internal_events
@@ -515,7 +533,7 @@ function buildUserEventInnerQuery(
         ${eventClause}
         ${eventTypeClause}
         ${messageIdClause}
-      ${orderByClause}
+      ORDER BY processing_time DESC
     `;
   }
 
@@ -553,7 +571,7 @@ function buildUserEventInnerQuery(
       ${journeyIdClause}
       ${eventTypeClause}
       ${messageIdClause}
-    ${orderByClause}
+    ORDER BY processing_time DESC
   `;
 }
 
@@ -565,6 +583,9 @@ export async function buildUserEventsQuery(
   query: string;
   queryParams: Record<string, unknown>;
 }> {
+  // FIXME when doing user id sorting
+  // 1. do an inner select with no pagination to get the full keys for the user ids without pagination to take advantage of skip index, and group by message id (picking more recent processing time) to dedup
+  // 2. set limit equal to event count
   const { workspaceId, limit = 100, offset = 0 } = params;
 
   const workspaceIdClause = await buildWorkspaceIdClause(workspaceId, qb);
@@ -954,7 +975,17 @@ export interface GetEventsByIdParams {
   eventIds: string[];
 }
 
-export async function getEventsById({
+export async function getEventsCountById({
+  workspaceId,
+  eventIds,
+}: GetEventsByIdParams): Promise<number> {
+  return await findUserEventCount({
+    workspaceId,
+    messageId: eventIds,
+  });
+}
+
+export async function getTrackEventsById({
   workspaceId,
   eventIds,
 }: GetEventsByIdParams): Promise<UserWorkflowTrackEvent[]> {
@@ -962,6 +993,7 @@ export async function getEventsById({
     workspaceId,
     messageId: eventIds,
     includeContext: true,
+    limit: eventIds.length,
   });
   return events.flatMap((event) => {
     if (event.event_type !== EventType.Track) {

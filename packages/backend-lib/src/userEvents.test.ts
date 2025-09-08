@@ -7,6 +7,7 @@ import { EventType, Workspace } from "./types";
 import {
   findIdentifyTraits,
   findManyEventsWithCount,
+  findUserEvents,
   insertUserEvents,
 } from "./userEvents";
 import { createWorkspace } from "./workspaces";
@@ -56,6 +57,85 @@ describe("userEvents", () => {
       });
       userTraits.sort();
       expect(userTraits).toEqual(["height", "name", "status"]);
+    });
+  });
+
+  describe("findUserEvents", () => {
+    let messageId1: string;
+    let messageId2: string;
+    let messageId3: string;
+
+    beforeEach(async () => {
+      messageId1 = randomUUID();
+      messageId2 = randomUUID();
+      messageId3 = randomUUID();
+      const now = new Date("2023-01-01T00:00:00.000Z").getTime();
+
+      await submitBatch({
+        workspaceId: workspace.id,
+        now,
+        data: [
+          {
+            type: EventType.Identify,
+            messageId: messageId1,
+            userId: "user1",
+            offsetMs: 4 * 24 * 60 * 60 * 1000,
+          },
+          {
+            type: EventType.Identify,
+            messageId: messageId2,
+            userId: "user1",
+            offsetMs: 9 * 24 * 60 * 60 * 1000,
+          },
+          {
+            type: EventType.Identify,
+            messageId: messageId3,
+            userId: "user1",
+            offsetMs: 14 * 24 * 60 * 60 * 1000,
+          },
+        ],
+      });
+    });
+
+    it("returns event when filtering by single messageId", async () => {
+      const events = await findUserEvents({
+        workspaceId: workspace.id,
+        messageId: messageId2,
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]?.message_id).toBe(messageId2);
+    });
+
+    it("returns events when filtering by multiple messageIds", async () => {
+      const events = await findUserEvents({
+        workspaceId: workspace.id,
+        messageId: [messageId1, messageId3],
+      });
+
+      expect(events).toHaveLength(2);
+      const messageIds = events.map((e) => e.message_id);
+      expect(messageIds).toContain(messageId1);
+      expect(messageIds).toContain(messageId3);
+      expect(messageIds).not.toContain(messageId2);
+    });
+
+    it("returns empty array when filtering by non-existent messageId", async () => {
+      const events = await findUserEvents({
+        workspaceId: workspace.id,
+        messageId: randomUUID(),
+      });
+
+      expect(events).toHaveLength(0);
+    });
+
+    it("returns empty array when filtering by empty messageId array", async () => {
+      const events = await findUserEvents({
+        workspaceId: workspace.id,
+        messageId: [],
+      });
+
+      expect(events).toHaveLength(0);
     });
   });
 
