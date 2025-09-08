@@ -983,6 +983,7 @@ export async function getEventsById({
     workspaceId,
     messageId: eventIds,
     includeContext: true,
+    limit: eventIds.length,
   });
   return events.flatMap((event) => {
     if (event.event_type !== EventType.Track) {
