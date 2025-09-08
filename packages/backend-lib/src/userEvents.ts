@@ -345,6 +345,8 @@ function buildUserEventQueryClauses(
     } else {
       messageIdWhereClause = `AND message_id IN ${qb.addQueryValue(messageId, "Array(String)")}`;
     }
+    // using an inner query allows us to take advantage of the skip index on
+    // message_id and dedup events with the same message id
     messageIdClause = `
       AND (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id) IN (
         SELECT
