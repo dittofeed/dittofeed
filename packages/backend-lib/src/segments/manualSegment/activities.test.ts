@@ -141,7 +141,7 @@ describe("appendToManualSegment", () => {
     ]);
   });
 
-  it("should append users to manual segment", async () => {
+  it("should append users to manual segment with async event processing", async () => {
     const now = Date.now();
     const userIds = ["user-1", "user-2", "user-3"];
 
