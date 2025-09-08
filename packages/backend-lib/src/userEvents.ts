@@ -339,11 +339,30 @@ function buildUserEventQueryClauses(
 
   let messageIdClause = "";
   if (messageId) {
+    let messageIdWhereClause: string;
     if (typeof messageId === "string") {
-      messageIdClause = `AND message_id = ${qb.addQueryValue(messageId, "String")}`;
+      messageIdWhereClause = `AND message_id = ${qb.addQueryValue(messageId, "String")}`;
     } else {
-      messageIdClause = `AND message_id IN ${qb.addQueryValue(messageId, "Array(String)")}`;
+      messageIdWhereClause = `AND message_id IN ${qb.addQueryValue(messageId, "Array(String)")}`;
     }
+    messageIdClause = `
+      AND (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id) IN (
+        SELECT
+          workspace_id,
+          max(processing_time),
+          user_or_anonymous_id,
+          argMax(event_time, processing_time),
+          message_id
+        FROM user_events_v2
+        WHERE
+          ${workspaceIdClause}
+          ${messageIdWhereClause}
+        GROUP BY
+          workspace_id,
+          user_or_anonymous_id,
+          message_id
+      )
+    `;
   }
 
   const searchClause = searchTerm
@@ -478,9 +497,6 @@ function buildUserEventInnerQuery(
     ? ", JSONExtractString(message_raw, 'context') AS context"
     : "";
 
-  // when we're filtering by messageId, we'll sort in memory. sorting in the query is expensive.
-  const orderByClause = messageIdClause ? "" : "ORDER BY processing_time DESC";
-
   // Use two-step query pattern for internal event filters
   if (hasInternalEventFilters && internalEventsConditions.length > 0) {
     // Optimized query using nested subquery pattern from internal_events
@@ -515,7 +531,7 @@ function buildUserEventInnerQuery(
         ${eventClause}
         ${eventTypeClause}
         ${messageIdClause}
-      ${orderByClause}
+      ORDER BY processing_time DESC
     `;
   }
 
@@ -553,7 +569,7 @@ function buildUserEventInnerQuery(
       ${journeyIdClause}
       ${eventTypeClause}
       ${messageIdClause}
-    ${orderByClause}
+    ORDER BY processing_time DESC
   `;
 }
 
