@@ -975,6 +975,16 @@ export interface GetEventsByIdParams {
   eventIds: string[];
 }
 
+export async function getEventsCountById({
+  workspaceId,
+  eventIds,
+}: GetEventsByIdParams): Promise<number> {
+  return await findUserEventCount({
+    workspaceId,
+    messageId: eventIds,
+  });
+}
+
 export async function getTrackEventsById({
   workspaceId,
   eventIds,

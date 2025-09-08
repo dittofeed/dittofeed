@@ -10,6 +10,7 @@ import {
   SegmentDefinition,
   SegmentNodeType,
 } from "isomorphic-lib/src/types";
+import pRetry from "p-retry";
 import { v5 as uuidv5, validate as validateUuid } from "uuid";
 
 import { submitBatch } from "../../apps/batch";
@@ -22,6 +23,7 @@ import * as schema from "../../db/schema";
 import logger from "../../logger";
 import { toSegmentResource } from "../../segments";
 import { Segment } from "../../types";
+import { getEventsCountById } from "../../userEvents";
 
 async function computePropertiesForManualSegment({
   workspaceId,
@@ -156,6 +158,38 @@ export async function appendToManualSegment({
       processingTime: now,
     },
   );
+
+  const messageIds = batch.map((item) => item.messageId);
+  const expectedCount = messageIds.length;
+
+  // Wait for events to be processed with exponential retry
+  await pRetry(
+    async () => {
+      const actualCount = await getEventsCountById({
+        workspaceId,
+        eventIds: messageIds,
+      });
+
+      logger().debug(
+        { expectedCount, actualCount, segmentId, workspaceId },
+        "Checking event count for manual segment",
+      );
+
+      if (actualCount < expectedCount) {
+        throw new Error(
+          `Expected ${expectedCount} events, but found ${actualCount}`,
+        );
+      }
+    },
+    // 1s + 2s + 4s + 8s + 16s + 30s + 30s + 30s + 30s + 30s = 181 seconds or ~3 minutes < 5 minute activity timeout
+    {
+      retries: 10,
+      minTimeout: 1000, // 1 second
+      maxTimeout: 30000, // 30 seconds max per retry
+      factor: 2,
+    },
+  );
+
   const segmentResource = toSegmentResource(segment);
   if (segmentResource.isErr()) {
     logger().error(
@@ -164,12 +198,7 @@ export async function appendToManualSegment({
     );
     return false;
   }
-  // FIXME
-  // do exponential retry until events are processed
-  // use event lookup by id
-  // keep retrying until events are processed
-  // use heartbeat to notify workflow still running
-  // set longer activity timeout
+
   await computePropertiesForManualSegment({
     workspaceId,
     segment: segmentResource.value,
