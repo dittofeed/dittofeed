@@ -78,7 +78,7 @@ export function resendEventToDF({
   if (!userId) {
     return err(new Error("Missing userId or anonymousId."));
   }
-  const messageId = uuidv5(email_id, workspaceId);
+  const messageId = uuidv5(`${event}:${email_id}`, workspaceId);
 
   let eventName: InternalEventType;
 

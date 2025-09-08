@@ -144,7 +144,7 @@ export async function submitMailChimpEvents({
         return [];
       }
       // eslint-disable-next-line no-underscore-dangle
-      const messageId = uuidv5(e.msg._id, workspaceId);
+      const messageId = uuidv5(`${e.event}:${e.msg._id}`, workspaceId);
       let event: InternalEventType;
       switch (e.event) {
         case "open":
