@@ -45,7 +45,7 @@ import {
   TrackData,
   UserWorkflowTrackEvent,
 } from "../../types";
-import { getEventsById as gebi, GetEventsByIdParams } from "../../userEvents";
+import { getTrackEventsById as gebi, GetEventsByIdParams } from "../../userEvents";
 import { findAllUserPropertyAssignments } from "../../userProperties";
 import {
   recordNodeProcessed,

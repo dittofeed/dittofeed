@@ -975,7 +975,7 @@ export interface GetEventsByIdParams {
   eventIds: string[];
 }
 
-export async function getEventsById({
+export async function getTrackEventsById({
   workspaceId,
   eventIds,
 }: GetEventsByIdParams): Promise<UserWorkflowTrackEvent[]> {
