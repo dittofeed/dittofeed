@@ -126,7 +126,10 @@ export function sendgridEventToDF({
           ),
         );
       }
-      messageId = uuidv5(sg_message_id, sendgridEvent.workspaceId);
+      messageId = uuidv5(
+        `${event}:${sg_message_id}`,
+        sendgridEvent.workspaceId,
+      );
       break;
     }
   }

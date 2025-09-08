@@ -109,7 +109,7 @@ export function postMarkEventToDF({
     return err(new Error("Missing timestamp or userEmail"));
   }
 
-  const messageId = uuidv5(postMarkEvent.MessageID, workspaceId);
+  const messageId = uuidv5(`${event}:${postMarkEvent.MessageID}`, workspaceId);
 
   let item: BatchTrackData;
   if (userId) {

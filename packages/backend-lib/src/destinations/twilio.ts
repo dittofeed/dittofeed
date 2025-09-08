@@ -4,6 +4,7 @@ import qs from "querystring";
 import { omitBy } from "remeda";
 import TwilioClient from "twilio";
 import RestException from "twilio/lib/base/RestException";
+import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
 import config from "../config";
@@ -146,12 +147,16 @@ export async function submitTwilioEvents({
     return err(new Error("Missing userId."));
   }
 
+  const messageId = uuidv5(
+    `${TwilioEvent.SmsStatus}:${TwilioEvent.MessageSid}`,
+    workspaceId,
+  );
+
   const item = {
     type: EventType.Track,
     event: eventName,
     userId,
-    messageId: TwilioEvent.MessageSid,
-    timestamp: new Date().toISOString(),
+    messageId,
     properties: {
       workspaceId,
       userId,

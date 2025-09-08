@@ -234,7 +234,10 @@ export async function submitAmazonSesEvents(
         );
     }
 
-    const messageId = uuidv5(event.mail.messageId, workspaceId);
+    const messageId = uuidv5(
+      `${event.eventType}:${event.mail.messageId}`,
+      workspaceId,
+    );
     const metadataTags = R.pick(tags, MESSAGE_METADATA_FIELDS);
 
     const items: BatchTrackData[] = [];
