@@ -10,6 +10,9 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 const { appendToManualSegment, clearManualSegment, replaceManualSegment } =
   proxyActivities<typeof activities>({
     startToCloseTimeout: "5 minutes",
+    retry: {
+      maximumAttempts: 5,
+    },
   });
 
 export function generateManualSegmentWorkflowId({
