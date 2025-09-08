@@ -1,7 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
-import { sleep } from "isomorphic-lib/src/time";
 import {
   BatchItem,
   EventType,
@@ -165,6 +164,7 @@ export async function appendToManualSegment({
     );
     return false;
   }
+  // FIXME need to wait for events to be processed before computing properties
   await computePropertiesForManualSegment({
     workspaceId,
     segment: segmentResource.value,
