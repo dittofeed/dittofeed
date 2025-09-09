@@ -366,7 +366,8 @@ function buildUserEventQueryClauses(
           message_id
       )
     `;
-  } else {
+  }
+  if (!messageIdClause.length) {
     orderByClause = "ORDER BY processing_time DESC";
   }
 
