@@ -14,16 +14,17 @@ import pRetry from "p-retry";
 import { v5 as uuidv5, validate as validateUuid } from "uuid";
 
 import { submitBatch } from "../../apps/batch";
-import {
-  computePropertiesIncremental,
-  computePropertiesIncrementalArgs,
-} from "../../computedProperties/computePropertiesWorkflow/activities";
+import { computePropertiesIncremental } from "../../computedProperties/computePropertiesWorkflow/activities";
+import { enqueueRecompute } from "../../computedProperties/computePropertiesWorkflow/lifecycle";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
+import { findAllIntegrationResources } from "../../integrations";
+import { findRunningJourneys, getSubscribedSegments } from "../../journeys";
 import logger from "../../logger";
 import { toSegmentResource } from "../../segments";
 import { Segment } from "../../types";
 import { getEventsCountById } from "../../userEvents";
+import { findAllUserPropertyResources } from "../../userProperties";
 
 async function computePropertiesForManualSegment({
   workspaceId,
@@ -34,15 +35,52 @@ async function computePropertiesForManualSegment({
   segment: SavedSegmentResource;
   now: number;
 }) {
-  const args = await computePropertiesIncrementalArgs({
+  // Enqueue a follow-up full workspace recompute through the queue workflow
+  await enqueueRecompute({
+    items: [{ id: workspaceId }],
+  });
+
+  // Gather dependencies for targeted recompute: subscribed journeys, integrations, and core user properties
+  const [journeys, integrations, userProperties] = await Promise.all([
+    findRunningJourneys({ workspaceId }),
+    findAllIntegrationResources({ workspaceId }),
+    findAllUserPropertyResources({
+      workspaceId,
+      names: ["id", "anonymousId"],
+    }),
+  ]);
+
+  const subscribedJourneys = journeys.filter((j) =>
+    getSubscribedSegments(j.definition).has(segment.id),
+  );
+
+  const subscribedIntegrations = integrations.flatMap((i) => {
+    if (i.isErr()) {
+      logger().error(
+        { err: i.error, workspaceId, segmentId: segment.id },
+        "failed to parse integration for manual segment recompute",
+      );
+      return [];
+    }
+    return i.value.definition.subscribedSegments.includes(segment.id)
+      ? [i.value]
+      : [];
+  });
+
+  // Synchronously recompute only the passed segment (with its dependencies)
+  const args = {
     workspaceId,
-  });
-  args.segments.push(segment);
-  logger().debug(args, "recomputing properties for manual segment");
-  await computePropertiesIncremental({
-    ...args,
+    segments: [segment],
+    userProperties,
+    journeys: subscribedJourneys,
+    integrations: subscribedIntegrations,
     now,
-  });
+  };
+  logger().info(
+    { workspaceId, segmentId: segment.id },
+    "recomputing properties for manual segment (targeted)",
+  );
+  await computePropertiesIncremental(args);
 }
 
 function getManualSegmentDefinition(
