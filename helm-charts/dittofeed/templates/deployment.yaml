@@ -59,8 +59,19 @@ spec:
           env: # Add this section to define environment variables
             - name: NODE_ENV
               value: "production"
+            {{- /* Detect if user provided AUTH_MODE in .Values.env */}}
+            {{- $authOverride := dict "present" false -}}
+            {{- if .Values.env -}}
+            {{- range .Values.env -}}
+            {{- if eq .name "AUTH_MODE" -}}
+            {{- $_ := set $authOverride "present" true -}}
+            {{- end -}}
+            {{- end -}}
+            {{- end -}}
+            {{- if not $authOverride.present }}
             - name: AUTH_MODE
-              value: "single-tenant"
+              value: "{{ if .Values.ee.enabled }}multi-tenant{{ else }}single-tenant{{ end }}"
+            {{- end }}
             - name: DASHBOARD_API_BASE
               value: ""
             {{- if .Values.separateWorker.enabled }}

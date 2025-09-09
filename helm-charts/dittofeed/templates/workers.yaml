@@ -48,8 +48,19 @@ spec:
           env:
             - name: NODE_ENV
               value: "production"
+            {{- /* Detect if user provided AUTH_MODE in values.env */}}
+            {{- $authOverride := dict "present" false -}}
+            {{- if $root.Values.env -}}
+            {{- range $root.Values.env -}}
+            {{- if eq .name "AUTH_MODE" -}}
+            {{- $_ := set $authOverride "present" true -}}
+            {{- end -}}
+            {{- end -}}
+            {{- end -}}
+            {{- if not $authOverride.present }}
             - name: AUTH_MODE
-              value: "single-tenant"
+              value: "{{ if $root.Values.ee.enabled }}multi-tenant{{ else }}single-tenant{{ end }}"
+            {{- end }}
             - name: DASHBOARD_API_BASE
               value: ""
             - name: TASK_QUEUE
@@ -86,5 +97,3 @@ spec:
 {{- include "dittofeed.renderWorker" (dict "root" $root "name" "workspace" "vals" $root.Values.separateWorker.workspace) }}
 {{- include "dittofeed.renderWorker" (dict "root" $root "name" "global" "vals" $root.Values.separateWorker.global) }}
 {{- end }}
-
-
