@@ -1,7 +1,7 @@
 import * as R from "remeda";
 
 import config from "../config";
-import { BatchAppData, EventType } from "../types";
+import { BatchAppData, EventType, WriteMode } from "../types";
 import { InsertUserEvent, insertUserEvents } from "../userEvents";
 import { splitGroupEvents } from "./group";
 
@@ -69,24 +69,31 @@ export async function submitBatchChunk(
   { workspaceId, data }: SubmitBatchOptions,
   {
     processingTime,
+    writeModeOverride,
   }: {
     processingTime?: number;
+    writeModeOverride?: WriteMode;
   } = {},
 ) {
   const userEvents = buildBatchUserEvents(data, { processingTime });
 
-  await insertUserEvents({
-    workspaceId,
-    userEvents,
-  });
+  await insertUserEvents(
+    {
+      workspaceId,
+      userEvents,
+    },
+    { writeModeOverride },
+  );
 }
 
 export async function submitBatch(
   { workspaceId, data }: SubmitBatchOptions,
   {
     processingTime,
+    writeModeOverride,
   }: {
     processingTime?: number;
+    writeModeOverride?: WriteMode;
   } = {},
 ) {
   const { batchChunkSize } = config();
@@ -97,7 +104,7 @@ export async function submitBatch(
       const chunkData = { ...data, batch: chunk };
       return submitBatchChunk(
         { workspaceId, data: chunkData },
-        { processingTime },
+        { processingTime, writeModeOverride },
       );
     }),
   );

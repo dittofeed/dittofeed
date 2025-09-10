@@ -28,6 +28,7 @@ import {
   JSONValue,
   UserEvent,
   UserWorkflowTrackEvent,
+  WriteMode,
 } from "./types";
 
 export interface InsertUserEvent {
@@ -86,12 +87,11 @@ async function insertUserEventsDirect({
   });
 }
 
-export async function insertUserEvents({
-  workspaceId,
-  userEvents,
-  events,
-}: InsertUserEventsParams): Promise<void> {
-  const { userEventsTopicName, writeMode } = config();
+export async function insertUserEvents(
+  { workspaceId, userEvents, events }: InsertUserEventsParams,
+  options?: { writeModeOverride?: WriteMode },
+): Promise<void> {
+  const { userEventsTopicName } = config();
   const userEventsWithDefault: InsertUserEventInternal[] = arrayDefault(
     userEvents,
     events,
@@ -103,7 +103,9 @@ export async function insertUserEvents({
         : JSON.stringify(e.messageRaw),
   }));
 
-  switch (writeMode) {
+  const effectiveWriteMode = options?.writeModeOverride ?? config().writeMode;
+
+  switch (effectiveWriteMode) {
     // TODO migrate over to new table structure
     case "kafka": {
       await (
