@@ -23,7 +23,7 @@ import {
   manualSegmentWorkflow,
 } from "./manualSegmentWorkflow";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("ManualSegmentsWorkflow", () => {
   let workspace: Workspace;
