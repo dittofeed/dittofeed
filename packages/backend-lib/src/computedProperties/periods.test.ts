@@ -332,6 +332,51 @@ describe("periods", () => {
       expect(dueWorkspace?.min?.getTime()).toBeCloseTo(dueTime);
     });
 
+    it("when there are multiple periods for a single computed property", async () => {
+      // Interval shorter than retention window used by createPeriods (5 minutes)
+      const interval = 1000 * 60 * 2; // 2 minutes
+
+      // Create an older period within retention (4 minutes ago)
+      const oldTime = now - 1000 * 60 * 4;
+      await createPeriods({
+        workspaceId: workspace.id,
+        segments: [segment1],
+        userProperties: [],
+        now: oldTime,
+        step: ComputedPropertyStepEnum.ComputeAssignments,
+      });
+
+      // Create a fresh, recent period (30 seconds ago)
+      const recentTime = now - 1000 * 30;
+      const periodsById = await getPeriodsByComputedPropertyId({
+        workspaceId: workspace.id,
+        step: ComputedPropertyStepEnum.ComputeAssignments,
+      });
+      await createPeriods({
+        workspaceId: workspace.id,
+        segments: [segment1],
+        userProperties: [],
+        now: recentTime,
+        periodByComputedPropertyId: periodsById,
+        step: ComputedPropertyStepEnum.ComputeAssignments,
+      });
+
+      // With correct due logic (min of per-property max(to)), this workspace should NOT be due
+      // because the latest period is recent (within interval).
+      // The current implementation uses MIN over raw rows, so it will treat the workspace as due
+      // due to the older row within retention.
+      const dueWorkspaces = await findDueWorkspaceMinTos({
+        now,
+        interval,
+        limit: 5000,
+      });
+
+      const dueWorkspace = dueWorkspaces.find(
+        (w) => w.workspaceId === workspace.id,
+      );
+      expect(dueWorkspace).toBeUndefined();
+    });
+
     it("should return workspaces with properties that have never been computed (cold start)", async () => {
       const interval = 1000 * 60; // 1 minute
 
