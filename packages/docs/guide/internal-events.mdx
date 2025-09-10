@@ -1,0 +1,48 @@
+---
+title: "Internal Events"
+description: "System-generated events emitted by Dittofeed for bookkeeping, message status, and orchestration."
+---
+
+Dittofeed emits internal events on your behalf to power analytics, journey logic, and status tracking. These are stored in the event stream just like user-submitted events and can be used in segments and journeys.
+
+Status events include email and SMS outcomes like delivered, opened, clicked, bounced, spam, and failures. These typically originate from provider webhooks (e.g., SendGrid, Postmark, Twilio).
+
+Below is a reference of the internal event types and their purpose.
+
+## Event Types
+
+- `DFInternalMessageSent` — Recorded when a message send succeeds (email, SMS, webhook, mobile push). Includes channel-specific info and message tags (e.g., `workspaceId`, `journeyId`, `nodeId`, `templateId`, `messageId`, `userId`, `channel`). Webhook requests omit values provided via `secret` to avoid storing sensitive data.
+- `DFBadWorkspaceConfiguration` — Emitted when misconfiguration prevents sending or processing (e.g., missing/invalid provider credentials, template errors, invalid message definition, missing provider).
+- `DFMessageFailure` — Non-retryable send failures (e.g., authorization errors, invalid configuration at provider, definitive 4xx responses). Transient/retryable issues (e.g., brief network errors/timeouts, throttling, 5xx) are retried rather than emitting a failure event.
+- `DFMessageSkipped` — Message was intentionally not sent due to business rules. Variants include:
+  - MissingIdentifier: required identifier (e.g., email or phone) not present.
+  - SubscriptionState: user’s subscription state disallows sending (Opt-in/Opt-out semantics).
+- `DFSegmentBroadcast` — Emitted to users included in a Broadcast. Useful for building segments like “performed SegmentBroadcast for segment X”. Properties include `segmentId`.
+- `DFSubscriptionChange` — Emitted when a user’s subscription group state changes. Properties: `subscriptionId`, `action` (Subscribe | Unsubscribe).
+- `DFEmailDropped` — Email was dropped by the provider (e.g., suppression, invalid address). Originates from email provider webhooks.
+- `DFEmailDelivered` — Email delivered to the recipient’s server (provider webhook).
+- `DFEmailOpened` — Email open tracked by the provider (provider webhook).
+- `DFEmailProcessed` — Email accepted for processing by the provider (pre-delivery status; provider webhook).
+- `DFEmailClicked` — Email link click tracked by the provider (provider webhook).
+- `DFEmailBounced` — Email bounced (provider webhook).
+- `DFEmailMarkedSpam` — Recipient reported email as spam (provider webhook).
+- `DFSmsDelivered` — SMS delivered (provider webhook).
+- `DFSmsFailed` — SMS send failed (provider webhook).
+- `DFJourneyNodeProcessed` — A journey node executed for a user. Properties include `journeyId`, `nodeId`, `type` (node type), and `eventKey`.
+- `DFManualSegmentUpdate` — A manual segment’s membership changed. Properties: `segmentId`, `version`, `inSegment` (0 or 1).
+- `DFAttachedFiles` — Files attached to an event were persisted to blob storage and referenced in properties. Value is a map of file name to blob storage metadata.
+- `DFUserTrackSignal` — Internal signal for track-based coordination. Reserved for system workflows.
+- `DFGroupUserAssignment` — A group received/removed a user. Properties: `userId`, `assigned` (true/false). Emitted when handling group events.
+- `DFUserGroupAssignment` — A user was assigned/removed from a group. Properties: `groupId`, `assigned` (true/false). Emitted when handling group events.
+- `DFJourneyEarlyExit` — Journey execution ended early (e.g., journey not running, max retries reached). Properties include a human-readable `message`.
+
+## Notes
+
+- Status events used for delivery analytics include: `DFEmailDropped`, `DFEmailDelivered`, `DFEmailOpened`, `DFEmailClicked`, `DFEmailBounced`, `DFEmailMarkedSpam`, `DFSmsDelivered`, `DFSmsFailed`.
+- Internal events appear as `track` events and can be filtered in segments just like user events.
+- Message-related internal events also carry message tags that enable attribution within analytics and journeys.
+
+## Retries
+
+- Providers may signal retryability. For example, Amazon SES marks retryable errors with `$retryable = true`; these are retried and do not emit `DFMessageFailure`.
+- After exhausting retries in journey execution, the system may emit `DFJourneyEarlyExit` with a message indicating the retry exhaustion rather than a failure event.
