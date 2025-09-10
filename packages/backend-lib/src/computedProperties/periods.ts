@@ -258,6 +258,9 @@ export async function createPeriods({
     return;
   }
 
+  const insertedComputedPropertyIds = newPeriods.map(
+    (p) => p.computedPropertyId,
+  );
   await db().transaction(async (tx) => {
     await tx
       .insert(dbComputedPropertyPeriod)
@@ -270,6 +273,10 @@ export async function createPeriods({
         and(
           eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
           eq(dbComputedPropertyPeriod.step, step),
+          inArray(
+            dbComputedPropertyPeriod.computedPropertyId,
+            insertedComputedPropertyIds,
+          ),
           lt(dbComputedPropertyPeriod.to, new Date(now - 60 * 1000 * 5)),
         ),
       );
