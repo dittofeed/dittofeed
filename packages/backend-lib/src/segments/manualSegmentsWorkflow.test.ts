@@ -5,6 +5,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
 
 import { createEnvAndWorker } from "../../test/temporal";
+import { startQueueWorkflow } from "../computedProperties/computePropertiesWorkflow/lifecycle";
 import { insert } from "../db";
 import * as schema from "../db/schema";
 import {
@@ -40,6 +41,8 @@ describe("ManualSegmentsWorkflow", () => {
     const envAndWorker = await createEnvAndWorker();
     testEnv = envAndWorker.testEnv;
     worker = envAndWorker.worker;
+    // Ensure the compute-properties queue workflow is running so enqueueRecompute signals succeed
+    await startQueueWorkflow({ client: testEnv.client.workflow });
   });
 
   afterEach(async () => {
