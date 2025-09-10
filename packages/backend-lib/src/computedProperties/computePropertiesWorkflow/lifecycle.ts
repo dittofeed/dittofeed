@@ -408,3 +408,19 @@ export async function resetComputePropertiesWorkflows({
   );
   logger().info("Done.");
 }
+
+// Terminates deprecated per-workspace compute property workflows across all workspaces.
+// This follows the same termination pattern used elsewhere: construct workflow ID from
+// workspace ID and attempt termination, ignoring not-found errors.
+export async function terminateWorkspaceRecomputeWorkflows() {
+  const workspaces = await db().query.workspace.findMany();
+  await Promise.all(
+    workspaces.map(async (workspace) => {
+      await terminateComputePropertiesWorkflow({ workspaceId: workspace.id });
+      logger().info(
+        { workspaceId: workspace.id, workspaceName: workspace.name },
+        "Attempted terminate of deprecated compute properties workflow",
+      );
+    }),
+  );
+}

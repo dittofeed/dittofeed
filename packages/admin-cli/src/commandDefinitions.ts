@@ -22,6 +22,7 @@ import {
   stopComputePropertiesWorkflow,
   stopComputePropertiesWorkflowGlobal,
   terminateComputePropertiesWorkflow,
+  terminateWorkspaceRecomputeWorkflows,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
 import {
   findDueWorkspaceMaxTos,
@@ -303,6 +304,15 @@ export function createCommands(yargs: Argv): Argv {
             );
           }),
         );
+        logger().info("Done.");
+      },
+    )
+    .command(
+      "terminate-workspace-recompute-workflows",
+      "Terminates deprecated per-workspace computed property workflows by iterating all workspaces.",
+      (y) => y,
+      async () => {
+        await terminateWorkspaceRecomputeWorkflows();
         logger().info("Done.");
       },
     )
@@ -679,8 +689,7 @@ export function createCommands(yargs: Argv): Argv {
             type: "boolean",
             alias: "d",
             default: false,
-            describe:
-              "Only log the insert queries without executing them",
+            describe: "Only log the insert queries without executing them",
           },
         }),
       async ({
