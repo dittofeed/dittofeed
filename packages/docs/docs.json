@@ -187,6 +187,7 @@
             "group": "User Guides",
             "pages": [
               "guide/submitting-user-events",
+              "guide/internal-events",
               "guide/roadmap",
               "guide/faq",
               "guide/creating-journeys",
