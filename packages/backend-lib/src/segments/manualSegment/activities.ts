@@ -194,9 +194,39 @@ export async function appendToManualSegment({
     },
     {
       processingTime: now,
+      // Ensure producer-side processing_time is respected by forcing ch-sync
+      writeModeOverride: "ch-sync",
     },
   );
-
+  // Ensure these events are visible before computing assignments
+  {
+    const messageIds = batch.map((item) => item.messageId);
+    const expectedCount = messageIds.length;
+    await pRetry(
+      async () => {
+        const actualCount = await getEventsCountById({
+          workspaceId,
+          eventIds: messageIds,
+        });
+        logger().debug(
+          { expectedCount, actualCount, segmentId, workspaceId },
+          "Checking event count for manual segment",
+        );
+        if (actualCount < expectedCount) {
+          throw new Error(
+            `Expected ${expectedCount} events, but found ${actualCount}`,
+          );
+        }
+      },
+      {
+        retries: 10,
+        minTimeout: 1000,
+        maxTimeout: 30000,
+        factor: 2,
+      },
+    );
+  }
+  // Ensure these events are visible before computing assignments
   const messageIds = batch.map((item) => item.messageId);
   const expectedCount = messageIds.length;
 
