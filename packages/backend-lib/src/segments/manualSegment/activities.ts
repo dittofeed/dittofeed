@@ -350,6 +350,8 @@ export async function replaceManualSegment({
     },
     {
       processingTime: now,
+      // Ensure producer-side processing_time is respected by forcing ch-sync
+      writeModeOverride: "ch-sync",
     },
   );
   const segmentResource = toSegmentResource(updated);
