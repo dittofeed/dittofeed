@@ -26,6 +26,43 @@ import { Segment } from "../../types";
 import { getEventsCountById } from "../../userEvents";
 import { findAllUserPropertyResources } from "../../userProperties";
 
+async function waitForEventAvailability({
+  workspaceId,
+  segmentId,
+  messageIds,
+}: {
+  workspaceId: string;
+  segmentId: string;
+  messageIds: string[];
+}) {
+  const expectedCount = messageIds.length;
+  // Wait for events to be processed with exponential retry
+  await pRetry(
+    async () => {
+      const actualCount = await getEventsCountById({
+        workspaceId,
+        eventIds: messageIds,
+      });
+      logger().debug(
+        { expectedCount, actualCount, segmentId, workspaceId },
+        "Checking event count for manual segment",
+      );
+      if (actualCount < expectedCount) {
+        throw new Error(
+          `Expected ${expectedCount} events, but found ${actualCount}`,
+        );
+      }
+    },
+    // 1s + 2s + 4s + 8s + 16s + 30s + 30s + 30s + 30s + 30s = 181 seconds or ~3 minutes < 5 minute activity timeout
+    {
+      retries: 10,
+      minTimeout: 1000, // 1 second
+      maxTimeout: 30000, // 30 seconds max per retry
+      factor: 2,
+    },
+  );
+}
+
 async function computePropertiesForManualSegment({
   workspaceId,
   segment,
@@ -198,66 +235,11 @@ export async function appendToManualSegment({
       writeModeOverride: "ch-sync",
     },
   );
-  // Ensure these events are visible before computing assignments
-  {
-    const messageIds = batch.map((item) => item.messageId);
-    const expectedCount = messageIds.length;
-    await pRetry(
-      async () => {
-        const actualCount = await getEventsCountById({
-          workspaceId,
-          eventIds: messageIds,
-        });
-        logger().debug(
-          { expectedCount, actualCount, segmentId, workspaceId },
-          "Checking event count for manual segment",
-        );
-        if (actualCount < expectedCount) {
-          throw new Error(
-            `Expected ${expectedCount} events, but found ${actualCount}`,
-          );
-        }
-      },
-      {
-        retries: 10,
-        minTimeout: 1000,
-        maxTimeout: 30000,
-        factor: 2,
-      },
-    );
-  }
-  // Ensure these events are visible before computing assignments
-  const messageIds = batch.map((item) => item.messageId);
-  const expectedCount = messageIds.length;
-
-  // Wait for events to be processed with exponential retry
-  await pRetry(
-    async () => {
-      const actualCount = await getEventsCountById({
-        workspaceId,
-        eventIds: messageIds,
-      });
-
-      logger().debug(
-        { expectedCount, actualCount, segmentId, workspaceId },
-        "Checking event count for manual segment",
-      );
-
-      if (actualCount < expectedCount) {
-        throw new Error(
-          `Expected ${expectedCount} events, but found ${actualCount}`,
-        );
-      }
-    },
-    // 1s + 2s + 4s + 8s + 16s + 30s + 30s + 30s + 30s + 30s = 181 seconds or ~3 minutes < 5 minute activity timeout
-    {
-      retries: 10,
-      minTimeout: 1000, // 1 second
-      maxTimeout: 30000, // 30 seconds max per retry
-      factor: 2,
-    },
-  );
-
+  await waitForEventAvailability({
+    workspaceId,
+    segmentId,
+    messageIds: batch.map((b) => b.messageId),
+  });
   const segmentResource = toSegmentResource(segment);
   if (segmentResource.isErr()) {
     logger().error(
@@ -266,7 +248,6 @@ export async function appendToManualSegment({
     );
     return false;
   }
-
   await computePropertiesForManualSegment({
     workspaceId,
     segment: segmentResource.value,
@@ -384,6 +365,11 @@ export async function replaceManualSegment({
       writeModeOverride: "ch-sync",
     },
   );
+  await waitForEventAvailability({
+    workspaceId,
+    segmentId,
+    messageIds: batch.map((b) => b.messageId),
+  });
   const segmentResource = toSegmentResource(updated);
   if (segmentResource.isErr()) {
     logger().error(
