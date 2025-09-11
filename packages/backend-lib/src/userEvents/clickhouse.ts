@@ -495,9 +495,20 @@ export async function createKafkaTables({
     // TODO: add server_time column
     `
       CREATE TABLE IF NOT EXISTS user_events_queue_v2
-      (message_raw String, workspace_id String, message_id String)
-      ENGINE = Kafka('${kafkaBrokers}', '${ingressTopic}', '${ingressTopic}-clickhouse',
-                'JSONEachRow') settings${kafkaSettings};
+      (
+        message_raw String,
+        workspace_id String,
+        message_id String,
+        processing_time DateTime64(3) DEFAULT now64(3),
+        server_time DateTime64(3)
+      )
+      ENGINE = Kafka(
+        '${kafkaBrokers}',
+        '${ingressTopic}',
+        '${ingressTopic}-clickhouse',
+        'JSONEachRow'
+      )
+      SETTINGS${kafkaSettings};
     `,
     // Materialized view to move data from Kafka queue to main table
     `
