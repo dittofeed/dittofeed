@@ -47,7 +47,13 @@ export interface EditableNameProps {
 const customSchema = new Schema({
   nodes: basicSchema.spec.nodes.update("paragraph", {
     ...basicSchema.spec.nodes.get("paragraph"),
-    toDOM: () => ["p", { class: styles.textNode }, 0],
+    // Add inline style so we can control line-height via a CSS variable
+    // without DOM mutation. Default remains 1.7 for non-single-line mode.
+    toDOM: () => [
+      "p",
+      { class: styles.textNode, style: "margin:0; line-height: var(--pm-title-lh, 1.7)" },
+      0,
+    ],
   }),
   marks: basicSchema.spec.marks,
 });
@@ -307,17 +313,14 @@ const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
             "aria-multiline": "false",
             "aria-label": "name",
             translate: "no",
-            class: styles.editor!, // Keep "!"
-            style:
-              variant === "singleLine"
-                ? {
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    display: "inline-block",
-                    maxWidth: "100%",
-                  }
-                : undefined,
+            class: styles.editor!,
+            // ProseMirror's attributes expect strings; apply inline CSS as a string.
+            ...(variant === "singleLine"
+              ? {
+                  style:
+                    "white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; max-width: 100%; vertical-align: middle; --pm-title-lh: 1.25;",
+                }
+              : {}),
           }}
         >
           <ProseMirrorDoc />

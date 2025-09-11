@@ -1357,6 +1357,8 @@ export default function TemplateEditor({
             <ReactCodeMirror
               value={userPropertiesJSON}
               height="100%"
+              // Hide line numbers to save horizontal space
+              basicSetup={{ lineNumbers: false }}
               onChange={(json) =>
                 setState((draft) => {
                   if (!draft.editedTemplate) {

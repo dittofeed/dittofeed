@@ -454,7 +454,6 @@ export default function BroadcastLayout({
                   whiteSpace: "nowrap",
                   flex: 1,
                 }}
-                // @ts-expect-error custom prop on EditableTitle component
                 variant="singleLine"
               />
             )}
