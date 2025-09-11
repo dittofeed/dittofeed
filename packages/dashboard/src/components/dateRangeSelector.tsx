@@ -39,22 +39,23 @@ export const TimeOptionId = {
 
 export type TimeOptionId = (typeof TimeOptionId)[keyof typeof TimeOptionId];
 
-interface MinuteTimeOption {
+// Internal default option types
+interface MinuteTimeOptionDefault {
   type: "minutes";
   id: TimeOptionId;
   minutes: number;
   label: string;
 }
 
-interface CustomTimeOption {
+interface CustomTimeOptionDefault {
   type: "custom";
   id: typeof TimeOptionId.Custom;
   label: string;
 }
 
-type TimeOption = MinuteTimeOption | CustomTimeOption;
+type TimeOptionDefault = MinuteTimeOptionDefault | CustomTimeOptionDefault;
 
-const timeOptions: TimeOption[] = [
+const defaultTimeOptions: TimeOptionDefault[] = [
   {
     type: "minutes",
     id: TimeOptionId.LastHour,
@@ -91,7 +92,8 @@ const timeOptions: TimeOption[] = [
 export interface DateRangeValue {
   startDate: Date;
   endDate: Date;
-  selectedTimeOption: TimeOptionId;
+  // Allow arbitrary option ids so callers can override time options
+  selectedTimeOption: string;
 }
 
 export interface DateRangeSelectorProps {
@@ -99,6 +101,11 @@ export interface DateRangeSelectorProps {
   onChange: (value: DateRangeValue) => void;
   referenceDate?: Date;
   sx?: SxProps<Theme>;
+  // Optional full override for time options (must include a custom option if desired)
+  timeOptions?: (
+    | { type: "minutes"; id: string; minutes: number; label: string }
+    | { type: "custom"; id: "custom"; label: string }
+  )[];
 }
 
 function formatDate(date: Date) {
@@ -120,6 +127,7 @@ export function DateRangeSelector({
   onChange,
   referenceDate = new Date(),
   sx,
+  timeOptions,
 }: DateRangeSelectorProps) {
   const customDateRef = useRef<HTMLInputElement | null>(null);
   const [customDateRange, setCustomDateRange] = useState<{
@@ -127,6 +135,9 @@ export function DateRangeSelector({
     end: CalendarDate;
   } | null>(null);
   const [selectOpen, setSelectOpen] = useState(false);
+
+  // Use provided options if given; otherwise the default set
+  const options = timeOptions ?? defaultTimeOptions;
 
   const customOnClickHandler = useCallback(() => {
     if (value.selectedTimeOption === "custom") {
@@ -138,7 +149,7 @@ export function DateRangeSelector({
   }, [value.selectedTimeOption, referenceDate]);
 
   const handleTimeOptionChange = useCallback(
-    (selectedOption: TimeOptionId) => {
+    (selectedOption: string) => {
       if (selectedOption === "custom") {
         const dayBefore = subDays(referenceDate, 1);
         setCustomDateRange({
@@ -148,7 +159,7 @@ export function DateRangeSelector({
         return;
       }
 
-      const option = timeOptions.find((o) => o.id === selectedOption);
+      const option = options.find((o) => o.id === selectedOption);
       if (option === undefined || option.type !== "minutes") {
         return;
       }
@@ -162,7 +173,7 @@ export function DateRangeSelector({
         selectedTimeOption: option.id,
       });
     },
-    [onChange, referenceDate],
+    [onChange, referenceDate, options],
   );
 
   const handleCustomDateApply = useCallback(() => {
@@ -208,7 +219,7 @@ export function DateRangeSelector({
           onOpen={handleSelectOpen}
           onClose={handleSelectClose}
           renderValue={(selectedValue) => {
-            const option = timeOptions.find((o) => o.id === selectedValue);
+            const option = options.find((o) => o.id === selectedValue);
             if (option?.type === "custom") {
               return `${formatDate(value.startDate)} - ${formatDate(value.endDate)}`;
             }
@@ -236,12 +247,10 @@ export function DateRangeSelector({
             },
           }}
           sx={greySelectStyles}
-          onChange={(e) =>
-            handleTimeOptionChange(e.target.value as TimeOptionId)
-          }
+          onChange={(e) => handleTimeOptionChange(e.target.value as string)}
           size="small"
         >
-          {timeOptions.map((option) => (
+          {options.map((option) => (
             <MenuItem
               key={option.id}
               value={option.id}

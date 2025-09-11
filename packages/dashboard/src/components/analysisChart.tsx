@@ -1,21 +1,17 @@
-import { CalendarDate } from "@internationalized/date";
 import { Refresh as RefreshIcon } from "@mui/icons-material";
 import {
   Box,
   Divider,
-  FormControl,
   FormControlLabel,
   IconButton,
-  MenuItem,
   Paper,
-  Select,
   Stack,
   Switch,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { keepPreviousData } from "@tanstack/react-query";
-import { subDays, subMinutes } from "date-fns";
+import { subMinutes } from "date-fns";
 import {
   ChannelType,
   ChartDataPoint,
@@ -24,7 +20,7 @@ import {
   SortDirection,
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import {
   Legend,
   LegendPayload,
@@ -38,7 +34,6 @@ import {
 import { useImmer } from "use-immer";
 
 import { expandCascadingMessageFilters } from "../lib/cascadingMessageFilters";
-import { toCalendarDate } from "../lib/dates";
 import { useAnalysisChartQuery } from "../lib/useAnalysisChartQuery";
 import { useResourcesQuery } from "../lib/useResourcesQuery";
 import {
@@ -53,29 +48,18 @@ import {
   GroupByOption,
 } from "./analysisChart/analysisChartGroupBy";
 import { AnalysisSummaryPanel } from "./analysisChart/analysisSummaryPanel";
+import { DateRangeSelector } from "./dateRangeSelector";
 import {
   DeliveriesBody,
   useDeliveryBodyState,
 } from "./deliveriesTableV2/deliveriesBody";
 import { DeliveriesDownloadButton } from "./deliveriesTableV2/deliveriesDownloadButton";
 import { DeliveriesSortButton } from "./deliveriesTableV2/deliveriesSortButton";
-import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
 import { SharedFilterContainer } from "./shared/filterStyles";
 
-interface MinuteTimeOption {
-  type: "minutes";
-  id: string;
-  minutes: number;
-  label: string;
-}
-
-interface CustomTimeOption {
-  type: "custom";
-  id: "custom";
-  label: string;
-}
-
-type TimeOption = MinuteTimeOption | CustomTimeOption;
+type TimeOption =
+  | { type: "minutes"; id: string; minutes: number; label: string }
+  | { type: "custom"; id: "custom"; label: string };
 
 const defaultTimeOption = {
   type: "minutes",
@@ -122,13 +106,7 @@ const timeOptions: TimeOption[] = [
   { type: "custom", id: "custom", label: "Custom Date Range" },
 ];
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
+// Date label rendering is handled by DateRangeSelector
 
 function formatTimestampForGranularity(timestamp: string, granularity: string) {
   const date = new Date(timestamp);
@@ -170,10 +148,6 @@ function formatTimestampForGranularity(timestamp: string, granularity: string) {
 interface State {
   selectedTimeOption: string;
   referenceDate: Date;
-  customDateRange: {
-    start: CalendarDate;
-    end: CalendarDate;
-  } | null;
   dateRange: {
     startDate: string;
     endDate: string;
@@ -281,7 +255,6 @@ export function AnalysisChart() {
   const [state, setState] = useImmer<State>({
     selectedTimeOption: defaultTimeOptionId,
     referenceDate: new Date(initialEndDate),
-    customDateRange: null,
     dateRange: {
       startDate: new Date(initialStartDate).toISOString(),
       endDate: new Date(initialEndDate).toISOString(),
@@ -366,19 +339,6 @@ export function AnalysisChart() {
       staleTime: 5 * 60 * 1000, // 5 minutes
     },
   );
-
-  const customDateRef = useRef<HTMLInputElement | null>(null);
-
-  const customOnClickHandler = useCallback(() => {
-    setState((draft) => {
-      if (draft.selectedTimeOption === "custom") {
-        draft.customDateRange = {
-          start: toCalendarDate(draft.referenceDate),
-          end: toCalendarDate(draft.referenceDate),
-        };
-      }
-    });
-  }, [setState]);
 
   const onRefresh = useCallback(() => {
     setState((draft) => {
@@ -629,70 +589,23 @@ export function AnalysisChart() {
               flex={1}
               sx={{ height: "100%" }}
             >
-              <FormControl size="small">
-                <Select
-                  value={state.selectedTimeOption}
-                  renderValue={(value) => {
-                    const option = timeOptions.find((o) => o.id === value);
-                    if (option?.type === "custom") {
-                      return `${formatDate(new Date(state.dateRange.startDate))} - ${formatDate(new Date(state.dateRange.endDate))}`;
-                    }
-                    return option?.label;
-                  }}
-                  ref={customDateRef}
-                  MenuProps={{
-                    anchorOrigin: {
-                      vertical: "bottom",
-                      horizontal: "left",
-                    },
-                    transformOrigin: {
-                      vertical: "top",
-                      horizontal: "left",
-                    },
-                    sx: greyMenuItemStyles,
-                  }}
-                  sx={greySelectStyles}
-                  onChange={(e) =>
-                    setState((draft) => {
-                      if (e.target.value === "custom") {
-                        const dayBefore = subDays(draft.referenceDate, 1);
-                        draft.customDateRange = {
-                          start: toCalendarDate(dayBefore),
-                          end: toCalendarDate(draft.referenceDate),
-                        };
-                        return;
-                      }
-                      const option = timeOptions.find(
-                        (o) => o.id === e.target.value,
-                      );
-                      if (option === undefined || option.type !== "minutes") {
-                        return;
-                      }
-                      draft.selectedTimeOption = option.id;
-                      const endDate = draft.referenceDate;
-                      const startDate = subMinutes(endDate, option.minutes);
-                      draft.dateRange = {
-                        startDate: startDate.toISOString(),
-                        endDate: endDate.toISOString(),
-                      };
-                    })
-                  }
-                >
-                  {timeOptions.map((option) => (
-                    <MenuItem
-                      key={option.id}
-                      value={option.id}
-                      onClick={
-                        option.id === "custom"
-                          ? customOnClickHandler
-                          : undefined
-                      }
-                    >
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <DateRangeSelector
+                value={{
+                  startDate: new Date(state.dateRange.startDate),
+                  endDate: new Date(state.dateRange.endDate),
+                  selectedTimeOption: state.selectedTimeOption,
+                }}
+                referenceDate={state.referenceDate}
+                timeOptions={timeOptions}
+                onChange={(newValue) =>
+                  setState((draft) => {
+                    draft.selectedTimeOption = newValue.selectedTimeOption;
+                    draft.dateRange.startDate =
+                      newValue.startDate.toISOString();
+                    draft.dateRange.endDate = newValue.endDate.toISOString();
+                  })
+                }
+              />
 
               {/* Filters */}
               <SharedFilterContainer>
@@ -779,7 +692,7 @@ export function AnalysisChart() {
             </Stack>
           </Stack>
 
-          {/* Custom date range popover would go here (similar to userEventsTable) */}
+          {/* Date range selection handled by DateRangeSelector */}
 
           {/* Chart */}
           <Paper sx={{ flex: 1, width: "100%", p: 1 }}>
