@@ -78,6 +78,20 @@ jobs:
           - 9000:9000
           - 9009:9009
 
+      kafka:
+        # Redpanda (Kafka-compatible) service for backend tests
+        image: ${{ ( inputs.is_backend == 'true' && inputs.run_tests == 'true' ) && 'redpandadata/redpanda:v23.1.1' || '' }}
+        ports:
+          - 9092:9092
+          - 18081:18081
+          - 18082:18082
+          - 19644:9644
+        options: >-
+          --health-cmd "rpk cluster info --brokers localhost:9092 || exit 1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 60
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -93,6 +107,20 @@ jobs:
 
       - name: Emailo Build
         run: yarn workspace emailo build
+
+      - name: Setup Redpanda (ACL and superusers)
+        if: ${{ inputs.is_backend == 'true' && inputs.run_tests == 'true' }}
+        run: |
+          set -euxo pipefail
+          # Wait for Redpanda to be ready
+          timeout 90 bash -c 'until docker run --network host --rm redpandadata/redpanda:v23.1.1 rpk cluster info --brokers localhost:9092; do sleep 2; done'
+
+          # Create admin user and set superusers (modeled after docker-compose kafka-setup)
+          docker run --network host --rm redpandadata/redpanda:v23.1.1 \
+            rpk acl user create admin --password password --mechanism SCRAM-SHA-256 --brokers localhost:9092 --api-urls http://localhost:19644 || true
+
+          docker run --network host --rm redpandadata/redpanda:v23.1.1 \
+            rpk cluster config set superusers '["admin"]' --brokers localhost:9092 --api-urls http://localhost:19644 || true
 
       - name: Build Package
         run: yarn workspace ${{ inputs.package-name }} check
