@@ -6,13 +6,14 @@ import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { LoadingButton } from "@mui/lab";
-import { SxProps, Theme, Typography } from "@mui/material";
+import { SxProps, Theme, Typography, useMediaQuery, useTheme } from "@mui/material";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
+import MobileStepper from "@mui/material/MobileStepper";
 import { BroadcastStepKey, CompletionStatus } from "isomorphic-lib/src/types";
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -220,10 +221,13 @@ function StatusButton({ broadcastId }: { broadcastId: string }) {
       onClick={handleClick}
       disabled={isDisabled}
       loading={isLoading}
+      size="small"
       startIcon={getIcon()}
       sx={{
         ...greyButtonStyle,
         textTransform: "none",
+        whiteSpace: "nowrap",
+        px: 1,
       }}
     >
       {getButtonText()}
@@ -237,6 +241,9 @@ export default function BroadcastLayout({
   updateState,
   sx,
 }: BroadcastLayoutProps) {
+  const theme = useTheme();
+  // Use a compact MobileStepper when viewport width <= 800px
+  const useMobileStepper = useMediaQuery("(max-width:800px)");
   const { workspace } = useAppStorePick(["workspace"]);
   const [previewOpen, setPreviewOpen] = useState(true);
   const { data: broadcast } = useBroadcastQuery(state.id);
@@ -321,70 +328,114 @@ export default function BroadcastLayout({
         <Stack
           direction="row"
           justifyContent="space-between"
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", gap: 1 }}
         >
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Stack direction="row" spacing={1} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={2}
+            alignItems="center"
+            sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}
+          >
+            {useMobileStepper ? (
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ flexShrink: 0 }}>
                 <GreyButton
-                  variant="contained"
                   onClick={handlePrevious}
                   disabled={!canGoToPrevious}
+                  size="small"
                   startIcon={<NavigateBeforeIcon />}
-                  sx={{
-                    textTransform: "none",
-                    fontSize: "12px",
-                    pl: 1,
-                    pr: 1,
-                  }}
+                  sx={{ textTransform: "none", whiteSpace: "nowrap", px: 1 }}
                 >
-                  Previous
+                  Prev
                 </GreyButton>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Typography variant="body2" sx={{ whiteSpace: "nowrap" }}>
+                    {`${Math.max(0, activeStepIndex) + 1} / ${broadcastSteps.length} · ${broadcastSteps[Math.max(0, activeStepIndex)]?.name ?? ""}`}
+                  </Typography>
+                  <MobileStepper
+                    variant="dots"
+                    position="static"
+                    steps={broadcastSteps.length}
+                    activeStep={Math.max(0, activeStepIndex)}
+                    backButton={<span />}
+                    nextButton={<span />}
+                    sx={{ background: "transparent", p: 0 }}
+                  />
+                </Stack>
                 <GreyButton
-                  variant="contained"
                   onClick={handleNext}
                   disabled={!canGoToNext}
-                  startIcon={<NavigateNextIcon />}
-                  sx={{
-                    textTransform: "none",
-                    fontSize: "12px",
-                    pl: 1,
-                    pr: 1,
-                  }}
+                  size="small"
+                  endIcon={<NavigateNextIcon />}
+                  sx={{ textTransform: "none", whiteSpace: "nowrap", px: 1 }}
                 >
                   Next
                 </GreyButton>
               </Stack>
-              <Stepper
-                sx={{
-                  minWidth: "640px",
-                  "& .MuiStepIcon-root.Mui-active": {
-                    color: "grey.600",
-                  },
-                }}
-                nonLinear
-                activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
-              >
-                {broadcastSteps.map((step: BroadcastStep) => (
-                  <Step key={step.key}>
-                    <StepButton
-                      color="inherit"
-                      disabled={isStepDisabled(step)}
-                      onClick={() => {
-                        updateStep(step.key);
-                        if (step.key === "CONTENT") {
-                          setPreviewOpen(false);
-                        } else {
-                          setPreviewOpen(true);
-                        }
-                      }}
-                    >
-                      {step.name}
-                    </StepButton>
-                  </Step>
-                ))}
-              </Stepper>
-            </Stack>
+            ) : (
+              <Stack direction="row" spacing={2} alignItems="center" sx={{ flexShrink: 0 }}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <GreyButton
+                    variant="contained"
+                    onClick={handlePrevious}
+                    disabled={!canGoToPrevious}
+                    startIcon={<NavigateBeforeIcon />}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "12px",
+                      pl: 1,
+                      pr: 1,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Previous
+                  </GreyButton>
+                  <GreyButton
+                    variant="contained"
+                    onClick={handleNext}
+                    disabled={!canGoToNext}
+                    startIcon={<NavigateNextIcon />}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "12px",
+                      pl: 1,
+                      pr: 1,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Next
+                  </GreyButton>
+                </Stack>
+                <Stepper
+                  sx={{
+                    minWidth: "640px",
+                    "& .MuiStepIcon-root.Mui-active": {
+                      color: "grey.600",
+                    },
+                  }}
+                  nonLinear
+                  activeStep={activeStepIndex === -1 ? 0 : activeStepIndex}
+                >
+                  {broadcastSteps.map((step: BroadcastStep) => (
+                    <Step key={step.key}>
+                      <StepButton
+                        color="inherit"
+                        disabled={isStepDisabled(step)}
+                        onClick={() => {
+                          updateStep(step.key);
+                          if (step.key === "CONTENT") {
+                            setPreviewOpen(false);
+                          } else {
+                            setPreviewOpen(true);
+                          }
+                        }}
+                      >
+                        {step.name}
+                      </StepButton>
+                    </Step>
+                  ))}
+                </Stepper>
+              </Stack>
+            )}
             {broadcast && (
               <EditableTitle
                 text={broadcast.name}
@@ -393,10 +444,22 @@ export default function BroadcastLayout({
                     name: val,
                   });
                 }}
+                // Keep title single-line and ellipsized
+                sx={{
+                  ml: 1,
+                  minWidth: 0,
+                  maxWidth: { xs: 140, sm: 240, md: 360, lg: 560 },
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  flex: 1,
+                }}
+                // @ts-expect-error custom prop on EditableTitle component
+                variant="singleLine"
               />
             )}
           </Stack>
-          <Stack direction="row" spacing={2}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
             <StatusButton broadcastId={state.id} />
             {!state.configuration?.hideDrawer && (
               <GreyButton
@@ -404,6 +467,8 @@ export default function BroadcastLayout({
                 color="primary"
                 disabled={broadcast?.status !== "Draft"}
                 onClick={() => setPreviewOpen(!previewOpen)}
+                size="small"
+                sx={{ whiteSpace: "nowrap", textTransform: "none", px: 1 }}
               >
                 Toggle Preview
               </GreyButton>

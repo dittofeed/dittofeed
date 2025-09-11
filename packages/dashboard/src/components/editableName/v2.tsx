@@ -37,6 +37,8 @@ export interface EditableNameProps {
   onSubmit?: (finalText: string) => void;
   /** Whether the editor is disabled */
   disabled?: boolean;
+  /** Optional variant for layout tweaks (e.g., single-line title) */
+  variant?: "default" | "singleLine";
 }
 
 // ============================================
@@ -178,7 +180,7 @@ export interface EditableNameHandle {
 }
 
 const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
-  ({ text, onSubmit, disabled }, ref) => {
+  ({ text, onSubmit, disabled, variant = "default" }, ref) => {
     // ---------------------------------------------------
     // 7a) React state for memorizedText
     // ---------------------------------------------------
@@ -306,6 +308,16 @@ const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
             "aria-label": "name",
             translate: "no",
             class: styles.editor!, // Keep "!"
+            style:
+              variant === "singleLine"
+                ? {
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    display: "inline-block",
+                    maxWidth: "100%",
+                  }
+                : undefined,
           }}
         >
           <ProseMirrorDoc />
@@ -317,7 +329,9 @@ const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
 
 EditableNameV2.displayName = "EditableNameV2";
 
-export function EditableTitle(props: EditableNameProps & { sx?: SxProps }) {
+export function EditableTitle(
+  props: EditableNameProps & { sx?: SxProps },
+) {
   const { sx, ...rest } = props;
   const editableNameRef = useRef<EditableNameHandle>(null);
 
