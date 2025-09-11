@@ -51,7 +51,10 @@ const customSchema = new Schema({
     // without DOM mutation. Default remains 1.7 for non-single-line mode.
     toDOM: () => [
       "p",
-      { class: styles.textNode, style: "margin:0; line-height: var(--pm-title-lh, 1.7)" },
+      {
+        class: styles.textNode,
+        style: "margin:0; line-height: var(--pm-title-lh, 1.7)",
+      },
       0,
     ],
   }),
@@ -332,9 +335,7 @@ const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
 
 EditableNameV2.displayName = "EditableNameV2";
 
-export function EditableTitle(
-  props: EditableNameProps & { sx?: SxProps },
-) {
+export function EditableTitle(props: EditableNameProps & { sx?: SxProps }) {
   const { sx, ...rest } = props;
   const editableNameRef = useRef<EditableNameHandle>(null);
 

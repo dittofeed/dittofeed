@@ -6,14 +6,21 @@ import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { LoadingButton } from "@mui/lab";
-import { SxProps, Theme, Typography, useMediaQuery, useTheme } from "@mui/material";
+import {
+  SxProps,
+  Theme,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
+import MobileStepper from "@mui/material/MobileStepper";
 import Stack from "@mui/material/Stack";
 import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
-import MobileStepper from "@mui/material/MobileStepper";
 import { BroadcastStepKey, CompletionStatus } from "isomorphic-lib/src/types";
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -241,9 +248,9 @@ export default function BroadcastLayout({
   updateState,
   sx,
 }: BroadcastLayoutProps) {
-  const theme = useTheme();
-  // Use a compact MobileStepper when viewport width <= 800px
-  const useMobileStepper = useMediaQuery("(max-width:800px)");
+  // Switch to compact header earlier to avoid overlap.
+  // Kicks in at <= 1200px (roughly when actions may collide with title).
+  const useMobileStepper = useMediaQuery("(max-width:1200px)");
   const { workspace } = useAppStorePick(["workspace"]);
   const [previewOpen, setPreviewOpen] = useState(true);
   const { data: broadcast } = useBroadcastQuery(state.id);
@@ -337,7 +344,12 @@ export default function BroadcastLayout({
             sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}
           >
             {useMobileStepper ? (
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ flexShrink: 0 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                sx={{ flexShrink: 0 }}
+              >
                 <GreyButton
                   onClick={handlePrevious}
                   disabled={!canGoToPrevious}
@@ -372,7 +384,12 @@ export default function BroadcastLayout({
                 </GreyButton>
               </Stack>
             ) : (
-              <Stack direction="row" spacing={2} alignItems="center" sx={{ flexShrink: 0 }}>
+              <Stack
+                direction="row"
+                spacing={2}
+                alignItems="center"
+                sx={{ flexShrink: 0 }}
+              >
                 <Stack direction="row" spacing={1} alignItems="center">
                   <GreyButton
                     variant="contained"
@@ -437,28 +454,49 @@ export default function BroadcastLayout({
               </Stack>
             )}
             {broadcast && (
-              <EditableTitle
-                text={broadcast.name}
-                onSubmit={(val) => {
-                  updateBroadcast({
-                    name: val,
-                  });
-                }}
-                // Keep title single-line and ellipsized
-                sx={{
-                  ml: 1,
-                  minWidth: 0,
-                  maxWidth: { xs: 140, sm: 240, md: 360, lg: 560 },
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  flex: 1,
-                }}
-                variant="singleLine"
-              />
+              <Tooltip
+                title={broadcast.name}
+                enterDelay={400}
+                arrow
+                disableInteractive
+              >
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    minWidth: 0,
+                    flex: 1,
+                  }}
+                >
+                  <EditableTitle
+                    text={broadcast.name}
+                    onSubmit={(val) => {
+                      updateBroadcast({
+                        name: val,
+                      });
+                    }}
+                    // Keep title single-line and ellipsized
+                    sx={{
+                      ml: 1,
+                      minWidth: 0,
+                      maxWidth: { xs: 140, sm: 220, md: 300, lg: 420, xl: 560 },
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      flex: 1,
+                    }}
+                    variant="singleLine"
+                  />
+                </span>
+              </Tooltip>
             )}
           </Stack>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ flexShrink: 0 }}
+          >
             <StatusButton broadcastId={state.id} />
             {!state.configuration?.hideDrawer && (
               <GreyButton
