@@ -27,3 +27,4 @@ Notes:
 - You can run typescript checks with: `yarn workspace backend-lib check`
 - When copying data from user_events_v2, it should be sufficient to copy the `message_raw`, and `processing_time` columns.
 - We should delete the `internal_events` table when copying data to the s3 table engine.
+- When deleting data, we should use async deletes in the style of the `deleteUsers` function in `packages/backend-lib/src/users.ts`.
