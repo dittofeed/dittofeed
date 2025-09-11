@@ -41,8 +41,6 @@ describe("ManualSegmentsWorkflow", () => {
     const envAndWorker = await createEnvAndWorker();
     testEnv = envAndWorker.testEnv;
     worker = envAndWorker.worker;
-    // Ensure the compute-properties queue workflow is running so enqueueRecompute signals succeed
-    await startQueueWorkflow({ client: testEnv.client.workflow });
   });
 
   afterEach(async () => {
@@ -74,6 +72,8 @@ describe("ManualSegmentsWorkflow", () => {
     });
     it("should produce the correct segment membership", async () => {
       await worker.runUntil(async () => {
+        // Ensure the compute-properties queue workflow is running while worker is active
+        await startQueueWorkflow({ client: testEnv.client.workflow });
         const now = await testEnv.currentTimeMs();
         const manualSegmentNode: ManualSegmentNode = {
           id: "1",
