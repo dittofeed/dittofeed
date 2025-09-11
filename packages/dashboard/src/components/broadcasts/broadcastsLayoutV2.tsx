@@ -410,7 +410,20 @@ export default function BroadcastLayout({
             )}
           </Stack>
         </Stack>
-        <Box sx={{ pt: 3, pb: 1, pl: 2, flex: 1 }}>{children}</Box>
+        <Box
+          sx={{
+            pt: 3,
+            pb: 1,
+            pl: 2,
+            flex: 1,
+            // Allow children to manage their own scrolling without forcing
+            // this container to expand beyond the viewport height.
+            minHeight: 0,
+            overflow: "hidden",
+          }}
+        >
+          {children}
+        </Box>
         {hasDrawer && (
           <Box
             sx={{

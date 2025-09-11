@@ -1220,7 +1220,10 @@ export default function TemplateEditor({
         padding: 1,
         border: `1px solid ${theme.palette.grey[200]}`,
         boxShadow: theme.shadows[2],
+        // Constrain panel to available height so its contents scroll
+        height: "100%",
         minHeight: 0,
+        overflow: "hidden",
       }}
     >
       <Stack
@@ -1394,6 +1397,8 @@ export default function TemplateEditor({
         sx={{
           height: "100%",
           width: "100%",
+          // Ensure children can shrink and scroll instead of pushing parent
+          minHeight: 0,
         }}
         spacing={1}
       >

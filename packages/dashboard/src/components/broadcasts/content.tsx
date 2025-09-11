@@ -395,7 +395,10 @@ export default function Content({ state }: { state: BroadcastState }) {
     }
   }
   return (
-    <Stack spacing={2} sx={{ height: "100%", width: "100%", flex: 1 }}>
+    <Stack
+      spacing={2}
+      sx={{ height: "100%", width: "100%", flex: 1, minHeight: 0 }}
+    >
       <Stack direction="row" spacing={2}>
         <ToggleButtonGroup
           value={selectExistingTemplate}
