@@ -1,10 +1,17 @@
+/* eslint-disable no-await-in-loop */
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
+import { sleep } from "isomorphic-lib/src/time";
 
 import { createEnvAndWorker } from "../../test/temporal";
+import {
+  COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
+  getQueueStateQuery,
+} from "../computedProperties/computePropertiesQueueWorkflow";
+import { startQueueWorkflow } from "../computedProperties/computePropertiesWorkflow/lifecycle";
 import { insert } from "../db";
 import * as schema from "../db/schema";
 import {
@@ -23,7 +30,7 @@ import {
   manualSegmentWorkflow,
 } from "./manualSegmentWorkflow";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("ManualSegmentsWorkflow", () => {
   let workspace: Workspace;
@@ -71,6 +78,25 @@ describe("ManualSegmentsWorkflow", () => {
     });
     it("should produce the correct segment membership", async () => {
       await worker.runUntil(async () => {
+        // Ensure the compute-properties queue workflow is running while worker is active
+        await startQueueWorkflow({ client: testEnv.client.workflow });
+        async function waitForQueueToBeEmpty() {
+          // Wait until the compute-properties queue has no in-flight tasks
+          const queueHandle = testEnv.client.workflow.getHandle(
+            COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
+          );
+          for (let i = 0; i < 50; i += 1) {
+            const state = await queueHandle.query(getQueueStateQuery);
+            if (
+              state.inFlightTaskIds.length === 0 &&
+              state.priorityQueue.length === 0
+            ) {
+              break;
+            }
+            await sleep(500);
+          }
+        }
+
         const now = await testEnv.currentTimeMs();
         const manualSegmentNode: ManualSegmentNode = {
           id: "1",
@@ -118,6 +144,8 @@ describe("ManualSegmentsWorkflow", () => {
           userIds: ["4", "5", "6"],
         });
         await handle1.result();
+        await waitForQueueToBeEmpty();
+
         const { users } = unwrap(
           await getUsers({
             workspaceId: workspace.id,
@@ -139,6 +167,8 @@ describe("ManualSegmentsWorkflow", () => {
         );
         await testEnv.sleep(1000);
 
+        // Ensure queue workflow is running before subsequent operations
+        await startQueueWorkflow({ client: testEnv.client.workflow });
         const handle2 = await testEnv.client.workflow.signalWithStart(
           manualSegmentWorkflow,
           {
@@ -160,6 +190,8 @@ describe("ManualSegmentsWorkflow", () => {
           },
         );
         await handle2.result();
+        await waitForQueueToBeEmpty();
+
         const { users: users2 } = unwrap(
           await getUsers({
             workspaceId: workspace.id,
@@ -180,6 +212,9 @@ describe("ManualSegmentsWorkflow", () => {
           users2,
           "should have the correct number of users after the replace operation",
         ).toHaveLength(3);
+
+        // Ensure queue workflow is running before clear operation
+        await startQueueWorkflow({ client: testEnv.client.workflow });
         const handle3 = await testEnv.client.workflow.signalWithStart(
           manualSegmentWorkflow,
           {
@@ -200,6 +235,8 @@ describe("ManualSegmentsWorkflow", () => {
           },
         );
         await handle3.result();
+        await waitForQueueToBeEmpty();
+
         const { users: users3 } = unwrap(
           await getUsers({
             workspaceId: workspace.id,

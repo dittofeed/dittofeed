@@ -314,10 +314,12 @@ export async function signalComputePropertiesEarly({
 
 export async function enqueueRecompute({
   items,
+  client,
 }: {
   items: WorkspaceQueueSignal["workspaces"];
+  client?: WorkflowClient;
 }) {
-  const client = await connectWorkflowClient();
+  const workflowClient = client ?? (await connectWorkflowClient());
   try {
     logger().info(
       {
@@ -325,7 +327,7 @@ export async function enqueueRecompute({
       },
       "Sending add workspaces v2 signal",
     );
-    await client
+    await workflowClient
       .getHandle(COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID)
       .signal(addWorkspacesSignalV2, { workspaces: items });
   } catch (e) {
@@ -336,7 +338,7 @@ export async function enqueueRecompute({
       },
       "Failed to send add workspaces v2 signal",
     );
-    // Optionally re-throw or handle the error as needed
+    // Re-throw so callers can handle this as a failure if desired.
     throw e;
   }
 }

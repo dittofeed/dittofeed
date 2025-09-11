@@ -22,6 +22,7 @@ import { findAllIntegrationResources } from "../../integrations";
 import { findRunningJourneys, getSubscribedSegments } from "../../journeys";
 import logger from "../../logger";
 import { toSegmentResource } from "../../segments";
+import { getContext } from "../../temporal/activity";
 import { Segment } from "../../types";
 import { getEventsCountById } from "../../userEvents";
 import { findAllUserPropertyResources } from "../../userProperties";
@@ -73,8 +74,10 @@ async function computePropertiesForManualSegment({
   now: number;
 }) {
   // Enqueue a follow-up full workspace recompute through the queue workflow
+  const { workflowClient } = getContext();
   await enqueueRecompute({
     items: [{ id: workspaceId }],
+    client: workflowClient,
   });
 
   // Gather dependencies for targeted recompute: subscribed journeys, integrations, and core user properties
