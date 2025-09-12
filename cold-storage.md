@@ -28,3 +28,5 @@ Notes:
 - When copying data from user_events_v2, it should be sufficient to copy the `message_raw`, and `processing_time` columns.
 - We should delete the `internal_events` table when copying data to the s3 table engine.
 - When deleting data, we should use async deletes in the style of the `deleteUsers` function in `packages/backend-lib/src/users.ts`.
+- When writing data back into user_events_v2, we should make sure if at all possible not to read the data back into application memory, and instead to do a insert .. select query.
+- We may want to paginate the data when writing it back into user_events_v2, in order to avoid memory issues.
