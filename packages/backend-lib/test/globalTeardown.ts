@@ -1,6 +1,13 @@
+/* eslint-disable no-await-in-loop */
+import {
+  DeleteBucketCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 import { Client } from "pg";
 import { PostgresError } from "pg-error-enum";
 
+import { storage } from "../src/blobStorage";
 import { clickhouseClient } from "../src/clickhouse";
 import config from "../src/config";
 import logger from "../src/logger";
@@ -48,6 +55,56 @@ async function dropPostgres() {
   }
 }
 
+async function dropBucket() {
+  if (!config().enableBlobStorage) {
+    return;
+  }
+  const s3 = storage();
+  const bucket = config().blobStorageBucket;
+
+  // Try direct delete first; if not empty, fall back to emptying.
+  try {
+    await s3.send(new DeleteBucketCommand({ Bucket: bucket }));
+    return;
+  } catch (e) {
+    const err = e as { name?: string; Code?: string };
+    const code = err.name ?? err.Code;
+    if (code === "NoSuchBucket" || code === "NotFound") {
+      return;
+    }
+    if (code !== "BucketNotEmpty") {
+      throw e;
+    }
+  }
+
+  // Empty the bucket, then delete it.
+  let continuationToken: string | undefined;
+  do {
+    const listResp = await s3.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        ContinuationToken: continuationToken,
+      }),
+    );
+    const objects = (listResp.Contents ?? [])
+      .filter((o) => !!o.Key)
+      .map((o) => ({ Key: o.Key! }));
+    if (objects.length > 0) {
+      await s3.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: { Objects: objects, Quiet: true },
+        }),
+      );
+    }
+    continuationToken = listResp.IsTruncated
+      ? listResp.NextContinuationToken
+      : undefined;
+  } while (continuationToken);
+
+  await s3.send(new DeleteBucketCommand({ Bucket: bucket }));
+}
+
 export default async function globalTeardown() {
-  await Promise.all([dropClickhouse(), dropPostgres()]);
+  await Promise.all([dropClickhouse(), dropPostgres(), dropBucket()]);
 }

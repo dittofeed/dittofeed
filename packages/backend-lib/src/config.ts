@@ -496,7 +496,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
 
   const blobStorageBucket =
     rawConfig.blobStorageBucket ??
-    (nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
+    (nodeEnv === NodeEnvEnum.Test ? "dittofeed-test" : "dittofeed");
   const parsedConfig: Config = {
     ...rawConfig,
     bootstrap: rawConfig.bootstrap === "true",
