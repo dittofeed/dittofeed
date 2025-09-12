@@ -1,8 +1,11 @@
 import {
   CreateBucketCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
+  ListObjectsV2CommandOutput,
 } from "@aws-sdk/client-s3";
 
 import config from "./config";
@@ -75,4 +78,67 @@ export async function createBucket(
     Bucket: bucketName,
   });
   await client.send(command);
+}
+
+export async function deleteObjectsWithPrefix(
+  client: S3Client,
+  { prefix }: { prefix: string },
+) {
+  const bucket = config().blobStorageBucket;
+  let continuationToken: string | undefined = undefined;
+  do {
+    const listRes: ListObjectsV2CommandOutput = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+        MaxKeys: 1000,
+      }),
+    );
+    const contents = (listRes.Contents ?? []) as { Key?: string }[];
+    const keys = contents
+      .map((o: { Key?: string }) => o.Key)
+      .filter((k: string | undefined): k is string => !!k);
+    if (keys.length > 0) {
+      await client.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: {
+            Objects: keys.map((Key: string) => ({ Key })),
+            Quiet: true,
+          },
+        }),
+      );
+    }
+    continuationToken = listRes.IsTruncated
+      ? listRes.NextContinuationToken
+      : undefined;
+  } while (continuationToken);
+}
+
+export async function listObjectKeysWithPrefix(
+  client: S3Client,
+  { prefix }: { prefix: string },
+): Promise<string[]> {
+  const bucket = config().blobStorageBucket;
+  const keys: string[] = [];
+  let continuationToken: string | undefined = undefined;
+  do {
+    const listRes: ListObjectsV2CommandOutput = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+        MaxKeys: 1000,
+      }),
+    );
+    const contents = (listRes.Contents ?? []) as { Key?: string }[];
+    for (const o of contents) {
+      if (o.Key) keys.push(o.Key);
+    }
+    continuationToken = listRes.IsTruncated
+      ? listRes.NextContinuationToken
+      : undefined;
+  } while (continuationToken);
+  return keys;
 }

@@ -5,6 +5,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { sleep } from "isomorphic-lib/src/time";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
+import { listObjectKeysWithPrefix, storage } from "./blobStorage";
 import { db } from "./db";
 import * as schema from "./db/schema";
 import {
@@ -188,6 +189,41 @@ describe("workspaces", () => {
       expect(Number(postRestoreInternal[0]?.c ?? 0)).toBe(
         expectedInternalEventsCount,
       );
+    });
+
+    it("deletes events from cold storage after restore", async () => {
+      const qb = new ClickHouseQueryBuilder();
+
+      // Ensure we have events in hot storage
+      const preUserEvents = await (
+        await chQuery({
+          query: `SELECT count() as c FROM user_events_v2 WHERE workspace_id = ${qb.addQueryValue(
+            workspaceId,
+            "String",
+          )}`,
+          query_params: qb.getQueries(),
+        })
+      ).json<{ c: string }>();
+      expect(Number(preUserEvents[0]?.c ?? 0)).toBe(expectedUserEventsCount);
+
+      // Cold store
+      await coldStoreWorkspaceEvents({ workspaceId });
+
+      // Verify objects exist in cold storage
+      const s3 = storage();
+      const keysBefore = await listObjectKeysWithPrefix(s3, {
+        prefix: "cold/user_events/",
+      });
+      expect(keysBefore.length).toBeGreaterThan(0);
+
+      // Restore
+      await restoreWorkspaceEvents({ workspaceId });
+
+      // Expect cold storage to be empty for this prefix after restore
+      const keysAfter = await listObjectKeysWithPrefix(s3, {
+        prefix: "cold/user_events/",
+      });
+      expect(keysAfter.length).toBe(0);
     });
   });
   describe("after tombstoning a workspace", () => {

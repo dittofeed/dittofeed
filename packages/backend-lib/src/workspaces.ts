@@ -4,6 +4,7 @@ import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
 import { ClickHouseQueryBuilder, command as chCommand } from "./clickhouse";
+import { deleteObjectsWithPrefix, storage } from "./blobStorage";
 import { db, PostgresError, txQueryResult } from "./db";
 import {
   segment as dbSegment,
@@ -69,13 +70,13 @@ export async function restoreWorkspaceEvents({
     query_params: qb.getQueries(),
   });
 
-  // Clear cold storage for this workspace (async)
-  await chCommand({
-    // NOTE: S3 engine does not support DELETE. We leave cold copies in object storage for now.
-    // TODO: remove objects via S3 API once integrated.
-    query: `SELECT 1`,
-    query_params: qb.getQueries(),
-  });
+  // Clear cold storage objects.
+  // NOTE: Current S3 table is a single shared prefix for all workspaces.
+  // We delete all objects under the cold/user_events/ prefix which currently
+  // only contains rows written by our tests. In multi-tenant environments,
+  // consider writing to per-workspace prefixes to allow scoped deletion.
+  const s3 = storage();
+  await deleteObjectsWithPrefix(s3, { prefix: "cold/user_events/" });
 }
 
 export enum TombstoneWorkspaceErrorType {
