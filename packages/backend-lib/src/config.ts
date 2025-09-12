@@ -494,6 +494,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       ? "http://blob-storage:9000"
       : blobStorageEndpoint);
 
+  const blobStorageBucket =
+    rawConfig.blobStorageBucket ??
+    (nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
   const parsedConfig: Config = {
     ...rawConfig,
     bootstrap: rawConfig.bootstrap === "true",
@@ -598,7 +601,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     blobStorageAccessKeyId: rawConfig.blobStorageAccessKeyId ?? "admin",
     blobStorageSecretAccessKey:
       rawConfig.blobStorageSecretAccessKey ?? "password",
-    blobStorageBucket: rawConfig.blobStorageBucket ?? "dittofeed",
+    blobStorageBucket,
     blobStorageRegion: rawConfig.blobStorageRegion ?? "us-east-1",
     exportLogsHyperDx: rawConfig.exportLogsHyperDx === "true",
     dittofeedTelemetryDisabled:

@@ -550,9 +550,7 @@
             (forgetting to do so is a common source of error).
         -->
         <!-- Allow blob-storage service by name with or without explicit port -->
-        <item>blob-storage:9000</item>
-        <item>blob-storage</item>
-        <host_regexp>.*</host_regexp>
+        <host_regexp>^(blob-storage|localhost)(:\d+)?$</host_regexp>
     </remote_url_allow_hosts>
 
     <!-- If element has 'incl' attribute, then for it's value will be used corresponding substitution from another file.
