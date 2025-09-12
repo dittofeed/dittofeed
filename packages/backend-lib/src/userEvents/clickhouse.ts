@@ -149,6 +149,7 @@ export async function createUserEventsTables() {
   const accessKey = config().blobStorageAccessKeyId;
   const secretKey = config().blobStorageSecretAccessKey;
   const s3Url = `${endpoint}/${bucket}/cold/user_events/`;
+  logger().debug({ s3Url, accessKey, secretKey }, "S3 info");
 
   const queries: string[] = [
     // Cold storage table backed by S3-compatible object storage
