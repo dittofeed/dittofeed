@@ -1,6 +1,8 @@
+/* eslint-disable no-await-in-loop */
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { sleep } from "isomorphic-lib/src/time";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
 import { db } from "./db";
@@ -38,6 +40,39 @@ describe("workspaces", () => {
     let workspaceId: string;
     const expectedUserEventsCount = 3;
     const expectedInternalEventsCount = 2; // DF* track events
+    async function expectCountEventually(
+      table: string,
+      expected: number,
+      timeoutMs = 10000,
+      intervalMs = 200,
+    ) {
+      const start = Date.now();
+      // poll until ClickHouse async deletes are visible
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const qb = new ClickHouseQueryBuilder();
+        const rows = await (
+          await chQuery({
+            query: `SELECT count() as c FROM ${table} WHERE workspace_id = ${qb.addQueryValue(
+              workspaceId,
+              "String",
+            )}`,
+            query_params: qb.getQueries(),
+          })
+        ).json<{ c: string }>();
+        const count = Number(rows[0]?.c ?? 0);
+        if (count === expected) {
+          return;
+        }
+        if (Date.now() - start > timeoutMs) {
+          expect(count).toBe(expected);
+          return;
+        }
+        // wait before next poll
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(intervalMs);
+      }
+    }
 
     beforeEach(async () => {
       // create an active workspace
@@ -124,27 +159,8 @@ describe("workspaces", () => {
       // Cold store
       await coldStoreWorkspaceEvents({ workspaceId });
 
-      const postColdUser = await (
-        await chQuery({
-          query: `SELECT count() as c FROM user_events_v2 WHERE workspace_id = ${qb.addQueryValue(
-            workspaceId,
-            "String",
-          )}`,
-          query_params: qb.getQueries(),
-        })
-      ).json<{ c: string }>();
-      expect(Number(postColdUser[0]?.c ?? 0)).toBe(0);
-
-      const postColdInternal = await (
-        await chQuery({
-          query: `SELECT count() as c FROM internal_events WHERE workspace_id = ${qb.addQueryValue(
-            workspaceId,
-            "String",
-          )}`,
-          query_params: qb.getQueries(),
-        })
-      ).json<{ c: string }>();
-      expect(Number(postColdInternal[0]?.c ?? 0)).toBe(0);
+      await expectCountEventually("user_events_v2", 0);
+      await expectCountEventually("internal_events", 0);
 
       // Restore
       await restoreWorkspaceEvents({ workspaceId });
