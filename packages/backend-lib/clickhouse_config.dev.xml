@@ -550,6 +550,7 @@
             (forgetting to do so is a common source of error).
         -->
         <item>blob-storage:9000</item>
+        <item>blob-storage</item>
     </remote_url_allow_hosts>
 
     <!-- If element has 'incl' attribute, then for it's value will be used corresponding substitution from another file.
