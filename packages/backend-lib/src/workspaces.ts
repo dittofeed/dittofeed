@@ -4,6 +4,7 @@ import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
 import { ClickHouseQueryBuilder, command as chCommand } from "./clickhouse";
+import config from "./config";
 import { db, PostgresError, txQueryResult } from "./db";
 import {
   segment as dbSegment,
@@ -85,6 +86,7 @@ export interface TombstoneWorkspaceError {
 
 export async function tombstoneWorkspace(
   workspaceId: string,
+  options: { enableColdStorageOverride?: boolean } = {},
 ): Promise<Result<void, TombstoneWorkspaceError>> {
   if (!validateUuid(workspaceId)) {
     return err({
@@ -120,7 +122,11 @@ export async function tombstoneWorkspace(
   if (result.isErr()) {
     return err(result.error);
   }
-  await coldStoreWorkspaceEvents({ workspaceId });
+  const enableColdStorage =
+    options.enableColdStorageOverride ?? config().enableColdStorage;
+  if (enableColdStorage) {
+    await coldStoreWorkspaceEvents({ workspaceId });
+  }
   return ok(undefined);
 }
 
@@ -142,6 +148,7 @@ export type ActivateTombstonedWorkspaceError =
 
 export async function activateTombstonedWorkspace(
   workspaceId: string,
+  options: { enableColdStorageOverride?: boolean } = {},
 ): Promise<Result<void, ActivateTombstonedWorkspaceError>> {
   const result = await db().transaction(async (tx) => {
     const workspace = await tx.query.workspace.findFirst({
@@ -191,27 +198,41 @@ export async function activateTombstonedWorkspace(
   if (result.isErr()) {
     return err(result.error);
   }
-  await restoreWorkspaceEvents({ workspaceId });
+  const enableColdStorage =
+    options.enableColdStorageOverride ?? config().enableColdStorage;
+  if (enableColdStorage) {
+    await restoreWorkspaceEvents({ workspaceId });
+  }
   return ok(undefined);
 }
 
 export { createWorkspace } from "./workspaces/createWorkspace";
 
-export async function pauseWorkspace({ workspaceId }: { workspaceId: string }) {
+export async function pauseWorkspace(
+  { workspaceId }: { workspaceId: string },
+  options: { enableColdStorageOverride?: boolean } = {},
+) {
   await db()
     .update(dbWorkspace)
     .set({
       status: WorkspaceStatusDbEnum.Paused,
     })
     .where(eq(dbWorkspace.id, workspaceId));
-  await coldStoreWorkspaceEvents({ workspaceId });
+  const enableColdStorage =
+    options.enableColdStorageOverride ?? config().enableColdStorage;
+  if (enableColdStorage) {
+    await coldStoreWorkspaceEvents({ workspaceId });
+  }
 }
 
-export async function resumeWorkspace({
-  workspaceId,
-}: {
-  workspaceId: string;
-}) {
+export async function resumeWorkspace(
+  {
+    workspaceId,
+  }: {
+    workspaceId: string;
+  },
+  options: { enableColdStorageOverride?: boolean } = {},
+) {
   await db()
     .update(dbWorkspace)
     .set({
@@ -219,7 +240,11 @@ export async function resumeWorkspace({
     })
     .where(eq(dbWorkspace.id, workspaceId));
 
-  await restoreWorkspaceEvents({ workspaceId });
+  const enableColdStorage =
+    options.enableColdStorageOverride ?? config().enableColdStorage;
+  if (enableColdStorage) {
+    await restoreWorkspaceEvents({ workspaceId });
+  }
 }
 
 export function recomputableWorkspacesQuery() {
