@@ -494,9 +494,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       ? "http://blob-storage:9000"
       : blobStorageEndpoint);
 
-  const blobStorageBucket =
-    rawConfig.blobStorageBucket ??
-    (nodeEnv === NodeEnvEnum.Test ? "dittofeed-test" : "dittofeed");
+  const blobStorageBucket = rawConfig.blobStorageBucket ?? "dittofeed";
   const parsedConfig: Config = {
     ...rawConfig,
     bootstrap: rawConfig.bootstrap === "true",

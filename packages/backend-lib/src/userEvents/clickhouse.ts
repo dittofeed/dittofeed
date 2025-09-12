@@ -144,15 +144,8 @@ export async function insertProcessedComputedProperties({
 
 export async function createUserEventsTables() {
   logger().info("Creating user events tables");
-  const endpoint = config().blobStorageInternalEndpoint.replace(/\/+$/, "");
-  const bucket = config().blobStorageBucket;
-  const accessKey = config().blobStorageAccessKeyId;
-  const secretKey = config().blobStorageSecretAccessKey;
-  const s3Url = `${endpoint}/${bucket}/cold/user_events/`;
-  logger().debug({ s3Url, accessKey, secretKey }, "S3 info");
-
   const queries: string[] = [
-    // Cold storage table backed by S3-compatible object storage
+    // Cold storage table on MergeTree backed by S3 via storage policy
     `
         CREATE TABLE IF NOT EXISTS user_events_cold_storage (
           message_raw String,
@@ -161,7 +154,10 @@ export async function createUserEventsTables() {
           message_id String,
           server_time DateTime64(3)
         )
-        ENGINE = S3('${s3Url}', '${accessKey}', '${secretKey}', 'JSONEachRow')
+        ENGINE = MergeTree()
+        PARTITION BY (workspace_id, toYYYYMM(processing_time))
+        ORDER BY (workspace_id, processing_time, message_id)
+        SETTINGS storage_policy = 'cold_storage'
       `,
     // This is the primary table for user events, which serves as the source of truth for user traits and behaviors.
     `

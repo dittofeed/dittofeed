@@ -1,9 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import {
-  DeleteBucketCommand,
-  DeleteObjectsCommand,
-  ListObjectsV2Command,
-} from "@aws-sdk/client-s3";
+import { DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { Client } from "pg";
 import { PostgresError } from "pg-error-enum";
 
@@ -62,47 +58,39 @@ async function dropBucket() {
   const s3 = storage();
   const bucket = config().blobStorageBucket;
 
-  // Try direct delete first; if not empty, fall back to emptying.
+  // Only empty the bucket; do not delete it.
+  let continuationToken: string | undefined;
   try {
-    await s3.send(new DeleteBucketCommand({ Bucket: bucket }));
-    return;
+    do {
+      const listResp = await s3.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          ContinuationToken: continuationToken,
+        }),
+      );
+      const objects = (listResp.Contents ?? [])
+        .filter((o): o is { Key: string } => typeof o.Key === "string")
+        .map(({ Key }) => ({ Key }));
+      if (objects.length > 0) {
+        await s3.send(
+          new DeleteObjectsCommand({
+            Bucket: bucket,
+            Delete: { Objects: objects, Quiet: true },
+          }),
+        );
+      }
+      continuationToken = listResp.IsTruncated
+        ? listResp.NextContinuationToken
+        : undefined;
+    } while (continuationToken);
   } catch (e) {
     const err = e as { name?: string; Code?: string };
     const code = err.name ?? err.Code;
     if (code === "NoSuchBucket" || code === "NotFound") {
-      return;
+      return; // Bucket doesn't exist; nothing to clean.
     }
-    if (code !== "BucketNotEmpty") {
-      throw e;
-    }
+    throw e;
   }
-
-  // Empty the bucket, then delete it.
-  let continuationToken: string | undefined;
-  do {
-    const listResp = await s3.send(
-      new ListObjectsV2Command({
-        Bucket: bucket,
-        ContinuationToken: continuationToken,
-      }),
-    );
-    const objects = (listResp.Contents ?? [])
-      .filter((o) => !!o.Key)
-      .map((o) => ({ Key: o.Key! }));
-    if (objects.length > 0) {
-      await s3.send(
-        new DeleteObjectsCommand({
-          Bucket: bucket,
-          Delete: { Objects: objects, Quiet: true },
-        }),
-      );
-    }
-    continuationToken = listResp.IsTruncated
-      ? listResp.NextContinuationToken
-      : undefined;
-  } while (continuationToken);
-
-  await s3.send(new DeleteBucketCommand({ Bucket: bucket }));
 }
 
 export default async function globalTeardown() {
