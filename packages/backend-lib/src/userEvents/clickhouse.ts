@@ -144,12 +144,10 @@ export async function insertProcessedComputedProperties({
 
 export async function createUserEventsTables() {
   logger().info("Creating user events tables");
-  const endpoint = (
-    config().blobStorageInternalEndpoint ?? config().blobStorageEndpoint ?? ""
-  ).replace(/\/+$/, "");
-  const bucket = config().blobStorageBucket ?? "dittofeed";
-  const accessKey = config().blobStorageAccessKeyId ?? "";
-  const secretKey = config().blobStorageSecretAccessKey ?? "";
+  const endpoint = config().blobStorageInternalEndpoint.replace(/\/+$/, "");
+  const bucket = config().blobStorageBucket;
+  const accessKey = config().blobStorageAccessKeyId;
+  const secretKey = config().blobStorageSecretAccessKey;
   const s3Url = `${endpoint}/${bucket}/cold/user_events/`;
 
   const queries: string[] = [

@@ -224,6 +224,7 @@ export type Config = Overwrite<
     blobStorageAccessKeyId: string;
     blobStorageBucket: string;
     blobStorageEndpoint: string;
+    blobStorageInternalEndpoint: string;
     blobStorageRegion: string;
     blobStorageSecretAccessKey: string;
     bootstrap: boolean;
@@ -485,6 +486,13 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   const computedPropertiesActivityTaskQueue =
     rawConfig.computedPropertiesActivityTaskQueue ??
     computedPropertiesTaskQueue;
+  const blobStorageEndpoint =
+    rawConfig.blobStorageEndpoint ?? "http://localhost:9010";
+  const blobStorageInternalEndpoint =
+    rawConfig.blobStorageInternalEndpoint ??
+    (nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
+      ? "http://blob-storage:9000"
+      : blobStorageEndpoint);
 
   const parsedConfig: Config = {
     ...rawConfig,
@@ -584,14 +592,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     enableBlobStorage:
       rawConfig.enableBlobStorage === "true" || nodeEnv === NodeEnvEnum.Test,
     // Endpoint used by Node AWS SDK clients (host-accessible)
-    blobStorageEndpoint:
-      rawConfig.blobStorageEndpoint ?? "http://localhost:9010",
+    blobStorageEndpoint,
     // Internal endpoint used by ClickHouse (container-accessible)
-    blobStorageInternalEndpoint:
-      rawConfig.blobStorageInternalEndpoint ??
-      (nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
-        ? "http://blob-storage:9000"
-        : undefined),
+    blobStorageInternalEndpoint,
     blobStorageAccessKeyId: rawConfig.blobStorageAccessKeyId ?? "admin",
     blobStorageSecretAccessKey:
       rawConfig.blobStorageSecretAccessKey ?? "password",

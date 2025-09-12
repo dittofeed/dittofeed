@@ -1,6 +1,6 @@
+import { createBucket, storage } from "../src/blobStorage";
 import { bootstrapClickhouse } from "../src/bootstrap";
 import config from "../src/config";
-import { createBucket, storage } from "../src/blobStorage";
 import { drizzleMigrate } from "../src/migrate";
 
 export default async function globalSetup() {
@@ -13,8 +13,11 @@ export default async function globalSetup() {
           await createBucket(s3, { bucketName: config().blobStorageBucket });
         } catch (e) {
           const err = e as { name?: string; Code?: string };
-          const code = err?.name ?? err?.Code;
-          if (code !== "BucketAlreadyOwnedByYou" && code !== "BucketAlreadyExists") {
+          const code = err.name ?? err.Code;
+          if (
+            code !== "BucketAlreadyOwnedByYou" &&
+            code !== "BucketAlreadyExists"
+          ) {
             throw e;
           }
         }
