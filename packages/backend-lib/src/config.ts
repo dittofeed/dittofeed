@@ -105,6 +105,8 @@ const BaseRawConfigProps = {
   blobStorageBucket: Type.Optional(Type.String()),
   enableBlobStorage: Type.Optional(BoolStr),
   blobStorageRegion: Type.Optional(Type.String()),
+  // Enable cold storage behavior (store on pause/tombstone, restore on resume/activate)
+  enableColdStorage: Type.Optional(BoolStr),
   exportLogsHyperDx: Type.Optional(BoolStr),
   hyperDxApiKey: Type.Optional(Type.String()),
   dittofeedTelemetryDisabled: Type.Optional(BoolStr),
@@ -251,6 +253,7 @@ export type Config = Overwrite<
     enableMobilePush: boolean;
     enableSourceControl: boolean;
     exportLogsHyperDx: boolean;
+    enableColdStorage: boolean;
     globalCronTaskQueue: string;
     googleOps: boolean;
     kafkaBrokers: string[];
@@ -592,6 +595,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     allowedOrigins: (rawConfig.allowedOrigins ?? dashboardUrl).split(","),
     enableBlobStorage:
       rawConfig.enableBlobStorage === "true" || nodeEnv === NodeEnvEnum.Test,
+    // Gate cold storage behavior (default false)
+    enableColdStorage: rawConfig.enableColdStorage === "true",
     // Endpoint used by Node AWS SDK clients (host-accessible)
     blobStorageEndpoint,
     // Internal endpoint used by ClickHouse (container-accessible)
