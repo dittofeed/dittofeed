@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
+import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
 import { db } from "./db";
 import * as schema from "./db/schema";
 import {
@@ -10,10 +11,13 @@ import {
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
 } from "./types";
+import { insertUserEvents } from "./userEvents";
 import { upsertUserProperty } from "./userProperties";
 import {
   activateTombstonedWorkspace,
   ActivateTombstonedWorkspaceErrorType,
+  coldStoreWorkspaceEvents,
+  restoreWorkspaceEvents,
   tombstoneWorkspace,
 } from "./workspaces";
 
@@ -30,6 +34,146 @@ jest.mock("./computedProperties/computePropertiesWorkflow/lifecycle", () => ({
 jest.setTimeout(15000);
 
 describe("workspaces", () => {
+  describe("cold storage", () => {
+    let workspaceId: string;
+    const expectedUserEventsCount = 3;
+    const expectedInternalEventsCount = 2; // DF* track events
+
+    beforeEach(async () => {
+      // create an active workspace
+      const [workspace] = await db()
+        .insert(schema.workspace)
+        .values({
+          name: randomUUID(),
+          type: WorkspaceTypeAppEnum.Child,
+          status: WorkspaceStatusDbEnum.Active,
+        })
+        .returning();
+      if (!workspace) {
+        throw new Error("Workspace not created");
+      }
+      workspaceId = workspace.id;
+
+      // seed events
+      const nowIso = new Date().toISOString();
+      await insertUserEvents(
+        {
+          workspaceId,
+          userEvents: [
+            {
+              messageId: randomUUID(),
+              messageRaw: {
+                type: "identify",
+                userId: "user-1",
+                traits: { plan: "free" },
+                timestamp: nowIso,
+              },
+            },
+            {
+              messageId: randomUUID(),
+              messageRaw: {
+                type: "track",
+                event: "DF_TEST_EVENT",
+                userId: "user-1",
+                properties: { x: 1 },
+                timestamp: nowIso,
+              },
+            },
+            {
+              messageId: randomUUID(),
+              messageRaw: {
+                type: "track",
+                event: "DF_ANOTHER_EVENT",
+                userId: "user-2",
+                properties: { y: 2 },
+                timestamp: nowIso,
+              },
+            },
+          ],
+        },
+        { writeModeOverride: "ch-sync" },
+      );
+    });
+
+    it("cold stores then restores events for a workspace", async () => {
+      const qb = new ClickHouseQueryBuilder();
+
+      // preconditions
+      const preUserEvents = await (
+        await chQuery({
+          query: `SELECT count() as c FROM user_events_v2 WHERE workspace_id = ${qb.addQueryValue(
+            workspaceId,
+            "String",
+          )}`,
+          query_params: qb.getQueries(),
+        })
+      ).json<{ c: string }>();
+      expect(Number(preUserEvents[0]?.c ?? 0)).toBe(expectedUserEventsCount);
+
+      const preInternal = await (
+        await chQuery({
+          query: `SELECT count() as c FROM internal_events WHERE workspace_id = ${qb.addQueryValue(
+            workspaceId,
+            "String",
+          )}`,
+          query_params: qb.getQueries(),
+        })
+      ).json<{ c: string }>();
+      expect(Number(preInternal[0]?.c ?? 0)).toBe(expectedInternalEventsCount);
+
+      // Cold store
+      await coldStoreWorkspaceEvents({ workspaceId });
+
+      const postColdUser = await (
+        await chQuery({
+          query: `SELECT count() as c FROM user_events_v2 WHERE workspace_id = ${qb.addQueryValue(
+            workspaceId,
+            "String",
+          )}`,
+          query_params: qb.getQueries(),
+        })
+      ).json<{ c: string }>();
+      expect(Number(postColdUser[0]?.c ?? 0)).toBe(0);
+
+      const postColdInternal = await (
+        await chQuery({
+          query: `SELECT count() as c FROM internal_events WHERE workspace_id = ${qb.addQueryValue(
+            workspaceId,
+            "String",
+          )}`,
+          query_params: qb.getQueries(),
+        })
+      ).json<{ c: string }>();
+      expect(Number(postColdInternal[0]?.c ?? 0)).toBe(0);
+
+      // Restore
+      await restoreWorkspaceEvents({ workspaceId });
+
+      const postRestoreUser = await (
+        await chQuery({
+          query: `SELECT count() as c FROM user_events_v2 WHERE workspace_id = ${qb.addQueryValue(
+            workspaceId,
+            "String",
+          )}`,
+          query_params: qb.getQueries(),
+        })
+      ).json<{ c: string }>();
+      expect(Number(postRestoreUser[0]?.c ?? 0)).toBe(expectedUserEventsCount);
+
+      const postRestoreInternal = await (
+        await chQuery({
+          query: `SELECT count() as c FROM internal_events WHERE workspace_id = ${qb.addQueryValue(
+            workspaceId,
+            "String",
+          )}`,
+          query_params: qb.getQueries(),
+        })
+      ).json<{ c: string }>();
+      expect(Number(postRestoreInternal[0]?.c ?? 0)).toBe(
+        expectedInternalEventsCount,
+      );
+    });
+  });
   describe("after tombstoning a workspace", () => {
     let parentWorkspaceId: string;
     beforeEach(async () => {

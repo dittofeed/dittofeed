@@ -99,6 +99,7 @@ const BaseRawConfigProps = {
   openIdClientSecret: Type.Optional(Type.String()),
   allowedOrigins: Type.Optional(Type.String()),
   blobStorageEndpoint: Type.Optional(Type.String()),
+  blobStorageInternalEndpoint: Type.Optional(Type.String()),
   blobStorageAccessKeyId: Type.Optional(Type.String()),
   blobStorageSecretAccessKey: Type.Optional(Type.String()),
   blobStorageBucket: Type.Optional(Type.String()),
@@ -580,9 +581,17 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       : 150,
     sessionCookieSecure: rawConfig.sessionCookieSecure === "true",
     allowedOrigins: (rawConfig.allowedOrigins ?? dashboardUrl).split(","),
-    enableBlobStorage: rawConfig.enableBlobStorage === "true",
+    enableBlobStorage:
+      rawConfig.enableBlobStorage === "true" || nodeEnv === NodeEnvEnum.Test,
+    // Endpoint used by Node AWS SDK clients (host-accessible)
     blobStorageEndpoint:
       rawConfig.blobStorageEndpoint ?? "http://localhost:9010",
+    // Internal endpoint used by ClickHouse (container-accessible)
+    blobStorageInternalEndpoint:
+      rawConfig.blobStorageInternalEndpoint ??
+      (nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
+        ? "http://blob-storage:9000"
+        : undefined),
     blobStorageAccessKeyId: rawConfig.blobStorageAccessKeyId ?? "admin",
     blobStorageSecretAccessKey:
       rawConfig.blobStorageSecretAccessKey ?? "password",

@@ -15,6 +15,7 @@ import {
   userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
+import { ClickHouseQueryBuilder, command as chCommand } from "./clickhouse";
 import {
   Workspace,
   WorkspaceStatusDbEnum,
@@ -165,6 +166,68 @@ export async function resumeWorkspace({
     .where(eq(dbWorkspace.id, workspaceId));
 
   await startComputePropertiesWorkflow({ workspaceId });
+}
+
+// Move workspace user events and related CH data to cold storage (local table placeholder)
+export async function coldStoreWorkspaceEvents({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<void> {
+  const qb = new ClickHouseQueryBuilder();
+  const ws = qb.addQueryValue(workspaceId, "String");
+
+  // Copy events to cold storage
+  await chCommand({
+    query: `
+      INSERT INTO user_events_cold_storage (message_raw, processing_time, workspace_id, message_id, server_time)
+      SELECT message_raw, processing_time, workspace_id, message_id, server_time
+      FROM user_events_v2
+      WHERE workspace_id = ${ws}
+    `,
+    query_params: qb.getQueries(),
+  });
+
+  // Delete hot data (async deletes)
+  await Promise.all([
+    chCommand({
+      query: `DELETE FROM user_events_v2 WHERE workspace_id = ${ws} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+      query_params: qb.getQueries(),
+    }),
+    chCommand({
+      query: `DELETE FROM internal_events WHERE workspace_id = ${ws} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+      query_params: qb.getQueries(),
+    }),
+  ]);
+}
+
+// Restore workspace user events and related CH data from cold storage (local table placeholder)
+export async function restoreWorkspaceEvents({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<void> {
+  const qb = new ClickHouseQueryBuilder();
+  const ws = qb.addQueryValue(workspaceId, "String");
+
+  // Restore from cold storage into hot table; MV will repopulate internal_events
+  await chCommand({
+    query: `
+      INSERT INTO user_events_v2 (message_raw, processing_time, workspace_id, message_id, server_time)
+      SELECT message_raw, processing_time, workspace_id, message_id, server_time
+      FROM user_events_cold_storage
+      WHERE workspace_id = ${ws}
+    `,
+    query_params: qb.getQueries(),
+  });
+
+  // Clear cold storage for this workspace (async)
+  await chCommand({
+    // NOTE: S3 engine does not support DELETE. We leave cold copies in object storage for now.
+    // TODO: remove objects via S3 API once integrated.
+    query: `SELECT 1`,
+    query_params: qb.getQueries(),
+  });
 }
 
 export function recomputableWorkspacesQuery() {
