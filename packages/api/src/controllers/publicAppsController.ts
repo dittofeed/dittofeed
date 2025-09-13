@@ -52,14 +52,14 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         writeKey: request.headers.authorization,
       });
 
-      if (!workspaceIdFromWriteKey) {
+      if (workspaceIdFromWriteKey.isErr()) {
         return reply.status(401).send({
-          message: "Invalid write key.",
+          message: workspaceIdFromWriteKey.error,
         });
       }
 
       await submitIdentify({
-        workspaceId: workspaceIdFromWriteKey,
+        workspaceId: workspaceIdFromWriteKey.value,
         data: request.body,
       });
       return reply.status(204).send();
@@ -93,14 +93,14 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         writeKey: request.headers.authorization,
       });
 
-      if (!workspaceIdFromWriteKey) {
+      if (workspaceIdFromWriteKey.isErr()) {
         return reply.status(401).send({
           message: "Invalid write key.",
         });
       }
 
       await submitTrackWithTriggers({
-        workspaceId: workspaceIdFromWriteKey,
+        workspaceId: workspaceIdFromWriteKey.value,
         data: request.body,
       });
       return reply.status(204).send();
@@ -134,14 +134,14 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         writeKey: request.headers.authorization,
       });
 
-      if (!workspaceIdFromWriteKey) {
+      if (workspaceIdFromWriteKey.isErr()) {
         return reply.status(401).send({
-          message: "Invalid write key.",
+          message: workspaceIdFromWriteKey.error,
         });
       }
 
       await submitPage({
-        workspaceId: workspaceIdFromWriteKey,
+        workspaceId: workspaceIdFromWriteKey.value,
         data: request.body,
       });
       return reply.status(204).send();
@@ -175,14 +175,14 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         writeKey: request.headers.authorization,
       });
 
-      if (!workspaceIdFromWriteKey) {
+      if (workspaceIdFromWriteKey.isErr()) {
         return reply.status(401).send({
-          message: "Invalid write key.",
+          message: workspaceIdFromWriteKey.error,
         });
       }
 
       await submitScreen({
-        workspaceId: workspaceIdFromWriteKey,
+        workspaceId: workspaceIdFromWriteKey.value,
         data: request.body,
       });
       return reply.status(204).send();
@@ -212,14 +212,14 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         writeKey: request.headers.authorization,
       });
 
-      if (!workspaceIdFromWriteKey) {
+      if (workspaceIdFromWriteKey.isErr()) {
         return reply.status(401).send({
-          message: "Invalid write key.",
+          message: workspaceIdFromWriteKey.error,
         });
       }
 
       await submitGroup({
-        workspaceId: workspaceIdFromWriteKey,
+        workspaceId: workspaceIdFromWriteKey.value,
         data: request.body,
       });
       return reply.status(204).send();
@@ -274,13 +274,13 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         writeKey: request.headers.authorization,
       });
 
-      if (!workspaceIdFromWriteKey) {
+      if (workspaceIdFromWriteKey.isErr()) {
         return reply.status(401).send({
-          message: "Invalid write key.",
+          message: workspaceIdFromWriteKey.error,
         });
       }
       await submitBatchWithTriggers({
-        workspaceId: workspaceIdFromWriteKey,
+        workspaceId: workspaceIdFromWriteKey.value,
         data: request.body,
       });
       return reply.status(204).send();

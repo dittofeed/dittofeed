@@ -8,7 +8,12 @@ import { generateSecureKey } from "./crypto";
 import { db } from "./db";
 import { secret as dbSecret, writeKey as dbWriteKey } from "./db/schema";
 import logger from "./logger";
-import { OpenIdProfile, WriteKeyResource } from "./types";
+import {
+  OpenIdProfile,
+  WorkspaceStatusDbEnum,
+  WriteKeyResource,
+} from "./types";
+import { err, ok, Result } from "neverthrow";
 
 const decoder = createDecoder();
 
@@ -26,6 +31,11 @@ export function decodeJwtHeader(header: string): OpenIdProfile | null {
   return result.value;
 }
 
+export type ValidateWriteKeyError =
+  | "InvalidWriteKey"
+  | "WorkspaceInactive"
+  | "WorkspaceIneligible";
+
 /**
  *
  * @param writeKey Authorization header of the form "basic <encodedWriteKey>".
@@ -36,11 +46,11 @@ export async function validateWriteKey({
   writeKey,
 }: {
   writeKey: string;
-}): Promise<string | null> {
+}): Promise<Result<string, ValidateWriteKeyError>> {
   // Extract the encodedWriteKey from the header
   const encodedWriteKey = writeKey.split(" ")[1];
   if (!encodedWriteKey) {
-    return null;
+    return err("InvalidWriteKey");
   }
 
   // Decode the writeKey
@@ -52,21 +62,30 @@ export async function validateWriteKey({
   const [secretKeyId, secretKeyValue] = decodedWriteKey.split(":");
 
   if (!secretKeyId || !validate(secretKeyId)) {
-    return null;
+    return err("InvalidWriteKey");
   }
 
   const writeKeySecret = await db().query.secret.findFirst({
     where: eq(dbSecret.id, secretKeyId),
+    with: {
+      workspace: true,
+    },
   });
 
   if (!writeKeySecret) {
-    return null;
+    return err("InvalidWriteKey");
+  }
+  if (writeKeySecret.workspace.status !== WorkspaceStatusDbEnum.Active) {
+    return err("WorkspaceInactive");
   }
 
+  if (writeKeySecret.workspace.type === "Parent") {
+    return err("WorkspaceIneligible");
+  }
   // Compare the secretKeyValue with the value from the database
   return writeKeySecret.value === secretKeyValue
-    ? writeKeySecret.workspaceId
-    : null;
+    ? ok(writeKeySecret.workspaceId)
+    : err("InvalidWriteKey");
 }
 
 export async function getOrCreateWriteKey({
