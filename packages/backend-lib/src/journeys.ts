@@ -496,20 +496,16 @@ export async function getJourneysStats({
 
   const query = `
     select
+        journey_id,
         JSON_VALUE(
-            message_raw,
-            '$.properties.journeyId'
-        ) journey_id,
-        JSON_VALUE(
-            message_raw,
-            '$.properties.nodeId'
+            properties,
+            '$.nodeId'
         ) node_id,
         uniq(message_id) as count
-    from user_events_v2
+    from internal_events
     where
         workspace_id = ${workspaceIdQuery}
         and journey_id in ${journeyIdsQuery}
-        and event_type = 'track'
         and event = 'DFJourneyNodeProcessed'
     group by journey_id, node_id
 `;
