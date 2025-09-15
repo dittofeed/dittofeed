@@ -508,13 +508,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       : blobStorageEndpoint);
 
   const blobStorageBucket = rawConfig.blobStorageBucket ?? "dittofeed";
-  let enableColdStorage: boolean;
-  if (rawConfig.enableColdStorage) {
-    enableColdStorage = rawConfig.enableColdStorage === "true";
-  } else {
-    enableColdStorage =
-      nodeEnv === NodeEnvEnum.Test || nodeEnv === NodeEnvEnum.Development;
-  }
+  const enableColdStorage = rawConfig.enableColdStorage === "true";
   const parsedConfig: Config = {
     ...rawConfig,
     bootstrap: rawConfig.bootstrap === "true",

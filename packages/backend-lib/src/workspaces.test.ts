@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { sleep } from "isomorphic-lib/src/time";
 
+import { DESCRIBE_TAGS, describeIf } from "../test/customBlocks";
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
 import { db } from "./db";
 import * as schema from "./db/schema";
@@ -36,7 +37,7 @@ jest.mock("./computedProperties/computePropertiesWorkflow/lifecycle", () => ({
 jest.setTimeout(15000);
 
 describe("workspaces", () => {
-  describe("cold storage", () => {
+  describeIf([DESCRIBE_TAGS.BLOB_STORAGE], "cold storage", () => {
     let workspaceId: string;
     const expectedUserEventsCount = 3;
     const expectedInternalEventsCount = 2; // DF* track events
