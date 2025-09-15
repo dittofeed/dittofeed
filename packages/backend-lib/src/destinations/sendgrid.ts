@@ -11,6 +11,7 @@ import * as R from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
+import { canWorkspaceReceiveEvents } from "../auth";
 import { MESSAGE_METADATA_FIELDS } from "../constants";
 import { verifyTimestampedSignature } from "../crypto";
 import { db } from "../db";
@@ -321,6 +322,9 @@ export async function handleSendgridEvents({
       eq(schema.secret.workspaceId, workspaceId),
       eq(schema.secret.name, SecretNames.SendGrid),
     ),
+    with: {
+      workspace: true,
+    },
   });
   const webhookKey = schemaValidateWithErr(secret?.configValue, SendgridSecret)
     .map((val) => val.webhookKey)
@@ -347,6 +351,13 @@ export async function handleSendgridEvents({
 
   if (!verified) {
     return err({ message: "Invalid signature." });
+  }
+
+  if (
+    !secret?.workspace ||
+    !canWorkspaceReceiveEvents({ workspace: secret.workspace })
+  ) {
+    return err({ message: "WorkspaceIneligible" });
   }
 
   // - translate events to DF events and write them
