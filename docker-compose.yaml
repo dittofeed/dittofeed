@@ -344,7 +344,6 @@ services:
   # Note that minio is only used for local development. In production, use any S3-compatible storage.
   blob-storage:
     image: minio/minio
-    profiles: ["blob-storage"]
     ports:
       - "9010:9000"
       - "9011:9001"

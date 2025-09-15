@@ -2,13 +2,23 @@ import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { createDecoder } from "fast-jwt";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { err, ok, Result } from "neverthrow";
 import { validate } from "uuid";
 
 import { generateSecureKey } from "./crypto";
 import { db } from "./db";
-import { secret as dbSecret, writeKey as dbWriteKey } from "./db/schema";
+import {
+  secret as dbSecret,
+  workspace as dbWorkspace,
+  writeKey as dbWriteKey,
+} from "./db/schema";
 import logger from "./logger";
-import { OpenIdProfile, WriteKeyResource } from "./types";
+import {
+  OpenIdProfile,
+  Workspace,
+  WorkspaceStatusDbEnum,
+  WriteKeyResource,
+} from "./types";
 
 const decoder = createDecoder();
 
@@ -26,6 +36,36 @@ export function decodeJwtHeader(header: string): OpenIdProfile | null {
   return result.value;
 }
 
+export function canWorkspaceReceiveEvents({
+  workspace,
+}: {
+  workspace: Workspace;
+}): boolean {
+  return (
+    workspace.status === WorkspaceStatusDbEnum.Active &&
+    workspace.type !== "Parent"
+  );
+}
+
+export async function canWorkspaceReceiveEventsById({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<boolean> {
+  const workspace = await db().query.workspace.findFirst({
+    where: eq(dbWorkspace.id, workspaceId),
+  });
+  if (!workspace) {
+    return false;
+  }
+  return canWorkspaceReceiveEvents({ workspace });
+}
+
+export type ValidateWriteKeyError =
+  | "InvalidWriteKey"
+  | "WorkspaceInactive"
+  | "WorkspaceIneligible";
+
 /**
  *
  * @param writeKey Authorization header of the form "basic <encodedWriteKey>".
@@ -36,11 +76,11 @@ export async function validateWriteKey({
   writeKey,
 }: {
   writeKey: string;
-}): Promise<string | null> {
+}): Promise<Result<string, ValidateWriteKeyError>> {
   // Extract the encodedWriteKey from the header
   const encodedWriteKey = writeKey.split(" ")[1];
   if (!encodedWriteKey) {
-    return null;
+    return err("InvalidWriteKey");
   }
 
   // Decode the writeKey
@@ -52,21 +92,27 @@ export async function validateWriteKey({
   const [secretKeyId, secretKeyValue] = decodedWriteKey.split(":");
 
   if (!secretKeyId || !validate(secretKeyId)) {
-    return null;
+    return err("InvalidWriteKey");
   }
 
   const writeKeySecret = await db().query.secret.findFirst({
     where: eq(dbSecret.id, secretKeyId),
+    with: {
+      workspace: true,
+    },
   });
 
   if (!writeKeySecret) {
-    return null;
+    return err("InvalidWriteKey");
+  }
+  if (!canWorkspaceReceiveEvents({ workspace: writeKeySecret.workspace })) {
+    return err("WorkspaceIneligible");
   }
 
   // Compare the secretKeyValue with the value from the database
   return writeKeySecret.value === secretKeyValue
-    ? writeKeySecret.workspaceId
-    : null;
+    ? ok(writeKeySecret.workspaceId)
+    : err("InvalidWriteKey");
 }
 
 export async function getOrCreateWriteKey({

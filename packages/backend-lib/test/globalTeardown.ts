@@ -1,6 +1,9 @@
+/* eslint-disable no-await-in-loop */
+import { DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { Client } from "pg";
 import { PostgresError } from "pg-error-enum";
 
+import { storage } from "../src/blobStorage";
 import { clickhouseClient } from "../src/clickhouse";
 import config from "../src/config";
 import logger from "../src/logger";
@@ -48,6 +51,48 @@ async function dropPostgres() {
   }
 }
 
+async function dropBucket() {
+  if (!config().enableBlobStorage) {
+    return;
+  }
+  const s3 = storage();
+  const bucket = config().blobStorageBucket;
+
+  // Only empty the bucket; do not delete it.
+  let continuationToken: string | undefined;
+  try {
+    do {
+      const listResp = await s3.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          ContinuationToken: continuationToken,
+        }),
+      );
+      const objects = (listResp.Contents ?? [])
+        .filter((o): o is { Key: string } => typeof o.Key === "string")
+        .map(({ Key }) => ({ Key }));
+      if (objects.length > 0) {
+        await s3.send(
+          new DeleteObjectsCommand({
+            Bucket: bucket,
+            Delete: { Objects: objects, Quiet: true },
+          }),
+        );
+      }
+      continuationToken = listResp.IsTruncated
+        ? listResp.NextContinuationToken
+        : undefined;
+    } while (continuationToken);
+  } catch (e) {
+    const err = e as { name?: string; Code?: string };
+    const code = err.name ?? err.Code;
+    if (code === "NoSuchBucket" || code === "NotFound") {
+      return; // Bucket doesn't exist; nothing to clean.
+    }
+    throw e;
+  }
+}
+
 export default async function globalTeardown() {
-  await Promise.all([dropClickhouse(), dropPostgres()]);
+  await Promise.all([dropClickhouse(), dropPostgres(), dropBucket()]);
 }

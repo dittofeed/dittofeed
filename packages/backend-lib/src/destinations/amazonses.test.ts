@@ -14,12 +14,16 @@ import { createWorkspace } from "../workspaces";
 import { handleSesNotification } from "./amazonses";
 
 describe("webhooksController", () => {
+  let workspaceId: string;
   beforeEach(async () => {
-    await createWorkspace({
-      id: randomUUID(),
-      name: `test-${randomUUID()}`,
-      updatedAt: new Date(),
-    });
+    const ws = unwrap(
+      await createWorkspace({
+        id: randomUUID(),
+        name: `test-${randomUUID()}`,
+        updatedAt: new Date(),
+      }),
+    );
+    workspaceId = ws.id;
   });
 
   describe("handleSesNotification", () => {
@@ -113,7 +117,7 @@ describe("webhooksController", () => {
             "ses:from-domain": ["example.com"],
             runId: ["run-12345-abcd-efgh-ijkl-mnopqrstuvwx"],
             nodeId: ["email-broadcast"],
-            workspaceId: [randomUUID()],
+            workspaceId: [workspaceId],
           },
         },
       } satisfies AmazonSesBounceEvent);

@@ -257,6 +257,28 @@
 
     <!-- Path to data directory, with trailing slash. -->
     <path>/var/lib/clickhouse/</path>
+    <!-- Storage configuration for cold storage on S3 (MinIO) -->
+    <storage_configuration>
+        <disks>
+            <s3_cold_disk>
+                <type>s3</type>
+                <endpoint>http://blob-storage:9000/dittofeed/cold/user_events/</endpoint>
+                <access_key_id>admin</access_key_id>
+                <secret_access_key>password</secret_access_key>
+                <metadata_path>/var/lib/clickhouse/disks/s3_cold_metadata/</metadata_path>
+                <cache_enabled>false</cache_enabled>
+            </s3_cold_disk>
+        </disks>
+        <policies>
+            <cold_storage>
+                <volumes>
+                    <main>
+                        <disk>s3_cold_disk</disk>
+                    </main>
+                </volumes>
+            </cold_storage>
+        </policies>
+    </storage_configuration>
 
     <!-- Path to temporary data for processing hard queries. -->
     <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
@@ -549,6 +571,8 @@
             Regexps are not aligned: don't forget to add ^ and $. Also don't forget to escape dot (.) metacharacter
             (forgetting to do so is a common source of error).
         -->
+        <!-- Allow blob-storage service by name with or without explicit port -->
+        <host_regexp>^(blob-storage|localhost)(:\d+)?$</host_regexp>
     </remote_url_allow_hosts>
 
     <!-- If element has 'incl' attribute, then for it's value will be used corresponding substitution from another file.

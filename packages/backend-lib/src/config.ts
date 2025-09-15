@@ -99,11 +99,14 @@ const BaseRawConfigProps = {
   openIdClientSecret: Type.Optional(Type.String()),
   allowedOrigins: Type.Optional(Type.String()),
   blobStorageEndpoint: Type.Optional(Type.String()),
+  blobStorageInternalEndpoint: Type.Optional(Type.String()),
   blobStorageAccessKeyId: Type.Optional(Type.String()),
   blobStorageSecretAccessKey: Type.Optional(Type.String()),
   blobStorageBucket: Type.Optional(Type.String()),
   enableBlobStorage: Type.Optional(BoolStr),
   blobStorageRegion: Type.Optional(Type.String()),
+  // Enable cold storage behavior (store on pause/tombstone, restore on resume/activate)
+  enableColdStorage: Type.Optional(BoolStr),
   exportLogsHyperDx: Type.Optional(BoolStr),
   hyperDxApiKey: Type.Optional(Type.String()),
   dittofeedTelemetryDisabled: Type.Optional(BoolStr),
@@ -135,6 +138,13 @@ const BaseRawConfigProps = {
     Type.String({ format: "naturalNumber" }),
   ),
   clickhouseComputePropertiesMaxExecutionTime: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  // Cold storage ClickHouse operation timeouts
+  clickhouseColdStorageRequestTimeout: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  clickhouseColdStorageMaxExecutionTime: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
   clickhouseMaxBytesRatioBeforeExternalGroupBy: Type.Optional(
@@ -223,6 +233,7 @@ export type Config = Overwrite<
     blobStorageAccessKeyId: string;
     blobStorageBucket: string;
     blobStorageEndpoint: string;
+    blobStorageInternalEndpoint: string;
     blobStorageRegion: string;
     blobStorageSecretAccessKey: string;
     bootstrap: boolean;
@@ -249,6 +260,7 @@ export type Config = Overwrite<
     enableMobilePush: boolean;
     enableSourceControl: boolean;
     exportLogsHyperDx: boolean;
+    enableColdStorage: boolean;
     globalCronTaskQueue: string;
     googleOps: boolean;
     kafkaBrokers: string[];
@@ -281,6 +293,9 @@ export type Config = Overwrite<
     computePropertiesTimeout: number;
     metricsExportIntervalMs: number;
     batchChunkSize: number;
+    // Cold storage timeouts (ms)
+    clickhouseColdStorageRequestTimeout?: number;
+    clickhouseColdStorageMaxExecutionTime?: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -484,7 +499,16 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   const computedPropertiesActivityTaskQueue =
     rawConfig.computedPropertiesActivityTaskQueue ??
     computedPropertiesTaskQueue;
+  const blobStorageEndpoint =
+    rawConfig.blobStorageEndpoint ?? "http://localhost:9010";
+  const blobStorageInternalEndpoint =
+    rawConfig.blobStorageInternalEndpoint ??
+    (nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
+      ? "http://blob-storage:9000"
+      : blobStorageEndpoint);
 
+  const blobStorageBucket = rawConfig.blobStorageBucket ?? "dittofeed";
+  const enableColdStorage = rawConfig.enableColdStorage === "true";
   const parsedConfig: Config = {
     ...rawConfig,
     bootstrap: rawConfig.bootstrap === "true",
@@ -581,12 +605,16 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     sessionCookieSecure: rawConfig.sessionCookieSecure === "true",
     allowedOrigins: (rawConfig.allowedOrigins ?? dashboardUrl).split(","),
     enableBlobStorage: rawConfig.enableBlobStorage === "true",
-    blobStorageEndpoint:
-      rawConfig.blobStorageEndpoint ?? "http://localhost:9010",
+    // Gate cold storage behavior (default false)
+    enableColdStorage,
+    // Endpoint used by Node AWS SDK clients (host-accessible)
+    blobStorageEndpoint,
+    // Internal endpoint used by ClickHouse (container-accessible)
+    blobStorageInternalEndpoint,
     blobStorageAccessKeyId: rawConfig.blobStorageAccessKeyId ?? "admin",
     blobStorageSecretAccessKey:
       rawConfig.blobStorageSecretAccessKey ?? "password",
-    blobStorageBucket: rawConfig.blobStorageBucket ?? "dittofeed",
+    blobStorageBucket,
     blobStorageRegion: rawConfig.blobStorageRegion ?? "us-east-1",
     exportLogsHyperDx: rawConfig.exportLogsHyperDx === "true",
     dittofeedTelemetryDisabled:
@@ -623,6 +651,15 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.clickhouseComputePropertiesMaxExecutionTime
         ? parseInt(rawConfig.clickhouseComputePropertiesMaxExecutionTime)
         : 180000,
+    // Default to 5 minutes for cold storage operations
+    clickhouseColdStorageRequestTimeout:
+      rawConfig.clickhouseColdStorageRequestTimeout
+        ? parseInt(rawConfig.clickhouseColdStorageRequestTimeout)
+        : 5 * 60 * 1000,
+    clickhouseColdStorageMaxExecutionTime:
+      rawConfig.clickhouseColdStorageMaxExecutionTime
+        ? parseInt(rawConfig.clickhouseColdStorageMaxExecutionTime)
+        : 5 * 60 * 1000,
     clickhouseMaxBytesRatioBeforeExternalGroupBy:
       rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy
         ? parseFloat(rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy)

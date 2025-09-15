@@ -3,12 +3,12 @@ import { WORKSPACE_TOMBSTONE_PREFIX } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
-import { bootstrapComputeProperties } from "./bootstrap";
 import {
-  startComputePropertiesWorkflow,
-  stopComputePropertiesWorkflow,
-  terminateComputePropertiesWorkflow,
-} from "./computedProperties/computePropertiesWorkflow/lifecycle";
+  ClickHouseQueryBuilder,
+  command as chCommand,
+  createClickhouseClient,
+} from "./clickhouse";
+import config from "./config";
 import { db, PostgresError, txQueryResult } from "./db";
 import {
   segment as dbSegment,
@@ -20,6 +20,108 @@ import {
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
 } from "./types";
+import logger from "./logger";
+
+// Move workspace user events and related CH data to cold storage (local table placeholder)
+export async function coldStoreWorkspaceEvents({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<void> {
+  const qb = new ClickHouseQueryBuilder();
+  const ws = qb.addQueryValue(workspaceId, "String");
+  const chClient = createClickhouseClient({
+    requestTimeout: config().clickhouseColdStorageRequestTimeout,
+  });
+
+  // Copy events to cold storage
+  logger().info({ workspaceId }, "Cold storage: copying events to cold storage");
+  await chCommand(
+    {
+      query: `
+      INSERT INTO user_events_cold_storage (message_raw, processing_time, workspace_id, message_id, server_time)
+      SELECT message_raw, processing_time, workspace_id, message_id, server_time
+      FROM user_events_v2
+      WHERE workspace_id = ${ws}
+    `,
+      query_params: qb.getQueries(),
+      clickhouse_settings: {
+        max_execution_time: config().clickhouseColdStorageMaxExecutionTime,
+      },
+    },
+    { clickhouseClient: chClient },
+  );
+
+  // Delete hot data (async deletes)
+  logger().info({ workspaceId }, "Cold storage: deleting hot user_events_v2");
+  logger().info({ workspaceId }, "Cold storage: deleting hot internal_events");
+  await Promise.all([
+    chCommand(
+      {
+        query: `DELETE FROM user_events_v2 WHERE workspace_id = ${ws} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+        query_params: qb.getQueries(),
+        clickhouse_settings: {
+          max_execution_time: config().clickhouseColdStorageMaxExecutionTime,
+        },
+      },
+      { clickhouseClient: chClient },
+    ),
+    chCommand(
+      {
+        query: `DELETE FROM internal_events WHERE workspace_id = ${ws} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+        query_params: qb.getQueries(),
+        clickhouse_settings: {
+          max_execution_time: config().clickhouseColdStorageMaxExecutionTime,
+        },
+      },
+      { clickhouseClient: chClient },
+    ),
+  ]);
+}
+
+// Restore workspace user events and related CH data from cold storage (local table placeholder)
+export async function restoreWorkspaceEvents({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<void> {
+  const qb = new ClickHouseQueryBuilder();
+  const ws = qb.addQueryValue(workspaceId, "String");
+  const chClient = createClickhouseClient({
+    requestTimeout: config().clickhouseColdStorageRequestTimeout,
+  });
+
+  // Restore from cold storage into hot table; MV will repopulate internal_events
+  logger().info({ workspaceId }, "Cold storage: restoring events from cold storage");
+  await chCommand(
+    {
+      query: `
+      INSERT INTO user_events_v2 (message_raw, processing_time, workspace_id, message_id, server_time)
+      SELECT message_raw, processing_time, workspace_id, message_id, server_time
+      FROM user_events_cold_storage
+      WHERE workspace_id = ${ws}
+    `,
+      query_params: qb.getQueries(),
+      clickhouse_settings: {
+        max_execution_time: config().clickhouseColdStorageMaxExecutionTime,
+      },
+    },
+    { clickhouseClient: chClient },
+  );
+
+  // Delete cold storage rows for this workspace (async delete)
+  logger().info({ workspaceId }, "Cold storage: deleting restored rows from cold storage");
+  await chCommand(
+    {
+      query: `DELETE FROM user_events_cold_storage WHERE workspace_id = ${ws} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+      query_params: qb.getQueries(),
+      clickhouse_settings: {
+        max_execution_time: config().clickhouseColdStorageMaxExecutionTime,
+      },
+    },
+    { clickhouseClient: chClient },
+  );
+}
 
 export enum TombstoneWorkspaceErrorType {
   WorkspaceNotFound = "WorkspaceNotFound",
@@ -30,6 +132,7 @@ export interface TombstoneWorkspaceError {
 
 export async function tombstoneWorkspace(
   workspaceId: string,
+  options: { enableColdStorageOverride?: boolean } = {},
 ): Promise<Result<void, TombstoneWorkspaceError>> {
   if (!validateUuid(workspaceId)) {
     return err({
@@ -65,7 +168,11 @@ export async function tombstoneWorkspace(
   if (result.isErr()) {
     return err(result.error);
   }
-  await terminateComputePropertiesWorkflow({ workspaceId });
+  const enableColdStorage =
+    options.enableColdStorageOverride ?? config().enableColdStorage;
+  if (enableColdStorage) {
+    await coldStoreWorkspaceEvents({ workspaceId });
+  }
   return ok(undefined);
 }
 
@@ -87,6 +194,7 @@ export type ActivateTombstonedWorkspaceError =
 
 export async function activateTombstonedWorkspace(
   workspaceId: string,
+  options: { enableColdStorageOverride?: boolean } = {},
 ): Promise<Result<void, ActivateTombstonedWorkspaceError>> {
   const result = await db().transaction(async (tx) => {
     const workspace = await tx.query.workspace.findFirst({
@@ -136,27 +244,41 @@ export async function activateTombstonedWorkspace(
   if (result.isErr()) {
     return err(result.error);
   }
-  await bootstrapComputeProperties({ workspaceId });
+  const enableColdStorage =
+    options.enableColdStorageOverride ?? config().enableColdStorage;
+  if (enableColdStorage) {
+    await restoreWorkspaceEvents({ workspaceId });
+  }
   return ok(undefined);
 }
 
 export { createWorkspace } from "./workspaces/createWorkspace";
 
-export async function pauseWorkspace({ workspaceId }: { workspaceId: string }) {
+export async function pauseWorkspace(
+  { workspaceId }: { workspaceId: string },
+  options: { enableColdStorageOverride?: boolean } = {},
+) {
   await db()
     .update(dbWorkspace)
     .set({
       status: WorkspaceStatusDbEnum.Paused,
     })
     .where(eq(dbWorkspace.id, workspaceId));
-  await stopComputePropertiesWorkflow({ workspaceId });
+  const enableColdStorage =
+    options.enableColdStorageOverride ?? config().enableColdStorage;
+  if (enableColdStorage) {
+    await coldStoreWorkspaceEvents({ workspaceId });
+  }
 }
 
-export async function resumeWorkspace({
-  workspaceId,
-}: {
-  workspaceId: string;
-}) {
+export async function resumeWorkspace(
+  {
+    workspaceId,
+  }: {
+    workspaceId: string;
+  },
+  options: { enableColdStorageOverride?: boolean } = {},
+) {
   await db()
     .update(dbWorkspace)
     .set({
@@ -164,7 +286,11 @@ export async function resumeWorkspace({
     })
     .where(eq(dbWorkspace.id, workspaceId));
 
-  await startComputePropertiesWorkflow({ workspaceId });
+  const enableColdStorage =
+    options.enableColdStorageOverride ?? config().enableColdStorage;
+  if (enableColdStorage) {
+    await restoreWorkspaceEvents({ workspaceId });
+  }
 }
 
 export function recomputableWorkspacesQuery() {
