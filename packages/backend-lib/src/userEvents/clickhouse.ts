@@ -144,21 +144,8 @@ export async function insertProcessedComputedProperties({
 
 export async function createUserEventsTables() {
   logger().info("Creating user events tables");
-  const queries: string[] = [
-    // Cold storage table on MergeTree backed by S3 via storage policy
-    `
-        CREATE TABLE IF NOT EXISTS user_events_cold_storage (
-          message_raw String,
-          processing_time DateTime64(3),
-          workspace_id String,
-          message_id String,
-          server_time DateTime64(3)
-        )
-        ENGINE = MergeTree()
-        PARTITION BY (workspace_id, toYYYYMM(processing_time))
-        ORDER BY (workspace_id, processing_time, message_id)
-        SETTINGS storage_policy = 'cold_storage'
-      `,
+
+  const queries = [
     // This is the primary table for user events, which serves as the source of truth for user traits and behaviors.
     `
         CREATE TABLE IF NOT EXISTS user_events_v2 (
@@ -393,6 +380,23 @@ export async function createUserEventsTables() {
     CREATE_INTERNAL_EVENTS_TABLE_QUERY,
     ...GROUP_TABLES,
   ];
+
+  // Only create cold storage table if enabled in config
+  if (config().enableColdStorage) {
+    queries.push(`
+        CREATE TABLE IF NOT EXISTS user_events_cold_storage (
+          message_raw String,
+          processing_time DateTime64(3),
+          workspace_id String,
+          message_id String,
+          server_time DateTime64(3)
+        )
+        ENGINE = MergeTree()
+        PARTITION BY (workspace_id, toYYYYMM(processing_time))
+        ORDER BY (workspace_id, processing_time, message_id)
+        SETTINGS storage_policy = 'cold_storage'
+      `);
+  }
 
   await Promise.all(
     queries.map((query) =>

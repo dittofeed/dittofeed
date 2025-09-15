@@ -140,6 +140,13 @@ const BaseRawConfigProps = {
   clickhouseComputePropertiesMaxExecutionTime: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  // Cold storage ClickHouse operation timeouts
+  clickhouseColdStorageRequestTimeout: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  clickhouseColdStorageMaxExecutionTime: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   clickhouseMaxBytesRatioBeforeExternalGroupBy: Type.Optional(
     Type.String({ format: "float" }),
   ),
@@ -286,6 +293,9 @@ export type Config = Overwrite<
     computePropertiesTimeout: number;
     metricsExportIntervalMs: number;
     batchChunkSize: number;
+    // Cold storage timeouts (ms)
+    clickhouseColdStorageRequestTimeout?: number;
+    clickhouseColdStorageMaxExecutionTime?: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -498,6 +508,13 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       : blobStorageEndpoint);
 
   const blobStorageBucket = rawConfig.blobStorageBucket ?? "dittofeed";
+  let enableColdStorage: boolean;
+  if (rawConfig.enableColdStorage) {
+    enableColdStorage = rawConfig.enableColdStorage === "true";
+  } else {
+    enableColdStorage =
+      nodeEnv === NodeEnvEnum.Test || nodeEnv === NodeEnvEnum.Development;
+  }
   const parsedConfig: Config = {
     ...rawConfig,
     bootstrap: rawConfig.bootstrap === "true",
@@ -596,7 +613,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     enableBlobStorage:
       rawConfig.enableBlobStorage === "true" || nodeEnv === NodeEnvEnum.Test,
     // Gate cold storage behavior (default false)
-    enableColdStorage: rawConfig.enableColdStorage === "true",
+    enableColdStorage,
     // Endpoint used by Node AWS SDK clients (host-accessible)
     blobStorageEndpoint,
     // Internal endpoint used by ClickHouse (container-accessible)
@@ -641,6 +658,15 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.clickhouseComputePropertiesMaxExecutionTime
         ? parseInt(rawConfig.clickhouseComputePropertiesMaxExecutionTime)
         : 180000,
+    // Default to 5 minutes for cold storage operations
+    clickhouseColdStorageRequestTimeout:
+      rawConfig.clickhouseColdStorageRequestTimeout
+        ? parseInt(rawConfig.clickhouseColdStorageRequestTimeout)
+        : 5 * 60 * 1000,
+    clickhouseColdStorageMaxExecutionTime:
+      rawConfig.clickhouseColdStorageMaxExecutionTime
+        ? parseInt(rawConfig.clickhouseColdStorageMaxExecutionTime)
+        : 5 * 60 * 1000,
     clickhouseMaxBytesRatioBeforeExternalGroupBy:
       rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy
         ? parseFloat(rawConfig.clickhouseMaxBytesRatioBeforeExternalGroupBy)
