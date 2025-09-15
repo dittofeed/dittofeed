@@ -2,6 +2,7 @@ import formbody from "@fastify/formbody";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { SpanStatusCode } from "@opentelemetry/api";
 import { Type } from "@sinclair/typebox";
+import { canWorkspaceReceiveEvents } from "backend-lib/src/auth";
 import backendConfig from "backend-lib/src/config";
 import { generateDigest } from "backend-lib/src/crypto";
 import { db } from "backend-lib/src/db";
@@ -219,6 +220,9 @@ export default async function webhookController(fastify: FastifyInstance) {
           eq(schema.secret.workspaceId, workspaceId),
           eq(schema.secret.name, SecretNames.Resend),
         ),
+        with: {
+          workspace: true,
+        },
       });
 
       const webhookKey = schemaValidateWithErr(
@@ -260,6 +264,15 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
+      if (
+        !secret?.workspace ||
+        !canWorkspaceReceiveEvents({ workspace: secret.workspace })
+      ) {
+        return reply.status(401).send({
+          message: "Workspace not eligible.",
+        });
+      }
+
       await submitResendEvents({
         workspaceId,
         events: [request.body],
@@ -296,6 +309,9 @@ export default async function webhookController(fastify: FastifyInstance) {
           eq(schema.secret.workspaceId, workspaceId),
           eq(schema.secret.name, SecretNames.Postmark),
         ),
+        with: {
+          workspace: true,
+        },
       });
 
       const secretHeader = request.headers["x-postmark-secret"];
@@ -323,6 +339,15 @@ export default async function webhookController(fastify: FastifyInstance) {
         logger().error("Invalid signature for PostMark webhook.");
         return reply.status(401).send({
           message: "Invalid signature.",
+        });
+      }
+
+      if (
+        !secret?.workspace ||
+        !canWorkspaceReceiveEvents({ workspace: secret.workspace })
+      ) {
+        return reply.status(401).send({
+          message: "Workspace not eligible.",
         });
       }
 
@@ -431,6 +456,9 @@ export default async function webhookController(fastify: FastifyInstance) {
           eq(schema.secret.workspaceId, workspaceId),
           eq(schema.secret.name, SecretNames.MailChimp),
         ),
+        with: {
+          workspace: true,
+        },
       });
 
       const webhookKey = schemaValidateWithErr(
@@ -483,6 +511,15 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
+      if (
+        !secret?.workspace ||
+        !canWorkspaceReceiveEvents({ workspace: secret.workspace })
+      ) {
+        return reply.status(401).send({
+          message: "Workspace not eligible.",
+        });
+      }
+
       await submitMailChimpEvents({
         events: parsedEvents,
       });
@@ -513,6 +550,9 @@ export default async function webhookController(fastify: FastifyInstance) {
           eq(schema.secret.workspaceId, workspaceId),
           eq(schema.secret.name, SecretNames.Twilio),
         ),
+        with: {
+          workspace: true,
+        },
       });
 
       const twilioSecretResult = schemaValidateWithErr(
@@ -551,6 +591,15 @@ export default async function webhookController(fastify: FastifyInstance) {
         );
         return reply.status(401).send({
           message: "Invalid signature.",
+        });
+      }
+
+      if (
+        !twilioSecretModel?.workspace ||
+        !canWorkspaceReceiveEvents({ workspace: twilioSecretModel.workspace })
+      ) {
+        return reply.status(401).send({
+          message: "Workspace not eligible.",
         });
       }
 
@@ -598,6 +647,9 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
       const config = await db().query.segmentIoConfiguration.findFirst({
         where: eq(schema.segmentIoConfiguration.workspaceId, workspaceId),
+        with: {
+          workspace: true,
+        },
       });
 
       if (!config) {
@@ -619,6 +671,12 @@ export default async function webhookController(fastify: FastifyInstance) {
 
       if (signature !== digest) {
         return reply.status(401).send();
+      }
+
+      if (!canWorkspaceReceiveEvents({ workspace: config.workspace })) {
+        return reply.status(401).send({
+          message: "Workspace not eligible.",
+        });
       }
 
       await insertUserEvents({
