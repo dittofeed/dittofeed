@@ -12,7 +12,7 @@ import { createWorkspace } from "./workspaces";
 
 describe("validateWriteKey", () => {
   let workspace: Workspace;
-  let valid: string | null;
+  let result: Awaited<ReturnType<typeof validateWriteKey>> | undefined;
   beforeEach(async () => {
     workspace = unwrap(
       await createWorkspace({
@@ -30,30 +30,34 @@ describe("validateWriteKey", () => {
         writeKeyName: "test",
       });
       const header = writeKeyToHeader(writeKey);
-      valid = await validateWriteKey({ writeKey: header });
+      result = await validateWriteKey({ writeKey: header });
     });
-    it("should return true", () => {
-      expect(valid).not.toBe(null);
+    it("should return ok", () => {
+      expect(result?.isOk()).toBe(true);
     });
   });
   describe("when write key is missing", () => {
     beforeEach(async () => {
-      valid = await validateWriteKey({
+      result = await validateWriteKey({
         writeKey: `Basic ${toBase64("missing:")}`,
       });
     });
-    it("should return false", () => {
-      expect(valid).toBe(null);
+    it("should return InvalidWriteKey", () => {
+      expect(result?.isErr()).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      expect(result!._unsafeUnwrapErr()).toBe("InvalidWriteKey");
     });
   });
   describe("when write key is malformed", () => {
     beforeEach(async () => {
-      valid = await validateWriteKey({
+      result = await validateWriteKey({
         writeKey: "Basic foobar",
       });
     });
-    it("should return false", () => {
-      expect(valid).toBe(null);
+    it("should return InvalidWriteKey", () => {
+      expect(result?.isErr()).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      expect(result!._unsafeUnwrapErr()).toBe("InvalidWriteKey");
     });
   });
 
@@ -70,12 +74,14 @@ describe("validateWriteKey", () => {
         ),
       });
       const secretID = `${secret?.id ?? ""}:wrong`;
-      valid = await validateWriteKey({
+      result = await validateWriteKey({
         writeKey: `Basic ${toBase64(secretID)}`,
       });
     });
-    it("should return false", () => {
-      expect(valid).toBe(null);
+    it("should return InvalidWriteKey", () => {
+      expect(result?.isErr()).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      expect(result!._unsafeUnwrapErr()).toBe("InvalidWriteKey");
     });
   });
 });
