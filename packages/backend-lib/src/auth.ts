@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { createDecoder } from "fast-jwt";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { err, ok, Result } from "neverthrow";
 import { validate } from "uuid";
 
 import { generateSecureKey } from "./crypto";
@@ -10,10 +11,10 @@ import { secret as dbSecret, writeKey as dbWriteKey } from "./db/schema";
 import logger from "./logger";
 import {
   OpenIdProfile,
+  Workspace,
   WorkspaceStatusDbEnum,
   WriteKeyResource,
 } from "./types";
-import { err, ok, Result } from "neverthrow";
 
 const decoder = createDecoder();
 
@@ -29,6 +30,17 @@ export function decodeJwtHeader(header: string): OpenIdProfile | null {
     return null;
   }
   return result.value;
+}
+
+export function canWorkspaceReceiveEvents({
+  workspace,
+}: {
+  workspace: Workspace;
+}): boolean {
+  return (
+    workspace.status === WorkspaceStatusDbEnum.Active &&
+    workspace.type !== "Parent"
+  );
 }
 
 export type ValidateWriteKeyError =
@@ -75,13 +87,10 @@ export async function validateWriteKey({
   if (!writeKeySecret) {
     return err("InvalidWriteKey");
   }
-  if (writeKeySecret.workspace.status !== WorkspaceStatusDbEnum.Active) {
-    return err("WorkspaceInactive");
-  }
-
-  if (writeKeySecret.workspace.type === "Parent") {
+  if (!canWorkspaceReceiveEvents({ workspace: writeKeySecret.workspace })) {
     return err("WorkspaceIneligible");
   }
+
   // Compare the secretKeyValue with the value from the database
   return writeKeySecret.value === secretKeyValue
     ? ok(writeKeySecret.workspaceId)
