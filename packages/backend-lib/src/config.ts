@@ -604,8 +604,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       : 150,
     sessionCookieSecure: rawConfig.sessionCookieSecure === "true",
     allowedOrigins: (rawConfig.allowedOrigins ?? dashboardUrl).split(","),
-    enableBlobStorage:
-      rawConfig.enableBlobStorage === "true" || nodeEnv === NodeEnvEnum.Test,
+    enableBlobStorage: rawConfig.enableBlobStorage === "true",
     // Gate cold storage behavior (default false)
     enableColdStorage,
     // Endpoint used by Node AWS SDK clients (host-accessible)
