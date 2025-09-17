@@ -422,7 +422,7 @@ function buildRecentUpdateSegmentQuery({
       ${expression},
       max(event_time),
       toDateTime64(${nowSeconds}, 3) as assigned_at
-    from computed_property_state_v2 as cps
+    from computed_property_state_v3 as cps
     where
       (
         workspace_id,
@@ -603,7 +603,7 @@ function segmentToResolvedState({
                 state_id,
                 user_id,
                 uniqMerge(cps_performed.unique_count) ${mappedOperator} ${mappedTimes} as segment_state_value
-              from computed_property_state_v2 cps_performed
+              from computed_property_state_v3 cps_performed
               where
                 ${withinRangeWhereClause}
               group by
@@ -633,7 +633,7 @@ function segmentToResolvedState({
               user_id,
               argMaxMerge(last_value) last_id,
               max(cps.event_time) as max_event_time
-            from computed_property_state_v2 cps
+            from computed_property_state_v3 cps
             where
               cps.workspace_id = ${workspaceIdParam}
               and cps.type = 'user_property'
@@ -650,7 +650,7 @@ function segmentToResolvedState({
                     state_id,
                     user_id,
                     uniqMerge(cps_performed.unique_count) ${mappedOperator} ${mappedTimes} as segment_state_value
-                  from computed_property_state_v2 as cps_performed
+                  from computed_property_state_v3 as cps_performed
                   where
                     ${withinRangeWhereClause}
                   group by
@@ -722,7 +722,7 @@ function segmentToResolvedState({
               state_id,
               user_id,
               uniqMerge(cps_performed.unique_count) ${mappedOperator} ${mappedTimes} as segment_state_value
-            from computed_property_state_v2 cps_performed
+            from computed_property_state_v3 cps_performed
             where
               cps_performed.workspace_id = ${workspaceIdParam}
               and cps_performed.type = 'segment'
@@ -754,7 +754,7 @@ function segmentToResolvedState({
             user_id,
             argMaxMerge(last_value) last_id,
             max(cps.event_time) as max_event_time
-          from computed_property_state_v2 cps
+          from computed_property_state_v3 cps
           where
             cps.workspace_id = ${workspaceIdParam}
             and cps.type = 'user_property'
@@ -771,7 +771,7 @@ function segmentToResolvedState({
                   state_id,
                   user_id,
                   uniqMerge(cps_performed.unique_count) ${mappedOperator} ${mappedTimes} as segment_state_value
-                from computed_property_state_v2 as cps_performed
+                from computed_property_state_v3 as cps_performed
                 where
                   cps_performed.workspace_id = ${workspaceIdParam}
                   and cps_performed.type = 'segment'
@@ -953,7 +953,7 @@ function segmentToResolvedState({
               False,
               max(cps.event_time),
               toDateTime64(${nowSeconds}, 3) as assigned_at
-            from computed_property_state_v2 as cps
+            from computed_property_state_v3 as cps
             where
               cps.workspace_id = ${workspaceIdParam}
               and cps.type = 'segment'
@@ -1007,7 +1007,7 @@ function segmentToResolvedState({
               False,
               max(cps.event_time),
               toDateTime64(${nowSeconds}, 3) as assigned_at
-            from computed_property_state_v2 as cps
+            from computed_property_state_v3 as cps
             where
               cps.workspace_id = ${workspaceIdParam}
               and cps.type = 'segment'
@@ -1052,7 +1052,7 @@ function segmentToResolvedState({
               True,
               max(cps.event_time),
               toDateTime64(${nowSeconds}, 3) as assigned_at
-            from computed_property_state_v2 as cps
+            from computed_property_state_v3 as cps
             where
               cps.workspace_id = ${workspaceIdParam}
               and cps.type = 'segment'
@@ -1380,7 +1380,7 @@ function segmentToResolvedState({
           reinterpretAsUInt64(reverse(unhex(left(hex(MD5(concat(user_id, ${segmentNameParam}))), 16)))) < (${qb.addQueryValue(node.percent, "Float64")} * pow(2, 64)),
           max(event_time),
           toDateTime64(${nowSeconds}, 3) as assigned_at
-        from computed_property_state_v2 as cps
+        from computed_property_state_v3 as cps
         where
           (
             workspace_id,
@@ -2383,7 +2383,7 @@ function assignStandardUserPropertiesQuery({
           argMaxMerge(last_value) last_value,
           uniqMerge(unique_count) unique_count,
           max(event_time) max_event_time
-        from computed_property_state_v2 cps
+        from computed_property_state_v3 cps
         where
           (
             workspace_id,
@@ -2488,7 +2488,7 @@ function assignPerformedManyUserPropertiesQuery({
         SELECT
             arrayJoin(groupArrayMerge(cps.grouped_message_ids)) AS message_ids
         FROM
-            computed_property_state_v2 AS cps
+            computed_property_state_v3 AS cps
         WHERE
             (
                 workspace_id,
@@ -2888,7 +2888,7 @@ export async function computeState({
               SELECT
                 user_id,
                 argMaxMerge(last_value) as last_value
-              FROM computed_property_state_v2
+              FROM computed_property_state_v3
               WHERE
                 workspace_id = ${workspaceIdClause}
                 AND type = '${subQuery.type}'
@@ -2900,7 +2900,7 @@ export async function computeState({
           `;
 
           const query = `
-            insert into computed_property_state_v2
+            insert into computed_property_state_v3
             select
               ue.workspace_id,
               '${subQuery.type}' as type,
@@ -3182,7 +3182,7 @@ export async function computeAssignments({
                 .join(",")},
               0
             ) indexed_value
-          from computed_property_state_v2
+          from computed_property_state_v3
           where
             workspace_id = ${workspaceIdParam}
             and type = 'segment'
