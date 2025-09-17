@@ -225,7 +225,7 @@ export async function createUserEventsTables() {
     // example, a segment with N conditions joined with an "And" clause will
     // require N state id's.
     `
-        CREATE TABLE IF NOT EXISTS computed_property_state_v2 (
+        CREATE TABLE IF NOT EXISTS computed_property_state_v3 (
           workspace_id LowCardinality(String),
           type Enum('user_property' = 1, 'segment' = 2),
           computed_property_id LowCardinality(String),
@@ -238,6 +238,10 @@ export async function createUserEventsTables() {
           computed_at DateTime64(3)
         )
         ENGINE = AggregatingMergeTree()
+        PARTITION BY (
+          workspace_id,
+          toYear(event_time)
+        )
         ORDER BY (
           workspace_id,
           type,
@@ -427,7 +431,7 @@ export async function createUserEventsTables() {
         assigned_at;
     `,
     `
-      create materialized view if not exists updated_computed_property_state_v2_mv to updated_computed_property_state
+      create materialized view if not exists updated_computed_property_state_v3_mv to updated_computed_property_state
       as select
         workspace_id,
         type,
@@ -435,7 +439,7 @@ export async function createUserEventsTables() {
         state_id,
         user_id,
         computed_at
-      from computed_property_state_v2
+      from computed_property_state_v3
       group by
         workspace_id,
         type,
