@@ -3,7 +3,11 @@ import { Type } from "@sinclair/typebox";
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { submitTrackWithTriggers } from "backend-lib/src/apps";
 import { submitBatch } from "backend-lib/src/apps/batch";
-import { bootstrapClickhouse, bootstrapKafka } from "backend-lib/src/bootstrap";
+import {
+  bootstrapBlobStorage,
+  bootstrapClickhouse,
+  bootstrapKafka,
+} from "backend-lib/src/bootstrap";
 import {
   clickhouseClient,
   ClickHouseQueryBuilder,
@@ -123,6 +127,14 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await bootstrapClickhouse();
+      },
+    )
+    .command(
+      "bootstrap-blob-storage",
+      "Bootstraps blob storage.",
+      (y) => y,
+      async () => {
+        await bootstrapBlobStorage();
       },
     )
     .command(

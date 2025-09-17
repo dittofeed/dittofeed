@@ -543,6 +543,12 @@ export async function bootstrapWorkspace({
   return { workspaceId };
 }
 
+export async function bootstrapBlobStorage() {
+  await createBucket(storage(), {
+    bucketName: config().blobStorageBucket,
+  });
+}
+
 export async function bootstrapDependencies(): Promise<void> {
   const promises = [
     drizzleMigrate(),
@@ -551,11 +557,7 @@ export async function bootstrapDependencies(): Promise<void> {
     ),
   ];
   if (config().enableBlobStorage) {
-    promises.push(
-      createBucket(storage(), {
-        bucketName: config().blobStorageBucket,
-      }),
-    );
+    promises.push(bootstrapBlobStorage());
   }
   if (config().writeMode === "kafka") {
     promises.push(bootstrapKafka());
