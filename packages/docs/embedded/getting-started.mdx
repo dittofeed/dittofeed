@@ -255,3 +255,23 @@ The deliveries table displays all of the message deliveries for the child worksp
   height="100%"
 ></iframe>
 ```
+
+### Analysis Chart
+
+The analysis chart provides time-series insights into your messaging performance. It supports grouping (e.g., by journey, template, channel, provider, and message state), flexible date ranges, percentage view, quick downloads, and a summary panel.
+
+<Frame caption="Visualize message activity over time with groupings.">
+![Embedded Analysis Chart Placeholder](/images/embedded-analysis-chart.png)
+</Frame>
+
+<Frame caption="Summary metrics for the selected period and filters.">
+![Embedded Analysis Summary Placeholder](/images/embedded-analysis-summary.png)
+</Frame>
+
+```html
+<iframe
+  src="https://app.dittofeed.com/dashboard-l/embedded/analysis-chart?token=${SESSION_TOKEN}&workspaceId=${CHILD_WORKSPACE_ID}"
+  width="100%"
+  height="100%"
+></iframe>
+```
