@@ -91,6 +91,7 @@ import { spawnWithEnv } from "./spawn";
 import {
   backfillInternalEvents,
   disentangleResendSendgrid,
+  transferComputedPropertyStateV2ToV3Query,
   upgradeV010Post,
   upgradeV010Pre,
   upgradeV012Pre,
@@ -106,6 +107,61 @@ export function createCommands(yargs: Argv): Argv {
       "Initialize the dittofeed application and creates a workspace.",
       boostrapOptions,
       bootstrapHandler,
+    )
+    .command(
+      "print-transfer-computed-property-state-v2-v3-query",
+      "Prints the ClickHouse query used to copy computed_property_state_v2 rows into computed_property_state_v3.",
+      (cmd) =>
+        cmd
+          .option("exclude-workspace-id", {
+            type: "string",
+            describe: "Workspace ID to exclude from the transfer (repeatable).",
+            array: true,
+          })
+          .option("limit", {
+            type: "number",
+            describe:
+              "Maximum number of distinct workspaces to include in the batch (default 64).",
+            default: 64,
+          })
+          .option("offset", {
+            type: "number",
+            describe:
+              "Number of distinct workspaces to skip before selecting the batch (default 0).",
+            default: 0,
+          }),
+      ({ excludeWorkspaceId, limit, offset }) => {
+        logger().info(
+          { excludeWorkspaceId, limit, offset },
+          "Building transfer computed property state query",
+        );
+        let excludeWorkspaceIds: string[] | undefined;
+        if (Array.isArray(excludeWorkspaceId)) {
+          excludeWorkspaceIds = excludeWorkspaceId.filter(
+            (id): id is string => typeof id === "string" && id.length > 0,
+          );
+        }
+
+        if (typeof limit !== "number" || Number.isNaN(limit) || limit <= 0) {
+          throw new Error("limit must be a positive number");
+        }
+        if (typeof offset !== "number" || Number.isNaN(offset) || offset < 0) {
+          throw new Error("offset must be a non-negative number");
+        }
+
+        const qb = new ClickHouseQueryBuilder({ debug: true });
+        const queryString = transferComputedPropertyStateV2ToV3Query({
+          excludeWorkspaceIds,
+          limit,
+          offset,
+          qb,
+        });
+        const productionQuery = queryString
+          .replace(/computed_property_state_v3/g, "dittofeed.computed_property_state_v3")
+          .replace(/computed_property_state_v2/g, "dittofeed.computed_property_state_v2");
+
+        console.log(productionQuery.trim());
+      },
     )
     .command(
       "bootstrap-worker",

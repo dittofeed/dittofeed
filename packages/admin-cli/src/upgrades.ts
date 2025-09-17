@@ -24,6 +24,8 @@ import {
 import {
   CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
   CREATE_INTERNAL_EVENTS_TABLE_QUERY,
+  CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
+  CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
   createUserEventsTables,
   GROUP_MATERIALIZED_VIEWS,
   GROUP_TABLES,
@@ -269,6 +271,126 @@ export async function upgradeV021Pre() {
   await createGroupTables();
 
   logger().info("Pre-upgrade steps for v0.21.0 completed.");
+}
+
+export function transferComputedPropertyStateV2ToV3Query({
+  excludeWorkspaceIds,
+  limit,
+  offset,
+  qb,
+}: {
+  excludeWorkspaceIds?: string[];
+  limit: number;
+  offset: number;
+  qb: ClickHouseQueryBuilder;
+}) {
+  const excludeClause =
+    excludeWorkspaceIds && excludeWorkspaceIds.length > 0
+      ? `WHERE workspace_id NOT IN ${qb.addQueryValue(
+          excludeWorkspaceIds,
+          "Array(String)",
+        )}`
+      : "";
+
+  const limitClause = `LIMIT ${qb.addQueryValue(limit, "UInt64")}`;
+  const offsetClause = offset > 0 ? `OFFSET ${qb.addQueryValue(offset, "UInt64")}` : "";
+
+  return `
+    INSERT INTO computed_property_state_v3
+    SELECT
+      workspace_id,
+      type,
+      computed_property_id,
+      state_id,
+      user_id,
+      last_value,
+      unique_count,
+      event_time,
+      grouped_message_ids,
+      computed_at
+    FROM computed_property_state_v2
+    WHERE workspace_id IN (
+      SELECT DISTINCT workspace_id
+      FROM computed_property_state_v2
+      ${excludeClause}
+      ORDER BY workspace_id
+      ${limitClause}
+      ${offsetClause}
+    )
+  `;
+}
+
+export async function transferComputedPropertyStateV2ToV3({
+  excludeWorkspaceIds,
+  limit = 64,
+  offset = 0,
+  dryRun = false,
+}: {
+  excludeWorkspaceIds?: string[];
+  limit?: number;
+  offset?: number;
+  dryRun?: boolean;
+}) {
+  if (limit <= 0) {
+    throw new Error("limit must be greater than 0");
+  }
+  if (offset < 0) {
+    throw new Error("offset cannot be negative");
+  }
+
+  logger().info(
+    {
+      excludeWorkspaceIdsCount: excludeWorkspaceIds?.length ?? 0,
+      limit,
+      offset,
+      dryRun,
+    },
+    "Transferring computed_property_state from v2 to v3",
+  );
+
+  const qb = new ClickHouseQueryBuilder();
+  const transferQuery = transferComputedPropertyStateV2ToV3Query({
+    excludeWorkspaceIds,
+    limit,
+    offset,
+    qb,
+  }).trim();
+
+  if (dryRun) {
+    const dryRunQuery = transferQuery
+      .replace(/computed_property_state_v3/g, "dittofeed.computed_property_state_v3")
+      .replace(/computed_property_state_v2/g, "dittofeed.computed_property_state_v2");
+    logger().info({ query: dryRunQuery, params: qb.getQueries() }, "Dry run transfer query");
+    return;
+  }
+
+  await command({
+    query: transferQuery,
+    query_params: qb.getQueries(),
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+
+  logger().info("Completed computed_property_state transfer batch");
+}
+
+export async function createComputedPropertyStateV3() {
+  logger().info("Creating computed_property_state_v3 table and materialized view");
+
+  await Promise.all(
+    [
+      CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
+      CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
+    ].map((queryString) =>
+      command({
+        query: queryString,
+        clickhouse_settings: { wait_end_of_query: 1 },
+      }),
+    ),
+  );
+
+  logger().info(
+    "Finished creating computed_property_state_v3 table and materialized view",
+  );
 }
 
 export async function backfillInternalEvents({
