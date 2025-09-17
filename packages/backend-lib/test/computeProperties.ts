@@ -27,7 +27,7 @@ export async function getStateUserCount(workspaceId: string) {
   const qb = new ClickHouseQueryBuilder();
   const query = `
     select uniqExact(user_id) as user_count
-    from computed_property_state_v2
+    from computed_property_state_v3
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
   `;
   const response = await clickhouseClient().query({
