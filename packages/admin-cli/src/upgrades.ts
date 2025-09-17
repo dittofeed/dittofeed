@@ -295,6 +295,13 @@ export function transferComputedPropertyStateV2ToV3Query({
   const limitClause = `LIMIT ${qb.addQueryValue(limit, "UInt64")}`;
   const offsetClause = offset > 0 ? `OFFSET ${qb.addQueryValue(offset, "UInt64")}` : "";
 
+  const workspaceSubquery = `SELECT DISTINCT workspace_id
+    FROM computed_property_state_v2
+    ${excludeClause}
+    ORDER BY workspace_id
+    ${limitClause}
+    ${offsetClause}`;
+
   return `
     INSERT INTO computed_property_state_v3
     SELECT
@@ -309,14 +316,30 @@ export function transferComputedPropertyStateV2ToV3Query({
       grouped_message_ids,
       computed_at
     FROM computed_property_state_v2
-    WHERE workspace_id IN (
-      SELECT DISTINCT workspace_id
-      FROM computed_property_state_v2
-      ${excludeClause}
-      ORDER BY workspace_id
-      ${limitClause}
-      ${offsetClause}
-    )
+    WHERE
+      workspace_id IN (
+        ${workspaceSubquery}
+      )
+      AND (
+        workspace_id,
+        type,
+        computed_property_id,
+        state_id,
+        user_id,
+        event_time
+      ) NOT IN (
+        SELECT
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id,
+          event_time
+        FROM computed_property_state_v3
+        WHERE workspace_id IN (
+          ${workspaceSubquery}
+        )
+      )
   `;
 }
 

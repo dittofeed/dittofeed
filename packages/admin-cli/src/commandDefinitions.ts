@@ -140,6 +140,11 @@ export function createCommands(yargs: Argv): Argv {
           excludeWorkspaceIds = excludeWorkspaceId.filter(
             (id): id is string => typeof id === "string" && id.length > 0,
           );
+        } else if (
+          typeof excludeWorkspaceId === "string" &&
+          excludeWorkspaceId.length > 0
+        ) {
+          excludeWorkspaceIds = [excludeWorkspaceId];
         }
 
         if (typeof limit !== "number" || Number.isNaN(limit) || limit <= 0) {
