@@ -70,6 +70,22 @@ export function initOpenTelemetry({
   const { otelCollector, startOtel, appVersion, metricsExportIntervalMs } =
     config();
 
+  // Ensure postgres queries are traced by default
+  const defaultInstrumentationOverrides: InstrumentationConfigMap = {
+    "@opentelemetry/instrumentation-pg": {
+      enabled: true,
+      // Capture DB spans even if a parent was not explicitly created
+      requireParentSpan: false,
+      enhancedDatabaseReporting: false,
+      addSqlCommenterCommentToQueries: false,
+    },
+  };
+
+  const mergedInstrumentationOverrides: InstrumentationConfigMap = {
+    ...defaultInstrumentationOverrides,
+    ...(configOverrides ?? {}),
+  };
+
   const resource = new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
     "service.version": appVersion,
@@ -89,7 +105,9 @@ export function initOpenTelemetry({
 
   const sdk = new NodeSDK({
     resource,
-    instrumentations: [getNodeAutoInstrumentations(configOverrides)],
+    instrumentations: [
+      getNodeAutoInstrumentations(mergedInstrumentationOverrides),
+    ],
     traceExporter,
     metricReader,
   });
