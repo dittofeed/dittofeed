@@ -113,52 +113,65 @@ export function createCommands(yargs: Argv): Argv {
       "Prints the ClickHouse query used to copy computed_property_state_v2 rows into computed_property_state_v3.",
       (cmd) =>
         cmd
-          .option("exclude-workspace-id", {
+          .option("state-exclude-workspace-id", {
             type: "string",
-            describe: "Workspace ID to exclude from the transfer (repeatable).",
+            describe:
+              "Workspace ID to exclude from the state transfer (repeatable).",
             array: true,
           })
-          .option("limit", {
+          .option("state-limit", {
             type: "number",
             describe:
-              "Maximum number of distinct workspaces to include in the batch (default 64).",
+              "Maximum number of distinct workspaces to include per state transfer batch (default 64).",
             default: 64,
           })
-          .option("offset", {
+          .option("state-offset", {
             type: "number",
             describe:
-              "Number of distinct workspaces to skip before selecting the batch (default 0).",
+              "Number of distinct workspaces to skip before selecting the state transfer batch (default 0).",
             default: 0,
           }),
-      ({ excludeWorkspaceId, limit, offset }) => {
+      ({ stateExcludeWorkspaceId, stateLimit, stateOffset }) => {
         logger().info(
-          { excludeWorkspaceId, limit, offset },
+          {
+            stateExcludeWorkspaceId,
+            stateLimit,
+            stateOffset,
+          },
           "Building transfer computed property state query",
         );
         let excludeWorkspaceIds: string[] | undefined;
-        if (Array.isArray(excludeWorkspaceId)) {
-          excludeWorkspaceIds = excludeWorkspaceId.filter(
+        if (Array.isArray(stateExcludeWorkspaceId)) {
+          excludeWorkspaceIds = stateExcludeWorkspaceId.filter(
             (id): id is string => typeof id === "string" && id.length > 0,
           );
         } else if (
-          typeof excludeWorkspaceId === "string" &&
-          excludeWorkspaceId.length > 0
+          typeof stateExcludeWorkspaceId === "string" &&
+          stateExcludeWorkspaceId.length > 0
         ) {
-          excludeWorkspaceIds = [excludeWorkspaceId];
+          excludeWorkspaceIds = [stateExcludeWorkspaceId];
         }
 
-        if (typeof limit !== "number" || Number.isNaN(limit) || limit <= 0) {
+        if (
+          typeof stateLimit !== "number" ||
+          Number.isNaN(stateLimit) ||
+          stateLimit <= 0
+        ) {
           throw new Error("limit must be a positive number");
         }
-        if (typeof offset !== "number" || Number.isNaN(offset) || offset < 0) {
+        if (
+          typeof stateOffset !== "number" ||
+          Number.isNaN(stateOffset) ||
+          stateOffset < 0
+        ) {
           throw new Error("offset must be a non-negative number");
         }
 
         const qb = new ClickHouseQueryBuilder({ debug: true });
         const queryString = transferComputedPropertyStateV2ToV3Query({
           excludeWorkspaceIds,
-          limit,
-          offset,
+          limit: stateLimit,
+          offset: stateOffset,
           qb,
         });
         const productionQuery = queryString
