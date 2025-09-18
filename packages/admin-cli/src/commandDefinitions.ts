@@ -93,6 +93,7 @@ import { spawnWithEnv } from "./spawn";
 import {
   backfillInternalEvents,
   disentangleResendSendgrid,
+  transferComputedPropertyStateV2ToV3,
   transferComputedPropertyStateV2ToV3Query,
   upgradeV010Post,
   upgradeV010Pre,
@@ -192,8 +193,14 @@ export function createCommands(yargs: Argv): Argv {
           qb,
         });
         const productionQuery = queryString
-          .replace(/computed_property_state_v3/g, "dittofeed.computed_property_state_v3")
-          .replace(/computed_property_state_v2/g, "dittofeed.computed_property_state_v2");
+          .replace(
+            /computed_property_state_v3/g,
+            "dittofeed.computed_property_state_v3",
+          )
+          .replace(
+            /computed_property_state_v2/g,
+            "dittofeed.computed_property_state_v2",
+          );
 
         console.log(productionQuery.trim());
       },
@@ -228,9 +235,7 @@ export function createCommands(yargs: Argv): Argv {
             ? parseIntStrict(String(intervalOption))
             : defaultInterval;
         const resolvedLimit =
-          limitOption !== undefined
-            ? parseIntStrict(String(limitOption))
-            : 100;
+          limitOption !== undefined ? parseIntStrict(String(limitOption)) : 100;
 
         if (resolvedInterval <= 0) {
           throw new Error("interval must be a positive number");
@@ -255,14 +260,17 @@ export function createCommands(yargs: Argv): Argv {
         });
 
         const { sql: querySql, params } = query.toSQL();
-        const interpolated = querySql.replace(/\$(\d+)/g, (_match, index: string) => {
-          const paramIndex = Number.parseInt(index, 10) - 1;
-          const param = params[paramIndex];
-          if (paramIndex < 0 || param === undefined) {
-            throw new Error(`Missing parameter for placeholder $${index}`);
-          }
-          return formatSqlParam(param);
-        });
+        const interpolated = querySql.replace(
+          /\$(\d+)/g,
+          (_match, index: string) => {
+            const paramIndex = Number.parseInt(index, 10) - 1;
+            const param = params[paramIndex];
+            if (paramIndex < 0 || param === undefined) {
+              throw new Error(`Missing parameter for placeholder $${index}`);
+            }
+            return formatSqlParam(param);
+          },
+        );
 
         console.log(interpolated.trim());
       },
@@ -775,6 +783,30 @@ export function createCommands(yargs: Argv): Argv {
       },
     )
     .command(
+      "transfer-computed-property-state-v2-to-v3",
+      "Transfer computed property state from v2 to v3 table.",
+      (cmd) =>
+        cmd.options({
+          "state-exclude-workspace-id": {
+            type: "string",
+            alias: "e",
+            array: true,
+          },
+          "state-limit": {
+            type: "number",
+            alias: "l",
+            default: 10,
+            describe: "The limit for the state transfer. Default is 10.",
+          },
+        }),
+      async ({ stateExcludeWorkspaceId, stateLimit }) => {
+        await transferComputedPropertyStateV2ToV3({
+          excludeWorkspaceIds: stateExcludeWorkspaceId,
+          limit: stateLimit,
+        });
+      },
+    )
+    .command(
       "upgrade-0-23-0-pre",
       "Run the pre-upgrade steps for the 0.23.0 prior to updating your Dittofeed application version.",
       (cmd) =>
@@ -793,14 +825,30 @@ export function createCommands(yargs: Argv): Argv {
             describe:
               "The interval in minutes for the internal events backfill. Default is 1 day.",
           },
+          "state-exclude-workspace-id": {
+            type: "string",
+            alias: "e",
+            array: true,
+            describe: "Workspace ID to exclude from the state transfer.",
+          },
+          "state-limit": {
+            type: "number",
+            alias: "l",
+            default: 10,
+            describe: "The limit for the state transfer. Default is 10.",
+          },
         }),
       async ({
         internalEventsBackfillLimit,
         internalEventsBackfillIntervalMinutes,
+        stateExcludeWorkspaceId,
+        stateLimit,
       }) => {
         await upgradeV023Pre({
           internalEventsBackfillLimit,
           internalEventsBackfillIntervalMinutes,
+          stateExcludeWorkspaceId,
+          stateLimit,
         });
       },
     )

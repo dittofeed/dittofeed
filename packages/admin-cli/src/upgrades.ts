@@ -344,17 +344,19 @@ export function transferComputedPropertyStateV2ToV3Query({
   `;
 }
 
+interface TransferComputedPropertyStateV2ToV3Params {
+  excludeWorkspaceIds?: string[];
+  limit?: number;
+  offset?: number;
+  dryRun?: boolean;
+}
+
 export async function transferComputedPropertyStateV2ToV3({
   excludeWorkspaceIds,
   limit = 10,
   offset = 0,
   dryRun = false,
-}: {
-  excludeWorkspaceIds?: string[];
-  limit?: number;
-  offset?: number;
-  dryRun?: boolean;
-}) {
+}: TransferComputedPropertyStateV2ToV3Params) {
   if (limit <= 0) {
     throw new Error("limit must be greater than 0");
   }
@@ -890,14 +892,16 @@ export async function createInternalEventsTable({
   });
 }
 
-export async function upgradeV023PreStateV3() {}
-
 export async function upgradeV023Pre({
   internalEventsBackfillLimit = 50000,
   internalEventsBackfillIntervalMinutes = 1440,
+  stateExcludeWorkspaceId,
+  stateLimit,
 }: {
   internalEventsBackfillLimit?: number;
   internalEventsBackfillIntervalMinutes?: number;
+  stateExcludeWorkspaceId?: string[];
+  stateLimit?: number;
 }) {
   logger().info("Performing pre-upgrade steps for v0.23.0");
   await addServerTimeColumn();
@@ -911,7 +915,10 @@ export async function upgradeV023Pre({
   await terminateWorkspaceRecomputeWorkflows();
   await stopComputePropertiesWorkflowGlobal();
   await createComputedPropertyStateV3();
-  await transferComputedPropertyStateV2ToV3({});
+  await transferComputedPropertyStateV2ToV3({
+    excludeWorkspaceIds: stateExcludeWorkspaceId,
+    limit: stateLimit,
+  });
   logger().info("Pre-upgrade steps for v0.23.0 completed.");
 }
 
