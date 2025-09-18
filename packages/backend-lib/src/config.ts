@@ -27,6 +27,9 @@ const BaseRawConfigProps = {
   databaseName: Type.Optional(Type.String()),
   writeMode: Type.Optional(WriteMode),
   temporalAddress: Type.Optional(Type.String()),
+  temporalConnectionTimeout: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   clickhouseHost: Type.String(),
   clickhouseProtocol: Type.Optional(Type.String()),
   clickhouseDatabase: Type.Optional(Type.String()),
@@ -282,6 +285,7 @@ export type Config = Overwrite<
     startOtel: boolean;
     temporalAddress: string;
     temporalNamespace: string;
+    temporalConnectionTimeout?: number;
     trackDashboard: boolean;
     useGlobalComputedProperties?: boolean;
     userEventsTopicName: string;
@@ -554,6 +558,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     userEventsTopicName:
       rawConfig.userEventsTopicName ?? "dittofeed-user-events",
     temporalNamespace: rawConfig.temporalNamespace ?? "default",
+    temporalConnectionTimeout: rawConfig.temporalConnectionTimeout
+      ? parseInt(rawConfig.temporalConnectionTimeout)
+      : undefined,
     // deprecated
     defaultUserEventsTableVersion:
       rawConfig.defaultUserEventsTableVersion ?? "",

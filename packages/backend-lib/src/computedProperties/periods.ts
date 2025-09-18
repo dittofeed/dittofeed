@@ -447,51 +447,26 @@ export async function findDueWorkspaceMaxTos({
   return periodsQuery;
 }
 
-/**
- * Find workspaces that are due for recomputation based on computed-property periods.
- *
- * Semantics:
- * - For each running computed property (Segment or UserProperty) in a workspace, consider
- *   only the current version and the ComputeAssignments step, and compute its latest period
- *   end time: MAX(to).
- * - For the workspace, take the MIN over these per‑property MAX(to) values. This represents
- *   the "earliest last recompute" across all current, running properties.
- * - A workspace is due if:
- *   - It is a cold start (no periods yet) OR
- *   - now - MIN(MAX(to) per property) > interval
- *
- * Rationale:
- * - Using MIN over raw rows can incorrectly mark workspaces as due when an older retained
- *   period exists alongside a fresh one (retention window > interval). By first aggregating to
- *   MAX(to) per property and then taking MIN, we measure true workspace freshness without being
- *   skewed by older rows that are still within retention. Restricting to the current version
- *   further prevents stale versions from affecting due calculations.
- */
-export async function findDueWorkspaceMinTos({
+export interface FindDueWorkspaceMinTosQueryParams {
+  now: number;
+  interval: number;
+  limit: number;
+}
+
+export function buildFindDueWorkspaceMinTosQuery({
   now,
-  interval = config().computePropertiesInterval,
-  limit = 100,
-}: FindDueWorkspacesParams): Promise<
-  { min: Date | null; workspaceId: string }[]
-> {
+  interval,
+  limit,
+}: FindDueWorkspaceMinTosQueryParams) {
   const w = aliasedTable(schema.workspace, "w");
   const cpp = aliasedTable(schema.computedPropertyPeriod, "cpp");
-
-  logger().info(
-    {
-      interval,
-      now,
-      limit,
-    },
-    "computePropertiesScheduler finding due workspaces",
-  );
-
   const secondsInterval = `${Math.floor(interval / 1000).toString()} seconds`;
   const timestampNow = Math.floor(now / 1000);
+  const database = db();
 
   // Build a subquery that computes MAX(to) per running computed property
   // for step ComputeAssignments, restricted to the property's current version.
-  const maxPerComputedProperty = db()
+  const maxPerComputedProperty = database
     .select({
       workspaceId: cpp.workspaceId,
       type: cpp.type,
@@ -529,7 +504,6 @@ export async function findDueWorkspaceMinTos({
     .as("maxPerComputedProperty");
 
   const aggregatedMin = min(maxPerComputedProperty.maxTo);
-
   const whereConditions: (SQL | undefined)[] = [
     eq(w.status, WorkspaceStatusDbEnum.Active),
     not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
@@ -537,14 +511,14 @@ export async function findDueWorkspaceMinTos({
     or(
       inArray(
         w.id,
-        db()
+        database
           .select({ id: dbSegment.workspaceId })
           .from(dbSegment)
           .where(eq(dbSegment.status, "Running")),
       ),
       inArray(
         w.id,
-        db()
+        database
           .select({ id: dbUserProperty.workspaceId })
           .from(dbUserProperty)
           .where(eq(dbUserProperty.status, "Running")),
@@ -553,7 +527,7 @@ export async function findDueWorkspaceMinTos({
   ];
 
   // Outer query: MIN of per-property MAX(to) per workspace
-  const periodsRaw = await db()
+  return database
     .select({
       workspaceId: w.id,
       min: aggregatedMin,
@@ -575,6 +549,46 @@ export async function findDueWorkspaceMinTos({
     )
     .orderBy(sql`${aggregatedMin} ASC NULLS FIRST`)
     .limit(limit);
+}
+
+/**
+ * Find workspaces that are due for recomputation based on computed-property periods.
+ *
+ * Semantics:
+ * - For each running computed property (Segment or UserProperty) in a workspace, consider
+ *   only the current version and the ComputeAssignments step, and compute its latest period
+ *   end time: MAX(to).
+ * - For the workspace, take the MIN over these per‑property MAX(to) values. This represents
+ *   the "earliest last recompute" across all current, running properties.
+ * - A workspace is due if:
+ *   - It is a cold start (no periods yet) OR
+ *   - now - MIN(MAX(to) per property) > interval
+ *
+ * Rationale:
+ * - Using MIN over raw rows can incorrectly mark workspaces as due when an older retained
+ *   period exists alongside a fresh one (retention window > interval). By first aggregating to
+ *   MAX(to) per property and then taking MIN, we measure true workspace freshness without being
+ *   skewed by older rows that are still within retention. Restricting to the current version
+ *   further prevents stale versions from affecting due calculations.
+ */
+export async function findDueWorkspaceMinTos({
+  now,
+  interval = config().computePropertiesInterval,
+  limit = 100,
+}: FindDueWorkspacesParams): Promise<
+  { min: Date | null; workspaceId: string }[]
+> {
+  logger().info(
+    {
+      interval,
+      now,
+      limit,
+    },
+    "computePropertiesScheduler finding due workspaces",
+  );
+
+  const query = buildFindDueWorkspaceMinTosQuery({ now, interval, limit });
+  const periodsRaw = await query;
 
   const periods = periodsRaw.map((row) => ({
     workspaceId: row.workspaceId,
