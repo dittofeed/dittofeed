@@ -6,8 +6,12 @@ let CONNECTION: Connection | null = null;
 
 export default async function connect(): Promise<Connection> {
   if (!CONNECTION) {
+    const { temporalAddress, temporalConnectionTimeout } = config();
     const connection = await Connection.connect({
-      address: config().temporalAddress,
+      address: temporalAddress,
+      ...(temporalConnectionTimeout !== undefined
+        ? { connectTimeout: temporalConnectionTimeout }
+        : {}),
     });
     CONNECTION = connection;
   }
