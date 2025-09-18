@@ -60,6 +60,7 @@ import { randomUUID } from "crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import fs from "fs/promises";
 import { SecretNames } from "isomorphic-lib/src/constants";
+import { parseInt as parseIntStrict } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   jsonParseSafeWithSchema,
@@ -91,6 +92,7 @@ import { spawnWithEnv } from "./spawn";
 import {
   backfillInternalEvents,
   disentangleResendSendgrid,
+  transferComputedPropertyStateV2ToV3Query,
   upgradeV010Post,
   upgradeV010Pre,
   upgradeV012Pre,
@@ -106,6 +108,70 @@ export function createCommands(yargs: Argv): Argv {
       "Initialize the dittofeed application and creates a workspace.",
       boostrapOptions,
       bootstrapHandler,
+    )
+    .command(
+      "print-transfer-computed-property-state-v2-v3-query",
+      "Prints the ClickHouse query used to copy computed_property_state_v2 rows into computed_property_state_v3.",
+      (cmd) =>
+        cmd
+          .option("state-exclude-workspace-id", {
+            type: "string",
+            describe:
+              "Workspace ID to exclude from the state transfer (repeatable).",
+            array: true,
+          })
+          .option("state-limit", {
+            type: "number",
+            describe:
+              "Maximum number of distinct workspaces to include per state transfer batch (default 64).",
+            default: 64,
+          })
+          .option("state-offset", {
+            type: "number",
+            describe:
+              "Number of distinct workspaces to skip before selecting the state transfer batch (default 0).",
+            default: 0,
+          }),
+      ({ stateExcludeWorkspaceId, stateLimit, stateOffset }) => {
+        let excludeWorkspaceIds: string[] | undefined;
+        if (Array.isArray(stateExcludeWorkspaceId)) {
+          excludeWorkspaceIds = stateExcludeWorkspaceId.filter(
+            (id): id is string => typeof id === "string" && id.length > 0,
+          );
+        }
+
+        const parsedStateLimit = parseIntStrict(String(stateLimit));
+        if (parsedStateLimit <= 0) {
+          throw new Error("state-limit must be a positive number");
+        }
+
+        const parsedStateOffset = parseIntStrict(String(stateOffset));
+        if (parsedStateOffset < 0) {
+          throw new Error("state-offset must be a non-negative number");
+        }
+
+        logger().info(
+          {
+            excludeWorkspaceIds,
+            stateLimit: parsedStateLimit,
+            stateOffset: parsedStateOffset,
+          },
+          "Building transfer computed property state query",
+        );
+
+        const qb = new ClickHouseQueryBuilder({ debug: true });
+        const queryString = transferComputedPropertyStateV2ToV3Query({
+          excludeWorkspaceIds,
+          limit: parsedStateLimit,
+          offset: parsedStateOffset,
+          qb,
+        });
+        const productionQuery = queryString
+          .replace(/computed_property_state_v3/g, "dittofeed.computed_property_state_v3")
+          .replace(/computed_property_state_v2/g, "dittofeed.computed_property_state_v2");
+
+        console.log(productionQuery.trim());
+      },
     )
     .command(
       "bootstrap-worker",

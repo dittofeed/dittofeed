@@ -129,7 +129,7 @@ async function readDisaggregatedStates({
       groupArrayMerge(grouped_message_ids) as grouped_message_ids,
       computed_at,
       event_time
-    from computed_property_state_v2
+    from computed_property_state_v3
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
     group by
       workspace_id,
@@ -168,7 +168,7 @@ async function readStates({
       groupArrayMerge(grouped_message_ids) as grouped_message_ids,
       max(computed_at),
       groupArray(event_time) as event_times
-    from computed_property_state_v2
+    from computed_property_state_v3
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
     group by
       workspace_id,

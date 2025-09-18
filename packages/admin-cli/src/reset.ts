@@ -31,7 +31,7 @@ export async function resetWorkspaceData({
       ...baseChParams,
     }),
     command({
-      query: `ALTER TABLE computed_property_state_v2 DELETE WHERE workspace_id = ${workspaceIdParam}`,
+      query: `ALTER TABLE computed_property_state_v3 DELETE WHERE workspace_id = ${workspaceIdParam}`,
       ...baseChParams,
     }),
     command({

@@ -22,8 +22,10 @@ import {
   Workspace,
 } from "backend-lib/src/types";
 import {
+  CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
   CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
   CREATE_INTERNAL_EVENTS_TABLE_QUERY,
+  CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
   createUserEventsTables,
   GROUP_MATERIALIZED_VIEWS,
   GROUP_TABLES,
@@ -269,6 +271,213 @@ export async function upgradeV021Pre() {
   await createGroupTables();
 
   logger().info("Pre-upgrade steps for v0.21.0 completed.");
+}
+
+export function transferComputedPropertyStateV2ToV3Query({
+  excludeWorkspaceIds,
+  limit,
+  offset,
+  qb,
+}: {
+  excludeWorkspaceIds?: string[];
+  limit: number;
+  offset: number;
+  qb: ClickHouseQueryBuilder;
+}) {
+  const excludeClause =
+    excludeWorkspaceIds && excludeWorkspaceIds.length > 0
+      ? `WHERE workspace_id NOT IN ${qb.addQueryValue(
+          excludeWorkspaceIds,
+          "Array(String)",
+        )}`
+      : "";
+
+  const limitClause = `LIMIT ${qb.addQueryValue(limit, "UInt64")}`;
+  const offsetClause =
+    offset > 0 ? `OFFSET ${qb.addQueryValue(offset, "UInt64")}` : "";
+
+  const workspaceSubquery = `SELECT DISTINCT workspace_id
+    FROM computed_property_state_v2
+    ${excludeClause}
+    ORDER BY workspace_id
+    ${limitClause}
+    ${offsetClause}`;
+
+  return `
+    INSERT INTO computed_property_state_v3
+    SELECT
+      workspace_id,
+      type,
+      computed_property_id,
+      state_id,
+      user_id,
+      last_value,
+      unique_count,
+      event_time,
+      grouped_message_ids,
+      computed_at
+    FROM computed_property_state_v2
+    WHERE
+      workspace_id IN (
+        ${workspaceSubquery}
+      )
+      AND (
+        workspace_id,
+        type,
+        computed_property_id,
+        state_id,
+        user_id,
+        event_time
+      ) NOT IN (
+        SELECT
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id,
+          event_time
+        FROM computed_property_state_v3
+        WHERE workspace_id IN (
+          ${workspaceSubquery}
+        )
+      )
+  `;
+}
+
+export async function transferComputedPropertyStateV2ToV3({
+  excludeWorkspaceIds,
+  limit = 10,
+  offset = 0,
+  dryRun = false,
+}: {
+  excludeWorkspaceIds?: string[];
+  limit?: number;
+  offset?: number;
+  dryRun?: boolean;
+}) {
+  if (limit <= 0) {
+    throw new Error("limit must be greater than 0");
+  }
+  if (offset < 0) {
+    throw new Error("offset cannot be negative");
+  }
+
+  logger().info(
+    {
+      excludeWorkspaceIdsCount: excludeWorkspaceIds?.length ?? 0,
+      limit,
+      offset,
+      dryRun,
+    },
+    "Transferring computed_property_state from v2 to v3",
+  );
+
+  let currentOffset = offset;
+  let totalWrittenRows = 0;
+  let batchCount = 0;
+  let lastReadRows = 0;
+
+  while (true) {
+    const qb = new ClickHouseQueryBuilder();
+    const transferQuery = transferComputedPropertyStateV2ToV3Query({
+      excludeWorkspaceIds,
+      limit,
+      offset: currentOffset,
+      qb,
+    }).trim();
+
+    if (dryRun) {
+      const dryRunQuery = transferQuery
+        .replace(
+          /computed_property_state_v3/g,
+          "dittofeed.computed_property_state_v3",
+        )
+        .replace(
+          /computed_property_state_v2/g,
+          "dittofeed.computed_property_state_v2",
+        );
+      logger().info(
+        { query: dryRunQuery, params: qb.getQueries(), currentOffset },
+        "Dry run transfer query",
+      );
+      batchCount += 1;
+      break;
+    }
+
+    const result = await command({
+      query: transferQuery,
+      query_params: qb.getQueries(),
+      clickhouse_settings: { wait_end_of_query: 1 },
+    });
+
+    const { summary } = result;
+    const writtenRows = summary?.written_rows
+      ? parseInt(summary.written_rows)
+      : 0;
+    const readRows = summary?.read_rows ? parseInt(summary.read_rows) : 0;
+    totalWrittenRows += writtenRows;
+    batchCount += 1;
+    lastReadRows = readRows;
+
+    logger().info(
+      {
+        batchIndex: batchCount - 1,
+        currentOffset,
+        limit,
+        writtenRows,
+        readRows,
+      },
+      "Executed computed_property_state transfer batch",
+    );
+
+    if (readRows === 0) {
+      break;
+    }
+
+    currentOffset += limit;
+    if (writtenRows === 0) {
+      // No new rows were written for this batch, but there may still be
+      // additional workspaces beyond the current offset. Continue to the next
+      // page to ensure we eventually cover the entire dataset.
+      // eslint-disable-next-line no-continue
+      continue;
+    }
+  }
+
+  const nextOffsetSuggestion = currentOffset + limit;
+
+  logger().info(
+    {
+      totalWrittenRows,
+      batchesExecuted: batchCount,
+      finalOffset: currentOffset,
+      lastReadRows,
+      nextOffsetSuggestion,
+    },
+    "Completed computed_property_state transfer",
+  );
+}
+
+export async function createComputedPropertyStateV3() {
+  logger().info(
+    "Creating computed_property_state_v3 table and materialized view",
+  );
+
+  await Promise.all(
+    [
+      CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
+      CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
+    ].map((queryString) =>
+      command({
+        query: queryString,
+        clickhouse_settings: { wait_end_of_query: 1 },
+      }),
+    ),
+  );
+
+  logger().info(
+    "Finished creating computed_property_state_v3 table and materialized view",
+  );
 }
 
 export async function backfillInternalEvents({
@@ -696,14 +905,17 @@ export async function upgradeV023Pre({
     backfillLimit: internalEventsBackfillLimit,
     intervalMinutes: internalEventsBackfillIntervalMinutes,
   });
+
+  await terminateWorkspaceRecomputeWorkflows();
+  await stopComputePropertiesWorkflowGlobal();
+  await createComputedPropertyStateV3();
+  await transferComputedPropertyStateV2ToV3({});
   logger().info("Pre-upgrade steps for v0.23.0 completed.");
 }
 
 export async function upgradeV023Post() {
   logger().info("Performing post-upgrade steps for v0.23.0");
-  await terminateWorkspaceRecomputeWorkflows();
   await resetGlobalCron();
-  await stopComputePropertiesWorkflowGlobal();
   await startComputePropertiesWorkflowGlobal();
   logger().info("Post-upgrade steps for v0.23.0 completed.");
 }
