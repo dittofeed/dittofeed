@@ -890,6 +890,8 @@ export async function createInternalEventsTable({
   });
 }
 
+export async function upgradeV023PreStateV3() {}
+
 export async function upgradeV023Pre({
   internalEventsBackfillLimit = 50000,
   internalEventsBackfillIntervalMinutes = 1440,

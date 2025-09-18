@@ -29,6 +29,7 @@ import {
   terminateWorkspaceRecomputeWorkflows,
 } from "backend-lib/src/computedProperties/computePropertiesWorkflow/lifecycle";
 import {
+  buildFindDueWorkspaceMinTosQuery,
   findDueWorkspaceMaxTos,
   findDueWorkspaceMinTos,
 } from "backend-lib/src/computedProperties/periods";
@@ -101,6 +102,30 @@ import {
   upgradeV023Pre,
 } from "./upgrades";
 
+function formatSqlParam(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "NULL";
+  }
+  if (typeof value === "number" || typeof value === "bigint") {
+    return value.toString();
+  }
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+  if (value instanceof Date) {
+    return `'${value.toISOString()}'`;
+  }
+  if (Array.isArray(value)) {
+    return `(${value.map((item) => formatSqlParam(item)).join(", ")})`;
+  }
+  if (value instanceof Buffer) {
+    return `'\\x${value.toString("hex")}'`;
+  }
+  const serialized = String(value);
+  const escaped = serialized.replace(/'/g, "''");
+  return `'${escaped}'`;
+}
+
 export function createCommands(yargs: Argv): Argv {
   return yargs
     .command(
@@ -171,6 +196,75 @@ export function createCommands(yargs: Argv): Argv {
           .replace(/computed_property_state_v2/g, "dittofeed.computed_property_state_v2");
 
         console.log(productionQuery.trim());
+      },
+    )
+    .command(
+      "print-find-due-workspace-min-tos-query",
+      "Prints the SQL used to find workspaces due for computed property recomputation (min_tos variant).",
+      (cmd) =>
+        cmd
+          .option("now", {
+            type: "number",
+            describe:
+              "Unix timestamp in milliseconds to use as the reference time (defaults to current time).",
+          })
+          .option("interval", {
+            type: "number",
+            describe:
+              "Recompute interval in milliseconds (defaults to computePropertiesInterval).",
+          })
+          .option("limit", {
+            type: "number",
+            describe: "Maximum number of workspaces to return (default 100).",
+          }),
+      ({ now: nowOption, interval: intervalOption, limit: limitOption }) => {
+        const defaultInterval = backendConfig().computePropertiesInterval;
+        const resolvedNow =
+          nowOption !== undefined
+            ? parseIntStrict(String(nowOption))
+            : Date.now();
+        const resolvedInterval =
+          intervalOption !== undefined
+            ? parseIntStrict(String(intervalOption))
+            : defaultInterval;
+        const resolvedLimit =
+          limitOption !== undefined
+            ? parseIntStrict(String(limitOption))
+            : 100;
+
+        if (resolvedInterval <= 0) {
+          throw new Error("interval must be a positive number");
+        }
+        if (resolvedLimit <= 0) {
+          throw new Error("limit must be a positive number");
+        }
+
+        logger().info(
+          {
+            interval: resolvedInterval,
+            limit: resolvedLimit,
+            now: resolvedNow,
+          },
+          "Building find due workspace min_tos query",
+        );
+
+        const query = buildFindDueWorkspaceMinTosQuery({
+          now: resolvedNow,
+          interval: resolvedInterval,
+          limit: resolvedLimit,
+        });
+
+        const { sql: querySql, params } = query.toSQL();
+        const interpolated = querySql.replace(/\$(\d+)/g, (_match, index: string) => {
+          const paramIndex = Number.parseInt(index, 10) - 1;
+          const param = params[paramIndex];
+          if (paramIndex < 0 || param === undefined) {
+            throw new Error(`Missing parameter for placeholder $${index}`);
+          }
+          return formatSqlParam(param);
+        });
+
+        console.log(interpolated.trim());
       },
     )
     .command(
