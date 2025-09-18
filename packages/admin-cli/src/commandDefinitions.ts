@@ -60,6 +60,7 @@ import { randomUUID } from "crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import fs from "fs/promises";
 import { SecretNames } from "isomorphic-lib/src/constants";
+import { parseInt as parseIntStrict } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   jsonParseSafeWithSchema,
@@ -132,46 +133,37 @@ export function createCommands(yargs: Argv): Argv {
             default: 0,
           }),
       ({ stateExcludeWorkspaceId, stateLimit, stateOffset }) => {
-        logger().info(
-          {
-            stateExcludeWorkspaceId,
-            stateLimit,
-            stateOffset,
-          },
-          "Building transfer computed property state query",
-        );
         let excludeWorkspaceIds: string[] | undefined;
         if (Array.isArray(stateExcludeWorkspaceId)) {
           excludeWorkspaceIds = stateExcludeWorkspaceId.filter(
             (id): id is string => typeof id === "string" && id.length > 0,
           );
-        } else if (
-          typeof stateExcludeWorkspaceId === "string" &&
-          stateExcludeWorkspaceId.length > 0
-        ) {
-          excludeWorkspaceIds = [stateExcludeWorkspaceId];
         }
 
-        if (
-          typeof stateLimit !== "number" ||
-          Number.isNaN(stateLimit) ||
-          stateLimit <= 0
-        ) {
-          throw new Error("limit must be a positive number");
+        const parsedStateLimit = parseIntStrict(String(stateLimit));
+        if (parsedStateLimit <= 0) {
+          throw new Error("state-limit must be a positive number");
         }
-        if (
-          typeof stateOffset !== "number" ||
-          Number.isNaN(stateOffset) ||
-          stateOffset < 0
-        ) {
-          throw new Error("offset must be a non-negative number");
+
+        const parsedStateOffset = parseIntStrict(String(stateOffset));
+        if (parsedStateOffset < 0) {
+          throw new Error("state-offset must be a non-negative number");
         }
+
+        logger().info(
+          {
+            excludeWorkspaceIds,
+            stateLimit: parsedStateLimit,
+            stateOffset: parsedStateOffset,
+          },
+          "Building transfer computed property state query",
+        );
 
         const qb = new ClickHouseQueryBuilder({ debug: true });
         const queryString = transferComputedPropertyStateV2ToV3Query({
           excludeWorkspaceIds,
-          limit: stateLimit,
-          offset: stateOffset,
+          limit: parsedStateLimit,
+          offset: parsedStateOffset,
           qb,
         });
         const productionQuery = queryString
