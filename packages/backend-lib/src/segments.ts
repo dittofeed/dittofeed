@@ -19,6 +19,7 @@ import { v5 as uuidv5, validate as validateUuid } from "uuid";
 import {
   clickhouseClient,
   ClickHouseQueryBuilder,
+  command as chCommand,
   query as chQuery,
 } from "./clickhouse";
 import { assignmentSequentialConsistency } from "./config";
@@ -1068,19 +1069,59 @@ export async function getSegmentAssignmentDb({
   return rows[0]?.latest_segment_value ?? null;
 }
 
-export async function deleteSegment(
-  params: DeleteSegmentRequest,
-): Promise<Segment | null> {
-  const result = await db()
+export async function deleteSegment({
+  workspaceId,
+  id,
+}: DeleteSegmentRequest): Promise<Segment | null> {
+  const [deleted] = await db()
     .delete(dbSegment)
     .where(
-      and(
-        eq(dbSegment.id, params.id),
-        eq(dbSegment.workspaceId, params.workspaceId),
-      ),
+      and(eq(dbSegment.id, id), eq(dbSegment.workspaceId, workspaceId)),
     )
     .returning();
-  return result[0] ?? null;
+
+  if (!deleted) {
+    return null;
+  }
+
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const segmentIdParam = qb.addQueryValue(id, "String");
+  const typeParam = qb.addQueryValue("segment", "String");
+
+  const queries = [
+    `DELETE FROM computed_property_state_v3 WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${segmentIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM computed_property_assignments_v2 WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${segmentIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM processed_computed_properties_v2 WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${segmentIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM computed_property_state_index WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${segmentIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM updated_computed_property_state WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${segmentIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM updated_property_assignments_v2 WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${segmentIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM resolved_segment_state WHERE workspace_id = ${workspaceIdParam}
+     AND segment_id = ${segmentIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+  ];
+
+  await Promise.all(
+    queries.map((query) =>
+      chCommand({
+        query,
+        query_params: qb.getQueries(),
+      }),
+    ),
+  );
+
+  return deleted;
 }
 
 const SEGMENTS_HASH_NAMESPACE = "cea974fe-c5e9-4fde-a3f1-cea2167be214";
