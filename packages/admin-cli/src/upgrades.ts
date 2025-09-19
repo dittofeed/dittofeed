@@ -432,7 +432,7 @@ export async function transferComputedPropertyStateV2ToV3({
       "Executed computed_property_state transfer batch",
     );
 
-    if (readRows === 0) {
+    if (writtenRows === 0) {
       break;
     }
 
