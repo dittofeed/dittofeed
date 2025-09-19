@@ -131,6 +131,9 @@ const BaseRawConfigProps = {
   computePropertiesSchedulerInterval: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  computePropertiesSchedulerQueueRestartDelay: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   overrideDir: Type.Optional(Type.String()),
   enableAdditionalDashboardSettings: Type.Optional(BoolStr),
   additionalDashboardSettingsPath: Type.Optional(Type.String()),
@@ -253,6 +256,7 @@ export type Config = Overwrite<
     computePropertiesQueueCapacity: number;
     computePropertiesQueueConcurrency: number;
     computePropertiesSchedulerInterval: number;
+    computePropertiesSchedulerQueueRestartDelay: number;
     computePropertiesWorkflowTaskTimeout: number;
     dashboardUrl: string;
     databaseParams: Record<string, string>;
@@ -644,6 +648,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.computePropertiesSchedulerInterval
         ? parseInt(rawConfig.computePropertiesSchedulerInterval)
         : 10 * 1000,
+    computePropertiesSchedulerQueueRestartDelay:
+      rawConfig.computePropertiesSchedulerQueueRestartDelay
+        ? parseInt(rawConfig.computePropertiesSchedulerQueueRestartDelay)
+        : 30 * 1000,
     enableAdditionalDashboardSettings:
       rawConfig.enableAdditionalDashboardSettings === "true",
     useGlobalComputedProperties:
