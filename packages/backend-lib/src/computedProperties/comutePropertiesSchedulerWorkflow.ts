@@ -7,6 +7,7 @@ import {
   proxyActivities,
   proxySinks,
   sleep,
+  WorkflowNotFoundError,
 } from "@temporalio/workflow";
 
 import { addWorkspacesSignalV2 } from "./computePropertiesQueueWorkflow";
@@ -53,20 +54,24 @@ export async function computePropertiesSchedulerWorkflow(
     computePropertiesQueueCapacity,
     computePropertiesAttempts,
     computePropertiesSchedulerInterval,
+    computePropertiesSchedulerQueueRestartDelay,
   } = await config([
     "computePropertiesQueueCapacity",
     "computePropertiesAttempts",
     "computePropertiesSchedulerInterval",
+    "computePropertiesSchedulerQueueRestartDelay",
   ]);
 
   logger.info("Scheduler: Loaded config", {
     computePropertiesQueueCapacity,
     computePropertiesAttempts,
     computePropertiesSchedulerInterval,
+    computePropertiesSchedulerQueueRestartDelay,
   });
 
   // 3. Main poll loop
   while (true) {
+    let skipSchedulerIntervalSleep = false;
     // (A) Query how many items are in the queue
     const size = await getQueueSize();
 
@@ -89,12 +94,24 @@ export async function computePropertiesSchedulerWorkflow(
           workspaceIds: dueWorkspaces.workspaces.map((w) => w.id),
         });
         // (C) Signal the queue workflow with new items
-        await queueWf.signal(addWorkspacesSignalV2, {
-          workspaces: dueWorkspaces.workspaces.map((w) => ({
-            id: w.id,
-            period: w.minPeriod,
-          })),
-        });
+        try {
+          await queueWf.signal(addWorkspacesSignalV2, {
+            workspaces: dueWorkspaces.workspaces.map((w) => ({
+              id: w.id,
+              period: w.minPeriod,
+            })),
+          });
+        } catch (err) {
+          if (err instanceof WorkflowNotFoundError) {
+            logger.info("Scheduler: Queue workflow not found, retrying after delay", {
+              delayMs: computePropertiesSchedulerQueueRestartDelay,
+            });
+            skipSchedulerIntervalSleep = true;
+            await sleep(computePropertiesSchedulerQueueRestartDelay);
+          } else {
+            throw err;
+          }
+        }
       }
     } else {
       logger.info("Scheduler: No room in the queue", {
@@ -117,6 +134,14 @@ export async function computePropertiesSchedulerWorkflow(
       await continueAsNew<typeof computePropertiesSchedulerWorkflow>({
         ...params,
       });
+    }
+
+    if (skipSchedulerIntervalSleep) {
+      logger.info("Scheduler: Skipping poll sleep after queue restart delay", {
+        iterationCount,
+        delayMs: computePropertiesSchedulerQueueRestartDelay,
+      });
+      continue;
     }
 
     logger.info("Scheduler: Sleeping until next poll", {
