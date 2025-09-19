@@ -471,6 +471,10 @@ export async function deleteUsers({
     // Delete from resolved_segment_state
     `DELETE FROM resolved_segment_state WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam}) settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+
+    // Delete from internal_events
+    `DELETE FROM internal_events WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam}) settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
   ];
 
   await Promise.all([
