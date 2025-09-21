@@ -20,6 +20,8 @@ export const WORKER_VIEWS = [
       720_000, // 12m
       900_000, // 15m
       1_200_000, // 20m
+      2_700_000, // 45m
+      3_600_000, // 60m
     ]),
     instrumentName: WORKSPACE_COMPUTE_LATENCY_METRIC,
     instrumentType: InstrumentType.HISTOGRAM,

@@ -1,6 +1,6 @@
 import { ValueError } from "@sinclair/typebox/errors";
 import { randomUUID } from "crypto";
-import { and, eq, inArray, or, SQL } from "drizzle-orm";
+import { and, eq, inArray, not, or, SQL } from "drizzle-orm";
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -17,6 +17,7 @@ import { validate as validateUuid } from "uuid";
 import {
   clickhouseClient,
   ClickHouseQueryBuilder,
+  command as chCommand,
   query as chQuery,
 } from "./clickhouse";
 import { assignmentSequentialConsistency } from "./config";
@@ -29,6 +30,7 @@ import {
   JSONValue,
   KeyedPerformedUserPropertyDefinition,
   PerformedUserPropertyDefinition,
+  DeleteUserPropertyRequest,
   SavedUserPropertyResource,
   UpsertUserPropertyError,
   UpsertUserPropertyErrorType,
@@ -884,4 +886,66 @@ export async function findUserIdsByUserPropertyValue({
   });
   const rows = await result.json<{ user_id: string }>();
   return rows.map((row) => row.user_id);
+}
+
+export async function deleteUserProperty({
+  workspaceId,
+  id,
+}: DeleteUserPropertyRequest): Promise<UserProperty | null> {
+  const [deleted] = await db()
+    .delete(dbUserProperty)
+    .where(
+      and(
+        eq(dbUserProperty.workspaceId, workspaceId),
+        eq(dbUserProperty.id, id),
+        not(
+          inArray(
+            dbUserProperty.name,
+            Array.from(protectedUserProperties),
+          ),
+        ),
+      ),
+    )
+    .returning();
+
+  if (!deleted) {
+    return null;
+  }
+
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const computedPropertyIdParam = qb.addQueryValue(id, "String");
+  const typeParam = qb.addQueryValue("user_property", "String");
+
+  const queries = [
+    `DELETE FROM computed_property_state_v3 WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${computedPropertyIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM computed_property_assignments_v2 WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${computedPropertyIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM processed_computed_properties_v2 WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${computedPropertyIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM computed_property_state_index WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${computedPropertyIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM updated_computed_property_state WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${computedPropertyIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM updated_property_assignments_v2 WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${computedPropertyIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+  ];
+
+  await Promise.all(
+    queries.map((query) =>
+      chCommand({
+        query,
+        query_params: qb.getQueries(),
+      }),
+    ),
+  );
+
+  return deleted;
 }
