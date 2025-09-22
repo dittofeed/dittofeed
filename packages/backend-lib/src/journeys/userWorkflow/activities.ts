@@ -45,7 +45,10 @@ import {
   TrackData,
   UserWorkflowTrackEvent,
 } from "../../types";
-import { getTrackEventsById as gebi, GetEventsByIdParams } from "../../userEvents";
+import {
+  GetEventsByIdParams,
+  getTrackEventsById as gebi,
+} from "../../userEvents";
 import { findAllUserPropertyAssignments } from "../../userProperties";
 import {
   recordNodeProcessed,
@@ -56,6 +59,15 @@ import { GetSegmentAssignmentVersion } from "./types";
 export { findNextLocalizedTime, getUserPropertyDelay } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
 
+function safeWorkflowId(): string | undefined {
+  try {
+    return Context.current().info.workflowExecution.workflowId;
+  } catch (error) {
+    logger().debug({ err: error }, "failed to read workflow id from context");
+    return undefined;
+  }
+}
+
 export async function getEventsById(
   params: GetEventsByIdParams,
   metadata?: { journeyId?: string; userId: string },
@@ -65,12 +77,14 @@ export async function getEventsById(
     (id) => !events.some((e) => e.messageId === id),
   );
   if (missing.length > 0) {
+    const workflowId = safeWorkflowId();
     logger().info(
       {
         workspaceId: params.workspaceId,
         missing,
         journeyId: metadata?.journeyId,
         userId: metadata?.userId,
+        workflowId,
       },
       "not all events found for user journey",
     );
@@ -88,12 +102,14 @@ export async function getEventsByIdWithRetry(
     const events = await pRetry(() => getEventsById(params, metadata));
     return events;
   } catch (e) {
+    const workflowId = safeWorkflowId();
     logger().error(
       {
         err: e,
         workspaceId: params.workspaceId,
         journeyId: metadata.journeyId,
         userId: metadata.userId,
+        workflowId,
       },
       "not all events found for user journey after retries",
     );
@@ -428,6 +444,7 @@ export interface BaseGetSegmentAssignmentParams {
   workspaceId: string;
   segmentId: string;
   userId: string;
+  journeyId?: string;
 }
 
 export interface KeyedGetSegmentAssignmentParamsV1
@@ -511,6 +528,7 @@ export async function getSegmentAssignment(
           },
           {
             userId,
+            journeyId: params.journeyId,
           },
         );
         break;
