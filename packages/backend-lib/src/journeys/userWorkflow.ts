@@ -78,7 +78,6 @@ export const trackSignal = wf.defineSignal<[TrackSignalParams]>("track");
 const WORKFLOW_NAME = "userJourneyWorkflow";
 
 const {
-  getSegmentAssignment,
   onNodeProcessedV2,
   isRunnable,
   findNextLocalizedTime,
@@ -86,9 +85,17 @@ const {
   getUserPropertyDelay,
   getWorkspace,
   shouldReEnter,
-  getEventsById,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "2 minutes",
+});
+
+const { getEventsById, getSegmentAssignment } = wf.proxyLocalActivities<
+  typeof activities
+>({
+  startToCloseTimeout: "2 minutes",
+  retry: {
+    maximumAttempts: 10,
+  },
 });
 
 const { reportWorkflowInfo } = wf.proxyLocalActivities<typeof activities>({
