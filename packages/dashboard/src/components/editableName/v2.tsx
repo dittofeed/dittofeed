@@ -4,7 +4,13 @@ import {
   reactKeys,
 } from "@handlewithcare/react-prosemirror";
 import { Edit } from "@mui/icons-material";
-import { ClickAwayListener, IconButton, Stack, SxProps } from "@mui/material";
+import {
+  Box,
+  ClickAwayListener,
+  IconButton,
+  Stack,
+  SxProps,
+} from "@mui/material";
 import { keymap } from "prosemirror-keymap";
 import { Schema } from "prosemirror-model";
 import { schema as basicSchema } from "prosemirror-schema-basic";
@@ -24,6 +30,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useIsClient } from "usehooks-ts";
 
 import styles from "./editableName.module.css";
 
@@ -190,6 +197,9 @@ export interface EditableNameHandle {
 
 const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
   ({ text, onSubmit, disabled, variant = "default" }, ref) => {
+    const isClient = useIsClient();
+    const safeInitialText = text.trim().length ? text : "\u200B";
+
     // ---------------------------------------------------
     // 7a) React state for memorizedText
     // ---------------------------------------------------
@@ -227,10 +237,9 @@ const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
     // ---------------------------------------------------
     // 7d) Build initial doc
     // ---------------------------------------------------
-    const safeText = text.trim().length ? text : "\u200B";
     const paragraph = customSchema.nodes.paragraph!.createAndFill(
       null,
-      customSchema.text(safeText),
+      customSchema.text(safeInitialText),
     );
     if (!paragraph) {
       throw new Error("Failed to create initial paragraph node.");
@@ -298,6 +307,44 @@ const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
     };
 
     const editable = useCallback(() => !disabled, [disabled]);
+
+    if (!isClient) {
+      const singleLineSx: SxProps | undefined =
+        variant === "singleLine"
+          ? {
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "flex",
+              alignItems: "center",
+              maxWidth: "100%",
+              verticalAlign: "middle",
+              "--pm-title-lh": "1.25",
+            }
+          : undefined;
+
+      return (
+        <span>
+          <Box
+            className={styles.editor}
+            role="textbox"
+            aria-readonly="false"
+            aria-multiline="false"
+            aria-label="name"
+            translate="no"
+            sx={singleLineSx}
+          >
+            <Box
+              component="p"
+              className={styles.textNode}
+              sx={{ margin: 0, lineHeight: "var(--pm-title-lh, 1.7)" }}
+            >
+              {safeInitialText}
+            </Box>
+          </Box>
+        </span>
+      );
+    }
 
     // ---------------------------------------------------
     // 7i) Render
