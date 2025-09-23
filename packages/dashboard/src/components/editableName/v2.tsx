@@ -315,25 +315,34 @@ const EditableNameV2 = forwardRef<EditableNameHandle, EditableNameProps>(
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
               maxWidth: "100%",
               verticalAlign: "middle",
+              "--pm-title-lh": "1.25",
             }
           : undefined;
 
       return (
-        <Box
-          component="span"
-          className={styles.editor}
-          role="textbox"
-          aria-readonly
-          aria-label="name"
-          translate="no"
-          sx={singleLineSx}
-        >
-          {safeInitialText}
-        </Box>
+        <span>
+          <Box
+            className={styles.editor}
+            role="textbox"
+            aria-readonly="false"
+            aria-multiline="false"
+            aria-label="name"
+            translate="no"
+            sx={singleLineSx}
+          >
+            <Box
+              component="p"
+              className={styles.textNode}
+              sx={{ margin: 0, lineHeight: "var(--pm-title-lh, 1.7)" }}
+            >
+              {safeInitialText}
+            </Box>
+          </Box>
+        </span>
       );
     }
 
