@@ -397,18 +397,20 @@ export function buildDeliverySearchQuery(
   // Build the optimized query using CTEs and the internal_events table
   const query = `
     WITH message_sends AS (
-      SELECT
-        workspace_id,
-        user_or_anonymous_id,
-        processing_time,
-        message_id,
-        event_time,
-        triggering_message_id
-      FROM internal_events
-      WHERE
-        ${messageSendsConditions.join(" AND ")}
-      ORDER BY processing_time DESC
-      ${innerLimit}
+      SELECT DISTINCT * FROM (
+        SELECT
+          workspace_id,
+          user_or_anonymous_id,
+          processing_time,
+          message_id,
+          event_time,
+          triggering_message_id
+        FROM internal_events
+        WHERE
+          ${messageSendsConditions.join(" AND ")}
+        ORDER BY processing_time DESC
+        ${innerLimit}
+      )
     ),
     status_events AS (
       SELECT
@@ -459,7 +461,7 @@ export function buildDeliverySearchQuery(
       AND ms.message_id = se.origin_message_id
       AND ms.user_or_anonymous_id = se.user_or_anonymous_id
     INNER JOIN (
-      SELECT
+      SELECT DISTINCT
         workspace_id,
         user_or_anonymous_id,
         processing_time,
