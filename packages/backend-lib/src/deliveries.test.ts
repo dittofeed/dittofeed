@@ -104,6 +104,59 @@ describe("deliveries", () => {
     });
   });
   describe("searchDeliveries", () => {
+    describe("when deliveries are duplicated", () => {
+      beforeEach(async () => {
+        const messageSentEventProperties: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body",
+            subject: "subject",
+            provider: {
+              type: EmailProviderType.SendGrid,
+            },
+          },
+        };
+
+        const event: BatchItem = {
+          userId: randomUUID(),
+          timestamp: new Date().toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            messageId: randomUUID(),
+            templateId: randomUUID(),
+            ...messageSentEventProperties,
+          },
+        };
+
+        await submitBatch(
+          {
+            workspaceId,
+            data: {
+              // submit same event twice
+              batch: [event, event],
+            },
+          },
+          {
+            processingTime: Date.now(),
+          },
+        );
+      });
+      it("deduplicates the events", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          limit: 10,
+        });
+        expect(deliveries.items).toHaveLength(1);
+      });
+    });
     describe("when the original sent message includes a triggeringMessageId", () => {
       let triggeringMessageId: string;
       beforeEach(async () => {
