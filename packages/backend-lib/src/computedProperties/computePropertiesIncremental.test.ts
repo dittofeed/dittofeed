@@ -7134,8 +7134,6 @@ describe("computeProperties", () => {
       ],
     },
     {
-      // FIXME remove
-      only: true,
       description: "computes an includes segment",
       segments: [
         {
