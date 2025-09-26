@@ -335,6 +335,7 @@ export enum SegmentNodeType {
   RandomBucket = "RandomBucket",
   KeyedPerformed = "KeyedPerformed",
   Everyone = "Everyone",
+  Includes = "Includes",
 }
 
 export const DBResourceTypeEnum = {
@@ -505,6 +506,15 @@ export const EveryoneSegmentNode = Type.Object({
 
 export type EveryoneSegmentNode = Static<typeof EveryoneSegmentNode>;
 
+export const IncludesSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.Includes),
+  id: Type.String(),
+  path: Type.String(),
+  item: Type.String(),
+});
+
+export type IncludesSegmentNode = Static<typeof IncludesSegmentNode>;
+
 export const KeyedPerformedPropertiesOperator = Type.Union([
   SegmentEqualsOperator,
   SegmentNotEqualsOperator,
@@ -549,6 +559,7 @@ export const BodySegmentNode = Type.Union([
   BroadcastSegmentNode,
   SubscriptionGroupSegmentNode,
   RandomBucketSegmentNode,
+  IncludesSegmentNode,
 ]);
 
 export type BodySegmentNode = Static<typeof BodySegmentNode>;

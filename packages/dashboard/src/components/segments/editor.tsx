@@ -33,6 +33,7 @@ import {
   CompletionStatus,
   CursorDirectionEnum,
   EmailSegmentNode,
+  IncludesSegmentNode,
   InternalEventType,
   KeyedPerformedPropertiesOperator,
   KeyedPerformedSegmentNode,
@@ -308,6 +309,17 @@ function mapSegmentNodeToNewType(
         secondary: [],
       };
     }
+    case SegmentNodeType.Includes: {
+      return {
+        primary: {
+          type: SegmentNodeType.Includes,
+          id: node.id,
+          path: "",
+          item: "",
+        },
+        secondary: [],
+      };
+    }
     default: {
       assertUnreachable(type);
     }
@@ -538,13 +550,20 @@ const lastPerformedOption = {
   label: "Last Performed",
 };
 
+const includesOption = {
+  id: SegmentNodeType.Includes,
+  group: "User Data",
+  label: "Includes",
+};
+
 const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
+  keyedPerformedOption,
   lastPerformedOption,
   everyoneOption,
+  includesOption,
   randomBucketOption,
-  keyedPerformedOption,
   manualOption,
   andGroupedOption,
   orGroupedOption,
@@ -566,6 +585,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.Email]: emailOption,
   [SegmentNodeType.LastPerformed]: lastPerformedOption,
   [SegmentNodeType.RandomBucket]: randomBucketOption,
+  [SegmentNodeType.Includes]: includesOption,
 };
 
 interface Option {
@@ -2565,6 +2585,51 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
   );
 }
 
+function IncludesSelect({ node }: { node: IncludesSegmentNode }) {
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
+
+  const handlePathChange = (newPath: string) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
+      if (n.type === SegmentNodeType.Includes) {
+        n.path = newPath;
+      }
+    });
+  };
+
+  const handleItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
+      if (n.type === SegmentNodeType.Includes) {
+        n.item = e.target.value;
+      }
+    });
+  };
+
+  return (
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Box sx={{ width: selectorWidth }}>
+        <TraitAutocomplete
+          traitPath={node.path}
+          traitOnChange={handlePathChange}
+          disabled={disabled}
+          sx={{ width: selectorWidth }}
+        />
+      </Box>
+      <Box sx={{ width: selectorWidth }}>
+        <TextField
+          disabled={disabled}
+          label="Item Value"
+          value={node.item}
+          onChange={handleItemChange}
+          InputLabelProps={{
+            shrink: true,
+          }}
+        />
+      </Box>
+    </Stack>
+  );
+}
+
 function ManualNodeComponent({ node: _node }: { node: ManualSegmentNode }) {
   const { state } = useSegmentEditorContext();
   const { disabled } = state;
@@ -2811,6 +2876,15 @@ function SegmentNodeComponent({
         {labelEl}
         {conditionSelect}
         <EmailSelect node={node} />
+        {deleteButton}
+      </Stack>
+    );
+  } else if (node.type === SegmentNodeType.Includes) {
+    el = (
+      <Stack direction="row" spacing={1}>
+        {labelEl}
+        {conditionSelect}
+        <IncludesSelect node={node} />
         {deleteButton}
       </Stack>
     );
