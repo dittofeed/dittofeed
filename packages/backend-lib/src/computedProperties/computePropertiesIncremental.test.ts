@@ -7144,8 +7144,8 @@ describe("computeProperties", () => {
             entryNode: {
               type: SegmentNodeType.Includes,
               id: "1",
-              item: "items1",
-              path: "test2",
+              item: "test2",
+              path: "items1",
             },
             nodes: [],
           },
@@ -7209,6 +7209,39 @@ describe("computeProperties", () => {
             },
             {
               id: "user-3",
+              segments: {
+                includes: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                items1: [],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment after its array is updated",
+          users: [
+            {
+              id: "user-1",
               segments: {
                 includes: null,
               },

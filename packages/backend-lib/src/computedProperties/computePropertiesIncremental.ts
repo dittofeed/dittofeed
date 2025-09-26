@@ -70,6 +70,28 @@ function identityWrapper<T>(fn: () => Promise<T>): Promise<T> {
   return fn();
 }
 
+function toJsonPathParamCh({
+  path,
+  qb,
+}: {
+  path: string;
+  qb: ClickHouseQueryBuilder;
+}): string | null {
+  const normalizedPath = toJsonPathParam({ path });
+  if (normalizedPath.isErr()) {
+    logger().info(
+      {
+        path,
+        err: normalizedPath.error,
+      },
+      "invalid json path in node path",
+    );
+    return null;
+  }
+
+  return qb.addQueryValue(normalizedPath.value, "String");
+}
+
 function readLimit(): AsyncWrapper {
   if (!READ_LIMIT) {
     const concurrency = config().readQueryConcurrency;
@@ -1423,7 +1445,26 @@ function segmentToResolvedState({
       ];
     }
     case SegmentNodeType.Includes: {
-      throw new Error("FIXME not implemented");
+      const arrayPath = toJsonPathParamCh({
+        path: node.path,
+        qb,
+      });
+      if (!arrayPath) {
+        return [];
+      }
+      const itemParam = qb.addQueryValue(node.item, "String");
+      const expression = `if(argMaxMerge(last_value) != '', has(JSONExtract(argMaxMerge(last_value), 'Array(String)'), ${itemParam}), False)`;
+      return [
+        buildRecentUpdateSegmentQuery({
+          workspaceId,
+          stateId,
+          expression,
+          segmentId: segment.id,
+          now,
+          periodBound,
+          qb,
+        }),
+      ];
     }
     default:
       assertUnreachable(node);
@@ -1589,33 +1630,14 @@ function resolvedSegmentToAssignment({
       };
     }
     case SegmentNodeType.Includes: {
-      throw new Error("FIXME not implemented");
+      return {
+        stateIds: [stateId],
+        expression: stateValue,
+      };
     }
     default:
       assertUnreachable(node);
   }
-}
-
-function toJsonPathParamCh({
-  path,
-  qb,
-}: {
-  path: string;
-  qb: ClickHouseQueryBuilder;
-}): string | null {
-  const normalizedPath = toJsonPathParam({ path });
-  if (normalizedPath.isErr()) {
-    logger().info(
-      {
-        path,
-        err: normalizedPath.error,
-      },
-      "invalid json path in node path",
-    );
-    return null;
-  }
-
-  return qb.addQueryValue(normalizedPath.value, "String");
 }
 
 function truncateEventTimeExpression(windowSeconds: number): string {
@@ -1974,7 +1996,27 @@ export function segmentNodeToStateSubQuery({
       ];
     }
     case SegmentNodeType.Includes: {
-      throw new Error("FIXME not implemented");
+      const stateId = segmentNodeStateId(segment, node.id);
+      if (!stateId) {
+        return [];
+      }
+      const arrayPath = toJsonPathParamCh({
+        path: node.path,
+        qb,
+      });
+      if (!arrayPath) {
+        return [];
+      }
+      // For identify events, compute the state as the entire array at node.path
+      return [
+        {
+          condition: `event_type == 'identify'`,
+          type: "segment",
+          argMaxValue: `JSON_VALUE(properties, ${arrayPath})`,
+          computedPropertyId: segment.id,
+          stateId,
+        },
+      ];
     }
     default:
       assertUnreachable(node);
