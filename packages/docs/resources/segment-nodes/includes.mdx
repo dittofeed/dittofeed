@@ -1,0 +1,26 @@
+---
+title: "Includes - Segment Node"
+description: "Restrict a segment to users who have an an array trait which includes a specific value."
+---
+
+The includes segment node is restricted to users who have an an array trait which includes a specific value.
+
+This can be useful for "tagging" users with a set of values, and then asserting that a user has at least one of those tags.
+
+## Example Use Case - Messaging Users
+
+Let's say you have multiple user tags e.g. "VIP", "Frequent Buyer", "Loyalty Program Member". You can issue an "identify" event with an array trait containing all of these tags.
+
+```json
+{
+  "type": "identify",
+  "userId": "1234",
+  "traits": {
+    "tags": ["VIP", "Frequent Buyer", "Loyalty Program Member"]
+  }
+}
+```
+
+You can then create a segment that includes users who have at least one of these tags.
+
+<Frame>![Includes Segment Example](/images/includes-segment.png)</Frame>

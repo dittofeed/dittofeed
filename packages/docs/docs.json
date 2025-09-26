@@ -149,7 +149,8 @@
                   "resources/segment-nodes/subscription-group",
                   "resources/segment-nodes/email",
                   "resources/segment-nodes/random-bucket",
-                  "resources/segment-nodes/keyed-performed"
+                  "resources/segment-nodes/keyed-performed",
+                  "resources/segment-nodes/includes"
                 ]
               },
               "resources/templates",
