@@ -7179,6 +7179,14 @@ describe("computeProperties", () => {
                 items2: ["test1", "test2", "test3"],
               },
             },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-4",
+              traits: {
+                items1: "invalid",
+              },
+            },
           ],
         },
         {
