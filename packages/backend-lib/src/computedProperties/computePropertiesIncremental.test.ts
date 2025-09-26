@@ -7134,6 +7134,82 @@ describe("computeProperties", () => {
       ],
     },
     {
+      // FIXME remove
+      only: true,
+      description: "computes an includes segment",
+      segments: [
+        {
+          name: "includes",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Includes,
+              id: "1",
+              item: "items1",
+              path: "test2",
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                items1: ["test1", "test2", "test3"],
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                items1: ["test4", "test5", "test6"],
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-3",
+              traits: {
+                items2: ["test1", "test2", "test3"],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                includes: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                includes: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                includes: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "computes a negative trait segment",
       userProperties: [],
       segments: [

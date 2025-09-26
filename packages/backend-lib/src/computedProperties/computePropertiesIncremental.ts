@@ -1422,6 +1422,9 @@ function segmentToResolvedState({
         }),
       ];
     }
+    case SegmentNodeType.Includes: {
+      throw new Error("FIXME not implemented");
+    }
     default:
       assertUnreachable(node);
   }
@@ -1584,6 +1587,9 @@ function resolvedSegmentToAssignment({
         stateIds: [stateId],
         expression: "True",
       };
+    }
+    case SegmentNodeType.Includes: {
+      throw new Error("FIXME not implemented");
     }
     default:
       assertUnreachable(node);
@@ -1966,6 +1972,9 @@ export function segmentNodeToStateSubQuery({
           stateId,
         },
       ];
+    }
+    case SegmentNodeType.Includes: {
+      throw new Error("FIXME not implemented");
     }
     default:
       assertUnreachable(node);
