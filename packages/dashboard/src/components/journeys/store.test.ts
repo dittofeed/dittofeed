@@ -866,7 +866,7 @@ describe("journeyDefinitionFromState", () => {
 });
 
 describe("when journey has RandomCohortNode", () => {
-  beforeEach(() => {
+  it("should create a RandomCohortNode with correct children", () => {
     const journeyId = uuid();
     const workspaceId = uuid();
 
@@ -955,10 +955,5 @@ describe("when journey has RandomCohortNode", () => {
         ]),
       );
     }
-  });
-
-  it("should create a RandomCohortNode with correct children", () => {
-    // Test passes if beforeEach completes without errors
-    expect(true).toBe(true);
   });
 });
