@@ -248,7 +248,8 @@ export function findDirectChildren(
       children = new Set<string>();
       break;
     case JourneyNodeType.RandomCohortNode:
-      throw new Error("Not implemented");
+      children = new Set<string>(node.children.map((child) => child.id));
+      break;
     case JourneyNodeType.RateLimitNode:
       throw new Error("Not implemented");
     default:

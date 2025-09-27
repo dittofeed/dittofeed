@@ -35,6 +35,8 @@ import {
   JourneyUiBodyNodeTypeProps,
   JourneyUiEdgeProps,
   MessageNode,
+  RandomCohortChild,
+  RandomCohortNode,
   SavedJourneyResource,
   SegmentEntryNode,
   SegmentSplitNode,
@@ -64,6 +66,7 @@ import {
   JourneyUiNodeType,
   JourneyUiNodeTypeProps,
   MessageUiNodeProps,
+  RandomCohortUiNodeProps,
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
 } from "../../lib/types";
@@ -525,6 +528,53 @@ function journeyDefinitionFromStateBranch(
         nextId = nfc;
         break;
       }
+      case JourneyNodeType.RandomCohortNode: {
+        if (!uiNode.cohortChildren || uiNode.cohortChildren.length === 0) {
+          return err({
+            message: "Random cohort node must have cohort children",
+            nodeId: nId,
+          });
+        }
+
+        const children: RandomCohortChild[] = [];
+        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
+
+        for (const cohortChild of uiNode.cohortChildren) {
+          const childId = findNextJourneyNode(
+            cohortChild.labelNodeId,
+            hm,
+            uiJourneyNodes,
+          );
+
+          if (nfc !== childId) {
+            const branchResult = journeyDefinitionFromStateBranch(
+              childId,
+              hm,
+              nodes,
+              uiJourneyNodes,
+              edges,
+              nfc,
+            );
+            if (branchResult.isErr()) {
+              return err(branchResult.error);
+            }
+          }
+
+          children.push({
+            id: childId,
+            percent: cohortChild.percent,
+          });
+        }
+
+        const node: RandomCohortNode = {
+          type: JourneyNodeType.RandomCohortNode,
+          id: nId,
+          children,
+        };
+        nodes.push(node);
+        nextId = nfc;
+        break;
+      }
       case JourneyNodeType.SegmentSplitNode: {
         if (!uiNode.segmentId) {
           return err({
@@ -801,7 +851,8 @@ export function edgesForJourneyNode({
 }): JourneyUiEdge[] {
   if (
     type === JourneyNodeType.SegmentSplitNode ||
-    type === JourneyNodeType.WaitForNode
+    type === JourneyNodeType.WaitForNode ||
+    type === JourneyNodeType.RandomCohortNode
   ) {
     if (!leftId || !rightId || !emptyId) {
       throw new Error("Missing dual node ids");
@@ -820,7 +871,6 @@ export function edgesForJourneyNode({
   }
   if (
     type === JourneyNodeType.RateLimitNode ||
-    type === JourneyNodeType.RandomCohortNode ||
     type === JourneyNodeType.ExitNode
   ) {
     throw new Error(`Unimplemented node type ${type}`);
@@ -1311,8 +1361,72 @@ export function journeyBranchToState(
         edgesState.push(buildWorkflowEdge(nId, node.child));
         break;
       }
-      case JourneyNodeType.RandomCohortNode:
-        throw new Error("RandomCohortNode is not implemented");
+      case JourneyNodeType.RandomCohortNode: {
+        const randomCohortNode: RandomCohortUiNodeProps = {
+          type: JourneyNodeType.RandomCohortNode,
+          name: "",
+          cohortChildren: node.children.map((child, index) => ({
+            id: child.id,
+            percent: child.percent,
+            labelNodeId: `${nId}-label-${index}`,
+          })),
+        };
+
+        nodesState.push(buildJourneyNode(nId, randomCohortNode));
+
+        for (let index = 0; index < node.children.length; index++) {
+          const child = node.children[index];
+          if (!child) continue;
+          const labelId = `${nId}-label-${index}`;
+          nodesState.push(
+            buildLabelNode(labelId, `Cohort ${index + 1} (${child.percent}%)`),
+          );
+          edgesState.push(buildPlaceholderEdge(nId, labelId));
+        }
+
+        const emptyId = `${nId}-empty`;
+        nodesState.push(buildEmptyNode(emptyId));
+
+        const nfc = getNearestFromChildren(nId, hm);
+
+        for (let index = 0; index < node.children.length; index++) {
+          const child = node.children[index];
+          if (!child) continue;
+          const labelId = `${nId}-label-${index}`;
+          if (child.id === nfc || nfc === null) {
+            edgesState.push(buildWorkflowEdge(labelId, emptyId));
+          } else {
+            edgesState.push(buildWorkflowEdge(labelId, child.id));
+
+            const terminalId = journeyBranchToState(
+              child.id,
+              nodesState,
+              edgesState,
+              nodes,
+              hm,
+              nfc,
+            ).terminalNode;
+            if (!terminalId) {
+              throw new Error(
+                "random cohort children terminate which should not be possible",
+              );
+            }
+            edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+          }
+        }
+
+        nextNodeId = nfc ?? node.children[0]?.id ?? null;
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: emptyId,
+          };
+        }
+        if (nextNodeId) {
+          edgesState.push(buildWorkflowEdge(emptyId, nextNodeId));
+        }
+        break;
+      }
       case JourneyNodeType.RateLimitNode:
         throw new Error("RateLimitNode is not implemented");
       case JourneyNodeType.SegmentSplitNode: {
@@ -1692,6 +1806,41 @@ export function createConnections(params: CreateConnectionsParams): {
         source: params.source,
         target: params.target,
       });
+      break;
+    }
+    case JourneyNodeType.RandomCohortNode: {
+      const emptyId = uuid();
+      const cohortLabelIds = params.cohortChildren.map((_, index) =>
+        `${params.id}-label-${index}`
+      );
+
+      newNodes = newNodes.concat([
+        buildBaseJourneyNode({
+          id: params.id,
+          nodeTypeProps: omit(params, ["id", "source", "target"]),
+        }),
+        ...cohortLabelIds.map((labelId, index) =>
+          buildLabelNode(labelId, `Cohort ${index + 1}`),
+        ),
+        buildEmptyNode(emptyId),
+      ]);
+
+      // Create placeholder edges from the cohort node to each label
+      const cohortEdges = cohortLabelIds.map((labelId) =>
+        buildPlaceholderEdge(params.id, labelId),
+      );
+
+      // Create workflow edges from each label to the empty node
+      const emptyEdges = cohortLabelIds.map((labelId) =>
+        buildWorkflowEdge(labelId, emptyId),
+      );
+
+      newEdges = [
+        buildWorkflowEdge(params.source, params.id),
+        ...cohortEdges,
+        ...emptyEdges,
+        buildWorkflowEdge(emptyId, params.target),
+      ];
       break;
     }
     case AdditionalJourneyNodeType.EntryUiNode: {

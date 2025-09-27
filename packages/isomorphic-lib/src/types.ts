@@ -2223,11 +2223,26 @@ export const WaitForUiNodeProps = Type.Object({
 
 export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
 
+export const RandomCohortUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.RandomCohortNode),
+  name: Type.String(),
+  cohortChildren: Type.Array(
+    Type.Object({
+      id: Type.String(),
+      percent: Type.Number(),
+      labelNodeId: Type.String(),
+    }),
+  ),
+});
+
+export type RandomCohortUiNodeProps = Static<typeof RandomCohortUiNodeProps>;
+
 export const JourneyUiBodyNodeTypeProps = Type.Union([
   MessageUiNodeProps,
   DelayUiNodeProps,
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
+  RandomCohortUiNodeProps,
 ]);
 
 export type JourneyUiBodyNodeTypeProps = Static<
