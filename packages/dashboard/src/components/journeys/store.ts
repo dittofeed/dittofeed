@@ -820,7 +820,7 @@ export function edgesForJourneyNode({
   }
   if (
     type === JourneyNodeType.RateLimitNode ||
-    type === JourneyNodeType.ExperimentSplitNode ||
+    type === JourneyNodeType.RandomCohortNode ||
     type === JourneyNodeType.ExitNode
   ) {
     throw new Error(`Unimplemented node type ${type}`);
@@ -1311,8 +1311,8 @@ export function journeyBranchToState(
         edgesState.push(buildWorkflowEdge(nId, node.child));
         break;
       }
-      case JourneyNodeType.ExperimentSplitNode:
-        throw new Error("ExperimentSplitNode is not implemented");
+      case JourneyNodeType.RandomCohortNode:
+        throw new Error("RandomCohortNode is not implemented");
       case JourneyNodeType.RateLimitNode:
         throw new Error("RateLimitNode is not implemented");
       case JourneyNodeType.SegmentSplitNode: {

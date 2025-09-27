@@ -965,7 +965,7 @@ export async function userJourneyWorkflow(
       case JourneyNodeType.ExitNode: {
         break nodeLoop;
       }
-      case JourneyNodeType.ExperimentSplitNode: {
+      case JourneyNodeType.RandomCohortNode: {
         logger.error("unable to handle un-implemented node type", {
           ...defaultLoggingFields,
           nodeType: currentNode.type,

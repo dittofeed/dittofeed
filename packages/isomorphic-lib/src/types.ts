@@ -863,7 +863,7 @@ export enum JourneyNodeType {
   SegmentSplitNode = "SegmentSplitNode",
   MessageNode = "MessageNode",
   RateLimitNode = "RateLimitNode",
-  ExperimentSplitNode = "ExperimentSplitNode",
+  RandomCohortNode = "RandomCohortNode",
   ExitNode = "ExitNode",
   // Inconsistent naming is for backwards compatibility.
   SegmentEntryNode = "EntryNode",
@@ -1198,19 +1198,19 @@ export const SegmentSplitNode = Type.Object(
 
 export type SegmentSplitNode = Static<typeof SegmentSplitNode>;
 
-export const ExperimentSplitNode = Type.Object(
+export const RandomCohortNode = Type.Object(
   {
     ...BaseNode,
-    type: Type.Literal(JourneyNodeType.ExperimentSplitNode),
+    type: Type.Literal(JourneyNodeType.RandomCohortNode),
   },
   {
-    title: "Experiment Split Node",
+    title: "Random Cohort Node",
     description:
-      "Used to split users among experiment paths, to test their effectiveness.",
+      "Used to split users among random cohorts, to test their effectiveness.",
   },
 );
 
-export type ExperimentSplitNode = Static<typeof ExperimentSplitNode>;
+export type RandomCohortNode = Static<typeof RandomCohortNode>;
 
 export const ExitNode = Type.Object(
   {
@@ -1230,7 +1230,7 @@ export const JourneyBodyNode = Type.Union([
   RateLimitNode,
   SegmentSplitNode,
   MessageNode,
-  ExperimentSplitNode,
+  RandomCohortNode,
   WaitForNode,
 ]);
 
