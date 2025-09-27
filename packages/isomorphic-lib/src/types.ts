@@ -1198,10 +1198,21 @@ export const SegmentSplitNode = Type.Object(
 
 export type SegmentSplitNode = Static<typeof SegmentSplitNode>;
 
+export const RandomCohortChild = Type.Object({
+  id: Type.String({ description: "The id of the child node to be split to" }),
+  percent: Type.Number({
+    description:
+      "The percentage of users to be randomly assigned to be in the cohort.",
+  }),
+});
+
+export type RandomCohortChild = Static<typeof RandomCohortChild>;
+
 export const RandomCohortNode = Type.Object(
   {
     ...BaseNode,
     type: Type.Literal(JourneyNodeType.RandomCohortNode),
+    children: Type.Array(RandomCohortChild),
   },
   {
     title: "Random Cohort Node",
