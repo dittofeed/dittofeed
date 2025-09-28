@@ -37,6 +37,7 @@ import {
   MessageNode,
   RandomCohortChild,
   RandomCohortNode,
+  RandomCohortUiChild,
   SavedJourneyResource,
   SegmentEntryNode,
   SegmentSplitNode,
@@ -1085,7 +1086,7 @@ function createRandomCohorChildState({
   childIndex,
 }: {
   nodeId: string;
-  child: RandomCohortChild;
+  child: RandomCohortUiChild;
   childIndex: number;
 }): {
   newEdges: JourneyUiEdge[];
@@ -2055,8 +2056,26 @@ export function createConnections(params: CreateConnectionsParams): {
     }
     case JourneyNodeType.RandomCohortNode: {
       const emptyId = buildEmptyNodeId(params.id);
-      const cohortLabelIds = params.cohortChildren.map(
-        (child) => `${params.id}-label-${child.name}`,
+      const children = params.cohortChildren.reduce<{
+        newNodes: JourneyUiNode[];
+        newEdges: JourneyUiEdge[];
+      }>(
+        (acc, child, i) => {
+          const { newNodes: childNewNodes, newEdges: childNewEdges } =
+            createRandomCohorChildState({
+              nodeId: params.id,
+              child,
+              childIndex: i,
+            });
+          return {
+            newNodes: acc.newNodes.concat(childNewNodes),
+            newEdges: acc.newEdges.concat(childNewEdges),
+          };
+        },
+        {
+          newNodes: [],
+          newEdges: [],
+        },
       );
 
       newNodes = newNodes.concat([
@@ -2064,27 +2083,14 @@ export function createConnections(params: CreateConnectionsParams): {
           id: params.id,
           nodeTypeProps: omit(params, ["id", "source", "target"]),
         }),
-        ...cohortLabelIds.map((labelId, index) =>
-          buildLabelNode(labelId, `Cohort ${index + 1}`),
-        ),
+        ...children.newNodes,
         buildEmptyNode(emptyId),
       ]);
 
-      // Create placeholder edges from the cohort node to each label
-      const cohortEdges = cohortLabelIds.map((labelId) =>
-        buildPlaceholderEdge(params.id, labelId),
-      );
-
-      // Create workflow edges from each label to the empty node
-      const emptyEdges = cohortLabelIds.map((labelId) =>
-        buildWorkflowEdge(labelId, emptyId),
-      );
-
       newEdges = [
         buildWorkflowEdge(params.source, params.id),
-        ...cohortEdges,
-        ...emptyEdges,
         buildWorkflowEdge(emptyId, params.target),
+        ...children.newEdges,
       ];
       break;
     }
