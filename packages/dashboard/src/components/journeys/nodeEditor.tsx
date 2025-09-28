@@ -43,8 +43,7 @@ import {
   UserPropertyResource,
   WorkspaceWideEmailProviders,
 } from "isomorphic-lib/src/types";
-import { ReactNode, useMemo } from "react";
-import { v4 as uuid } from "uuid";
+import { ReactNode, useCallback, useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import {
@@ -137,35 +136,33 @@ function RandomCohortNodeFields({
   nodeProps: RandomCohortUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData, syncRandomCohortNode } = useAppStorePick([
+  const {
+    updateJourneyNodeData,
+    addRandomCohortChild,
+    removeRandomCohortChild,
+  } = useAppStorePick([
     "updateJourneyNodeData",
-    "syncRandomCohortNode",
+    "addRandomCohortChild",
+    "removeRandomCohortChild",
   ]);
 
-  const addCohortChild = () => {
-    const newChild = {
-      id: uuid(),
-      percent: 0,
-      labelNodeId: uuid(),
-    };
-    updateJourneyNodeData(nodeId, (node) => {
-      const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.RandomCohortNode) {
-        props.cohortChildren.push(newChild);
-      }
-    });
-    syncRandomCohortNode(nodeId);
-  };
+  const addCohortChild = useCallback(() => {
+    addRandomCohortChild({ nodeId });
+  }, [addRandomCohortChild, nodeId]);
 
-  const removeCohortChild = (index: number) => {
-    updateJourneyNodeData(nodeId, (node) => {
-      const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.RandomCohortNode) {
-        props.cohortChildren.splice(index, 1);
+  const removeCohortChild = useCallback(
+    (index: number) => {
+      const childName = nodeProps.cohortChildren[index]?.name;
+      if (!childName) {
+        return;
       }
-    });
-    syncRandomCohortNode(nodeId);
-  };
+      removeRandomCohortChild({
+        nodeId,
+        childName,
+      });
+    },
+    [removeRandomCohortChild, nodeId, nodeProps.cohortChildren],
+  );
 
   const updateCohortPercent = (index: number, percent: number) => {
     updateJourneyNodeData(nodeId, (node) => {
@@ -176,7 +173,6 @@ function RandomCohortNodeFields({
         }
       }
     });
-    syncRandomCohortNode(nodeId);
   };
 
   const totalPercent = nodeProps.cohortChildren.reduce(
@@ -193,7 +189,7 @@ function RandomCohortNodeFields({
       </Typography>
 
       {nodeProps.cohortChildren.map((child, index) => (
-        <Stack key={child.id} direction="row" spacing={1} alignItems="center">
+        <Stack key={child.name} direction="row" spacing={1} alignItems="center">
           <TextField
             label={`Cohort ${index + 1} Percentage`}
             type="number"
