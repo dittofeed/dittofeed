@@ -44,6 +44,7 @@ import {
   WorkspaceWideEmailProviders,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
+import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
 import {
@@ -136,20 +137,24 @@ function RandomCohortNodeFields({
   nodeProps: RandomCohortUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData } = useAppStorePick(["updateJourneyNodeData"]);
+  const { updateJourneyNodeData, syncRandomCohortNode } = useAppStorePick([
+    "updateJourneyNodeData",
+    "syncRandomCohortNode",
+  ]);
 
   const addCohortChild = () => {
+    const newChild = {
+      id: uuid(),
+      percent: 0,
+      labelNodeId: uuid(),
+    };
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
       if (props.type === JourneyNodeType.RandomCohortNode) {
-        const newChild = {
-          id: `${nodeId}-child-${props.cohortChildren.length}`,
-          percent: 0,
-          labelNodeId: `${nodeId}-label-${props.cohortChildren.length}`,
-        };
         props.cohortChildren.push(newChild);
       }
     });
+    syncRandomCohortNode(nodeId);
   };
 
   const removeCohortChild = (index: number) => {
@@ -159,6 +164,7 @@ function RandomCohortNodeFields({
         props.cohortChildren.splice(index, 1);
       }
     });
+    syncRandomCohortNode(nodeId);
   };
 
   const updateCohortPercent = (index: number, percent: number) => {
@@ -170,6 +176,7 @@ function RandomCohortNodeFields({
         }
       }
     });
+    syncRandomCohortNode(nodeId);
   };
 
   const totalPercent = nodeProps.cohortChildren.reduce(

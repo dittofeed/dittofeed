@@ -986,6 +986,53 @@ function buildEmptyNode(id: string): JourneyUiNode {
   };
 }
 
+function randomCohortLabelTitle(index: number, percent: number): string {
+  const baseTitle = `Cohort ${index + 1}`;
+  if (Number.isFinite(percent)) {
+    return `${baseTitle} (${percent}%)`;
+  }
+  return baseTitle;
+}
+
+function buildEdgesBySource(
+  edges: JourneyUiEdge[],
+): Map<string, JourneyUiEdge[]> {
+  const map = new Map<string, JourneyUiEdge[]>();
+  for (const edge of edges) {
+    if (!map.has(edge.source)) {
+      map.set(edge.source, []);
+    }
+    map.get(edge.source)?.push(edge);
+  }
+  return map;
+}
+
+function collectNodesUntil(
+  startId: string,
+  stopId: string,
+  edgesBySource: Map<string, JourneyUiEdge[]>,
+  accumulator: Set<string>,
+) {
+  const queue: string[] = [startId];
+  while (queue.length > 0) {
+    const current = queue.pop();
+    if (!current || current === stopId) {
+      continue;
+    }
+    if (accumulator.has(current)) {
+      continue;
+    }
+    accumulator.add(current);
+    const nextEdges = edgesBySource.get(current) ?? [];
+    for (const edge of nextEdges) {
+      if (edge.target === stopId) {
+        continue;
+      }
+      queue.push(edge.target);
+    }
+  }
+}
+
 function buildWorkflowEdge(source: string, target: string): JourneyUiEdge {
   return {
     id: `${source}=>${target}`,
@@ -1028,6 +1075,41 @@ function buildJourneyNode(
   };
 }
 
+function deleteJourneyNode(state: JourneyContent, nodeId: string) {
+  const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
+  const hmEntry = getUnsafe(hm, nodeId);
+
+  // Will be an empty node
+  const nfc = getNearestUiFromChildren(nodeId, hm);
+  const nodesToRemove = new Set<string>([nodeId]);
+  let terminalNode: string;
+  if (nfc) {
+    nodesToRemove.add(nfc);
+    for (const n of state.journeyNodes) {
+      const nHmEntry = getUnsafe(hm, n.id);
+      if (nHmEntry.descendants.has(nfc) && nHmEntry.ancestors.has(nodeId)) {
+        nodesToRemove.add(n.id);
+      }
+    }
+    terminalNode = nfc;
+  } else {
+    terminalNode = nodeId;
+  }
+
+  state.journeyNodes = state.journeyNodes.filter(
+    (n) => !nodesToRemove.has(n.id),
+  );
+  state.journeyEdges = state.journeyEdges.filter(
+    (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target),
+  );
+
+  const terminalHmEntry = getUnsafe(hm, terminalNode);
+  const newTarget = idxUnsafe(Array.from(terminalHmEntry.children), 0);
+  const source = idxUnsafe(Array.from(hmEntry.parents), 0);
+  state.journeyEdges.push(buildWorkflowEdge(source, newTarget));
+  state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+}
+
 export const createJourneySlice: CreateJourneySlice = (set) => ({
   journeySelectedNodeId: null,
   journeyNodes: DEFAULT_JOURNEY_NODES,
@@ -1057,40 +1139,8 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     }),
   deleteJourneyNode: (nodeId: string) =>
     set((state) => {
-      const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
-      const hmEntry = getUnsafe(hm, nodeId);
-
-      // Will be an empty node
-      const nfc = getNearestUiFromChildren(nodeId, hm);
-      const nodesToRemove = new Set<string>([nodeId]);
-      let terminalNode: string;
-      if (nfc) {
-        nodesToRemove.add(nfc);
-        for (const n of state.journeyNodes) {
-          const nHmEntry = getUnsafe(hm, n.id);
-          if (nHmEntry.descendants.has(nfc) && nHmEntry.ancestors.has(nodeId)) {
-            nodesToRemove.add(n.id);
-          }
-        }
-        terminalNode = nfc;
-      } else {
-        terminalNode = nodeId;
-      }
-
-      state.journeyNodes = state.journeyNodes.filter(
-        (n) => !nodesToRemove.has(n.id),
-      );
-      state.journeyEdges = state.journeyEdges.filter(
-        (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target),
-      );
-
-      const terminalHmEntry = getUnsafe(hm, terminalNode);
-      const newTarget = idxUnsafe(Array.from(terminalHmEntry.children), 0);
-      const source = idxUnsafe(Array.from(hmEntry.parents), 0);
-      state.journeyEdges.push(buildWorkflowEdge(source, newTarget));
-
+      deleteJourneyNode(state, nodeId);
       state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
-      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
     }),
   setNodes: (changes: NodeChange<JourneyUiNode>[]) =>
     set((state) => {
@@ -1146,6 +1196,163 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         }
         return newNode;
       });
+    }),
+  syncRandomCohortNode: (nodeId) =>
+    set((state) => {
+      const node = findJourneyNode(
+        nodeId,
+        state.journeyNodes,
+        state.journeyNodesIndex,
+      );
+      if (!node) {
+        return;
+      }
+
+      const nodeProps = node.data.nodeTypeProps;
+      if (nodeProps.type !== JourneyNodeType.RandomCohortNode) {
+        return;
+      }
+
+      const emptyNodeId = `${nodeId}-empty`;
+      let structureChanged = false;
+
+      const existingEmptyWorkflowEdges = state.journeyEdges
+        .filter(
+          (edge) =>
+            edge.source === emptyNodeId &&
+            edge.type === "workflow" &&
+            edge.data?.type === JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+        )
+        .map((edge) => ({ ...edge }));
+
+      if (!state.journeyNodes.some((n) => n.id === emptyNodeId)) {
+        state.journeyNodes.push(buildEmptyNode(emptyNodeId));
+        structureChanged = true;
+      }
+
+      for (const child of nodeProps.cohortChildren) {
+        if (!child.labelNodeId) {
+          child.labelNodeId = uuid();
+          structureChanged = true;
+        }
+      }
+
+      const desiredLabelIds = new Set(
+        nodeProps.cohortChildren
+          .map((child) => child.labelNodeId)
+          .filter((labelId): labelId is string => Boolean(labelId)),
+      );
+
+      const placeholderEdgesFromNode = state.journeyEdges.filter(
+        (edge) => edge.source === nodeId && edge.type === "placeholder",
+      );
+      const existingLabelIds = placeholderEdgesFromNode.map(
+        (edge) => edge.target,
+      );
+
+      const edgesBySource = buildEdgesBySource(state.journeyEdges);
+
+      const nodesMarkedForRemoval = new Set<string>();
+      for (const labelId of existingLabelIds) {
+        if (!desiredLabelIds.has(labelId)) {
+          nodesMarkedForRemoval.add(labelId);
+          const outgoingEdges = edgesBySource.get(labelId) ?? [];
+          for (const edge of outgoingEdges) {
+            if (edge.target === emptyNodeId) {
+              continue;
+            }
+            collectNodesUntil(
+              edge.target,
+              emptyNodeId,
+              edgesBySource,
+              nodesMarkedForRemoval,
+            );
+          }
+        }
+      }
+
+      if (nodesMarkedForRemoval.size > 0) {
+        const previousNodesLength = state.journeyNodes.length;
+        state.journeyNodes = state.journeyNodes.filter(
+          (n) => !nodesMarkedForRemoval.has(n.id),
+        );
+        if (state.journeyNodes.length !== previousNodesLength) {
+          structureChanged = true;
+        }
+
+        const previousEdgesLength = state.journeyEdges.length;
+        state.journeyEdges = state.journeyEdges.filter(
+          (edge) =>
+            !nodesMarkedForRemoval.has(edge.source) &&
+            !nodesMarkedForRemoval.has(edge.target),
+        );
+        if (state.journeyEdges.length !== previousEdgesLength) {
+          structureChanged = true;
+        }
+      }
+
+      nodeProps.cohortChildren.forEach((child, index) => {
+        if (!child.labelNodeId) {
+          return;
+        }
+        const labelId = child.labelNodeId;
+        const labelTitle = randomCohortLabelTitle(index, child.percent);
+
+        const labelNode = findNode(
+          labelId,
+          state.journeyNodes,
+          state.journeyNodesIndex,
+        );
+        if (!labelNode) {
+          state.journeyNodes.push(buildLabelNode(labelId, labelTitle));
+          structureChanged = true;
+        } else if (isLabelNode(labelNode)) {
+          labelNode.data.title = labelTitle;
+        }
+
+        const hasPlaceholderEdge = state.journeyEdges.some(
+          (edge) => edge.source === nodeId && edge.target === labelId,
+        );
+        if (!hasPlaceholderEdge) {
+          state.journeyEdges.push(buildPlaceholderEdge(nodeId, labelId));
+          structureChanged = true;
+        }
+
+        const hasWorkflowEdge = state.journeyEdges.some(
+          (edge) => edge.source === labelId && edge.type === "workflow",
+        );
+        if (!hasWorkflowEdge) {
+          state.journeyEdges.push(buildWorkflowEdge(labelId, emptyNodeId));
+          structureChanged = true;
+        }
+      });
+
+      for (const edge of existingEmptyWorkflowEdges) {
+        const targetExists = state.journeyNodes.some(
+          (n) => n.id === edge.target,
+        );
+        if (!targetExists) {
+          continue;
+        }
+        const alreadyPresent = state.journeyEdges.some(
+          (existingEdge) =>
+            existingEdge.source === edge.source &&
+            existingEdge.target === edge.target &&
+            existingEdge.type === edge.type,
+        );
+        if (!alreadyPresent) {
+          state.journeyEdges.push(edge);
+          structureChanged = true;
+        }
+      }
+
+      if (structureChanged) {
+        state.journeyNodes = layoutNodes(
+          state.journeyNodes,
+          state.journeyEdges,
+        );
+      }
+      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
     }),
   setJourneyUpdateRequest: (request) =>
     set((state) => {
@@ -1365,8 +1572,8 @@ export function journeyBranchToState(
         const randomCohortNode: RandomCohortUiNodeProps = {
           type: JourneyNodeType.RandomCohortNode,
           name: "",
+          // eslint-disable-next-line @typescript-eslint/no-loop-func
           cohortChildren: node.children.map((child, index) => ({
-            id: child.id,
             percent: child.percent,
             labelNodeId: `${nId}-label-${index}`,
           })),
@@ -1810,8 +2017,8 @@ export function createConnections(params: CreateConnectionsParams): {
     }
     case JourneyNodeType.RandomCohortNode: {
       const emptyId = uuid();
-      const cohortLabelIds = params.cohortChildren.map((_, index) =>
-        `${params.id}-label-${index}`
+      const cohortLabelIds = params.cohortChildren.map(
+        (_, index) => `${params.id}-label-${index}`,
       );
 
       newNodes = newNodes.concat([

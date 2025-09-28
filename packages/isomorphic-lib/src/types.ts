@@ -2223,16 +2223,17 @@ export const WaitForUiNodeProps = Type.Object({
 
 export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
 
+export const RandomCohortUiChild = Type.Object({
+  percent: Type.Number(),
+  labelNodeId: Type.String(),
+});
+
+export type RandomCohortUiChild = Static<typeof RandomCohortUiChild>;
+
 export const RandomCohortUiNodeProps = Type.Object({
   type: Type.Literal(JourneyNodeType.RandomCohortNode),
   name: Type.String(),
-  cohortChildren: Type.Array(
-    Type.Object({
-      id: Type.String(),
-      percent: Type.Number(),
-      labelNodeId: Type.String(),
-    }),
-  ),
+  cohortChildren: Type.Array(RandomCohortUiChild),
 });
 
 export type RandomCohortUiNodeProps = Static<typeof RandomCohortUiNodeProps>;

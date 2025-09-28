@@ -18,7 +18,7 @@ import {
   JourneyUiBodyNodeTypeProps,
   SavedSubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
-import React, { DragEvent, DragEventHandler } from "react";
+import { DragEvent, DragEventHandler } from "react";
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
@@ -50,6 +50,7 @@ export function createNewConnections({
   addNodes,
   subscriptionGroups,
   setSelectedNodeId,
+  newTargetId: newTargetIdOverride,
 }: {
   nodeType: JourneyUiBodyNodeTypeProps["type"];
   nodes: AppState["journeyNodes"];
@@ -58,9 +59,10 @@ export function createNewConnections({
   target: string;
   subscriptionGroups: SavedSubscriptionGroupResource[];
   setSelectedNodeId: AppState["setSelectedNodeId"];
+  newTargetId?: string;
 }) {
   // TODO create an incremental ID based on the number of elements already in the graph
-  const newTargetId = uuid();
+  const newTargetId = newTargetIdOverride ?? uuid();
 
   const { newNodes, newEdges } = createConnections({
     id: newTargetId,
