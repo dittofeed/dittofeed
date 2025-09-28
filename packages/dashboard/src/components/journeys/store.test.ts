@@ -25,6 +25,7 @@ import {
   journeyDefinitionFromState,
   journeyToState,
 } from "./store";
+import logger from "backend-lib/src/logger";
 
 const EXAMPLE_JOURNEY_STATE: JourneyState = {
   journeySelectedNodeId: null,
@@ -866,7 +867,7 @@ describe("journeyDefinitionFromState", () => {
 });
 
 describe("when journey has RandomCohortNode", () => {
-  it("should create a RandomCohortNode with correct children", () => {
+  it.only("should create a RandomCohortNode with correct children", () => {
     const journeyId = uuid();
     const workspaceId = uuid();
 
@@ -878,14 +879,17 @@ describe("when journey has RandomCohortNode", () => {
           children: [
             {
               id: "message-node-1",
+              name: uuid(),
               percent: 50,
             },
             {
               id: "message-node-2",
+              name: uuid(),
               percent: 30,
             },
             {
               id: "ExitNode",
+              name: uuid(),
               percent: 20,
             },
           ],
@@ -938,6 +942,8 @@ describe("when journey has RandomCohortNode", () => {
     const state = journeyToState(journeyResource);
     expect(state.journeyNodes.length).toBeGreaterThan(0);
 
+    // FAILING
+    logger().debug({ state }, "loc1");
     const result = journeyDefinitionFromState({ state });
     expect(result.isOk()).toBe(true);
     if (result.isOk()) {

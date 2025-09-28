@@ -2233,7 +2233,6 @@ export type RandomCohortUiChild = Static<typeof RandomCohortUiChild>;
 
 export const RandomCohortUiNodeProps = Type.Object({
   type: Type.Literal(JourneyNodeType.RandomCohortNode),
-  name: Type.String(),
   cohortChildren: Type.Array(RandomCohortUiChild),
 });
 
