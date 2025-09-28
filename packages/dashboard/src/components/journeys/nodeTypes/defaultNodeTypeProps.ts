@@ -75,17 +75,14 @@ export function defaultBodyNodeTypeProps({
     case JourneyNodeType.RandomCohortNode:
       return {
         type,
-        name: "Random Cohort Split",
         cohortChildren: [
           {
-            id: uuid(),
+            name: uuid(),
             percent: 50,
-            labelNodeId: uuid(),
           },
           {
-            id: uuid(),
+            name: uuid(),
             percent: 50,
-            labelNodeId: uuid(),
           },
         ],
       };
