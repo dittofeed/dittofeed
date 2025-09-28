@@ -83,6 +83,7 @@ import findNode from "./findNode";
 import { isJourneyNode } from "./isJourneyNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
+import logger from "backend-lib/src/logger";
 
 export function findDirectUiParents(
   childId: string,
@@ -278,430 +279,6 @@ function findNextJourneyNode(
     throw new Error(`Missing child for ${nodeId}`);
   }
   return child;
-}
-
-function journeyDefinitionFromStateBranch(
-  initialNodeId: string,
-  hm: HeritageMap,
-  nodes: JourneyNode[],
-  uiJourneyNodes: JourneyNodeMap,
-  edges: Edge<JourneyUiEdgeProps>[],
-  terminateBefore?: string,
-): Result<null, { message: string; nodeId: string }> {
-  let nId = initialNodeId;
-  let nextId: string | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-  while (true) {
-    const uiNode = getUnsafe(uiJourneyNodes, nId);
-
-    switch (uiNode.type) {
-      case AdditionalJourneyNodeType.EntryUiNode: {
-        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
-
-        switch (uiNode.variant.type) {
-          case JourneyNodeType.SegmentEntryNode: {
-            if (!uiNode.variant.segment) {
-              return err({
-                message: "Entry node must have a segment",
-                nodeId: nId,
-              });
-            }
-
-            const node: SegmentEntryNode = {
-              type: JourneyNodeType.SegmentEntryNode,
-              segment: uiNode.variant.segment,
-              child,
-              reEnter: uiNode.variant.reEnter,
-            };
-            nodes.push(node);
-            nextId = child;
-            break;
-          }
-          case JourneyNodeType.EventEntryNode: {
-            if (!uiNode.variant.event) {
-              return err({
-                message: "Entry node must have an event",
-                nodeId: nId,
-              });
-            }
-            const node: EventEntryNode = {
-              type: JourneyNodeType.EventEntryNode,
-              event: uiNode.variant.event,
-              key: uiNode.variant.key,
-              child,
-            };
-            nodes.push(node);
-            nextId = child;
-            break;
-          }
-          default:
-            assertUnreachable(uiNode.variant);
-            break;
-        }
-        break;
-      }
-      case JourneyNodeType.ExitNode: {
-        const node: ExitNode = {
-          type: JourneyNodeType.ExitNode,
-        };
-        nodes.push(node);
-        nextId = null;
-        break;
-      }
-      case JourneyNodeType.MessageNode: {
-        if (!uiNode.templateId) {
-          return err({
-            message: "Message node must have a template",
-            nodeId: nId,
-          });
-        }
-
-        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
-        let variant: MessageNode["variant"];
-        // ugly but if we combine these clauses into one then we get a type error.
-        if (uiNode.channel === ChannelType.Email) {
-          variant = {
-            type: uiNode.channel,
-            templateId: uiNode.templateId,
-            providerOverride: uiNode.providerOverride,
-          };
-        } else if (uiNode.channel === ChannelType.Sms) {
-          variant = {
-            type: uiNode.channel,
-            templateId: uiNode.templateId,
-            providerOverride: uiNode.providerOverride,
-          };
-        } else {
-          variant = {
-            type: uiNode.channel,
-            templateId: uiNode.templateId,
-          };
-        }
-        const node: MessageNode = {
-          id: nId,
-          type: JourneyNodeType.MessageNode,
-          name: uiNode.name,
-          subscriptionGroupId: uiNode.subscriptionGroupId,
-          syncProperties: uiNode.syncProperties,
-          skipOnFailure: uiNode.skipOnFailure,
-          variant,
-          child,
-        };
-        nodes.push(node);
-        nextId = child;
-        break;
-      }
-      case JourneyNodeType.DelayNode: {
-        let variant: DelayNode["variant"];
-        switch (uiNode.variant.type) {
-          case DelayVariantType.Second: {
-            if (uiNode.variant.seconds === undefined) {
-              return err({
-                message: "Delay node must have a timeout",
-                nodeId: nId,
-              });
-            }
-            variant = {
-              type: DelayVariantType.Second,
-              seconds: uiNode.variant.seconds,
-            };
-            break;
-          }
-          case DelayVariantType.LocalTime: {
-            if (uiNode.variant.hour === undefined) {
-              return err({
-                message: "Local time delay node must have an hour",
-                nodeId: nId,
-              });
-            }
-            if (uiNode.variant.minute === undefined) {
-              return err({
-                message: "Local time delay node must have a minute",
-                nodeId: nId,
-              });
-            }
-            variant = {
-              type: DelayVariantType.LocalTime,
-              minute: uiNode.variant.minute,
-              hour: uiNode.variant.hour,
-              allowedDaysOfWeek: uiNode.variant.allowedDaysOfWeek,
-            };
-            break;
-          }
-          case DelayVariantType.UserProperty: {
-            if (!uiNode.variant.userProperty) {
-              return err({
-                message: "User property delay node must have a user property",
-                nodeId: nId,
-              });
-            }
-            variant = {
-              type: DelayVariantType.UserProperty,
-              userProperty: uiNode.variant.userProperty,
-              offsetSeconds: uiNode.variant.offsetSeconds,
-              offsetDirection: uiNode.variant.offsetDirection,
-            };
-            break;
-          }
-          default:
-            assertUnreachable(uiNode.variant);
-        }
-        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
-        const node: DelayNode = {
-          type: JourneyNodeType.DelayNode,
-          id: nId,
-          variant,
-          child,
-        };
-        nodes.push(node);
-        nextId = child;
-        break;
-      }
-      case JourneyNodeType.WaitForNode: {
-        if (uiNode.timeoutSeconds === undefined) {
-          return err({
-            message: "Wait for node must have a timeout",
-            nodeId: nId,
-          });
-        }
-        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
-        const timeoutChild = findNextJourneyNode(
-          uiNode.timeoutLabelNodeId,
-          hm,
-          uiJourneyNodes,
-        );
-
-        if (nfc !== timeoutChild) {
-          const branchResult = journeyDefinitionFromStateBranch(
-            timeoutChild,
-            hm,
-            nodes,
-            uiJourneyNodes,
-            edges,
-            nfc,
-          );
-          if (branchResult.isErr()) {
-            return err(branchResult.error);
-          }
-        }
-
-        const segmentChildren: WaitForSegmentChild[] = [];
-        for (const segmentChild of uiNode.segmentChildren) {
-          if (!segmentChild.segmentId) {
-            return err({
-              message: "All wait for segment children must have a segment",
-              nodeId: nId,
-            });
-          }
-          const child = findNextJourneyNode(
-            segmentChild.labelNodeId,
-            hm,
-            uiJourneyNodes,
-          );
-
-          if (nfc !== child) {
-            const branchResult = journeyDefinitionFromStateBranch(
-              child,
-              hm,
-              nodes,
-              uiJourneyNodes,
-              edges,
-              nfc,
-            );
-            if (branchResult.isErr()) {
-              return err(branchResult.error);
-            }
-          }
-          segmentChildren.push({
-            id: child,
-            segmentId: segmentChild.segmentId,
-          });
-        }
-
-        const node: WaitForNode = {
-          type: JourneyNodeType.WaitForNode,
-          timeoutSeconds: uiNode.timeoutSeconds,
-          timeoutChild,
-          segmentChildren,
-          id: nId,
-        };
-        nodes.push(node);
-        nextId = nfc;
-        break;
-      }
-      case JourneyNodeType.RandomCohortNode: {
-        if (!uiNode.cohortChildren || uiNode.cohortChildren.length === 0) {
-          return err({
-            message: "Random cohort node must have cohort children",
-            nodeId: nId,
-          });
-        }
-
-        const children: RandomCohortChild[] = [];
-        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
-
-        for (const cohortChild of uiNode.cohortChildren) {
-          const childId = findNextJourneyNode(
-            cohortChild.labelNodeId,
-            hm,
-            uiJourneyNodes,
-          );
-
-          if (nfc !== childId) {
-            const branchResult = journeyDefinitionFromStateBranch(
-              childId,
-              hm,
-              nodes,
-              uiJourneyNodes,
-              edges,
-              nfc,
-            );
-            if (branchResult.isErr()) {
-              return err(branchResult.error);
-            }
-          }
-
-          children.push({
-            id: childId,
-            percent: cohortChild.percent,
-          });
-        }
-
-        const node: RandomCohortNode = {
-          type: JourneyNodeType.RandomCohortNode,
-          id: nId,
-          children,
-        };
-        nodes.push(node);
-        nextId = nfc;
-        break;
-      }
-      case JourneyNodeType.SegmentSplitNode: {
-        if (!uiNode.segmentId) {
-          return err({
-            message: "Segment split node must have a segment",
-            nodeId: nId,
-          });
-        }
-        const trueChild = findNextJourneyNode(
-          uiNode.trueLabelNodeId,
-          hm,
-          uiJourneyNodes,
-        );
-
-        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
-        if (nfc !== trueChild) {
-          const branchResult = journeyDefinitionFromStateBranch(
-            trueChild,
-            hm,
-            nodes,
-            uiJourneyNodes,
-            edges,
-            nfc,
-          );
-          if (branchResult.isErr()) {
-            return err(branchResult.error);
-          }
-        }
-
-        const falseChild = findNextJourneyNode(
-          uiNode.falseLabelNodeId,
-          hm,
-          uiJourneyNodes,
-        );
-
-        if (nfc !== falseChild) {
-          const branchResult = journeyDefinitionFromStateBranch(
-            falseChild,
-            hm,
-            nodes,
-            uiJourneyNodes,
-            edges,
-            nfc,
-          );
-          if (branchResult.isErr()) {
-            return err(branchResult.error);
-          }
-        }
-
-        const node: SegmentSplitNode = {
-          type: JourneyNodeType.SegmentSplitNode,
-          id: nId,
-          variant: {
-            type: SegmentSplitVariantType.Boolean,
-            segment: uiNode.segmentId,
-            trueChild,
-            falseChild,
-          },
-        };
-        nodes.push(node);
-        nextId = nfc;
-        break;
-      }
-      default:
-        assertUnreachable(uiNode);
-    }
-    if (nextId === null) {
-      break;
-    }
-    if (nextId === terminateBefore) {
-      break;
-    }
-    nId = nextId;
-  }
-  return ok(null);
-}
-
-export function journeyDefinitionFromState({
-  state,
-}: {
-  state: Omit<JourneyStateForResource, "journeyName">;
-}): Result<JourneyDefinition, { message: string; nodeId: string }> {
-  const nodes: JourneyNode[] = [];
-  const journeyNodes = buildJourneyNodeMap(state.journeyNodes);
-  const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
-
-  const result = journeyDefinitionFromStateBranch(
-    AdditionalJourneyNodeType.EntryUiNode,
-    hm,
-    nodes,
-    journeyNodes,
-    state.journeyEdges,
-  );
-
-  if (result.isErr()) {
-    return err(result.error);
-  }
-  let exitNode: ExitNode | null = null;
-  let entryNode: EntryNode | null = null;
-  const bodyNodes: JourneyBodyNode[] = [];
-
-  for (const node of nodes) {
-    if (
-      node.type === JourneyNodeType.SegmentEntryNode ||
-      node.type === JourneyNodeType.EventEntryNode
-    ) {
-      entryNode = node;
-    } else if (node.type === JourneyNodeType.ExitNode) {
-      exitNode = node;
-    } else {
-      bodyNodes.push(node);
-    }
-  }
-
-  if (!entryNode) {
-    throw new Error("Entry node is missing");
-  }
-  if (!exitNode) {
-    throw new Error("Exit node is missing");
-  }
-
-  const definition: JourneyDefinition = {
-    entryNode,
-    exitNode,
-    nodes: bodyNodes,
-  };
-  return ok(definition);
 }
 
 export interface DualNodeParams {
@@ -987,52 +564,51 @@ function buildEmptyNode(id: string): JourneyUiNode {
   };
 }
 
-function randomCohortLabelTitle(index: number, percent: number): string {
-  const baseTitle = `Cohort ${index + 1}`;
-  if (Number.isFinite(percent)) {
-    return `${baseTitle} (${percent}%)`;
-  }
-  return baseTitle;
-}
+// function randomCohortLabelTitle(index: number, percent: number): string {
+//   const baseTitle = `Cohort ${index + 1}`;
+//   if (Number.isFinite(percent)) {
+//     return `${baseTitle} (${percent}%)`;
+//   }
+//   return baseTitle;
+// }
+// function buildEdgesBySource(
+//   edges: JourneyUiEdge[],
+// ): Map<string, JourneyUiEdge[]> {
+//   const map = new Map<string, JourneyUiEdge[]>();
+//   for (const edge of edges) {
+//     if (!map.has(edge.source)) {
+//       map.set(edge.source, []);
+//     }
+//     map.get(edge.source)?.push(edge);
+//   }
+//   return map;
+// }
 
-function buildEdgesBySource(
-  edges: JourneyUiEdge[],
-): Map<string, JourneyUiEdge[]> {
-  const map = new Map<string, JourneyUiEdge[]>();
-  for (const edge of edges) {
-    if (!map.has(edge.source)) {
-      map.set(edge.source, []);
-    }
-    map.get(edge.source)?.push(edge);
-  }
-  return map;
-}
-
-function collectNodesUntil(
-  startId: string,
-  stopId: string,
-  edgesBySource: Map<string, JourneyUiEdge[]>,
-  accumulator: Set<string>,
-) {
-  const queue: string[] = [startId];
-  while (queue.length > 0) {
-    const current = queue.pop();
-    if (!current || current === stopId) {
-      continue;
-    }
-    if (accumulator.has(current)) {
-      continue;
-    }
-    accumulator.add(current);
-    const nextEdges = edgesBySource.get(current) ?? [];
-    for (const edge of nextEdges) {
-      if (edge.target === stopId) {
-        continue;
-      }
-      queue.push(edge.target);
-    }
-  }
-}
+// function collectNodesUntil(
+//   startId: string,
+//   stopId: string,
+//   edgesBySource: Map<string, JourneyUiEdge[]>,
+//   accumulator: Set<string>,
+// ) {
+//   const queue: string[] = [startId];
+//   while (queue.length > 0) {
+//     const current = queue.pop();
+//     if (!current || current === stopId) {
+//       continue;
+//     }
+//     if (accumulator.has(current)) {
+//       continue;
+//     }
+//     accumulator.add(current);
+//     const nextEdges = edgesBySource.get(current) ?? [];
+//     for (const edge of nextEdges) {
+//       if (edge.target === stopId) {
+//         continue;
+//       }
+//       queue.push(edge.target);
+//     }
+//   }
+// }
 
 function buildWorkflowEdge(source: string, target: string): JourneyUiEdge {
   return {
@@ -1100,6 +676,7 @@ function createRandomCohorChildState({
   newNodes: JourneyUiNode[];
 } {
   const labelId = buildRandomCohortLabelNodeId(nodeId, child.name);
+  logger().debug({ labelId, nodeId, child }, "loc3");
   const emptyId = buildEmptyNodeId(nodeId);
   const newEdges: JourneyUiEdge[] = [
     buildPlaceholderEdge(nodeId, labelId),
@@ -1113,6 +690,432 @@ function createRandomCohorChildState({
     newEdges,
     newNodes,
   };
+}
+
+function journeyDefinitionFromStateBranch(
+  initialNodeId: string,
+  hm: HeritageMap,
+  nodes: JourneyNode[],
+  uiJourneyNodes: JourneyNodeMap,
+  edges: Edge<JourneyUiEdgeProps>[],
+  terminateBefore?: string,
+): Result<null, { message: string; nodeId: string }> {
+  let nId = initialNodeId;
+  let nextId: string | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+  while (true) {
+    const uiNode = getUnsafe(uiJourneyNodes, nId);
+
+    switch (uiNode.type) {
+      case AdditionalJourneyNodeType.EntryUiNode: {
+        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
+
+        switch (uiNode.variant.type) {
+          case JourneyNodeType.SegmentEntryNode: {
+            if (!uiNode.variant.segment) {
+              return err({
+                message: "Entry node must have a segment",
+                nodeId: nId,
+              });
+            }
+
+            const node: SegmentEntryNode = {
+              type: JourneyNodeType.SegmentEntryNode,
+              segment: uiNode.variant.segment,
+              child,
+              reEnter: uiNode.variant.reEnter,
+            };
+            nodes.push(node);
+            nextId = child;
+            break;
+          }
+          case JourneyNodeType.EventEntryNode: {
+            if (!uiNode.variant.event) {
+              return err({
+                message: "Entry node must have an event",
+                nodeId: nId,
+              });
+            }
+            const node: EventEntryNode = {
+              type: JourneyNodeType.EventEntryNode,
+              event: uiNode.variant.event,
+              key: uiNode.variant.key,
+              child,
+            };
+            nodes.push(node);
+            nextId = child;
+            break;
+          }
+          default:
+            assertUnreachable(uiNode.variant);
+            break;
+        }
+        break;
+      }
+      case JourneyNodeType.ExitNode: {
+        const node: ExitNode = {
+          type: JourneyNodeType.ExitNode,
+        };
+        nodes.push(node);
+        nextId = null;
+        break;
+      }
+      case JourneyNodeType.MessageNode: {
+        if (!uiNode.templateId) {
+          return err({
+            message: "Message node must have a template",
+            nodeId: nId,
+          });
+        }
+
+        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
+        let variant: MessageNode["variant"];
+        // ugly but if we combine these clauses into one then we get a type error.
+        if (uiNode.channel === ChannelType.Email) {
+          variant = {
+            type: uiNode.channel,
+            templateId: uiNode.templateId,
+            providerOverride: uiNode.providerOverride,
+          };
+        } else if (uiNode.channel === ChannelType.Sms) {
+          variant = {
+            type: uiNode.channel,
+            templateId: uiNode.templateId,
+            providerOverride: uiNode.providerOverride,
+          };
+        } else {
+          variant = {
+            type: uiNode.channel,
+            templateId: uiNode.templateId,
+          };
+        }
+        const node: MessageNode = {
+          id: nId,
+          type: JourneyNodeType.MessageNode,
+          name: uiNode.name,
+          subscriptionGroupId: uiNode.subscriptionGroupId,
+          syncProperties: uiNode.syncProperties,
+          skipOnFailure: uiNode.skipOnFailure,
+          variant,
+          child,
+        };
+        nodes.push(node);
+        nextId = child;
+        break;
+      }
+      case JourneyNodeType.DelayNode: {
+        let variant: DelayNode["variant"];
+        switch (uiNode.variant.type) {
+          case DelayVariantType.Second: {
+            if (uiNode.variant.seconds === undefined) {
+              return err({
+                message: "Delay node must have a timeout",
+                nodeId: nId,
+              });
+            }
+            variant = {
+              type: DelayVariantType.Second,
+              seconds: uiNode.variant.seconds,
+            };
+            break;
+          }
+          case DelayVariantType.LocalTime: {
+            if (uiNode.variant.hour === undefined) {
+              return err({
+                message: "Local time delay node must have an hour",
+                nodeId: nId,
+              });
+            }
+            if (uiNode.variant.minute === undefined) {
+              return err({
+                message: "Local time delay node must have a minute",
+                nodeId: nId,
+              });
+            }
+            variant = {
+              type: DelayVariantType.LocalTime,
+              minute: uiNode.variant.minute,
+              hour: uiNode.variant.hour,
+              allowedDaysOfWeek: uiNode.variant.allowedDaysOfWeek,
+            };
+            break;
+          }
+          case DelayVariantType.UserProperty: {
+            if (!uiNode.variant.userProperty) {
+              return err({
+                message: "User property delay node must have a user property",
+                nodeId: nId,
+              });
+            }
+            variant = {
+              type: DelayVariantType.UserProperty,
+              userProperty: uiNode.variant.userProperty,
+              offsetSeconds: uiNode.variant.offsetSeconds,
+              offsetDirection: uiNode.variant.offsetDirection,
+            };
+            break;
+          }
+          default:
+            assertUnreachable(uiNode.variant);
+        }
+        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
+        const node: DelayNode = {
+          type: JourneyNodeType.DelayNode,
+          id: nId,
+          variant,
+          child,
+        };
+        nodes.push(node);
+        nextId = child;
+        break;
+      }
+      case JourneyNodeType.WaitForNode: {
+        if (uiNode.timeoutSeconds === undefined) {
+          return err({
+            message: "Wait for node must have a timeout",
+            nodeId: nId,
+          });
+        }
+        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
+        const timeoutChild = findNextJourneyNode(
+          uiNode.timeoutLabelNodeId,
+          hm,
+          uiJourneyNodes,
+        );
+
+        if (nfc !== timeoutChild) {
+          const branchResult = journeyDefinitionFromStateBranch(
+            timeoutChild,
+            hm,
+            nodes,
+            uiJourneyNodes,
+            edges,
+            nfc,
+          );
+          if (branchResult.isErr()) {
+            return err(branchResult.error);
+          }
+        }
+
+        const segmentChildren: WaitForSegmentChild[] = [];
+        for (const segmentChild of uiNode.segmentChildren) {
+          if (!segmentChild.segmentId) {
+            return err({
+              message: "All wait for segment children must have a segment",
+              nodeId: nId,
+            });
+          }
+          const child = findNextJourneyNode(
+            segmentChild.labelNodeId,
+            hm,
+            uiJourneyNodes,
+          );
+
+          if (nfc !== child) {
+            const branchResult = journeyDefinitionFromStateBranch(
+              child,
+              hm,
+              nodes,
+              uiJourneyNodes,
+              edges,
+              nfc,
+            );
+            if (branchResult.isErr()) {
+              return err(branchResult.error);
+            }
+          }
+          segmentChildren.push({
+            id: child,
+            segmentId: segmentChild.segmentId,
+          });
+        }
+
+        const node: WaitForNode = {
+          type: JourneyNodeType.WaitForNode,
+          timeoutSeconds: uiNode.timeoutSeconds,
+          timeoutChild,
+          segmentChildren,
+          id: nId,
+        };
+        nodes.push(node);
+        nextId = nfc;
+        break;
+      }
+      case JourneyNodeType.RandomCohortNode: {
+        if (!uiNode.cohortChildren || uiNode.cohortChildren.length === 0) {
+          return err({
+            message: "Random cohort node must have cohort children",
+            nodeId: nId,
+          });
+        }
+
+        const children: RandomCohortChild[] = [];
+        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
+
+        for (const cohortChild of uiNode.cohortChildren) {
+          logger().debug({ cohortChild, nId }, "loc2");
+          const childId = findNextJourneyNode(
+            buildRandomCohortLabelNodeId(nId, cohortChild.name),
+            hm,
+            uiJourneyNodes,
+          );
+
+          if (nfc !== childId) {
+            const branchResult = journeyDefinitionFromStateBranch(
+              childId,
+              hm,
+              nodes,
+              uiJourneyNodes,
+              edges,
+              nfc,
+            );
+            if (branchResult.isErr()) {
+              return err(branchResult.error);
+            }
+          }
+
+          children.push({
+            id: childId,
+            name: cohortChild.name,
+            percent: cohortChild.percent,
+          });
+        }
+
+        const node: RandomCohortNode = {
+          type: JourneyNodeType.RandomCohortNode,
+          id: nId,
+          children,
+        };
+        nodes.push(node);
+        nextId = nfc;
+        break;
+      }
+      case JourneyNodeType.SegmentSplitNode: {
+        if (!uiNode.segmentId) {
+          return err({
+            message: "Segment split node must have a segment",
+            nodeId: nId,
+          });
+        }
+        const trueChild = findNextJourneyNode(
+          uiNode.trueLabelNodeId,
+          hm,
+          uiJourneyNodes,
+        );
+
+        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
+        if (nfc !== trueChild) {
+          const branchResult = journeyDefinitionFromStateBranch(
+            trueChild,
+            hm,
+            nodes,
+            uiJourneyNodes,
+            edges,
+            nfc,
+          );
+          if (branchResult.isErr()) {
+            return err(branchResult.error);
+          }
+        }
+
+        const falseChild = findNextJourneyNode(
+          uiNode.falseLabelNodeId,
+          hm,
+          uiJourneyNodes,
+        );
+
+        if (nfc !== falseChild) {
+          const branchResult = journeyDefinitionFromStateBranch(
+            falseChild,
+            hm,
+            nodes,
+            uiJourneyNodes,
+            edges,
+            nfc,
+          );
+          if (branchResult.isErr()) {
+            return err(branchResult.error);
+          }
+        }
+
+        const node: SegmentSplitNode = {
+          type: JourneyNodeType.SegmentSplitNode,
+          id: nId,
+          variant: {
+            type: SegmentSplitVariantType.Boolean,
+            segment: uiNode.segmentId,
+            trueChild,
+            falseChild,
+          },
+        };
+        nodes.push(node);
+        nextId = nfc;
+        break;
+      }
+      default:
+        assertUnreachable(uiNode);
+    }
+    if (nextId === null) {
+      break;
+    }
+    if (nextId === terminateBefore) {
+      break;
+    }
+    nId = nextId;
+  }
+  return ok(null);
+}
+
+export function journeyDefinitionFromState({
+  state,
+}: {
+  state: Omit<JourneyStateForResource, "journeyName">;
+}): Result<JourneyDefinition, { message: string; nodeId: string }> {
+  const nodes: JourneyNode[] = [];
+  const journeyNodes = buildJourneyNodeMap(state.journeyNodes);
+  const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
+
+  const result = journeyDefinitionFromStateBranch(
+    AdditionalJourneyNodeType.EntryUiNode,
+    hm,
+    nodes,
+    journeyNodes,
+    state.journeyEdges,
+  );
+
+  if (result.isErr()) {
+    return err(result.error);
+  }
+  let exitNode: ExitNode | null = null;
+  let entryNode: EntryNode | null = null;
+  const bodyNodes: JourneyBodyNode[] = [];
+
+  for (const node of nodes) {
+    if (
+      node.type === JourneyNodeType.SegmentEntryNode ||
+      node.type === JourneyNodeType.EventEntryNode
+    ) {
+      entryNode = node;
+    } else if (node.type === JourneyNodeType.ExitNode) {
+      exitNode = node;
+    } else {
+      bodyNodes.push(node);
+    }
+  }
+
+  if (!entryNode) {
+    throw new Error("Entry node is missing");
+  }
+  if (!exitNode) {
+    throw new Error("Exit node is missing");
+  }
+
+  const definition: JourneyDefinition = {
+    entryNode,
+    exitNode,
+    nodes: bodyNodes,
+  };
+  return ok(definition);
 }
 
 function deleteJourneyNode(state: JourneyContent, nodeId: string) {
@@ -1642,11 +1645,10 @@ export function journeyBranchToState(
       case JourneyNodeType.RandomCohortNode: {
         const randomCohortNode: RandomCohortUiNodeProps = {
           type: JourneyNodeType.RandomCohortNode,
-          name: "",
           // eslint-disable-next-line @typescript-eslint/no-loop-func
-          cohortChildren: node.children.map((child, index) => ({
+          cohortChildren: node.children.map((child) => ({
+            name: child.name,
             percent: child.percent,
-            labelNodeId: `${nId}-label-${index}`,
           })),
         };
 
@@ -1655,14 +1657,17 @@ export function journeyBranchToState(
         for (let index = 0; index < node.children.length; index++) {
           const child = node.children[index];
           if (!child) continue;
-          const labelId = `${nId}-label-${index}`;
-          nodesState.push(
-            buildLabelNode(labelId, `Cohort ${index + 1} (${child.percent}%)`),
-          );
-          edgesState.push(buildPlaceholderEdge(nId, labelId));
+          const { newNodes: childNewNodes, newEdges: childNewEdges } =
+            createRandomCohorChildState({
+              nodeId: nId,
+              child,
+              childIndex: index,
+            });
+          nodesState = nodesState.concat(childNewNodes);
+          edgesState = edgesState.concat(childNewEdges);
         }
 
-        const emptyId = `${nId}-empty`;
+        const emptyId = buildEmptyNodeId(nId);
         nodesState.push(buildEmptyNode(emptyId));
 
         const nfc = getNearestFromChildren(nId, hm);
