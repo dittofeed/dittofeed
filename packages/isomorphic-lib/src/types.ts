@@ -2227,7 +2227,6 @@ export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
 export const RandomCohortUiChild = Type.Object({
   name: Type.String(),
   percent: Type.Number(),
-  labelNodeId: Type.String(),
 });
 
 export type RandomCohortUiChild = Static<typeof RandomCohortUiChild>;

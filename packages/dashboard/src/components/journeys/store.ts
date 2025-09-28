@@ -1080,6 +1080,13 @@ function buildEmptyNodeId(nodeId: string): string {
   return `${nodeId}-empty`;
 }
 
+function buildRandomCohortLabelNodeId(
+  nodeId: string,
+  childName: string,
+): string {
+  return `${nodeId}-label-${childName}`;
+}
+
 function createRandomCohorChildState({
   nodeId,
   child,
@@ -1092,7 +1099,7 @@ function createRandomCohorChildState({
   newEdges: JourneyUiEdge[];
   newNodes: JourneyUiNode[];
 } {
-  const labelId = `${nodeId}-label-${child.name}`;
+  const labelId = buildRandomCohortLabelNodeId(nodeId, child.name);
   const emptyId = buildEmptyNodeId(nodeId);
   const newEdges: JourneyUiEdge[] = [
     buildPlaceholderEdge(nodeId, labelId),
@@ -1388,7 +1395,32 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
   //     state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
   //   }),
   addRandomCohortChild: ({ nodeId }) => {
-    set((state) => {});
+    set((state) => {
+      const existingRandomCohortNode = findJourneyNode(
+        nodeId,
+        state.journeyNodes,
+        state.journeyNodesIndex,
+      );
+      if (!existingRandomCohortNode) {
+        return;
+      }
+      const nodeProps = existingRandomCohortNode.data.nodeTypeProps;
+      if (nodeProps.type !== JourneyNodeType.RandomCohortNode) {
+        return;
+      }
+      const { newNodes, newEdges } = createRandomCohorChildState({
+        nodeId,
+        child: {
+          name: uuid(),
+          percent: 0,
+        },
+        childIndex: nodeProps.cohortChildren.length,
+      });
+      state.journeyNodes = state.journeyNodes.concat(newNodes);
+      state.journeyEdges = state.journeyEdges.concat(newEdges);
+      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+      state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
+    });
   },
   removeRandomCohortChild: ({ nodeId, childName }) => {
     set((state) => {});
