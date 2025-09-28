@@ -83,7 +83,6 @@ import findNode from "./findNode";
 import { isJourneyNode } from "./isJourneyNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
-import logger from "backend-lib/src/logger";
 
 export function findDirectUiParents(
   childId: string,
@@ -1645,26 +1644,15 @@ export function journeyBranchToState(
       case JourneyNodeType.RandomCohortNode: {
         const randomCohortNode: RandomCohortUiNodeProps = {
           type: JourneyNodeType.RandomCohortNode,
-          // eslint-disable-next-line @typescript-eslint/no-loop-func
-          cohortChildren: node.children.map((child) => ({
-            name: child.name,
-            percent: child.percent,
-          })),
+          cohortChildren: node.children,
         };
 
         nodesState.push(buildJourneyNode(nId, randomCohortNode));
 
-        for (let index = 0; index < node.children.length; index++) {
-          const child = node.children[index];
-          if (!child) continue;
-          const { newNodes: childNewNodes, newEdges: childNewEdges } =
-            createRandomCohorChildState({
-              nodeId: nId,
-              child,
-              childIndex: index,
-            });
-          nodesState = nodesState.concat(childNewNodes);
-          edgesState = edgesState.concat(childNewEdges);
+        for (const child of node.children) {
+          const labelId = buildRandomCohortLabelNodeId(nId, child.name);
+          nodesState.push(buildLabelNode(labelId, child.name));
+          edgesState.push(buildPlaceholderEdge(nId, labelId));
         }
 
         const emptyId = buildEmptyNodeId(nId);
@@ -1672,10 +1660,8 @@ export function journeyBranchToState(
 
         const nfc = getNearestFromChildren(nId, hm);
 
-        for (let index = 0; index < node.children.length; index++) {
-          const child = node.children[index];
-          if (!child) continue;
-          const labelId = `${nId}-label-${index}`;
+        for (const child of node.children) {
+          const labelId = buildRandomCohortLabelNodeId(nId, child.name);
           if (child.id === nfc || nfc === null) {
             edgesState.push(buildWorkflowEdge(labelId, emptyId));
           } else {

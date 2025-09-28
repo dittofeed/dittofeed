@@ -25,7 +25,6 @@ import {
   journeyDefinitionFromState,
   journeyToState,
 } from "./store";
-import logger from "backend-lib/src/logger";
 
 const EXAMPLE_JOURNEY_STATE: JourneyState = {
   journeySelectedNodeId: null,
@@ -942,8 +941,6 @@ describe("when journey has RandomCohortNode", () => {
     const state = journeyToState(journeyResource);
     expect(state.journeyNodes.length).toBeGreaterThan(0);
 
-    // FAILING
-    logger().debug({ state }, "loc1");
     const result = journeyDefinitionFromState({ state });
     expect(result.isOk()).toBe(true);
     if (result.isOk()) {
