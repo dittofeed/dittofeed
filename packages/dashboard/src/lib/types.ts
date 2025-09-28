@@ -359,7 +359,13 @@ export interface JourneyContent extends JourneyState {
   setNodes: (changes: NodeChange<JourneyUiNode>[]) => void;
   deleteJourneyNode: (nodeId: string) => void;
   updateJourneyNodeData: (nodeId: string, updater: JourneyNodeUpdater) => void;
-  syncRandomCohortNode: (nodeId: string) => void;
+  addRandomCohortChild: ({ nodeId }: { nodeId: string }) => void;
+  removeRandomCohortChild: ({
+    nodeId,
+  }: {
+    nodeId: string;
+    childName: string;
+  }) => void;
   setJourneyUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
   setJourneyName: (name: string) => void;
   updateLabelNode: (nodeId: string, title: string) => void;

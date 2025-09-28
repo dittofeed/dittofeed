@@ -1204,6 +1204,7 @@ export const RandomCohortChild = Type.Object({
     description:
       "The percentage of users to be randomly assigned to be in the cohort.",
   }),
+  name: Type.String(),
 });
 
 export type RandomCohortChild = Static<typeof RandomCohortChild>;
@@ -2224,6 +2225,7 @@ export const WaitForUiNodeProps = Type.Object({
 export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
 
 export const RandomCohortUiChild = Type.Object({
+  name: Type.String(),
   percent: Type.Number(),
   labelNodeId: Type.String(),
 });
