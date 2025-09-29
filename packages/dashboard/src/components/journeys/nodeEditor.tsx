@@ -151,17 +151,13 @@ function RandomCohortNodeFields({
   }, [addRandomCohortChild, nodeId]);
 
   const removeCohortChild = useCallback(
-    (index: number) => {
-      const childName = nodeProps.cohortChildren[index]?.name;
-      if (!childName) {
-        return;
-      }
+    (childName: string) => {
       removeRandomCohortChild({
         nodeId,
         childName,
       });
     },
-    [removeRandomCohortChild, nodeId, nodeProps.cohortChildren],
+    [removeRandomCohortChild, nodeId],
   );
 
   const updateCohortPercent = (index: number, percent: number) => {
@@ -202,7 +198,7 @@ function RandomCohortNodeFields({
             sx={{ flexGrow: 1 }}
           />
           <IconButton
-            onClick={() => removeCohortChild(index)}
+            onClick={() => removeCohortChild(child.name)}
             disabled={Boolean(disabled) || nodeProps.cohortChildren.length <= 2}
             color="error"
             size="small"

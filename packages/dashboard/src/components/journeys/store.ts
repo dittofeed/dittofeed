@@ -675,7 +675,6 @@ function createRandomCohorChildState({
   newNodes: JourneyUiNode[];
 } {
   const labelId = buildRandomCohortLabelNodeId(nodeId, child.name);
-  logger().debug({ labelId, nodeId, child }, "loc3");
   const emptyId = buildEmptyNodeId(nodeId);
   const newEdges: JourneyUiEdge[] = [
     buildPlaceholderEdge(nodeId, labelId),
@@ -952,7 +951,6 @@ function journeyDefinitionFromStateBranch(
         const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
 
         for (const cohortChild of uiNode.cohortChildren) {
-          logger().debug({ cohortChild, nId }, "loc2");
           const childId = findNextJourneyNode(
             buildRandomCohortLabelNodeId(nId, cohortChild.name),
             hm,
@@ -1396,7 +1394,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
   //     }
   //     state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
   //   }),
-  addRandomCohortChild: ({ nodeId }) => {
+  addRandomCohortChild: ({ nodeId }) =>
     set((state) => {
       const existingRandomCohortNode = findJourneyNode(
         nodeId,
@@ -1410,10 +1408,15 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       if (nodeProps.type !== JourneyNodeType.RandomCohortNode) {
         return;
       }
+      const name = uuid();
+      nodeProps.cohortChildren.push({
+        name,
+        percent: 0,
+      });
       const { newNodes, newEdges } = createRandomCohorChildState({
         nodeId,
         child: {
-          name: uuid(),
+          name,
           percent: 0,
         },
         childIndex: nodeProps.cohortChildren.length,
@@ -1422,20 +1425,63 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       state.journeyEdges = state.journeyEdges.concat(newEdges);
       state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
       state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
-    });
-  },
-  removeRandomCohortChild: ({ nodeId, childName }) => {
-    set((state) => {});
-  },
+    }),
+  removeRandomCohortChild: ({ nodeId, childName }) =>
+    set((state) => {
+      const node = findJourneyNode(
+        nodeId,
+        state.journeyNodes,
+        state.journeyNodesIndex,
+      );
+      if (!node) {
+        return;
+      }
+      if (node.data.nodeTypeProps.type !== JourneyNodeType.RandomCohortNode) {
+        return;
+      }
+      const nodeProps = node.data.nodeTypeProps;
+      nodeProps.cohortChildren = nodeProps.cohortChildren.filter(
+        (child) => child.name !== childName,
+      );
+
+      const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
+
+      // Will be an empty node
+      const nfc = getNearestUiFromChildren(nodeId, hm);
+      if (!nfc) {
+        return;
+      }
+
+      const labelNodeId = buildRandomCohortLabelNodeId(nodeId, childName);
+      const nodesToRemove = new Set<string>([labelNodeId]);
+
+      for (const n of state.journeyNodes) {
+        const nHmEntry = getUnsafe(hm, n.id);
+        if (
+          nHmEntry.descendants.has(nfc) &&
+          nHmEntry.ancestors.has(labelNodeId)
+        ) {
+          nodesToRemove.add(n.id);
+        }
+      }
+
+      state.journeyNodes = state.journeyNodes.filter(
+        (n) => !nodesToRemove.has(n.id),
+      );
+      state.journeyEdges = state.journeyEdges.filter(
+        (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target),
+      );
+      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+      state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
+    }),
   setJourneyUpdateRequest: (request) =>
     set((state) => {
       state.journeyUpdateRequest = request;
     }),
-  setJourneyStatsRequest(request) {
+  setJourneyStatsRequest: (request) =>
     set((state) => {
       state.journeyStatsRequest = request;
-    });
-  },
+    }),
   setJourneyName: (name) =>
     set((state) => {
       state.journeyName = name;
