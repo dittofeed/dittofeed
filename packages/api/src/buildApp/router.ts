@@ -128,6 +128,7 @@ export default async function router(
         f.register(computedPropertiesController, {
           prefix: "/computed-properties",
         }),
+        f.register(analysisController, { prefix: "/analysis" }),
       ]);
     },
     { prefix: "/api/admin" },
