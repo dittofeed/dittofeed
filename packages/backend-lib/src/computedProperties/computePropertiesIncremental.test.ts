@@ -66,6 +66,7 @@ import {
   computeAssignments,
   computeState,
   processAssignments,
+  pruneComputedProperties,
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
@@ -7896,7 +7897,7 @@ describe("computeProperties", () => {
           );
           break;
         }
-        case EventsStepType.ComputeProperties:
+        case EventsStepType.ComputeProperties: {
           logger().debug(
             {
               segments,
@@ -7904,18 +7905,26 @@ describe("computeProperties", () => {
             },
             "computeProperties step",
           );
+          const prunedComputedProperties = await pruneComputedProperties({
+            workspaceId,
+            segments,
+            userProperties,
+            now,
+          });
           // FIXME add pruneChangedProperties here
           await computeState({
             workspaceId,
             segments,
             now,
             userProperties,
+            prunedComputedProperties,
           });
           await computeAssignments({
             workspaceId,
             segments,
             userProperties,
             now,
+            prunedComputedProperties,
           });
           await processAssignments({
             workspaceId,
@@ -7924,8 +7933,10 @@ describe("computeProperties", () => {
             journeys,
             userProperties,
             now,
+            prunedComputedProperties,
           });
           break;
+        }
         case EventsStepType.Sleep:
           now += step.timeMs;
           logger().debug(

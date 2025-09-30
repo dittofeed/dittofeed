@@ -122,10 +122,14 @@ export async function computePropertiesIncremental(
     };
     span.setAttributes(commonAttributes);
     try {
-      const prunedArgs = await pruneComputedProperties(args);
-      await computeState(prunedArgs);
-      await computeAssignments(prunedArgs);
-      await processAssignments(prunedArgs);
+      const prunedComputedProperties = await pruneComputedProperties(args);
+      const paramsWithPruned = {
+        ...args,
+        prunedComputedProperties,
+      };
+      await computeState(paramsWithPruned);
+      await computeAssignments(paramsWithPruned);
+      await processAssignments(paramsWithPruned);
     } catch (e) {
       logger().error(
         {

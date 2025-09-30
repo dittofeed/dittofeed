@@ -70,6 +70,11 @@ function identityWrapper<T>(fn: () => Promise<T>): Promise<T> {
   return fn();
 }
 
+export interface PrunedComputedProperties {
+  segments: Set<string>;
+  userProperties: Set<string>;
+}
+
 function readLimit(): AsyncWrapper {
   if (!READ_LIMIT) {
     const concurrency = config().readQueryConcurrency;
@@ -2790,8 +2795,12 @@ export interface ComputePropertiesArgs {
   workspaceId: string;
 }
 
+export interface ComputePropertiesArgsInternal extends ComputePropertiesArgs {
+  prunedComputedProperties: PrunedComputedProperties;
+}
+
 export type PartialComputePropertiesArgs = Omit<
-  ComputePropertiesArgs,
+  ComputePropertiesArgsInternal,
   "journeys" | "integrations"
 >;
 
@@ -3768,7 +3777,7 @@ export async function processAssignments({
   integrations,
   journeys,
   now,
-}: ComputePropertiesArgs): Promise<void> {
+}: ComputePropertiesArgsInternal): Promise<void> {
   return withSpan({ name: "process-assignments" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
     const segmentById = segments.reduce<Map<string, SavedSegmentResource>>(
@@ -4006,6 +4015,14 @@ export async function processAssignments({
   });
 }
 
-export async function pruneComputedProperties({}: ComputePropertiesArgs): Promise<ComputePropertiesArgs> {
-  throw new Error("Not implemented");
+export async function pruneComputedProperties({}: Omit<
+  ComputePropertiesArgs,
+  "journeys" | "integrations"
+>): Promise<PrunedComputedProperties> {
+  const segments = new Set<string>();
+  const userProperties = new Set<string>();
+  return {
+    segments,
+    userProperties,
+  };
 }
