@@ -99,6 +99,10 @@ const { getEventsById, getSegmentAssignment } = wf.proxyLocalActivities<
   },
 });
 
+const { getRandomNumber } = wf.proxyLocalActivities<typeof activities>({
+  startToCloseTimeout: "5 seconds",
+});
+
 const { reportWorkflowInfo } = wf.proxyLocalActivities<typeof activities>({
   startToCloseTimeout: "30 seconds",
 });
@@ -968,8 +972,8 @@ export async function userJourneyWorkflow(
       }
       case JourneyNodeType.RandomCohortNode: {
         const cn: RandomCohortNode = currentNode;
-        // Use Math.random() which is replaced by Temporal to be deterministic
-        const randomValue = Math.random() * 100;
+        // Use getRandom local activity for deterministic behavior
+        const randomValue = (await getRandomNumber()) * 100;
 
         let cumulativePercent = 0;
         let selectedChildId: string | null = null;
