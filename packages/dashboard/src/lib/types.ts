@@ -41,6 +41,7 @@ import {
   PartialSegmentResource,
   PersistedEmailProvider,
   PersistedSmsProvider,
+  RandomCohortUiNodeProps,
   RequestStatus,
   SavedJourneyResource,
   SavedSubscriptionGroupResource,
@@ -90,6 +91,7 @@ export {
   type JourneyUiNodeTypeProps,
   type JourneyUiPlaceholderEdgeProps,
   type MessageUiNodeProps,
+  type RandomCohortUiNodeProps,
   type SegmentSplitUiNodeProps,
   TimeUnit,
   type WaitForUiNodeProps,
@@ -179,6 +181,8 @@ export type AppState = {
   > &
   Partial<Pick<Config, "signoutUrl" | "authMode">>;
 
+export type DeleteJourney = (segmentId: string) => void;
+
 export interface AppActions {
   toggleDrawer: () => void;
   upsertEmailProvider: (emailProvider: PersistedEmailProvider) => void;
@@ -192,7 +196,7 @@ export interface AppActions {
   upsertSegment: (segment: PartialSegmentResource) => void;
   deleteSegment: (segmentId: string) => void;
   upsertJourney: (journey: SavedJourneyResource) => void;
-  deleteJourney: (segmentId: string) => void;
+  deleteJourney: DeleteJourney;
   upsertSecrets: (secrets: SecretResource[]) => void;
   deleteSecret: (secretName: string) => void;
   upsertSubscriptionGroup: (
@@ -355,6 +359,13 @@ export interface JourneyContent extends JourneyState {
   setNodes: (changes: NodeChange<JourneyUiNode>[]) => void;
   deleteJourneyNode: (nodeId: string) => void;
   updateJourneyNodeData: (nodeId: string, updater: JourneyNodeUpdater) => void;
+  addRandomCohortChild: ({ nodeId }: { nodeId: string }) => void;
+  removeRandomCohortChild: ({
+    nodeId,
+  }: {
+    nodeId: string;
+    childName: string;
+  }) => void;
   setJourneyUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
   setJourneyName: (name: string) => void;
   updateLabelNode: (nodeId: string, title: string) => void;

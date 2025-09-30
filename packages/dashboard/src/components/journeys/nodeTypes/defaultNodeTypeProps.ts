@@ -72,6 +72,20 @@ export function defaultBodyNodeTypeProps({
           },
         ],
       };
+    case JourneyNodeType.RandomCohortNode:
+      return {
+        type,
+        cohortChildren: [
+          {
+            name: uuid(),
+            percent: 50,
+          },
+          {
+            name: uuid(),
+            percent: 50,
+          },
+        ],
+      };
     case AdditionalJourneyNodeType.EntryUiNode:
       throw new Error(
         "EntryUiNode should not be handled by defaultBodyNodeTypeProps",

@@ -128,7 +128,7 @@ function nodeToSegments(node: JourneyBodyNode): string[] {
     case JourneyNodeType.SegmentSplitNode: {
       return [node.variant.segment];
     }
-    case JourneyNodeType.ExperimentSplitNode:
+    case JourneyNodeType.RandomCohortNode:
       return [];
     case JourneyNodeType.RateLimitNode:
       return [];
@@ -247,8 +247,9 @@ export function findDirectChildren(
     case JourneyNodeType.ExitNode:
       children = new Set<string>();
       break;
-    case JourneyNodeType.ExperimentSplitNode:
-      throw new Error("Not implemented");
+    case JourneyNodeType.RandomCohortNode:
+      children = new Set<string>(node.children.map((child) => child.id));
+      break;
     case JourneyNodeType.RateLimitNode:
       throw new Error("Not implemented");
     default:

@@ -21,5 +21,7 @@ export default function journeyNodeLabel(
       return "Message";
     case JourneyNodeType.WaitForNode:
       return "Wait For";
+    case JourneyNodeType.RandomCohortNode:
+      return "Random Cohort";
   }
 }

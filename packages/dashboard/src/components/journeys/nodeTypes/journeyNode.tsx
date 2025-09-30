@@ -5,6 +5,7 @@ import {
   CallSplitOutlined,
   ExitToAppOutlined,
   MailOutlineOutlined,
+  ShuffleOutlined,
 } from "@mui/icons-material";
 import {
   Box,
@@ -124,6 +125,14 @@ export function isNodeComplete(
       const segmentChild = props.segmentChildren[0];
       return segmentChild !== undefined && Boolean(segmentChild.segmentId);
     }
+    case JourneyNodeType.RandomCohortNode: {
+      return (
+        props.cohortChildren.length >= 2 &&
+        props.cohortChildren.every((child) => child.percent > 0) &&
+        props.cohortChildren.reduce((sum, child) => sum + child.percent, 0) ===
+          100
+      );
+    }
   }
 }
 
@@ -198,6 +207,8 @@ export function journeyNodeIcon(
       return ExitToAppOutlined;
     case JourneyNodeType.WaitForNode:
       return BackHandOutlined;
+    case JourneyNodeType.RandomCohortNode:
+      return ShuffleOutlined;
   }
 }
 
@@ -292,6 +303,19 @@ function journNodeTypeToConfig(
         sidebarColor: "#F7741E",
         icon: journeyNodeIcon(JourneyNodeType.WaitForNode),
         title: journeyNodeLabel(JourneyNodeType.WaitForNode),
+        body,
+      };
+    }
+    case JourneyNodeType.RandomCohortNode: {
+      const body = (
+        <Typography variant="body2" color="text.secondary">
+          Randomly splits users into {props.cohortChildren.length} cohorts
+        </Typography>
+      );
+      return {
+        sidebarColor: "#9C27B0",
+        icon: journeyNodeIcon(JourneyNodeType.RandomCohortNode),
+        title: journeyNodeLabel(JourneyNodeType.RandomCohortNode),
         body,
       };
     }
