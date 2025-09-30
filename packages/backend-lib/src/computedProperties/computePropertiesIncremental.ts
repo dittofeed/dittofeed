@@ -4005,3 +4005,7 @@ export async function processAssignments({
     });
   });
 }
+
+export async function pruneComputedProperties({}: ComputePropertiesArgs): Promise<ComputePropertiesArgs> {
+  throw new Error("Not implemented");
+}

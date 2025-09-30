@@ -7904,6 +7904,7 @@ describe("computeProperties", () => {
             },
             "computeProperties step",
           );
+          // FIXME add pruneChangedProperties here
           await computeState({
             workspaceId,
             segments,
