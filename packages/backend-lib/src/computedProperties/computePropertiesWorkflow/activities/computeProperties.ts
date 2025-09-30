@@ -22,6 +22,7 @@ import {
   ComputePropertiesArgs,
   computeState,
   processAssignments,
+  pruneComputedProperties,
 } from "../../computePropertiesIncremental";
 
 export interface ComputePropertiesIncrementalArgsParams {
@@ -90,6 +91,7 @@ export async function computePropertiesIncrementalArgs({
       return s.value;
     }),
     userProperties,
+    // Only trigger segment signals for journeys that have segment entry nodes
     journeys: journeys.filter(
       (j) => j.definition.entryNode.type === JourneyNodeType.SegmentEntryNode,
     ),
@@ -107,46 +109,28 @@ export async function computePropertiesIncrementalArgs({
   return args;
 }
 
-export async function computePropertiesIncremental({
-  workspaceId,
-  segments,
-  userProperties,
-  journeys,
-  integrations,
-  now,
-}: ComputePropertiesArgs) {
+export async function computePropertiesIncremental(
+  args: ComputePropertiesArgs,
+) {
   return withSpan({ name: "compute-properties-incremental" }, async (span) => {
     const commonAttributes = {
-      workspaceId,
-      segments: segments.map((s) => s.id),
-      userProperties: userProperties.map((up) => up.id),
-      journeys: journeys.map((j) => j.id),
-      integrations: integrations.map((i) => i.id),
-      now: new Date(now).toISOString(),
+      workspaceId: args.workspaceId,
+      segments: args.segments.map((s) => s.id),
+      userProperties: args.userProperties.map((up) => up.id),
+      journeys: args.journeys.map((j) => j.id),
+      integrations: args.integrations.map((i) => i.id),
+      now: new Date(args.now).toISOString(),
     };
     span.setAttributes(commonAttributes);
-
     try {
-      await computeState({
-        workspaceId,
-        segments,
-        userProperties,
-        now,
-      });
-      await computeAssignments({
-        workspaceId,
-        segments,
-        userProperties,
-        now,
-      });
-      await processAssignments({
-        workspaceId,
-        segments,
-        userProperties,
-        now,
-        journeys,
-        integrations,
-      });
+      const prunedComputedProperties = await pruneComputedProperties(args);
+      const prunedArgs = {
+        ...args,
+        prunedComputedProperties,
+      };
+      await computeState(prunedArgs);
+      await computeAssignments(prunedArgs);
+      await processAssignments(args);
     } catch (e) {
       logger().error(
         {
