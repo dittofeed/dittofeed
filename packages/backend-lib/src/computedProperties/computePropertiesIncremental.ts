@@ -70,10 +70,8 @@ function identityWrapper<T>(fn: () => Promise<T>): Promise<T> {
   return fn();
 }
 
-export interface PrunedComputedProperties {
-  segments: Set<string>;
-  userProperties: Set<string>;
-}
+// A set of state ids for user property or segment nodes that should not be recomputed
+export type PrunedComputedProperties = Set<string>;
 
 function readLimit(): AsyncWrapper {
   if (!READ_LIMIT) {
@@ -4019,10 +4017,5 @@ export async function pruneComputedProperties({}: Omit<
   ComputePropertiesArgs,
   "journeys" | "integrations"
 >): Promise<PrunedComputedProperties> {
-  const segments = new Set<string>();
-  const userProperties = new Set<string>();
-  return {
-    segments,
-    userProperties,
-  };
+  return new Set();
 }
