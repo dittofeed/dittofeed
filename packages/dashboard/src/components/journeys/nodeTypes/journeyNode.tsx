@@ -126,8 +126,12 @@ export function isNodeComplete(
       return segmentChild !== undefined && Boolean(segmentChild.segmentId);
     }
     case JourneyNodeType.RandomCohortNode: {
-      return props.cohortChildren.length >= 2 &&
-             props.cohortChildren.every(child => child.percent > 0);
+      return (
+        props.cohortChildren.length >= 2 &&
+        props.cohortChildren.every((child) => child.percent > 0) &&
+        props.cohortChildren.reduce((sum, child) => sum + child.percent, 0) ===
+          100
+      );
     }
   }
 }
