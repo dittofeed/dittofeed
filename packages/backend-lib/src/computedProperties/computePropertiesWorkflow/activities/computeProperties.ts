@@ -91,6 +91,7 @@ export async function computePropertiesIncrementalArgs({
       return s.value;
     }),
     userProperties,
+    // Only trigger segment signals for journeys that have segment entry nodes
     journeys: journeys.filter(
       (j) => j.definition.entryNode.type === JourneyNodeType.SegmentEntryNode,
     ),
