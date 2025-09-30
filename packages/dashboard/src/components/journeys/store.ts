@@ -1413,13 +1413,14 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         name,
         percent: 0,
       });
+      const childIndex = nodeProps.cohortChildren.length - 1;
       const { newNodes, newEdges } = createRandomCohorChildState({
         nodeId,
         child: {
           name,
           percent: 0,
         },
-        childIndex: nodeProps.cohortChildren.length,
+        childIndex,
       });
       state.journeyNodes = state.journeyNodes.concat(newNodes);
       state.journeyEdges = state.journeyEdges.concat(newEdges);
@@ -1472,6 +1473,19 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target),
       );
       state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+
+      nodeProps.cohortChildren.forEach((child, index) => {
+        const labelNodeId = buildRandomCohortLabelNodeId(nodeId, child.name);
+        const labelNode = findNode(
+          labelNodeId,
+          state.journeyNodes,
+          state.journeyNodesIndex,
+        );
+        if (labelNode && isLabelNode(labelNode)) {
+          labelNode.data.title = `Cohort ${index + 1}`;
+        }
+      });
+
       state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
     }),
   setJourneyUpdateRequest: (request) =>

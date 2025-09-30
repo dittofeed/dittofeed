@@ -30,6 +30,7 @@ import {
   JourneyNodeType,
   JSONValue,
   MessageVariant,
+  RandomCohortNode,
   RenameKey,
   SegmentAssignment,
   SegmentAssignment as SegmentAssignmentDb,
@@ -716,7 +717,7 @@ export async function userJourneyWorkflow(
               if (assignment === null) {
                 return [];
               }
-              if (assignment.inSegment === true) {
+              if (assignment.inSegment) {
                 segmentAssignments.set(segmentId, {
                   currentlyInSegment: assignment.inSegment,
                   segmentVersion: Date.now(),
@@ -966,11 +967,40 @@ export async function userJourneyWorkflow(
         break nodeLoop;
       }
       case JourneyNodeType.RandomCohortNode: {
-        logger.error("unable to handle un-implemented node type", {
-          ...defaultLoggingFields,
-          nodeType: currentNode.type,
-        });
-        nextNode = definition.exitNode;
+        const cn: RandomCohortNode = currentNode;
+        // Use Math.random() which is replaced by Temporal to be deterministic
+        const randomValue = Math.random() * 100;
+
+        let cumulativePercent = 0;
+        let selectedChildId: string | null = null;
+
+        for (const child of cn.children) {
+          cumulativePercent += child.percent;
+          if (randomValue < cumulativePercent) {
+            selectedChildId = child.id;
+            break;
+          }
+        }
+
+        if (!selectedChildId) {
+          logger.error("no child selected in random cohort", {
+            ...defaultLoggingFields,
+            randomValue,
+          });
+          nextNode = definition.exitNode;
+          break;
+        }
+
+        nextNode = nodes.get(selectedChildId) ?? null;
+
+        if (!nextNode) {
+          logger.error("missing random cohort child node", {
+            ...defaultLoggingFields,
+            childId: selectedChildId,
+          });
+          nextNode = definition.exitNode;
+          break;
+        }
         break;
       }
       case JourneyNodeType.RateLimitNode: {
