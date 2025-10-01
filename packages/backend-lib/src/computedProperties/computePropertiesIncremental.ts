@@ -4026,6 +4026,7 @@ enum PrunedType {
 interface PrunedSegmentNodeQuery {
   type: PrunedType.SegmentQuery;
   segmentId: string;
+  expression: string;
   stateId: string;
 }
 
@@ -4037,6 +4038,7 @@ interface PrunedSegmentNodeValue {
 
 interface PrunedUserPropertyNodeQuery {
   type: PrunedType.UserPropertyQuery;
+  expression: string;
   userPropertyId: string;
   stateId: string;
 }
@@ -4052,6 +4054,16 @@ type PrunedUserPropertyNode =
   | PrunedUserPropertyNodeQuery
   | PrunedUserPropertyNodeValue;
 
+const PRUNABLE_OPERATORS = new Set([
+  SegmentOperatorType.Equals,
+  SegmentOperatorType.NotEquals,
+  SegmentOperatorType.Exists,
+  SegmentOperatorType.NotExists,
+  SegmentOperatorType.GreaterThanOrEqual,
+  SegmentOperatorType.LessThan,
+  SegmentOperatorType.AbsoluteTimestamp,
+]);
+
 export function segmentNodeToPruned({
   segment,
   node,
@@ -4061,7 +4073,41 @@ export function segmentNodeToPruned({
   node: SegmentNode;
   qb: ClickHouseQueryBuilder;
 }): PrunedSegmentNode[] {
-  return [];
+  const stateId = segmentNodeStateId(segment, node.id);
+  if (!stateId) {
+    return [];
+  }
+  switch (node.type) {
+    case SegmentNodeType.Trait: {
+      const path = toJsonPathParamCh({
+        path: node.path,
+        qb,
+      });
+      if (!path) {
+        return [];
+      }
+      // FIXME can't just skip on empty values, because need to account for previously non-empty values that now need to evaluate to false
+      switch (node.operator.type) {
+        case SegmentOperatorType.Equals:
+        case SegmentOperatorType.NotEquals:
+        case SegmentOperatorType.Exists:
+        case SegmentOperatorType.GreaterThanOrEqual:
+          prunable = true;
+          break;
+        default:
+          prunable = false;
+          break;
+      }
+      if (!prunable) {
+        return [];
+      }
+      return [];
+      break;
+    }
+    default:
+      return [];
+      break;
+  }
 }
 
 export function userPropertyNodeToPruned({
