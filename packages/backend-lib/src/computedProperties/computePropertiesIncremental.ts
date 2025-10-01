@@ -71,7 +71,10 @@ function identityWrapper<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 // A set of state ids for user property or segment nodes that should not be recomputed
-export type PrunedComputedProperties = Set<string>;
+export type PrunedComputedProperties = {
+  segments: Set<string>;
+  userProperties: Set<string>;
+};
 
 function readLimit(): AsyncWrapper {
   if (!READ_LIMIT) {
@@ -4013,9 +4016,72 @@ export async function processAssignments({
   });
 }
 
+enum PrunedType {
+  SegmentQuery = "SegmentQuery",
+  SegmentValue = "SegmentValue",
+  UserPropertyQuery = "UserPropertyQuery",
+  UserPropertyValue = "UserPropertyValue",
+}
+
+interface PrunedSegmentNodeQuery {
+  type: PrunedType.SegmentQuery;
+  segmentId: string;
+  stateId: string;
+}
+
+interface PrunedSegmentNodeValue {
+  type: PrunedType.SegmentValue;
+  segmentId: string;
+  stateId: string;
+}
+
+interface PrunedUserPropertyNodeQuery {
+  type: PrunedType.UserPropertyQuery;
+  userPropertyId: string;
+  stateId: string;
+}
+
+interface PrunedUserPropertyNodeValue {
+  type: PrunedType.UserPropertyValue;
+  userPropertyId: string;
+  stateId: string;
+}
+
+type PrunedSegmentNode = PrunedSegmentNodeQuery | PrunedSegmentNodeValue;
+type PrunedUserPropertyNode =
+  | PrunedUserPropertyNodeQuery
+  | PrunedUserPropertyNodeValue;
+
+export function segmentNodeToPruned({
+  segment,
+  node,
+  qb,
+}: {
+  segment: SavedSegmentResource;
+  node: SegmentNode;
+  qb: ClickHouseQueryBuilder;
+}): PrunedSegmentNode[] {
+  return [];
+}
+
+export function userPropertyNodeToPruned({
+  userProperty,
+  node,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  node: UserPropertyNode;
+  qb: ClickHouseQueryBuilder;
+}): PrunedUserPropertyNode[] {
+  return [];
+}
+
 export async function pruneComputedProperties({}: Omit<
   ComputePropertiesArgs,
   "journeys" | "integrations"
 >): Promise<PrunedComputedProperties> {
-  return new Set();
+  return {
+    segments: new Set(),
+    userProperties: new Set(),
+  };
 }
