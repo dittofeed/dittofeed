@@ -26,7 +26,6 @@ import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import {
   ChannelType,
-  EmailEventList,
   GetDeliveryBodyRequest,
   InternalEventType,
   MessageSendSuccessContents,

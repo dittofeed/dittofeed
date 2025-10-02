@@ -59,6 +59,7 @@ import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import {
   createPeriods,
   getPeriodsByComputedPropertyId,
+  Period,
   PeriodByComputedPropertyId,
 } from "./periods";
 
@@ -4017,52 +4018,27 @@ export async function processAssignments({
 }
 
 enum PrunedType {
-  SegmentQuery = "SegmentQuery",
-  SegmentValue = "SegmentValue",
-  UserPropertyQuery = "UserPropertyQuery",
-  UserPropertyValue = "UserPropertyValue",
+  ComputedPropertyQuery = "ComputedPropertyQuery",
+  ComputedPropertyValue = "ComputedPropertyValue",
 }
 
-interface PrunedSegmentNodeQuery {
-  type: PrunedType.SegmentQuery;
-  segmentId: string;
+interface PrunedComputedPropertyNodeQuery {
+  type: PrunedType.ComputedPropertyQuery;
   expression: string;
+  computedPropertyId: string;
+  stateId: string;
+  varName: string;
+}
+
+interface PrunedComputedPropertyNodeValue {
+  type: PrunedType.ComputedPropertyValue;
+  computedPropertyId: string;
   stateId: string;
 }
 
-interface PrunedSegmentNodeValue {
-  type: PrunedType.SegmentValue;
-  segmentId: string;
-  stateId: string;
-}
-
-interface PrunedUserPropertyNodeQuery {
-  type: PrunedType.UserPropertyQuery;
-  expression: string;
-  userPropertyId: string;
-  stateId: string;
-}
-
-interface PrunedUserPropertyNodeValue {
-  type: PrunedType.UserPropertyValue;
-  userPropertyId: string;
-  stateId: string;
-}
-
-type PrunedSegmentNode = PrunedSegmentNodeQuery | PrunedSegmentNodeValue;
-type PrunedUserPropertyNode =
-  | PrunedUserPropertyNodeQuery
-  | PrunedUserPropertyNodeValue;
-
-const PRUNABLE_OPERATORS = new Set([
-  SegmentOperatorType.Equals,
-  SegmentOperatorType.NotEquals,
-  SegmentOperatorType.Exists,
-  SegmentOperatorType.NotExists,
-  SegmentOperatorType.GreaterThanOrEqual,
-  SegmentOperatorType.LessThan,
-  SegmentOperatorType.AbsoluteTimestamp,
-]);
+type PrunedComputedPropertyNode =
+  | PrunedComputedPropertyNodeQuery
+  | PrunedComputedPropertyNodeValue;
 
 export function segmentNodeToPruned({
   segment,
@@ -4072,12 +4048,20 @@ export function segmentNodeToPruned({
   segment: SavedSegmentResource;
   node: SegmentNode;
   qb: ClickHouseQueryBuilder;
-}): PrunedSegmentNode[] {
+}): PrunedComputedPropertyNode[] {
   const stateId = segmentNodeStateId(segment, node.id);
   if (!stateId) {
     return [];
   }
   switch (node.type) {
+    case SegmentNodeType.KeyedPerformed:
+      return [
+        {
+          type: PrunedType.ComputedPropertyValue,
+          computedPropertyId: segment.id,
+          stateId,
+        },
+      ];
     case SegmentNodeType.Trait: {
       const path = toJsonPathParamCh({
         path: node.path,
@@ -4086,23 +4070,72 @@ export function segmentNodeToPruned({
       if (!path) {
         return [];
       }
-      // FIXME can't just skip on empty values, because need to account for previously non-empty values that now need to evaluate to false
       switch (node.operator.type) {
+        // FIXME  subscription and last performed can be pruned
         case SegmentOperatorType.Equals:
         case SegmentOperatorType.NotEquals:
         case SegmentOperatorType.Exists:
         case SegmentOperatorType.GreaterThanOrEqual:
-          prunable = true;
+        case SegmentOperatorType.LessThan: {
+          const varName = qb.getVariableName();
+          return [
+            {
+              type: PrunedType.ComputedPropertyQuery,
+              computedPropertyId: segment.id,
+              expression: `coalesce(any(nullIf(JSON_EXISTS(properties, ${path}), 0)), 0) as ${varName}`,
+              stateId,
+              varName,
+            },
+          ];
           break;
+        }
         default:
-          prunable = false;
+          return [];
           break;
       }
-      if (!prunable) {
-        return [];
-      }
-      return [];
       break;
+    }
+    case SegmentNodeType.And: {
+      return node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "AND child node not found",
+          );
+          return [];
+        }
+        return segmentNodeToPruned({
+          segment,
+          node: childNode,
+          qb,
+        });
+      });
+    }
+    case SegmentNodeType.Or: {
+      return node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "OR child node not found",
+          );
+          return [];
+        }
+        return segmentNodeToPruned({
+          segment,
+          node: childNode,
+          qb,
+        });
+      });
     }
     default:
       return [];
@@ -4110,24 +4143,112 @@ export function segmentNodeToPruned({
   }
 }
 
-export function userPropertyNodeToPruned({
-  userProperty,
-  node,
-  qb,
-}: {
-  userProperty: SavedUserPropertyResource;
-  node: UserPropertyNode;
-  qb: ClickHouseQueryBuilder;
-}): PrunedUserPropertyNode[] {
-  return [];
-}
+// export function userPropertyNodeToPruned({
+//   userProperty,
+//   node,
+//   qb,
+// }: {
+//   userProperty: SavedUserPropertyResource;
+//   node: UserPropertyNode;
+//   qb: ClickHouseQueryBuilder;
+// }): PrunedUserPropertyNode[] {
+//   return [];
+// }
 
-export async function pruneComputedProperties({}: Omit<
+export async function pruneComputedProperties({
+  now,
+  workspaceId,
+  segments,
+}: Omit<
   ComputePropertiesArgs,
   "journeys" | "integrations"
 >): Promise<PrunedComputedProperties> {
+  const qb = new ClickHouseQueryBuilder();
+
+  const prunedSegments = new Set<string>();
+  const prunedUserProperties = new Set<string>();
+  const pendingSegments: PrunedComputedPropertyNode[] = segments.flatMap(
+    (segment) => {
+      return segmentNodeToPruned({
+        segment,
+        node: segment.definition.entryNode,
+        qb,
+      });
+    },
+  );
+
+  const computedPropertiesValues = pendingSegments.flatMap((node) => {
+    if (node.type !== PrunedType.ComputedPropertyQuery) {
+      return [];
+    }
+    return node.expression;
+  });
+
+  pendingSegments.forEach((node) => {
+    if (node.type !== PrunedType.ComputedPropertyValue) {
+      return;
+    }
+    prunedSegments.add(node.computedPropertyId);
+  });
+
+  const nowSeconds = now / 1000;
+  let computedPropertiesPresent: Record<string, 1 | 0> | null = null;
+
+  if (computedPropertiesValues.length) {
+    const computedPropertiesValuesQueryFragment =
+      computedPropertiesValues.join(",");
+
+    const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
+      workspaceId,
+      step: ComputedPropertyStepEnum.ComputeState,
+    });
+    let minPeriodBound: Period | null = null;
+
+    for (const period of periodByComputedPropertyId.getAll()) {
+      if (!minPeriodBound) {
+        minPeriodBound = period;
+        continue;
+      }
+      if (period.maxTo.getTime() < minPeriodBound.maxTo.getTime()) {
+        minPeriodBound = period;
+      }
+    }
+    const lowerBoundClause = minPeriodBound
+      ? `and processing_time >= toDateTime64(${minPeriodBound.maxTo.getTime() / 1000}, 3)`
+      : "";
+
+    const query = `
+    select ${computedPropertiesValuesQueryFragment}
+    from user_events_v2
+    where
+      workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+      and processing_time <= toDateTime64(${nowSeconds}, 3)
+      ${lowerBoundClause}
+    limit 1;
+  `;
+    logger().debug({ query }, "pruning computed properties");
+    const result = await chQuery({
+      query,
+      query_params: qb.getQueries(),
+    });
+
+    const [row] = await result.json<Record<string, 1 | 0>>();
+    computedPropertiesPresent = row ?? null;
+  }
+
+  if (computedPropertiesPresent) {
+    pendingSegments.forEach((node) => {
+      if (node.type !== PrunedType.ComputedPropertyQuery) {
+        return;
+      }
+      if (computedPropertiesPresent[node.varName] === 1) {
+        prunedSegments.add(node.computedPropertyId);
+      }
+    });
+  }
+
   return {
-    segments: new Set(),
-    userProperties: new Set(),
+    segments: prunedSegments,
+    userProperties: prunedUserProperties,
   };
 }

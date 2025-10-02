@@ -70,6 +70,7 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
+import { computePropertiesIncremental } from "./computePropertiesWorkflow/activities/computeProperties";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -7905,35 +7906,13 @@ describe("computeProperties", () => {
             },
             "computeProperties step",
           );
-          const prunedComputedProperties = await pruneComputedProperties({
+          await computePropertiesIncremental({
             workspaceId,
             segments,
             userProperties,
-            now,
-          });
-          // FIXME add pruneChangedProperties here
-          await computeState({
-            workspaceId,
-            segments,
-            now,
-            userProperties,
-            prunedComputedProperties,
-          });
-          await computeAssignments({
-            workspaceId,
-            segments,
-            userProperties,
-            now,
-            prunedComputedProperties,
-          });
-          await processAssignments({
-            workspaceId,
-            segments,
             integrations: [],
             journeys,
-            userProperties,
             now,
-            prunedComputedProperties,
           });
           break;
         }
