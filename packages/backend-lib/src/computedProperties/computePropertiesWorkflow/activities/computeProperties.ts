@@ -126,12 +126,7 @@ export async function computePropertiesIncremental(
       const prunedComputedProperties = await pruneComputedProperties(args);
       const prunedArgs = {
         ...args,
-        segments: args.segments.filter(
-          (s) => !prunedComputedProperties.segments.has(s.id),
-        ),
-        userProperties: args.userProperties.filter(
-          (up) => !prunedComputedProperties.userProperties.has(up.id),
-        ),
+        prunedComputedProperties,
       };
       await computeState(prunedArgs);
       await computeAssignments(prunedArgs);

@@ -114,6 +114,15 @@ function shouldResetComputedProperty({
   now: number;
   periodBound?: number;
 }): boolean {
+  // logger().debug(
+  //   {
+  //     notDefinitionUpdatedAt: !definitionUpdatedAt,
+  //     definitionUpdatedInPeriod: definitionUpdatedAt <= now,
+  //     definitionUpdatedAfterCreated: definitionUpdatedAt > createdAt,
+  //     definitionUpdatedAt >= (periodBound ?? 0)
+  //   },
+  //   "loc2",
+  // );
   if (!definitionUpdatedAt) {
     return false;
   }
@@ -489,6 +498,7 @@ function segmentToResolvedState({
   qb,
   periodBound,
   idUserProperty,
+  prunedComputedProperties,
 }: {
   workspaceId: string;
   segment: SavedSegmentResource;
@@ -497,10 +507,14 @@ function segmentToResolvedState({
   periodBound?: number;
   qb: ClickHouseQueryBuilder;
   idUserProperty?: SavedUserPropertyResource;
+  prunedComputedProperties: PrunedComputedProperties;
 }): string[] {
   const nowSeconds = now / 1000;
   const stateId = segmentNodeStateId(segment, node.id);
   if (!stateId) {
+    return [];
+  }
+  if (prunedComputedProperties.segments.has(stateId)) {
     return [];
   }
   switch (node.type) {
@@ -1235,6 +1249,7 @@ function segmentToResolvedState({
           periodBound,
           workspaceId,
           idUserProperty,
+          prunedComputedProperties,
           qb,
         });
       });
@@ -1260,6 +1275,7 @@ function segmentToResolvedState({
           periodBound,
           workspaceId,
           idUserProperty,
+          prunedComputedProperties,
           qb,
         });
       });
@@ -1277,6 +1293,7 @@ function segmentToResolvedState({
         periodBound,
         workspaceId,
         idUserProperty,
+        prunedComputedProperties,
         qb,
       });
     }
@@ -1289,6 +1306,7 @@ function segmentToResolvedState({
         periodBound,
         workspaceId,
         idUserProperty,
+        prunedComputedProperties,
         qb,
       });
     }
@@ -1369,6 +1387,7 @@ function segmentToResolvedState({
         periodBound,
         workspaceId,
         idUserProperty,
+        prunedComputedProperties,
         qb,
       });
     }
@@ -1459,11 +1478,13 @@ function resolvedSegmentToAssignment({
   segment,
   qb,
   node,
+  prunedComputedProperties,
 }: {
   segment: SavedSegmentResource;
   node: SegmentNode;
   qb: ClickHouseQueryBuilder;
-}): AssignedSegmentConfig {
+  prunedComputedProperties: PrunedComputedProperties;
+}): AssignedSegmentConfig | null {
   const stateId = segmentNodeStateId(segment, node.id);
   if (!stateId) {
     return {
@@ -1509,6 +1530,7 @@ function resolvedSegmentToAssignment({
         return resolvedSegmentToAssignment({
           node: childNode,
           segment,
+          prunedComputedProperties,
           qb,
         });
       });
@@ -1523,8 +1545,8 @@ function resolvedSegmentToAssignment({
         return child;
       }
       return {
-        stateIds: children.flatMap((c) => c.stateIds),
-        expression: `(${children.map((c) => c.expression).join(" and ")})`,
+        stateIds: children.flatMap((c) => c?.stateIds ?? []),
+        expression: `(${children.flatMap((c) => c?.expression ?? []).join(" and ")})`,
       };
     }
     case SegmentNodeType.Or: {
@@ -1544,6 +1566,7 @@ function resolvedSegmentToAssignment({
         return resolvedSegmentToAssignment({
           node: childNode,
           segment,
+          prunedComputedProperties,
           qb,
         });
       });
@@ -1558,8 +1581,8 @@ function resolvedSegmentToAssignment({
         return child;
       }
       return {
-        stateIds: children.flatMap((c) => c.stateIds),
-        expression: `(${children.map((c) => c.expression).join(" or ")})`,
+        stateIds: children.flatMap((c) => c?.stateIds ?? []),
+        expression: `(${children.flatMap((c) => c?.expression ?? []).join(" or ")})`,
       };
     }
     case SegmentNodeType.Broadcast: {
@@ -1574,6 +1597,7 @@ function resolvedSegmentToAssignment({
       return resolvedSegmentToAssignment({
         node: performedNode,
         segment,
+        prunedComputedProperties,
         qb,
       });
     }
@@ -1582,6 +1606,7 @@ function resolvedSegmentToAssignment({
       return resolvedSegmentToAssignment({
         node: performedNode,
         segment,
+        prunedComputedProperties,
         qb,
       });
     }
@@ -1598,6 +1623,7 @@ function resolvedSegmentToAssignment({
           segment,
         }),
         segment,
+        prunedComputedProperties,
         qb,
       });
     }
@@ -2821,12 +2847,15 @@ export interface ComputePropertiesArgs {
 export type PartialComputePropertiesArgs = Omit<
   ComputePropertiesArgs,
   "journeys" | "integrations"
->;
+> & {
+  prunedComputedProperties: PrunedComputedProperties;
+};
 
 export async function computeState({
   workspaceId,
   segments,
   userProperties,
+  prunedComputedProperties,
   now,
 }: PartialComputePropertiesArgs) {
   return withSpan({ name: "compute-state" }, async (span) => {
@@ -2846,10 +2875,15 @@ export async function computeState({
             segment,
             node: segment.definition.entryNode,
             qb,
-          }).map((subQuery) => ({
-            ...subQuery,
-            version: segment.definitionUpdatedAt.toString(),
-          }));
+          }).flatMap((subQuery) => {
+            if (prunedComputedProperties.segments.has(subQuery.stateId)) {
+              return [];
+            }
+            return {
+              ...subQuery,
+              version: segment.definitionUpdatedAt.toString(),
+            };
+          });
         },
       );
       subQueryData = subQueryData.concat(newSubQueryData);
@@ -2865,10 +2899,15 @@ export async function computeState({
           return userPropertyToSubQuery({
             userProperty,
             qb,
-          }).map((subQuery) => ({
-            ...subQuery,
-            version: userProperty.definitionUpdatedAt.toString(),
-          }));
+          }).flatMap((subQuery) => {
+            if (prunedComputedProperties.userProperties.has(subQuery.stateId)) {
+              return [];
+            }
+            return {
+              ...subQuery,
+              version: userProperty.definitionUpdatedAt.toString(),
+            };
+          });
         },
       );
       subQueryData = subQueryData.concat(newSubQueryData);
@@ -3037,6 +3076,7 @@ export async function computeAssignments({
   workspaceId,
   segments,
   userProperties,
+  prunedComputedProperties,
   now,
 }: PartialComputePropertiesArgs): Promise<void> {
   return withSpan({ name: "compute-assignments" }, async (span) => {
@@ -3085,12 +3125,21 @@ export async function computeAssignments({
           qb,
           periodBound,
           idUserProperty,
+          prunedComputedProperties,
         });
+        if (resolvedQueries.length === 0) {
+          return;
+        }
+        // FIXME
         const assignmentConfig = resolvedSegmentToAssignment({
           segment,
           node: segment.definition.entryNode,
+          prunedComputedProperties,
           qb,
         });
+        if (assignmentConfig === null) {
+          return;
+        }
         const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
         const segmentIdParam = qb.addQueryValue(segment.id, "String");
@@ -4176,6 +4225,31 @@ export function segmentNodeToPruned({
 //   return [];
 // }
 
+function canPrune({
+  definitionUpdatedAt,
+  createdAt,
+  now,
+  periodBound,
+}: {
+  definitionUpdatedAt: number;
+  createdAt: number;
+  now: number;
+  periodBound?: number;
+}): boolean {
+  if (!periodBound) {
+    return false;
+  }
+  // can't prune if created in the last period
+  if (createdAt <= now && createdAt >= periodBound) {
+    return false;
+  }
+  // can't prune if definition updated in the last period
+  if (definitionUpdatedAt <= now && definitionUpdatedAt >= periodBound) {
+    return false;
+  }
+  return true;
+}
+
 export async function pruneComputedProperties({
   now,
   workspaceId,
@@ -4185,12 +4259,30 @@ export async function pruneComputedProperties({
   "journeys" | "integrations"
 >): Promise<PrunedComputedProperties> {
   const qb = new ClickHouseQueryBuilder();
-  // FIXME filter out user properties / segments that were created recently
-
   const prunedSegments = new Set<string>();
   const prunedUserProperties = new Set<string>();
+
+  const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
+    workspaceId,
+    step: ComputedPropertyStepEnum.ComputeState,
+  });
+
   const pendingSegments: PrunedComputedPropertyNode[] = segments.flatMap(
     (segment) => {
+      const period = periodByComputedPropertyId.get({
+        computedPropertyId: segment.id,
+        version: segment.definitionUpdatedAt.toString(),
+      });
+      const prunable = canPrune({
+        definitionUpdatedAt: segment.definitionUpdatedAt,
+        createdAt: segment.createdAt,
+        now,
+        periodBound: period?.maxTo.getTime(),
+      });
+      if (!prunable) {
+        return [];
+      }
+
       return segmentNodeToPruned({
         segment,
         node: segment.definition.entryNode,
@@ -4210,7 +4302,7 @@ export async function pruneComputedProperties({
     if (node.type !== PrunedType.ComputedPropertyValue) {
       return;
     }
-    prunedSegments.add(node.computedPropertyId);
+    prunedSegments.add(node.stateId);
   });
 
   const nowSeconds = now / 1000;
@@ -4219,11 +4311,6 @@ export async function pruneComputedProperties({
   if (computedPropertiesValues.length) {
     const computedPropertiesValuesQueryFragment =
       computedPropertiesValues.join(",");
-
-    const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
-      workspaceId,
-      step: ComputedPropertyStepEnum.ComputeState,
-    });
     let minPeriodBound: Period | null = null;
 
     for (const period of periodByComputedPropertyId.getAll()) {
@@ -4264,7 +4351,7 @@ export async function pruneComputedProperties({
         return;
       }
       if (computedPropertiesPresent[node.varName] !== 1) {
-        prunedSegments.add(node.computedPropertyId);
+        prunedSegments.add(node.stateId);
       }
     });
   }
