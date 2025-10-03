@@ -4160,6 +4160,7 @@ export async function pruneComputedProperties({
   "journeys" | "integrations"
 >): Promise<PrunedComputedProperties> {
   const qb = new ClickHouseQueryBuilder();
+  // FIXME filter out user properties / segments that were created recently
 
   const prunedSegments = new Set<string>();
   const prunedUserProperties = new Set<string>();
