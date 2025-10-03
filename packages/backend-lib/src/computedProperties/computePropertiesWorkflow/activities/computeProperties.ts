@@ -124,13 +124,18 @@ export async function computePropertiesIncremental(
     span.setAttributes(commonAttributes);
     try {
       const prunedComputedProperties = await pruneComputedProperties(args);
-      const paramsWithPruned = {
+      const prunedArgs = {
         ...args,
-        prunedComputedProperties,
+        segments: args.segments.filter(
+          (s) => !prunedComputedProperties.segments.has(s.id),
+        ),
+        userProperties: args.userProperties.filter(
+          (up) => !prunedComputedProperties.userProperties.has(up.id),
+        ),
       };
-      await computeState(paramsWithPruned);
-      await computeAssignments(paramsWithPruned);
-      await processAssignments(paramsWithPruned);
+      await computeState(prunedArgs);
+      await computeAssignments(prunedArgs);
+      await processAssignments(args);
     } catch (e) {
       logger().error(
         {

@@ -2797,12 +2797,8 @@ export interface ComputePropertiesArgs {
   workspaceId: string;
 }
 
-export interface ComputePropertiesArgsInternal extends ComputePropertiesArgs {
-  prunedComputedProperties: PrunedComputedProperties;
-}
-
 export type PartialComputePropertiesArgs = Omit<
-  ComputePropertiesArgsInternal,
+  ComputePropertiesArgs,
   "journeys" | "integrations"
 >;
 
@@ -3779,7 +3775,7 @@ export async function processAssignments({
   integrations,
   journeys,
   now,
-}: ComputePropertiesArgsInternal): Promise<void> {
+}: ComputePropertiesArgs): Promise<void> {
   return withSpan({ name: "process-assignments" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
     const segmentById = segments.reduce<Map<string, SavedSegmentResource>>(
@@ -4226,13 +4222,13 @@ export async function pruneComputedProperties({
       ${lowerBoundClause}
     limit 1;
   `;
-    logger().debug({ query }, "pruning computed properties");
     const result = await chQuery({
       query,
       query_params: qb.getQueries(),
     });
 
     const [row] = await result.json<Record<string, 1 | 0>>();
+    logger().debug({ query, row }, "pruning computed properties");
     computedPropertiesPresent = row ?? null;
   }
 
@@ -4241,7 +4237,7 @@ export async function pruneComputedProperties({
       if (node.type !== PrunedType.ComputedPropertyQuery) {
         return;
       }
-      if (computedPropertiesPresent[node.varName] === 1) {
+      if (computedPropertiesPresent[node.varName] !== 1) {
         prunedSegments.add(node.computedPropertyId);
       }
     });
