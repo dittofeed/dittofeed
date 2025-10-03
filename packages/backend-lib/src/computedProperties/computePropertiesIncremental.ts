@@ -103,6 +103,27 @@ function getEventTimeInterval(windowSeconds: number): number {
   return Math.min(Math.max(Math.floor(windowSeconds / 10), 1), 86400);
 }
 
+function shouldResetComputedProperty({
+  definitionUpdatedAt,
+  createdAt,
+  now,
+  periodBound,
+}: {
+  definitionUpdatedAt: number;
+  createdAt: number;
+  now: number;
+  periodBound?: number;
+}): boolean {
+  if (!definitionUpdatedAt) {
+    return false;
+  }
+  return (
+    definitionUpdatedAt <= now &&
+    definitionUpdatedAt >= (periodBound ?? 0) &&
+    definitionUpdatedAt > createdAt
+  );
+}
+
 export function userPropertyStateId(
   userProperty: SavedUserPropertyResource,
   nodeId = "",
@@ -3138,10 +3159,12 @@ export async function computeAssignments({
         ];
 
         if (
-          segment.definitionUpdatedAt &&
-          segment.definitionUpdatedAt <= now &&
-          segment.definitionUpdatedAt >= (periodBound ?? 0) &&
-          segment.definitionUpdatedAt > segment.createdAt
+          shouldResetComputedProperty({
+            definitionUpdatedAt: segment.definitionUpdatedAt,
+            createdAt: segment.createdAt,
+            now,
+            periodBound,
+          })
         ) {
           logger().debug(
             {
@@ -3246,10 +3269,12 @@ export async function computeAssignments({
         const queries: string[] = [];
 
         if (
-          userProperty.definitionUpdatedAt &&
-          userProperty.definitionUpdatedAt <= now &&
-          userProperty.definitionUpdatedAt >= (period?.maxTo.getTime() ?? 0) &&
-          userProperty.definitionUpdatedAt > userProperty.createdAt
+          shouldResetComputedProperty({
+            definitionUpdatedAt: userProperty.definitionUpdatedAt,
+            createdAt: userProperty.createdAt,
+            now,
+            periodBound: period?.maxTo.getTime(),
+          })
         ) {
           const nowSeconds = now / 1000;
           const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
