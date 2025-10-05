@@ -2360,7 +2360,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes grouped within operator trait segment",
-      only: true,
       userProperties: [],
       segments: [
         {

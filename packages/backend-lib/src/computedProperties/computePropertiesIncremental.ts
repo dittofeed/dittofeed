@@ -1478,13 +1478,11 @@ function resolvedSegmentToAssignment({
   segment,
   qb,
   node,
-  prunedComputedProperties,
 }: {
   segment: SavedSegmentResource;
   node: SegmentNode;
   qb: ClickHouseQueryBuilder;
-  prunedComputedProperties: PrunedComputedProperties;
-}): AssignedSegmentConfig | null {
+}): AssignedSegmentConfig {
   const stateId = segmentNodeStateId(segment, node.id);
   if (!stateId) {
     return {
@@ -1530,7 +1528,6 @@ function resolvedSegmentToAssignment({
         return resolvedSegmentToAssignment({
           node: childNode,
           segment,
-          prunedComputedProperties,
           qb,
         });
       });
@@ -1545,8 +1542,8 @@ function resolvedSegmentToAssignment({
         return child;
       }
       return {
-        stateIds: children.flatMap((c) => c?.stateIds ?? []),
-        expression: `(${children.flatMap((c) => c?.expression ?? []).join(" and ")})`,
+        stateIds: children.flatMap((c) => c.stateIds),
+        expression: `(${children.flatMap((c) => c.expression).join(" and ")})`,
       };
     }
     case SegmentNodeType.Or: {
@@ -1566,7 +1563,6 @@ function resolvedSegmentToAssignment({
         return resolvedSegmentToAssignment({
           node: childNode,
           segment,
-          prunedComputedProperties,
           qb,
         });
       });
@@ -1580,8 +1576,9 @@ function resolvedSegmentToAssignment({
       if (children.length === 1 && child) {
         return child;
       }
+      const stateIds = children.flatMap((c) => c?.stateIds ?? []);
       return {
-        stateIds: children.flatMap((c) => c?.stateIds ?? []),
+        stateIds,
         expression: `(${children.flatMap((c) => c?.expression ?? []).join(" or ")})`,
       };
     }
@@ -1597,7 +1594,6 @@ function resolvedSegmentToAssignment({
       return resolvedSegmentToAssignment({
         node: performedNode,
         segment,
-        prunedComputedProperties,
         qb,
       });
     }
@@ -1606,7 +1602,6 @@ function resolvedSegmentToAssignment({
       return resolvedSegmentToAssignment({
         node: performedNode,
         segment,
-        prunedComputedProperties,
         qb,
       });
     }
@@ -1623,7 +1618,6 @@ function resolvedSegmentToAssignment({
           segment,
         }),
         segment,
-        prunedComputedProperties,
         qb,
       });
     }
@@ -3097,6 +3091,7 @@ export async function computeAssignments({
     });
 
     for (const segment of segments) {
+      // eslint-disable-next-line @typescript-eslint/no-loop-func
       withSpanSync({ name: "compute-segment-assignments" }, (spanS) => {
         spanS.setAttribute("workspaceId", workspaceId);
         spanS.setAttribute("segmentId", segment.id);
@@ -3130,99 +3125,98 @@ export async function computeAssignments({
         if (resolvedQueries.length === 0) {
           return;
         }
-        // FIXME
+        const assignmentQueries: string[] = [];
         const assignmentConfig = resolvedSegmentToAssignment({
           segment,
           node: segment.definition.entryNode,
-          prunedComputedProperties,
           qb,
         });
-        if (assignmentConfig === null) {
-          return;
-        }
-        const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-
-        const segmentIdParam = qb.addQueryValue(segment.id, "String");
-        const stateIdsParam = qb.addQueryValue(
-          assignmentConfig.stateIds,
-          "Array(String)",
+        const allStateIdsPruned = assignmentConfig.stateIds.every((id) =>
+          prunedComputedProperties.segments.has(id),
         );
-        const assignmentQueries = [
-          `
-        insert into computed_property_assignments_v2
-        select
-          workspace_id,
-          'segment',
-          segment_id,
-          user_id,
-          ${assignmentConfig.expression} as segment_value,
-          '',
-          max_state_event_time,
-          toDateTime64(${nowSeconds}, 3) as assigned_at
-        from (
-          select
-            workspace_id,
-            segment_id,
-            user_id,
-            CAST((groupArray(state_id), groupArray(segment_state_value)), 'Map(String, Boolean)') as state_values,
-            max(max_state_event_time) as max_state_event_time
-          from  (
+
+        const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+        const segmentIdParam = qb.addQueryValue(segment.id, "String");
+
+        if (!allStateIdsPruned) {
+          const stateIdsParam = qb.addQueryValue(
+            assignmentConfig.stateIds,
+            "Array(String)",
+          );
+          assignmentQueries.push(
+            `insert into computed_property_assignments_v2
             select
               workspace_id,
+              'segment',
               segment_id,
-              state_id,
               user_id,
-              argMax(segment_state_value, computed_at) segment_state_value,
-              max(max_event_time) as max_state_event_time
-            from resolved_segment_state
-            where
-              (
+              ${assignmentConfig.expression} as segment_value,
+              '',
+              max_state_event_time,
+              toDateTime64(${nowSeconds}, 3) as assigned_at
+            from (
+              select
                 workspace_id,
                 segment_id,
-                user_id
-              ) in (
+                user_id,
+                CAST((groupArray(state_id), groupArray(segment_state_value)), 'Map(String, Boolean)') as state_values,
+                max(max_state_event_time) as max_state_event_time
+              from  (
                 select
                   workspace_id,
                   segment_id,
-                  user_id
+                  state_id,
+                  user_id,
+                  argMax(segment_state_value, computed_at) segment_state_value,
+                  max(max_event_time) as max_state_event_time
                 from resolved_segment_state
                 where
-                  workspace_id = ${workspaceIdParam}
-                  and segment_id = ${segmentIdParam}
-                  and computed_at <= toDateTime64(${nowSeconds}, 3)
-                  and state_id in ${stateIdsParam}
-                  ${lowerBoundClause}
+                  (
+                    workspace_id,
+                    segment_id,
+                    user_id
+                  ) in (
+                    select
+                      workspace_id,
+                      segment_id,
+                      user_id
+                    from resolved_segment_state
+                    where
+                      workspace_id = ${workspaceIdParam}
+                      and segment_id = ${segmentIdParam}
+                      and computed_at <= toDateTime64(${nowSeconds}, 3)
+                      and state_id in ${stateIdsParam}
+                      ${lowerBoundClause}
+                  )
+                group by
+                  workspace_id,
+                  segment_id,
+                  user_id,
+                  state_id
               )
-            group by
-              workspace_id,
-              segment_id,
-              user_id,
-              state_id
-          )
-          group by
-            workspace_id,
-            segment_id,
-            user_id
-        )
-      `,
-        ];
-
-        if (
-          shouldResetComputedProperty({
-            definitionUpdatedAt: segment.definitionUpdatedAt,
-            createdAt: segment.createdAt,
-            now,
-            periodBound,
-          })
-        ) {
-          logger().debug(
-            {
-              segment,
-              workspaceId,
-            },
-            "resetting segment assignments",
+              group by
+                workspace_id,
+                segment_id,
+                user_id
+            )`,
           );
-          const resetQuery = `
+
+          if (
+            shouldResetComputedProperty({
+              definitionUpdatedAt: segment.definitionUpdatedAt,
+              createdAt: segment.createdAt,
+              now,
+              periodBound,
+            })
+          ) {
+            logger().debug(
+              {
+                segment,
+                workspaceId,
+              },
+              "resetting segment assignments",
+            );
+            const resetQuery = `
           delete from computed_property_assignments_v2
           where
             workspace_id = ${workspaceIdParam}
@@ -3232,7 +3226,8 @@ export async function computeAssignments({
           settings mutations_sync = 0, lightweight_deletes_sync = 0;
         `;
 
-          assignmentQueries.unshift(resetQuery);
+            assignmentQueries.unshift(resetQuery);
+          }
         }
 
         const queries: (string | string[])[] = [
