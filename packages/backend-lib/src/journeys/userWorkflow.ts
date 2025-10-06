@@ -30,6 +30,7 @@ import {
   JourneyNodeType,
   JSONValue,
   MessageVariant,
+  RandomCohortNode,
   RenameKey,
   SegmentAssignment,
   SegmentAssignment as SegmentAssignmentDb,
@@ -96,6 +97,10 @@ const { getEventsById, getSegmentAssignment } = wf.proxyLocalActivities<
   retry: {
     maximumAttempts: 10,
   },
+});
+
+const { getRandomNumber } = wf.proxyLocalActivities<typeof activities>({
+  startToCloseTimeout: "5 seconds",
 });
 
 const { reportWorkflowInfo } = wf.proxyLocalActivities<typeof activities>({
@@ -716,7 +721,7 @@ export async function userJourneyWorkflow(
               if (assignment === null) {
                 return [];
               }
-              if (assignment.inSegment === true) {
+              if (assignment.inSegment) {
                 segmentAssignments.set(segmentId, {
                   currentlyInSegment: assignment.inSegment,
                   segmentVersion: Date.now(),
@@ -965,12 +970,41 @@ export async function userJourneyWorkflow(
       case JourneyNodeType.ExitNode: {
         break nodeLoop;
       }
-      case JourneyNodeType.ExperimentSplitNode: {
-        logger.error("unable to handle un-implemented node type", {
-          ...defaultLoggingFields,
-          nodeType: currentNode.type,
-        });
-        nextNode = definition.exitNode;
+      case JourneyNodeType.RandomCohortNode: {
+        const cn: RandomCohortNode = currentNode;
+        // Use getRandom local activity for deterministic behavior
+        const randomValue = (await getRandomNumber()) * 100;
+
+        let cumulativePercent = 0;
+        let selectedChildId: string | null = null;
+
+        for (const child of cn.children) {
+          cumulativePercent += child.percent;
+          if (randomValue < cumulativePercent) {
+            selectedChildId = child.id;
+            break;
+          }
+        }
+
+        if (!selectedChildId) {
+          logger.error("no child selected in random cohort", {
+            ...defaultLoggingFields,
+            randomValue,
+          });
+          nextNode = definition.exitNode;
+          break;
+        }
+
+        nextNode = nodes.get(selectedChildId) ?? null;
+
+        if (!nextNode) {
+          logger.error("missing random cohort child node", {
+            ...defaultLoggingFields,
+            childId: selectedChildId,
+          });
+          nextNode = definition.exitNode;
+          break;
+        }
         break;
       }
       case JourneyNodeType.RateLimitNode: {

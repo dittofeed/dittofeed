@@ -3,7 +3,7 @@ import { Context } from "@temporalio/activity";
 import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { err, ok, Result } from "neverthrow";
+import { err, Result } from "neverthrow";
 import pRetry from "p-retry";
 import { omit } from "remeda";
 
@@ -725,3 +725,5 @@ export async function reportWorkflowInfo({
   sizeHistogram.record(historySize, attributes);
   lengthHistogram.record(historyLength, attributes);
 }
+
+export { getRandomNumber } from "../../temporal/activities/shared";

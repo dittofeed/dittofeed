@@ -43,7 +43,7 @@ import {
   UserPropertyResource,
   WorkspaceWideEmailProviders,
 } from "isomorphic-lib/src/types";
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useCallback, useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import {
@@ -52,6 +52,7 @@ import {
   EntryUiNodeProps,
   JourneyUiNodeDefinitionProps,
   MessageUiNodeProps,
+  RandomCohortUiNodeProps,
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
 } from "../../lib/types";
@@ -123,6 +124,107 @@ function SegmentSplitNodeFields({
         <TextField {...params} label="segment" variant="outlined" />
       )}
     />
+  );
+}
+
+function RandomCohortNodeFields({
+  nodeId,
+  nodeProps,
+  disabled,
+}: {
+  nodeId: string;
+  nodeProps: RandomCohortUiNodeProps;
+  disabled?: boolean;
+}) {
+  const {
+    updateJourneyNodeData,
+    addRandomCohortChild,
+    removeRandomCohortChild,
+  } = useAppStorePick([
+    "updateJourneyNodeData",
+    "addRandomCohortChild",
+    "removeRandomCohortChild",
+  ]);
+
+  const addCohortChild = useCallback(() => {
+    addRandomCohortChild({ nodeId });
+  }, [addRandomCohortChild, nodeId]);
+
+  const removeCohortChild = useCallback(
+    (childName: string) => {
+      removeRandomCohortChild({
+        nodeId,
+        childName,
+      });
+    },
+    [removeRandomCohortChild, nodeId],
+  );
+
+  const updateCohortPercent = (index: number, percent: number) => {
+    updateJourneyNodeData(nodeId, (node) => {
+      const props = node.data.nodeTypeProps;
+      if (props.type === JourneyNodeType.RandomCohortNode) {
+        if (props.cohortChildren[index]) {
+          props.cohortChildren[index].percent = percent;
+        }
+      }
+    });
+  };
+
+  const totalPercent = nodeProps.cohortChildren.reduce(
+    (sum, child) => sum + child.percent,
+    0,
+  );
+
+  return (
+    <Stack spacing={2}>
+      <Typography variant="h6">Random Cohort Split</Typography>
+      <Typography variant="body2" color="textSecondary">
+        Users will be randomly assigned to cohorts based on the percentages
+        below.
+      </Typography>
+
+      {nodeProps.cohortChildren.map((child, index) => (
+        <Stack key={child.name} direction="row" spacing={1} alignItems="center">
+          <TextField
+            label={`Cohort ${index + 1} Percentage`}
+            type="number"
+            value={child.percent}
+            onChange={(e) => updateCohortPercent(index, Number(e.target.value))}
+            disabled={disabled}
+            InputProps={{
+              endAdornment: "%",
+            }}
+            sx={{ flexGrow: 1 }}
+          />
+          <IconButton
+            onClick={() => removeCohortChild(child.name)}
+            disabled={Boolean(disabled) || nodeProps.cohortChildren.length <= 2}
+            color="error"
+            size="small"
+          >
+            <CloseOutlined />
+          </IconButton>
+        </Stack>
+      ))}
+
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Button
+          variant="outlined"
+          onClick={addCohortChild}
+          disabled={disabled}
+          size="small"
+        >
+          Add Cohort
+        </Button>
+        <Typography
+          variant="body2"
+          color={totalPercent === 100 ? "success.main" : "warning.main"}
+        >
+          Total: {totalPercent}% {totalPercent !== 100 && "(Should equal 100%)"}
+        </Typography>
+      </Stack>
+    </Stack>
   );
 }
 
@@ -1179,6 +1281,16 @@ function NodeFields({
       return (
         <NodeLayout deleteButton nodeId={node.id}>
           <SegmentSplitNodeFields
+            nodeId={node.id}
+            nodeProps={nodeProps}
+            disabled={disabled}
+          />
+        </NodeLayout>
+      );
+    case JourneyNodeType.RandomCohortNode:
+      return (
+        <NodeLayout deleteButton nodeId={node.id}>
+          <RandomCohortNodeFields
             nodeId={node.id}
             nodeProps={nodeProps}
             disabled={disabled}

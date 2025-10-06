@@ -674,7 +674,7 @@ export async function getJourneysStats({
         }
         case JourneyNodeType.RateLimitNode:
           continue;
-        case JourneyNodeType.ExperimentSplitNode:
+        case JourneyNodeType.RandomCohortNode:
           continue;
         default:
           assertUnreachable(node);

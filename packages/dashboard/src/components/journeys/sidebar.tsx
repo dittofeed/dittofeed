@@ -17,6 +17,7 @@ const SIDEBAR_NODE_TYPES: JourneyUiBodyNodeTypeProps["type"][] = [
   JourneyNodeType.SegmentSplitNode,
   JourneyNodeType.MessageNode,
   JourneyNodeType.WaitForNode,
+  JourneyNodeType.RandomCohortNode,
 ];
 
 function Sidebar() {

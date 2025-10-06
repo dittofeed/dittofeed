@@ -35,6 +35,9 @@ import {
   JourneyUiBodyNodeTypeProps,
   JourneyUiEdgeProps,
   MessageNode,
+  RandomCohortChild,
+  RandomCohortNode,
+  RandomCohortUiChild,
   SavedJourneyResource,
   SegmentEntryNode,
   SegmentSplitNode,
@@ -64,6 +67,7 @@ import {
   JourneyUiNodeType,
   JourneyUiNodeTypeProps,
   MessageUiNodeProps,
+  RandomCohortUiNodeProps,
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
 } from "../../lib/types";
@@ -274,6 +278,416 @@ function findNextJourneyNode(
     throw new Error(`Missing child for ${nodeId}`);
   }
   return child;
+}
+
+export interface DualNodeParams {
+  leftId: string;
+  rightId: string;
+  emptyId: string;
+}
+
+export function dualNodeNonJourneyNodes({
+  leftId,
+  rightId,
+  leftLabel,
+  rightLabel,
+  emptyId,
+}: DualNodeParams & {
+  leftLabel: string;
+  rightLabel: string;
+}): JourneyUiNode[] {
+  return [
+    {
+      id: leftId,
+      position: placeholderNodePosition,
+      type: "label",
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeLabelProps,
+        title: leftLabel,
+      },
+    },
+    {
+      id: rightId,
+      position: placeholderNodePosition,
+      type: "label",
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeLabelProps,
+        title: rightLabel,
+      },
+    },
+    {
+      id: emptyId,
+      position: placeholderNodePosition,
+      type: "empty",
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeEmptyProps,
+      },
+    },
+  ];
+}
+
+export function dualNodeEdges({
+  leftId,
+  rightId,
+  emptyId,
+  nodeId,
+  source,
+  target,
+}: DualNodeParams & {
+  source: string;
+  target: string;
+  nodeId: string;
+}): JourneyUiEdge[] {
+  const edges: JourneyUiEdge[] = [
+    {
+      id: `${source}=>${nodeId}`,
+      source,
+      target: nodeId,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+        disableMarker: true,
+      },
+    },
+    {
+      id: `${nodeId}=>${leftId}`,
+      source: nodeId,
+      target: leftId,
+      type: "placeholder",
+      sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
+      },
+    },
+    {
+      id: `${nodeId}=>${rightId}`,
+      source: nodeId,
+      target: rightId,
+      type: "placeholder",
+      sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
+      },
+    },
+    {
+      id: `${leftId}=>${emptyId}`,
+      source: leftId,
+      target: emptyId,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+        disableMarker: true,
+      },
+    },
+    {
+      id: `${rightId}=>${emptyId}`,
+      source: rightId,
+      target: emptyId,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+        disableMarker: true,
+      },
+    },
+  ];
+  if (target) {
+    edges.push({
+      id: `${emptyId}=>${target}`,
+      source: emptyId,
+      target,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+        disableMarker: true,
+      },
+    });
+  }
+  return edges;
+}
+
+export function edgesForJourneyNode({
+  type,
+  nodeId,
+  source,
+  target,
+  leftId,
+  rightId,
+  emptyId,
+}: {
+  type: JourneyNodeType;
+  nodeId: string;
+  source?: string;
+  target: string;
+  leftId?: string;
+  rightId?: string;
+  emptyId?: string;
+}): JourneyUiEdge[] {
+  if (
+    type === JourneyNodeType.SegmentSplitNode ||
+    type === JourneyNodeType.WaitForNode ||
+    type === JourneyNodeType.RandomCohortNode
+  ) {
+    if (!leftId || !rightId || !emptyId) {
+      throw new Error("Missing dual node ids");
+    }
+    if (!source) {
+      throw new Error("Missing source");
+    }
+    return dualNodeEdges({
+      source,
+      target,
+      nodeId,
+      leftId,
+      rightId,
+      emptyId,
+    });
+  }
+  if (
+    type === JourneyNodeType.RateLimitNode ||
+    type === JourneyNodeType.ExitNode
+  ) {
+    throw new Error(`Unimplemented node type ${type}`);
+  }
+
+  const edges: JourneyUiEdge[] = [];
+  if (source) {
+    edges.push({
+      id: `${source}=>${nodeId}`,
+      source,
+      target: nodeId,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+      },
+    });
+  }
+  if (target) {
+    edges.push({
+      id: `${nodeId}=>${target}`,
+      source: nodeId,
+      target,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+      },
+    });
+  }
+  return edges;
+}
+
+export function newStateFromNodes({
+  source,
+  target,
+  nodes,
+  existingNodes,
+  edges,
+  existingEdges,
+}: AddNodesParams & {
+  existingNodes: JourneyUiNode[];
+  existingEdges: JourneyUiEdge[];
+}): {
+  edges: JourneyUiEdge[];
+  nodes: JourneyUiNode[];
+} {
+  const newEdges = existingEdges
+    .filter((e) => !(e.source === source && e.target === target))
+    .concat(edges);
+
+  const newNodes = existingNodes.concat(nodes);
+
+  return {
+    edges: newEdges,
+    nodes: newNodes,
+  };
+}
+
+/**
+ * find all descendants of parent node with relative depth of node
+ * @param parentId
+ * @param edges
+ * @returns
+ */
+export function findAllDescendants(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"],
+): Map<string, number> {
+  const children = new Map<string, number>();
+  const unprocessed = [{ node: parentId, depth: 0 }];
+
+  while (unprocessed.length) {
+    const next = unprocessed.pop();
+    if (!next) {
+      throw new Error("next should exist");
+    }
+
+    const directChildren = findDirectUiChildren(next.node, edges);
+
+    for (const child of directChildren) {
+      if (!children.has(child)) {
+        unprocessed.push({ node: child, depth: next.depth + 1 });
+        children.set(child, next.depth + 1);
+      }
+    }
+  }
+  return children;
+}
+
+type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
+
+function buildLabelNode(id: string, title: string): JourneyUiNode {
+  return {
+    id,
+    position: placeholderNodePosition,
+    type: "label",
+    data: {
+      type: JourneyUiNodeType.JourneyUiNodeLabelProps,
+      title,
+    },
+  };
+}
+
+function buildEmptyNode(id: string): JourneyUiNode {
+  return {
+    id,
+    position: placeholderNodePosition,
+    type: "empty",
+    data: {
+      type: JourneyUiNodeType.JourneyUiNodeEmptyProps,
+    },
+  };
+}
+
+// function randomCohortLabelTitle(index: number, percent: number): string {
+//   const baseTitle = `Cohort ${index + 1}`;
+//   if (Number.isFinite(percent)) {
+//     return `${baseTitle} (${percent}%)`;
+//   }
+//   return baseTitle;
+// }
+// function buildEdgesBySource(
+//   edges: JourneyUiEdge[],
+// ): Map<string, JourneyUiEdge[]> {
+//   const map = new Map<string, JourneyUiEdge[]>();
+//   for (const edge of edges) {
+//     if (!map.has(edge.source)) {
+//       map.set(edge.source, []);
+//     }
+//     map.get(edge.source)?.push(edge);
+//   }
+//   return map;
+// }
+
+// function collectNodesUntil(
+//   startId: string,
+//   stopId: string,
+//   edgesBySource: Map<string, JourneyUiEdge[]>,
+//   accumulator: Set<string>,
+// ) {
+//   const queue: string[] = [startId];
+//   while (queue.length > 0) {
+//     const current = queue.pop();
+//     if (!current || current === stopId) {
+//       continue;
+//     }
+//     if (accumulator.has(current)) {
+//       continue;
+//     }
+//     accumulator.add(current);
+//     const nextEdges = edgesBySource.get(current) ?? [];
+//     for (const edge of nextEdges) {
+//       if (edge.target === stopId) {
+//         continue;
+//       }
+//       queue.push(edge.target);
+//     }
+//   }
+// }
+
+function buildWorkflowEdge(source: string, target: string): JourneyUiEdge {
+  return {
+    id: `${source}=>${target}`,
+    source,
+    target,
+    type: "workflow",
+    sourceHandle: "bottom",
+    data: {
+      type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+      disableMarker: true,
+    },
+  };
+}
+
+function buildPlaceholderEdge(source: string, target: string): JourneyUiEdge {
+  return {
+    id: `${source}=>${target}`,
+    source,
+    target,
+    type: "placeholder",
+    sourceHandle: "bottom",
+    data: {
+      type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
+    },
+  };
+}
+
+function buildJourneyNode(
+  id: string,
+  nodeTypeProps: JourneyUiNodeTypeProps,
+): JourneyUiNode {
+  return {
+    id,
+    position: placeholderNodePosition,
+    type: "journey",
+    data: {
+      type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
+      nodeTypeProps,
+    },
+  };
+}
+
+function buildEmptyNodeId(nodeId: string): string {
+  return `${nodeId}-empty`;
+}
+
+function buildRandomCohortLabelNodeId(
+  nodeId: string,
+  childName: string,
+): string {
+  return `${nodeId}-label-${childName}`;
+}
+
+function createRandomCohorChildState({
+  nodeId,
+  child,
+  childIndex,
+}: {
+  nodeId: string;
+  child: RandomCohortUiChild;
+  childIndex: number;
+}): {
+  newEdges: JourneyUiEdge[];
+  newNodes: JourneyUiNode[];
+} {
+  const labelId = buildRandomCohortLabelNodeId(nodeId, child.name);
+  const emptyId = buildEmptyNodeId(nodeId);
+  const newEdges: JourneyUiEdge[] = [
+    buildPlaceholderEdge(nodeId, labelId),
+    buildWorkflowEdge(labelId, emptyId),
+  ];
+  const newNodes: JourneyUiNode[] = [
+    buildLabelNode(labelId, `Cohort ${childIndex + 1}`),
+  ];
+
+  return {
+    newEdges,
+    newNodes,
+  };
 }
 
 function journeyDefinitionFromStateBranch(
@@ -525,6 +939,54 @@ function journeyDefinitionFromStateBranch(
         nextId = nfc;
         break;
       }
+      case JourneyNodeType.RandomCohortNode: {
+        if (!uiNode.cohortChildren || uiNode.cohortChildren.length === 0) {
+          return err({
+            message: "Random cohort node must have cohort children",
+            nodeId: nId,
+          });
+        }
+
+        const children: RandomCohortChild[] = [];
+        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
+
+        for (const cohortChild of uiNode.cohortChildren) {
+          const childId = findNextJourneyNode(
+            buildRandomCohortLabelNodeId(nId, cohortChild.name),
+            hm,
+            uiJourneyNodes,
+          );
+
+          if (nfc !== childId) {
+            const branchResult = journeyDefinitionFromStateBranch(
+              childId,
+              hm,
+              nodes,
+              uiJourneyNodes,
+              edges,
+              nfc,
+            );
+            if (branchResult.isErr()) {
+              return err(branchResult.error);
+            }
+          }
+
+          children.push({
+            id: childId,
+            name: cohortChild.name,
+            percent: cohortChild.percent,
+          });
+        }
+
+        const node: RandomCohortNode = {
+          type: JourneyNodeType.RandomCohortNode,
+          id: nId,
+          children,
+        };
+        nodes.push(node);
+        nextId = nfc;
+        break;
+      }
       case JourneyNodeType.SegmentSplitNode: {
         if (!uiNode.segmentId) {
           return err({
@@ -653,329 +1115,39 @@ export function journeyDefinitionFromState({
   return ok(definition);
 }
 
-export interface DualNodeParams {
-  leftId: string;
-  rightId: string;
-  emptyId: string;
-}
+function deleteJourneyNode(state: JourneyContent, nodeId: string) {
+  const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
+  const hmEntry = getUnsafe(hm, nodeId);
 
-export function dualNodeNonJourneyNodes({
-  leftId,
-  rightId,
-  leftLabel,
-  rightLabel,
-  emptyId,
-}: DualNodeParams & {
-  leftLabel: string;
-  rightLabel: string;
-}): JourneyUiNode[] {
-  return [
-    {
-      id: leftId,
-      position: placeholderNodePosition,
-      type: "label",
-      data: {
-        type: JourneyUiNodeType.JourneyUiNodeLabelProps,
-        title: leftLabel,
-      },
-    },
-    {
-      id: rightId,
-      position: placeholderNodePosition,
-      type: "label",
-      data: {
-        type: JourneyUiNodeType.JourneyUiNodeLabelProps,
-        title: rightLabel,
-      },
-    },
-    {
-      id: emptyId,
-      position: placeholderNodePosition,
-      type: "empty",
-      data: {
-        type: JourneyUiNodeType.JourneyUiNodeEmptyProps,
-      },
-    },
-  ];
-}
-
-export function dualNodeEdges({
-  leftId,
-  rightId,
-  emptyId,
-  nodeId,
-  source,
-  target,
-}: DualNodeParams & {
-  source: string;
-  target: string;
-  nodeId: string;
-}): JourneyUiEdge[] {
-  const edges: JourneyUiEdge[] = [
-    {
-      id: `${source}=>${nodeId}`,
-      source,
-      target: nodeId,
-      type: "workflow",
-      sourceHandle: "bottom",
-      data: {
-        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
-        disableMarker: true,
-      },
-    },
-    {
-      id: `${nodeId}=>${leftId}`,
-      source: nodeId,
-      target: leftId,
-      type: "placeholder",
-      sourceHandle: "bottom",
-      data: {
-        type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
-      },
-    },
-    {
-      id: `${nodeId}=>${rightId}`,
-      source: nodeId,
-      target: rightId,
-      type: "placeholder",
-      sourceHandle: "bottom",
-      data: {
-        type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
-      },
-    },
-    {
-      id: `${leftId}=>${emptyId}`,
-      source: leftId,
-      target: emptyId,
-      type: "workflow",
-      sourceHandle: "bottom",
-      data: {
-        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
-        disableMarker: true,
-      },
-    },
-    {
-      id: `${rightId}=>${emptyId}`,
-      source: rightId,
-      target: emptyId,
-      type: "workflow",
-      sourceHandle: "bottom",
-      data: {
-        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
-        disableMarker: true,
-      },
-    },
-  ];
-  if (target) {
-    edges.push({
-      id: `${emptyId}=>${target}`,
-      source: emptyId,
-      target,
-      type: "workflow",
-      sourceHandle: "bottom",
-      data: {
-        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
-        disableMarker: true,
-      },
-    });
-  }
-  return edges;
-}
-
-export function edgesForJourneyNode({
-  type,
-  nodeId,
-  source,
-  target,
-  leftId,
-  rightId,
-  emptyId,
-}: {
-  type: JourneyNodeType;
-  nodeId: string;
-  source?: string;
-  target: string;
-  leftId?: string;
-  rightId?: string;
-  emptyId?: string;
-}): JourneyUiEdge[] {
-  if (
-    type === JourneyNodeType.SegmentSplitNode ||
-    type === JourneyNodeType.WaitForNode
-  ) {
-    if (!leftId || !rightId || !emptyId) {
-      throw new Error("Missing dual node ids");
-    }
-    if (!source) {
-      throw new Error("Missing source");
-    }
-    return dualNodeEdges({
-      source,
-      target,
-      nodeId,
-      leftId,
-      rightId,
-      emptyId,
-    });
-  }
-  if (
-    type === JourneyNodeType.RateLimitNode ||
-    type === JourneyNodeType.ExperimentSplitNode ||
-    type === JourneyNodeType.ExitNode
-  ) {
-    throw new Error(`Unimplemented node type ${type}`);
-  }
-
-  const edges: JourneyUiEdge[] = [];
-  if (source) {
-    edges.push({
-      id: `${source}=>${nodeId}`,
-      source,
-      target: nodeId,
-      type: "workflow",
-      sourceHandle: "bottom",
-      data: {
-        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
-      },
-    });
-  }
-  if (target) {
-    edges.push({
-      id: `${nodeId}=>${target}`,
-      source: nodeId,
-      target,
-      type: "workflow",
-      sourceHandle: "bottom",
-      data: {
-        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
-      },
-    });
-  }
-  return edges;
-}
-
-export function newStateFromNodes({
-  source,
-  target,
-  nodes,
-  existingNodes,
-  edges,
-  existingEdges,
-}: AddNodesParams & {
-  existingNodes: JourneyUiNode[];
-  existingEdges: JourneyUiEdge[];
-}): {
-  edges: JourneyUiEdge[];
-  nodes: JourneyUiNode[];
-} {
-  const newEdges = existingEdges
-    .filter((e) => !(e.source === source && e.target === target))
-    .concat(edges);
-
-  const newNodes = existingNodes.concat(nodes);
-
-  return {
-    edges: newEdges,
-    nodes: newNodes,
-  };
-}
-
-/**
- * find all descendants of parent node with relative depth of node
- * @param parentId
- * @param edges
- * @returns
- */
-export function findAllDescendants(
-  parentId: string,
-  edges: JourneyContent["journeyEdges"],
-): Map<string, number> {
-  const children = new Map<string, number>();
-  const unprocessed = [{ node: parentId, depth: 0 }];
-
-  while (unprocessed.length) {
-    const next = unprocessed.pop();
-    if (!next) {
-      throw new Error("next should exist");
-    }
-
-    const directChildren = findDirectUiChildren(next.node, edges);
-
-    for (const child of directChildren) {
-      if (!children.has(child)) {
-        unprocessed.push({ node: child, depth: next.depth + 1 });
-        children.set(child, next.depth + 1);
+  // Will be an empty node
+  const nfc = getNearestUiFromChildren(nodeId, hm);
+  const nodesToRemove = new Set<string>([nodeId]);
+  let terminalNode: string;
+  if (nfc) {
+    nodesToRemove.add(nfc);
+    for (const n of state.journeyNodes) {
+      const nHmEntry = getUnsafe(hm, n.id);
+      if (nHmEntry.descendants.has(nfc) && nHmEntry.ancestors.has(nodeId)) {
+        nodesToRemove.add(n.id);
       }
     }
+    terminalNode = nfc;
+  } else {
+    terminalNode = nodeId;
   }
-  return children;
-}
 
-type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
+  state.journeyNodes = state.journeyNodes.filter(
+    (n) => !nodesToRemove.has(n.id),
+  );
+  state.journeyEdges = state.journeyEdges.filter(
+    (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target),
+  );
 
-function buildLabelNode(id: string, title: string): JourneyUiNode {
-  return {
-    id,
-    position: placeholderNodePosition,
-    type: "label",
-    data: {
-      type: JourneyUiNodeType.JourneyUiNodeLabelProps,
-      title,
-    },
-  };
-}
-
-function buildEmptyNode(id: string): JourneyUiNode {
-  return {
-    id,
-    position: placeholderNodePosition,
-    type: "empty",
-    data: {
-      type: JourneyUiNodeType.JourneyUiNodeEmptyProps,
-    },
-  };
-}
-
-function buildWorkflowEdge(source: string, target: string): JourneyUiEdge {
-  return {
-    id: `${source}=>${target}`,
-    source,
-    target,
-    type: "workflow",
-    sourceHandle: "bottom",
-    data: {
-      type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
-      disableMarker: true,
-    },
-  };
-}
-
-function buildPlaceholderEdge(source: string, target: string): JourneyUiEdge {
-  return {
-    id: `${source}=>${target}`,
-    source,
-    target,
-    type: "placeholder",
-    sourceHandle: "bottom",
-    data: {
-      type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
-    },
-  };
-}
-
-function buildJourneyNode(
-  id: string,
-  nodeTypeProps: JourneyUiNodeTypeProps,
-): JourneyUiNode {
-  return {
-    id,
-    position: placeholderNodePosition,
-    type: "journey",
-    data: {
-      type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
-      nodeTypeProps,
-    },
-  };
+  const terminalHmEntry = getUnsafe(hm, terminalNode);
+  const newTarget = idxUnsafe(Array.from(terminalHmEntry.children), 0);
+  const source = idxUnsafe(Array.from(hmEntry.parents), 0);
+  state.journeyEdges.push(buildWorkflowEdge(source, newTarget));
+  state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
 }
 
 export const createJourneySlice: CreateJourneySlice = (set) => ({
@@ -1007,40 +1179,8 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     }),
   deleteJourneyNode: (nodeId: string) =>
     set((state) => {
-      const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
-      const hmEntry = getUnsafe(hm, nodeId);
-
-      // Will be an empty node
-      const nfc = getNearestUiFromChildren(nodeId, hm);
-      const nodesToRemove = new Set<string>([nodeId]);
-      let terminalNode: string;
-      if (nfc) {
-        nodesToRemove.add(nfc);
-        for (const n of state.journeyNodes) {
-          const nHmEntry = getUnsafe(hm, n.id);
-          if (nHmEntry.descendants.has(nfc) && nHmEntry.ancestors.has(nodeId)) {
-            nodesToRemove.add(n.id);
-          }
-        }
-        terminalNode = nfc;
-      } else {
-        terminalNode = nodeId;
-      }
-
-      state.journeyNodes = state.journeyNodes.filter(
-        (n) => !nodesToRemove.has(n.id),
-      );
-      state.journeyEdges = state.journeyEdges.filter(
-        (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target),
-      );
-
-      const terminalHmEntry = getUnsafe(hm, terminalNode);
-      const newTarget = idxUnsafe(Array.from(terminalHmEntry.children), 0);
-      const source = idxUnsafe(Array.from(hmEntry.parents), 0);
-      state.journeyEdges.push(buildWorkflowEdge(source, newTarget));
-
+      deleteJourneyNode(state, nodeId);
       state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
-      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
     }),
   setNodes: (changes: NodeChange<JourneyUiNode>[]) =>
     set((state) => {
@@ -1097,15 +1237,268 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         return newNode;
       });
     }),
+  // syncRandomCohortNode: (nodeId) =>
+  //   set((state) => {
+  //     const node = findJourneyNode(
+  //       nodeId,
+  //       state.journeyNodes,
+  //       state.journeyNodesIndex,
+  //     );
+  //     if (!node) {
+  //       return;
+  //     }
+
+  //     const nodeProps = node.data.nodeTypeProps;
+  //     if (nodeProps.type !== JourneyNodeType.RandomCohortNode) {
+  //       return;
+  //     }
+
+  //     const emptyNodeId = `${nodeId}-empty`;
+  //     let structureChanged = false;
+
+  //     const existingEmptyWorkflowEdges = state.journeyEdges
+  //       .filter(
+  //         (edge) =>
+  //           edge.source === emptyNodeId &&
+  //           edge.type === "workflow" &&
+  //           edge.data?.type === JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+  //       )
+  //       .map((edge) => ({ ...edge }));
+
+  //     if (!state.journeyNodes.some((n) => n.id === emptyNodeId)) {
+  //       state.journeyNodes.push(buildEmptyNode(emptyNodeId));
+  //       structureChanged = true;
+  //     }
+
+  //     for (const child of nodeProps.cohortChildren) {
+  //       if (!child.labelNodeId) {
+  //         child.labelNodeId = uuid();
+  //         structureChanged = true;
+  //       }
+  //     }
+
+  //     const desiredLabelIds = new Set(
+  //       nodeProps.cohortChildren
+  //         .map((child) => child.labelNodeId)
+  //         .filter((labelId): labelId is string => Boolean(labelId)),
+  //     );
+
+  //     const placeholderEdgesFromNode = state.journeyEdges.filter(
+  //       (edge) => edge.source === nodeId && edge.type === "placeholder",
+  //     );
+  //     const existingLabelIds = placeholderEdgesFromNode.map(
+  //       (edge) => edge.target,
+  //     );
+
+  //     const edgesBySource = buildEdgesBySource(state.journeyEdges);
+
+  //     const nodesMarkedForRemoval = new Set<string>();
+  //     for (const labelId of existingLabelIds) {
+  //       if (!desiredLabelIds.has(labelId)) {
+  //         nodesMarkedForRemoval.add(labelId);
+  //         const outgoingEdges = edgesBySource.get(labelId) ?? [];
+  //         for (const edge of outgoingEdges) {
+  //           if (edge.target === emptyNodeId) {
+  //             continue;
+  //           }
+  //           collectNodesUntil(
+  //             edge.target,
+  //             emptyNodeId,
+  //             edgesBySource,
+  //             nodesMarkedForRemoval,
+  //           );
+  //         }
+  //       }
+  //     }
+
+  //     if (nodesMarkedForRemoval.size > 0) {
+  //       const previousNodesLength = state.journeyNodes.length;
+  //       state.journeyNodes = state.journeyNodes.filter(
+  //         (n) => !nodesMarkedForRemoval.has(n.id),
+  //       );
+  //       if (state.journeyNodes.length !== previousNodesLength) {
+  //         structureChanged = true;
+  //       }
+
+  //       const previousEdgesLength = state.journeyEdges.length;
+  //       state.journeyEdges = state.journeyEdges.filter(
+  //         (edge) =>
+  //           !nodesMarkedForRemoval.has(edge.source) &&
+  //           !nodesMarkedForRemoval.has(edge.target),
+  //       );
+  //       if (state.journeyEdges.length !== previousEdgesLength) {
+  //         structureChanged = true;
+  //       }
+  //     }
+
+  //     nodeProps.cohortChildren.forEach((child, index) => {
+  //       if (!child.labelNodeId) {
+  //         return;
+  //       }
+  //       const labelId = child.labelNodeId;
+  //       const labelTitle = randomCohortLabelTitle(index, child.percent);
+
+  //       const labelNode = findNode(
+  //         labelId,
+  //         state.journeyNodes,
+  //         state.journeyNodesIndex,
+  //       );
+  //       if (!labelNode) {
+  //         state.journeyNodes.push(buildLabelNode(labelId, labelTitle));
+  //         structureChanged = true;
+  //       } else if (isLabelNode(labelNode)) {
+  //         labelNode.data.title = labelTitle;
+  //       }
+
+  //       const hasPlaceholderEdge = state.journeyEdges.some(
+  //         (edge) => edge.source === nodeId && edge.target === labelId,
+  //       );
+  //       if (!hasPlaceholderEdge) {
+  //         state.journeyEdges.push(buildPlaceholderEdge(nodeId, labelId));
+  //         structureChanged = true;
+  //       }
+
+  //       const hasWorkflowEdge = state.journeyEdges.some(
+  //         (edge) => edge.source === labelId && edge.type === "workflow",
+  //       );
+  //       if (!hasWorkflowEdge) {
+  //         state.journeyEdges.push(buildWorkflowEdge(labelId, emptyNodeId));
+  //         structureChanged = true;
+  //       }
+  //     });
+
+  //     for (const edge of existingEmptyWorkflowEdges) {
+  //       const targetExists = state.journeyNodes.some(
+  //         (n) => n.id === edge.target,
+  //       );
+  //       if (!targetExists) {
+  //         continue;
+  //       }
+  //       const alreadyPresent = state.journeyEdges.some(
+  //         (existingEdge) =>
+  //           existingEdge.source === edge.source &&
+  //           existingEdge.target === edge.target &&
+  //           existingEdge.type === edge.type,
+  //       );
+  //       if (!alreadyPresent) {
+  //         state.journeyEdges.push(edge);
+  //         structureChanged = true;
+  //       }
+  //     }
+
+  //     if (structureChanged) {
+  //       state.journeyNodes = layoutNodes(
+  //         state.journeyNodes,
+  //         state.journeyEdges,
+  //       );
+  //     }
+  //     state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+  //   }),
+  addRandomCohortChild: ({ nodeId }) =>
+    set((state) => {
+      const existingRandomCohortNode = findJourneyNode(
+        nodeId,
+        state.journeyNodes,
+        state.journeyNodesIndex,
+      );
+      if (!existingRandomCohortNode) {
+        return;
+      }
+      const nodeProps = existingRandomCohortNode.data.nodeTypeProps;
+      if (nodeProps.type !== JourneyNodeType.RandomCohortNode) {
+        return;
+      }
+      const name = uuid();
+      nodeProps.cohortChildren.push({
+        name,
+        percent: 0,
+      });
+      const childIndex = nodeProps.cohortChildren.length - 1;
+      const { newNodes, newEdges } = createRandomCohorChildState({
+        nodeId,
+        child: {
+          name,
+          percent: 0,
+        },
+        childIndex,
+      });
+      state.journeyNodes = state.journeyNodes.concat(newNodes);
+      state.journeyEdges = state.journeyEdges.concat(newEdges);
+      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+      state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
+    }),
+  removeRandomCohortChild: ({ nodeId, childName }) =>
+    set((state) => {
+      const node = findJourneyNode(
+        nodeId,
+        state.journeyNodes,
+        state.journeyNodesIndex,
+      );
+      if (!node) {
+        return;
+      }
+      if (node.data.nodeTypeProps.type !== JourneyNodeType.RandomCohortNode) {
+        return;
+      }
+      const nodeProps = node.data.nodeTypeProps;
+      nodeProps.cohortChildren = nodeProps.cohortChildren.filter(
+        (child) => child.name !== childName,
+      );
+
+      const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
+
+      // Will be an empty node
+      const nfc = getNearestUiFromChildren(nodeId, hm);
+      if (!nfc) {
+        return;
+      }
+
+      const labelNodeId = buildRandomCohortLabelNodeId(nodeId, childName);
+      const nodesToRemove = new Set<string>([labelNodeId]);
+
+      for (const n of state.journeyNodes) {
+        const nHmEntry = getUnsafe(hm, n.id);
+        if (
+          nHmEntry.descendants.has(nfc) &&
+          nHmEntry.ancestors.has(labelNodeId)
+        ) {
+          nodesToRemove.add(n.id);
+        }
+      }
+
+      state.journeyNodes = state.journeyNodes.filter(
+        (n) => !nodesToRemove.has(n.id),
+      );
+      state.journeyEdges = state.journeyEdges.filter(
+        (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target),
+      );
+      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+
+      nodeProps.cohortChildren.forEach((child, index) => {
+        const childLabelNodeId = buildRandomCohortLabelNodeId(
+          nodeId,
+          child.name,
+        );
+        const labelNode = findNode(
+          childLabelNodeId,
+          state.journeyNodes,
+          state.journeyNodesIndex,
+        );
+        if (labelNode && isLabelNode(labelNode)) {
+          labelNode.data.title = `Cohort ${index + 1}`;
+        }
+      });
+
+      state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
+    }),
   setJourneyUpdateRequest: (request) =>
     set((state) => {
       state.journeyUpdateRequest = request;
     }),
-  setJourneyStatsRequest(request) {
+  setJourneyStatsRequest: (request) =>
     set((state) => {
       state.journeyStatsRequest = request;
-    });
-  },
+    }),
   setJourneyName: (name) =>
     set((state) => {
       state.journeyName = name;
@@ -1311,8 +1704,61 @@ export function journeyBranchToState(
         edgesState.push(buildWorkflowEdge(nId, node.child));
         break;
       }
-      case JourneyNodeType.ExperimentSplitNode:
-        throw new Error("ExperimentSplitNode is not implemented");
+      case JourneyNodeType.RandomCohortNode: {
+        const randomCohortNode: RandomCohortUiNodeProps = {
+          type: JourneyNodeType.RandomCohortNode,
+          cohortChildren: node.children,
+        };
+
+        nodesState.push(buildJourneyNode(nId, randomCohortNode));
+
+        for (const child of node.children) {
+          const labelId = buildRandomCohortLabelNodeId(nId, child.name);
+          nodesState.push(buildLabelNode(labelId, child.name));
+          edgesState.push(buildPlaceholderEdge(nId, labelId));
+        }
+
+        const emptyId = buildEmptyNodeId(nId);
+        nodesState.push(buildEmptyNode(emptyId));
+
+        const nfc = getNearestFromChildren(nId, hm);
+
+        for (const child of node.children) {
+          const labelId = buildRandomCohortLabelNodeId(nId, child.name);
+          if (child.id === nfc || nfc === null) {
+            edgesState.push(buildWorkflowEdge(labelId, emptyId));
+          } else {
+            edgesState.push(buildWorkflowEdge(labelId, child.id));
+
+            const terminalId = journeyBranchToState(
+              child.id,
+              nodesState,
+              edgesState,
+              nodes,
+              hm,
+              nfc,
+            ).terminalNode;
+            if (!terminalId) {
+              throw new Error(
+                "random cohort children terminate which should not be possible",
+              );
+            }
+            edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+          }
+        }
+
+        nextNodeId = nfc ?? node.children[0]?.id ?? null;
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: emptyId,
+          };
+        }
+        if (nextNodeId) {
+          edgesState.push(buildWorkflowEdge(emptyId, nextNodeId));
+        }
+        break;
+      }
       case JourneyNodeType.RateLimitNode:
         throw new Error("RateLimitNode is not implemented");
       case JourneyNodeType.SegmentSplitNode: {
@@ -1692,6 +2138,46 @@ export function createConnections(params: CreateConnectionsParams): {
         source: params.source,
         target: params.target,
       });
+      break;
+    }
+    case JourneyNodeType.RandomCohortNode: {
+      const emptyId = buildEmptyNodeId(params.id);
+      const children = params.cohortChildren.reduce<{
+        newNodes: JourneyUiNode[];
+        newEdges: JourneyUiEdge[];
+      }>(
+        (acc, child, i) => {
+          const { newNodes: childNewNodes, newEdges: childNewEdges } =
+            createRandomCohorChildState({
+              nodeId: params.id,
+              child,
+              childIndex: i,
+            });
+          return {
+            newNodes: acc.newNodes.concat(childNewNodes),
+            newEdges: acc.newEdges.concat(childNewEdges),
+          };
+        },
+        {
+          newNodes: [],
+          newEdges: [],
+        },
+      );
+
+      newNodes = newNodes.concat([
+        buildBaseJourneyNode({
+          id: params.id,
+          nodeTypeProps: omit(params, ["id", "source", "target"]),
+        }),
+        ...children.newNodes,
+        buildEmptyNode(emptyId),
+      ]);
+
+      newEdges = [
+        buildWorkflowEdge(params.source, params.id),
+        buildWorkflowEdge(emptyId, params.target),
+        ...children.newEdges,
+      ];
       break;
     }
     case AdditionalJourneyNodeType.EntryUiNode: {

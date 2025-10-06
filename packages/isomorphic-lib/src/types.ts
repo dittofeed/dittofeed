@@ -863,7 +863,7 @@ export enum JourneyNodeType {
   SegmentSplitNode = "SegmentSplitNode",
   MessageNode = "MessageNode",
   RateLimitNode = "RateLimitNode",
-  ExperimentSplitNode = "ExperimentSplitNode",
+  RandomCohortNode = "RandomCohortNode",
   ExitNode = "ExitNode",
   // Inconsistent naming is for backwards compatibility.
   SegmentEntryNode = "EntryNode",
@@ -1198,19 +1198,31 @@ export const SegmentSplitNode = Type.Object(
 
 export type SegmentSplitNode = Static<typeof SegmentSplitNode>;
 
-export const ExperimentSplitNode = Type.Object(
+export const RandomCohortChild = Type.Object({
+  id: Type.String({ description: "The id of the child node to be split to" }),
+  percent: Type.Number({
+    description:
+      "The percentage of users to be randomly assigned to be in the cohort.",
+  }),
+  name: Type.String(),
+});
+
+export type RandomCohortChild = Static<typeof RandomCohortChild>;
+
+export const RandomCohortNode = Type.Object(
   {
     ...BaseNode,
-    type: Type.Literal(JourneyNodeType.ExperimentSplitNode),
+    type: Type.Literal(JourneyNodeType.RandomCohortNode),
+    children: Type.Array(RandomCohortChild),
   },
   {
-    title: "Experiment Split Node",
+    title: "Random Cohort Node",
     description:
-      "Used to split users among experiment paths, to test their effectiveness.",
+      "Used to split users among random cohorts, to test their effectiveness.",
   },
 );
 
-export type ExperimentSplitNode = Static<typeof ExperimentSplitNode>;
+export type RandomCohortNode = Static<typeof RandomCohortNode>;
 
 export const ExitNode = Type.Object(
   {
@@ -1230,7 +1242,7 @@ export const JourneyBodyNode = Type.Union([
   RateLimitNode,
   SegmentSplitNode,
   MessageNode,
-  ExperimentSplitNode,
+  RandomCohortNode,
   WaitForNode,
 ]);
 
@@ -2212,11 +2224,26 @@ export const WaitForUiNodeProps = Type.Object({
 
 export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
 
+export const RandomCohortUiChild = Type.Object({
+  name: Type.String(),
+  percent: Type.Number(),
+});
+
+export type RandomCohortUiChild = Static<typeof RandomCohortUiChild>;
+
+export const RandomCohortUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.RandomCohortNode),
+  cohortChildren: Type.Array(RandomCohortUiChild),
+});
+
+export type RandomCohortUiNodeProps = Static<typeof RandomCohortUiNodeProps>;
+
 export const JourneyUiBodyNodeTypeProps = Type.Union([
   MessageUiNodeProps,
   DelayUiNodeProps,
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
+  RandomCohortUiNodeProps,
 ]);
 
 export type JourneyUiBodyNodeTypeProps = Static<

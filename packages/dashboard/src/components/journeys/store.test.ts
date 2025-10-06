@@ -864,3 +864,99 @@ describe("journeyDefinitionFromState", () => {
     expect(nodes).toHaveLength(expectedNodes.length);
   });
 });
+
+describe("when journey has RandomCohortNode", () => {
+  it.only("should create a RandomCohortNode with correct children", () => {
+    const journeyId = uuid();
+    const workspaceId = uuid();
+
+    const definition: JourneyDefinition = {
+      nodes: [
+        {
+          id: "random-cohort-1",
+          type: JourneyNodeType.RandomCohortNode,
+          children: [
+            {
+              id: "message-node-1",
+              name: uuid(),
+              percent: 50,
+            },
+            {
+              id: "message-node-2",
+              name: uuid(),
+              percent: 30,
+            },
+            {
+              id: "ExitNode",
+              name: uuid(),
+              percent: 20,
+            },
+          ],
+        },
+        {
+          id: "message-node-1",
+          type: JourneyNodeType.MessageNode,
+          name: "Message 1",
+          child: "ExitNode",
+          variant: {
+            type: ChannelType.Email,
+            templateId: uuid(),
+          },
+          subscriptionGroupId: uuid(),
+        },
+        {
+          id: "message-node-2",
+          type: JourneyNodeType.MessageNode,
+          name: "Message 2",
+          child: "ExitNode",
+          variant: {
+            type: ChannelType.Email,
+            templateId: uuid(),
+          },
+          subscriptionGroupId: uuid(),
+        },
+      ],
+      exitNode: {
+        type: JourneyNodeType.ExitNode,
+      },
+      entryNode: {
+        type: JourneyNodeType.SegmentEntryNode,
+        child: "random-cohort-1",
+        segment: uuid(),
+      },
+    };
+
+    const journeyResource: Overwrite<
+      JourneyResource,
+      { definition: JourneyDefinition }
+    > = {
+      workspaceId,
+      id: journeyId,
+      name: "Test Journey with Random Cohort",
+      definition,
+      status: "Running",
+      updatedAt: 0,
+    };
+
+    const state = journeyToState(journeyResource);
+    expect(state.journeyNodes.length).toBeGreaterThan(0);
+
+    const result = journeyDefinitionFromState({ state });
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect(result.value.nodes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "random-cohort-1",
+            type: JourneyNodeType.RandomCohortNode,
+            children: expect.arrayContaining([
+              expect.objectContaining({ id: "message-node-1", percent: 50 }),
+              expect.objectContaining({ id: "message-node-2", percent: 30 }),
+              expect.objectContaining({ id: "ExitNode", percent: 20 }),
+            ]),
+          }),
+        ]),
+      );
+    }
+  });
+});
