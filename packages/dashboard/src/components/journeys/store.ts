@@ -1475,9 +1475,12 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
 
       nodeProps.cohortChildren.forEach((child, index) => {
-        const labelNodeId = buildRandomCohortLabelNodeId(nodeId, child.name);
+        const childLabelNodeId = buildRandomCohortLabelNodeId(
+          nodeId,
+          child.name,
+        );
         const labelNode = findNode(
-          labelNodeId,
+          childLabelNodeId,
           state.journeyNodes,
           state.journeyNodesIndex,
         );
