@@ -4089,6 +4089,7 @@ enum PrunedType {
 
 interface PrunedComputedPropertyNodeQuery {
   type: PrunedType.ComputedPropertyQuery;
+  // query expression which if it evaluates to false will cause the state node to not be recalculated
   expression: string;
   computedPropertyId: string;
   stateId: string;
@@ -4136,7 +4137,6 @@ export function segmentNodeToPruned({
         return [];
       }
       switch (node.operator.type) {
-        // FIXME  subscription and last performed can be pruned
         case SegmentOperatorType.Equals:
         case SegmentOperatorType.NotEquals:
         case SegmentOperatorType.Exists:
@@ -4147,7 +4147,7 @@ export function segmentNodeToPruned({
             {
               type: PrunedType.ComputedPropertyQuery,
               computedPropertyId: segment.id,
-              expression: `coalesce(any(nullIf(JSON_EXISTS(properties, ${path}), 0)), 0) as ${varName}`,
+              expression: `coalesce(any(nullIf(event_type == 'identify' and JSON_EXISTS(properties, ${path}), 0)), 0) as ${varName}`,
               stateId,
               varName,
             },
@@ -4159,6 +4159,29 @@ export function segmentNodeToPruned({
           break;
       }
       break;
+    }
+    case SegmentNodeType.SubscriptionGroup: {
+      const lastPerformedNode = subscriptionChangeToPerformed(node);
+      return segmentNodeToPruned({
+        segment,
+        node: lastPerformedNode,
+        qb,
+      });
+    }
+    case SegmentNodeType.LastPerformed: {
+      const varName = qb.getVariableName();
+      const eventName =  qb.addQueryValue(node.event, "String");
+      const expression =  `coalesce(any(nullIf(event_type == 'track' and event == ${eventName}, 0)), 0) as ${varName}`;
+      // TODO implement where condition
+      return [
+        {
+          type: PrunedType.ComputedPropertyQuery,
+          computedPropertyId: segment.id,
+          expression,
+          stateId,
+          varName,
+        }
+      ];
     }
     case SegmentNodeType.And: {
       return node.children.flatMap((child) => {
