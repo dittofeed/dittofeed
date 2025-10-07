@@ -71,7 +71,7 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
-import { computePropertiesIncremental } from "./computePropertiesWorkflow/activities/computeProperties";
+import type { ComputePropertiesArgs } from "./computePropertiesIncremental";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -408,10 +408,16 @@ enum EventsStepType {
   Delay = "Delay",
 }
 
+interface ClickhouseCounters {
+  commands: number;
+  queries: number;
+}
+
 interface StepContext {
   now: number;
   workspace: Workspace;
   segments: SavedSegmentResource[];
+  clickhouseCounters: ClickhouseCounters;
 }
 
 type EventBuilder = (ctx: StepContext) => TestEvent;
@@ -481,6 +487,7 @@ interface AssertStep {
     | TestIndexedState
     | ((ctx: StepContext) => TestIndexedState)
   )[];
+  clickhouseCounts?: Partial<ClickhouseCounters>;
 }
 
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
@@ -529,6 +536,54 @@ interface TableTest {
   segments?: TestSegment[];
   journeys?: TestJourney[];
   steps: TableStep[];
+}
+
+async function runComputePropertiesIncrementalWithCounters({
+  args,
+  counters,
+}: {
+  args: ComputePropertiesArgs;
+  counters: ClickhouseCounters;
+}): Promise<void> {
+  let computation: Promise<void> | undefined;
+
+  jest.isolateModules(() => {
+    const actualClickhouse = jest.requireActual(
+      "../clickhouse",
+    ) as typeof import("../clickhouse");
+
+    jest.doMock("../clickhouse", () => ({
+      ...actualClickhouse,
+      command: (
+        ...commandArgs: Parameters<typeof actualClickhouse.command>
+      ) => {
+        counters.commands += 1;
+        return actualClickhouse.command(...commandArgs);
+      },
+      query: (
+        ...queryArgs: Parameters<typeof actualClickhouse.query>
+      ) => {
+        counters.queries += 1;
+        return actualClickhouse.query(...queryArgs);
+      },
+    }));
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const workflow = require("./computePropertiesWorkflow/activities/computeProperties") as typeof import("./computePropertiesWorkflow/activities/computeProperties");
+    computation = workflow.computePropertiesIncremental(args);
+  });
+
+  if (!computation) {
+    throw new Error("computePropertiesIncremental failed to initialize");
+  }
+
+  jest.dontMock("../clickhouse");
+
+  try {
+    await computation;
+  } finally {
+    jest.resetModules();
+  }
 }
 
 async function upsertJourneys({
@@ -7728,6 +7783,11 @@ describe("computeProperties", () => {
 
     let now = Date.now();
 
+    const clickhouseCounters: ClickhouseCounters = {
+      commands: 0,
+      queries: 0,
+    };
+
     const [workspace] = await db()
       .insert(schema.workspace)
       .values({
@@ -7794,6 +7854,7 @@ describe("computeProperties", () => {
         workspace,
         segments,
         now,
+        clickhouseCounters,
       };
       switch (step.type) {
         case EventsStepType.SubmitEvents: {
@@ -7915,13 +7976,16 @@ describe("computeProperties", () => {
             },
             "computeProperties step",
           );
-          await computePropertiesIncremental({
-            workspaceId,
-            segments,
-            userProperties,
-            integrations: [],
-            journeys,
-            now,
+          await runComputePropertiesIncrementalWithCounters({
+            args: {
+              workspaceId,
+              segments,
+              userProperties,
+              integrations: [],
+              journeys,
+              now,
+            },
+            counters: clickhouseCounters,
           });
           break;
         }
@@ -8190,6 +8254,19 @@ describe("computeProperties", () => {
 
             if (assertedJourney.times !== undefined) {
               expect(timesForJourney).toEqual(assertedJourney.times);
+            }
+          }
+          if (step.clickhouseCounts) {
+            const { commands, queries } = step.clickhouseCounts;
+            if (commands !== undefined) {
+              expect(clickhouseCounters.commands, step.description).toEqual(
+                commands,
+              );
+            }
+            if (queries !== undefined) {
+              expect(clickhouseCounters.queries, step.description).toEqual(
+                queries,
+              );
             }
           }
           break;
