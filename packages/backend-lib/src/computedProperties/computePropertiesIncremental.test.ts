@@ -22,6 +22,7 @@ import {
   clickhouseClient,
   clickhouseDateToIso,
   ClickHouseQueryBuilder,
+  COUNTS,
 } from "../clickhouse";
 import { db, insert, upsert } from "../db";
 import * as schema from "../db/schema";
@@ -660,6 +661,14 @@ async function upsertComputedProperties({
 jest.setTimeout(3000000);
 
 describe("computeProperties", () => {
+  afterAll(() => {
+    logger().error(
+      {
+        counts: COUNTS,
+      },
+      "clickhouse counts",
+    );
+  });
   const tests: TableTest[] = [
     {
       description: "computes a trait user property",

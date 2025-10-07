@@ -4106,7 +4106,111 @@ type PrunedComputedPropertyNode =
   | PrunedComputedPropertyNodeQuery
   | PrunedComputedPropertyNodeValue;
 
-export function segmentNodeToPruned({
+function groupedUserPropertyToPruned({
+  userProperty,
+  node,
+  group,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  node: GroupChildrenUserPropertyDefinitions;
+  group: GroupUserPropertyDefinition;
+  qb: ClickHouseQueryBuilder;
+}): PrunedComputedPropertyNode[] {
+  return [];
+}
+
+function leafUserPropertyToPruned({
+  userProperty,
+  node,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  node: LeafUserPropertyDefinition;
+  qb: ClickHouseQueryBuilder;
+}): PrunedComputedPropertyNode[] {
+  const stateId = userPropertyStateId(userProperty, node.id);
+  if (!stateId) {
+    return [];
+  }
+  switch (node.type) {
+    case UserPropertyDefinitionType.Trait: {
+      const path = toJsonPathParamCh({
+        path: node.path,
+        qb,
+      });
+      if (!path) {
+        return [];
+      }
+      const varName = qb.getVariableName();
+      const expression = `coalesce(any(nullIf(event_type == 'identify' and JSON_EXISTS(properties, ${path}), 0)), 0) as ${varName}`;
+      return [
+        {
+          type: PrunedType.ComputedPropertyQuery,
+          computedPropertyId: userProperty.id,
+          stateId,
+          varName,
+          expression,
+        },
+      ];
+    }
+    default: {
+      return [];
+    }
+  }
+}
+
+function userPropertyNodeToPruned({
+  userProperty,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  qb: ClickHouseQueryBuilder;
+}): PrunedComputedPropertyNode[] {
+  switch (userProperty.definition.type) {
+    case UserPropertyDefinitionType.Group: {
+      const entryId = userProperty.definition.entry;
+      const entryNode = userProperty.definition.nodes.find(
+        (n) => n.id === entryId,
+      );
+      if (!entryNode) {
+        logger().error(
+          {
+            userProperty,
+            entryId,
+          },
+          "Grouped user property entry node not found",
+        );
+        return [];
+      }
+      return groupedUserPropertyToPruned({
+        userProperty,
+        node: entryNode,
+        group: userProperty.definition,
+        qb,
+      });
+    }
+    case UserPropertyDefinitionType.Performed: {
+      return leafUserPropertyToPruned({
+        userProperty,
+        node: userProperty.definition,
+        qb,
+      });
+    }
+    case UserPropertyDefinitionType.Trait: {
+      return leafUserPropertyToPruned({
+        userProperty,
+        node: userProperty.definition,
+        qb,
+      });
+    }
+    default: {
+      return [];
+    }
+  }
+}
+
+function segmentNodeToPruned({
   segment,
   node,
   qb,
@@ -4170,8 +4274,8 @@ export function segmentNodeToPruned({
     }
     case SegmentNodeType.LastPerformed: {
       const varName = qb.getVariableName();
-      const eventName =  qb.addQueryValue(node.event, "String");
-      const expression =  `coalesce(any(nullIf(event_type == 'track' and event == ${eventName}, 0)), 0) as ${varName}`;
+      const eventName = qb.addQueryValue(node.event, "String");
+      const expression = `coalesce(any(nullIf(event_type == 'track' and event == ${eventName}, 0)), 0) as ${varName}`;
       // TODO implement where condition
       return [
         {
@@ -4180,7 +4284,7 @@ export function segmentNodeToPruned({
           expression,
           stateId,
           varName,
-        }
+        },
       ];
     }
     case SegmentNodeType.And: {
@@ -4272,6 +4376,7 @@ export async function pruneComputedProperties({
   now,
   workspaceId,
   segments,
+  userProperties,
 }: Omit<
   ComputePropertiesArgs,
   "journeys" | "integrations"
@@ -4309,11 +4414,40 @@ export async function pruneComputedProperties({
     },
   );
 
-  const computedPropertiesValues = pendingSegments.flatMap((node) => {
+  const pendingUserProperties: PrunedComputedPropertyNode[] =
+    userProperties.flatMap((userProperty) => {
+      const period = periodByComputedPropertyId.get({
+        computedPropertyId: userProperty.id,
+        version: userProperty.definitionUpdatedAt.toString(),
+      });
+      const prunable = canPrune({
+        definitionUpdatedAt: userProperty.definitionUpdatedAt,
+        createdAt: userProperty.createdAt,
+        now,
+        periodBound: period?.maxTo.getTime(),
+      });
+      if (!prunable) {
+        return [];
+      }
+      return userPropertyNodeToPruned({
+        userProperty,
+        qb,
+      });
+    });
+
+  const allPending = pendingSegments.concat(pendingUserProperties);
+  const computedPropertiesValues = allPending.flatMap((node) => {
     if (node.type !== PrunedType.ComputedPropertyQuery) {
       return [];
     }
     return node.expression;
+  });
+
+  pendingUserProperties.forEach((node) => {
+    if (node.type !== PrunedType.ComputedPropertyValue) {
+      return;
+    }
+    prunedUserProperties.add(node.stateId);
   });
 
   pendingSegments.forEach((node) => {
@@ -4370,6 +4504,14 @@ export async function pruneComputedProperties({
       }
       if (computedPropertiesPresent[node.varName] !== 1) {
         prunedSegments.add(node.stateId);
+      }
+    });
+    pendingUserProperties.forEach((node) => {
+      if (node.type !== PrunedType.ComputedPropertyQuery) {
+        return;
+      }
+      if (computedPropertiesPresent[node.varName] !== 1) {
+        prunedUserProperties.add(node.stateId);
       }
     });
   }

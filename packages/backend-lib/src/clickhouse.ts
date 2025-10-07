@@ -206,6 +206,11 @@ export function createClickhouseClient(
 
 let CLICKHOUSE_CLIENT: NodeClickHouseClient | null = null;
 
+export const COUNTS = {
+  commands: 0,
+  queries: 0,
+};
+
 export function clickhouseClient() {
   if (CLICKHOUSE_CLIENT === null) {
     CLICKHOUSE_CLIENT = createClickhouseClient();
@@ -251,6 +256,7 @@ export async function command(
     queryId?: string;
   } = {},
 ): Promise<ReturnType<ClickHouseClient["command"]>> {
+  COUNTS.commands += 1;
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-command" }, async (span) => {
     span.setAttributes({ queryId, query: params.query });
@@ -276,6 +282,7 @@ export async function query(
 ): Promise<BaseResultSet<Readable, "JSONEachRow">> {
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-query" }, async (span) => {
+    COUNTS.queries += 1;
     span.setAttributes({ queryId, query: params.query });
     logger().trace(
       {
