@@ -12,7 +12,6 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "dittofeed.name" . }}-temporal
       app.kubernetes.io/instance: {{ .Release.Name }}
-      {{- include "dittofeed.baseLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
