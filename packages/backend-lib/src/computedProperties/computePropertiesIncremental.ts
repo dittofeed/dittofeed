@@ -2456,7 +2456,6 @@ function assignStandardUserPropertiesQuery({
     )
   `;
   return query;
-  return query;
 }
 
 function assignPerformedManyUserPropertiesQuery({
@@ -3137,8 +3136,14 @@ export async function computeAssignments({
 
         const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
         const segmentIdParam = qb.addQueryValue(segment.id, "String");
+        const shouldReset = shouldResetComputedProperty({
+          definitionUpdatedAt: segment.definitionUpdatedAt,
+          createdAt: segment.createdAt,
+          now,
+          periodBound,
+        });
 
-        if (!allStateIdsPruned) {
+        if (!allStateIdsPruned || shouldReset) {
           const stateIdsParam = qb.addQueryValue(
             assignmentConfig.stateIds,
             "Array(String)",
@@ -3201,14 +3206,7 @@ export async function computeAssignments({
             )`,
           );
 
-          if (
-            shouldResetComputedProperty({
-              definitionUpdatedAt: segment.definitionUpdatedAt,
-              createdAt: segment.createdAt,
-              now,
-              periodBound,
-            })
-          ) {
+          if (shouldReset) {
             logger().debug(
               {
                 segment,
@@ -3299,6 +3297,25 @@ export async function computeAssignments({
           userProperty,
           qb,
         });
+        const allStateIdsPruned =
+          ac !== null &&
+          (ac.type === UserPropertyAssignmentType.Standard
+            ? ac.stateIds
+            : [ac.stateId]
+          ).every((stateId) =>
+            prunedComputedProperties.userProperties.has(stateId),
+          );
+
+        const shouldReset = shouldResetComputedProperty({
+          definitionUpdatedAt: userProperty.definitionUpdatedAt,
+          createdAt: userProperty.createdAt,
+          now,
+          periodBound: period?.maxTo.getTime(),
+        });
+
+        if (allStateIdsPruned && !shouldReset) {
+          return;
+        }
 
         const stateQuery = ac
           ? assignUserPropertiesQuery({
@@ -3312,14 +3329,7 @@ export async function computeAssignments({
           : null;
         const queries: string[] = [];
 
-        if (
-          shouldResetComputedProperty({
-            definitionUpdatedAt: userProperty.definitionUpdatedAt,
-            createdAt: userProperty.createdAt,
-            now,
-            periodBound: period?.maxTo.getTime(),
-          })
-        ) {
+        if (shouldReset) {
           const nowSeconds = now / 1000;
           const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
           const userPropertyIdParam = qb.addQueryValue(
@@ -4176,6 +4186,7 @@ function leafUserPropertyToPruned({
         conditions.push(prefixCondition);
       }
       const expression = `coalesce(any(nullIf(${conditions.join(" and ")}, 0)), 0) as ${varName}`;
+      // FIXME remove
       logger().error({ expression }, "performed user property to pruned");
       return [
         {
@@ -4535,7 +4546,6 @@ export async function pruneComputedProperties({
     });
 
     const [row] = await result.json<Record<string, 1 | 0>>();
-    logger().debug({ query, row }, "pruning computed properties");
     computedPropertiesPresent = row ?? null;
   }
 
@@ -4553,6 +4563,7 @@ export async function pruneComputedProperties({
         return;
       }
       const isMissing = computedPropertiesPresent[node.varName] !== 1;
+      // FIXME remove
       logger().error(
         {
           node,
