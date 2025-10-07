@@ -63,5 +63,4 @@ spec:
   selector:
     app.kubernetes.io/name: {{ include "dittofeed.name" . }}-temporal
     app.kubernetes.io/instance: {{ .Release.Name }}
-    {{- include "dittofeed.baseLabels" . | nindent 4 }}
 {{- end }}
