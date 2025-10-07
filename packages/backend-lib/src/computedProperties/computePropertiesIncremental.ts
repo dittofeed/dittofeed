@@ -4116,20 +4116,6 @@ type PrunedComputedPropertyNode =
   | PrunedComputedPropertyNodeQuery
   | PrunedComputedPropertyNodeValue;
 
-function groupedUserPropertyToPruned({
-  userProperty,
-  node,
-  group,
-  qb,
-}: {
-  userProperty: SavedUserPropertyResource;
-  node: GroupChildrenUserPropertyDefinitions;
-  group: GroupUserPropertyDefinition;
-  qb: ClickHouseQueryBuilder;
-}): PrunedComputedPropertyNode[] {
-  return [];
-}
-
 function leafUserPropertyToPruned({
   userProperty,
   node,
@@ -4186,8 +4172,6 @@ function leafUserPropertyToPruned({
         conditions.push(prefixCondition);
       }
       const expression = `coalesce(any(nullIf(${conditions.join(" and ")}, 0)), 0) as ${varName}`;
-      // FIXME remove
-      logger().error({ expression }, "performed user property to pruned");
       return [
         {
           type: PrunedType.ComputedPropertyQuery,
@@ -4197,6 +4181,59 @@ function leafUserPropertyToPruned({
           expression,
         },
       ];
+    }
+    default: {
+      return [];
+    }
+  }
+}
+
+function groupedUserPropertyToPruned({
+  userProperty,
+  node,
+  group,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  node: GroupChildrenUserPropertyDefinitions;
+  group: GroupUserPropertyDefinition;
+  qb: ClickHouseQueryBuilder;
+}): PrunedComputedPropertyNode[] {
+  switch (node.type) {
+    case UserPropertyDefinitionType.AnyOf: {
+      return node.children.flatMap((child) => {
+        const childNode = group.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              userProperty,
+              child,
+            },
+            "Grouped user property child node not found",
+          );
+          return [];
+        }
+        return groupedUserPropertyToPruned({
+          userProperty,
+          node: childNode,
+          group,
+          qb,
+        });
+      });
+    }
+    case UserPropertyDefinitionType.Trait: {
+      return leafUserPropertyToPruned({
+        userProperty,
+        node,
+        qb,
+      });
+    }
+    case UserPropertyDefinitionType.Performed: {
+      return leafUserPropertyToPruned({
+        userProperty,
+        node,
+        qb,
+      });
     }
     default: {
       return [];
@@ -4387,18 +4424,6 @@ function segmentNodeToPruned({
       break;
   }
 }
-
-// export function userPropertyNodeToPruned({
-//   userProperty,
-//   node,
-//   qb,
-// }: {
-//   userProperty: SavedUserPropertyResource;
-//   node: UserPropertyNode;
-//   qb: ClickHouseQueryBuilder;
-// }): PrunedUserPropertyNode[] {
-//   return [];
-// }
 
 function canPrune({
   definitionUpdatedAt,
