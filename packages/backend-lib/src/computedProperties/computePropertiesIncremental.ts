@@ -4154,6 +4154,39 @@ function leafUserPropertyToPruned({
         },
       ];
     }
+    case UserPropertyDefinitionType.Performed: {
+      const varName = qb.getVariableName();
+      const path = toJsonPathParamCh({
+        path: node.path,
+        qb,
+      });
+      if (!path) {
+        return [];
+      }
+      const conditions: string[] = [
+        "event_type == 'track'",
+        `JSON_EXISTS(properties, ${path})`,
+      ];
+      const prefixCondition = getPrefixCondition({
+        column: "event",
+        value: node.event,
+        qb,
+      });
+      if (prefixCondition) {
+        conditions.push(prefixCondition);
+      }
+      const expression = `coalesce(any(nullIf(${conditions.join(" and ")}, 0)), 0) as ${varName}`;
+      logger().error({ expression }, "performed user property to pruned");
+      return [
+        {
+          type: PrunedType.ComputedPropertyQuery,
+          computedPropertyId: userProperty.id,
+          stateId,
+          varName,
+          expression,
+        },
+      ];
+    }
     default: {
       return [];
     }
@@ -4274,8 +4307,17 @@ function segmentNodeToPruned({
     }
     case SegmentNodeType.LastPerformed: {
       const varName = qb.getVariableName();
-      const eventName = qb.addQueryValue(node.event, "String");
-      const expression = `coalesce(any(nullIf(event_type == 'track' and event == ${eventName}, 0)), 0) as ${varName}`;
+      const conditions: string[] = ["event_type == 'track'"];
+      const prefixCondition = getPrefixCondition({
+        column: "event",
+        value: node.event,
+        qb,
+      });
+      if (prefixCondition) {
+        conditions.push(prefixCondition);
+      }
+
+      const expression = `coalesce(any(nullIf(${conditions.join(" and ")}, 0)), 0) as ${varName}`;
       // TODO implement where condition
       return [
         {
@@ -4510,7 +4552,16 @@ export async function pruneComputedProperties({
       if (node.type !== PrunedType.ComputedPropertyQuery) {
         return;
       }
-      if (computedPropertiesPresent[node.varName] !== 1) {
+      const isMissing = computedPropertiesPresent[node.varName] !== 1;
+      logger().error(
+        {
+          node,
+          isMissing,
+          abc: "aaabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabcaabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabcaabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabcaabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabcaabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabc",
+        },
+        "pruning user property",
+      );
+      if (isMissing) {
         prunedUserProperties.add(node.stateId);
       }
     });
