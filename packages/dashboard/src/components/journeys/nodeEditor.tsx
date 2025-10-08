@@ -164,8 +164,9 @@ function RandomCohortNodeFields({
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
       if (props.type === JourneyNodeType.RandomCohortNode) {
-        if (props.cohortChildren[index]) {
-          props.cohortChildren[index].percent = percent;
+        const child = props.cohortChildren[index];
+        if (child) {
+          child.percent = percent;
         }
       }
     });
