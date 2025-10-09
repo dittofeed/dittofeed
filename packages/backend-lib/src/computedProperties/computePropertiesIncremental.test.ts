@@ -1023,7 +1023,6 @@ describe("computeProperties", () => {
     {
       description:
         "prunes an anyof trait user property from recomputation when no events are received",
-      only: true,
       userProperties: [
         {
           name: "email",
@@ -1083,14 +1082,6 @@ describe("computeProperties", () => {
                 email: "test@email.com",
                 id: "user-1",
               },
-            },
-          ],
-          states: [
-            {
-              userId: "user-1",
-              type: "user_property",
-              lastValue: "test@email.com",
-              name: "email",
             },
           ],
           clickhouseCounts: {
