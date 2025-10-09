@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-loop-func */
 /* eslint-disable no-await-in-loop */
-import { randomUUID } from "crypto";
-import { inspect } from "node:util";
 import type { InspectOptions } from "node:util";
+import { inspect } from "node:util";
+
+import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
 import { asc, eq } from "drizzle-orm";
@@ -1153,6 +1154,171 @@ describe("computeProperties", () => {
               userId: "user-1",
               traits: {
                 email1: "test2@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "recomputes an anyof trait user property when the received events match the user property path or event type",
+          clickhouseCounts: {
+            commands: 5,
+          },
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test2@email.com",
+                id: "user-1",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "prunes a grouped trait segment from recomputation when no events are received",
+      userProperties: [],
+      segments: [
+        {
+          name: "andSegment",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "1",
+              children: ["2", "3"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "2",
+                path: "env",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              {
+                type: SegmentNodeType.Trait,
+                id: "3",
+                path: "status",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "running",
+                },
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          // ensure next period bound is after created at date of user property
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+                status: "running",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "computes grouped trait segment correctly initially",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+          ],
+          clickhouseCounts: {
+            commands: 3,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "does not recompute a grouped trait segment when no events are received",
+          clickhouseCounts: {
+            commands: 3,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                unrelatedTrait: "unrelated",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                env: "prod",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "does not recompute a grouped trait segment when the received events don't match the user property path or event type",
+          clickhouseCounts: {
+            commands: 3,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
               },
             },
           ],
