@@ -4507,10 +4507,11 @@ export async function pruneComputedProperties({
       if (!prunable) {
         return [];
       }
-      return userPropertyNodeToPruned({
+      const nodes = userPropertyNodeToPruned({
         userProperty,
         qb,
       });
+      return nodes;
     });
 
   const allPending = pendingSegments.concat(pendingUserProperties);
@@ -4534,7 +4535,6 @@ export async function pruneComputedProperties({
     }
     prunedSegments.add(node.stateId);
   });
-
   const nowSeconds = now / 1000;
   let computedPropertiesPresent: Record<string, 1 | 0> | null = null;
 
@@ -4588,15 +4588,6 @@ export async function pruneComputedProperties({
         return;
       }
       const isMissing = computedPropertiesPresent[node.varName] !== 1;
-      // FIXME remove
-      logger().error(
-        {
-          node,
-          isMissing,
-          abc: "aaabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabcaabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabcaabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabcaabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabcaabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcbcabc",
-        },
-        "pruning user property",
-      );
       if (isMissing) {
         prunedUserProperties.add(node.stateId);
       }
