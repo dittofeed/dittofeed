@@ -641,6 +641,10 @@ export function createCommands(yargs: Argv): Argv {
 
         await computeState({
           workspaceId,
+          prunedComputedProperties: {
+            segments: new Set(),
+            userProperties: new Set(),
+          },
           segments: segments.flatMap((s) => {
             if (s.isErr()) {
               logger().error({ err: s.error }, "failed to enrich segment");
