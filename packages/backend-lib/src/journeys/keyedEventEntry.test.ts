@@ -5,14 +5,16 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
+import { and, eq } from "drizzle-orm";
+
 import { submitBatch } from "../apps/batch";
-import { insert } from "../db";
+import { db, insert } from "../db";
 import {
   journey as dbJourney,
   segment as dbSegment,
   userProperty as dbUserProperty,
+  userJourneyEvent as dbUserJourneyEvent,
 } from "../db/schema";
-import logger from "../logger";
 import {
   BatchItem,
   ChannelType,
@@ -50,6 +52,7 @@ import {
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
+import logger from "../logger";
 
 jest.setTimeout(15000);
 
@@ -98,6 +101,204 @@ describe("keyedEventEntry journeys", () => {
 
   afterEach(async () => {
     await testEnv.teardown();
+  });
+
+  describe("when the same appointment event is received twice", () => {
+    it("runs the keyed journey only once per appointment id", async () => {
+      const messageNodeId = "send-reminder";
+      const templateId = randomUUID();
+      const journeyDefinition: JourneyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.EventEntryNode,
+          event: "APPOINTMENT_UPDATE",
+          key: "appointmentId",
+          child: messageNodeId,
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            type: JourneyNodeType.MessageNode,
+            id: messageNodeId,
+            variant: {
+              type: ChannelType.Email,
+              templateId,
+            },
+            child: JourneyNodeType.ExitNode,
+          },
+        ],
+      };
+
+      const journey = await insert({
+        table: dbJourney,
+        values: {
+          id: randomUUID(),
+          name: "simple-keyed-journey",
+          definition: journeyDefinition,
+          workspaceId: workspace.id,
+          status: "Running",
+          canRunMultiple: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      }).then(unwrap);
+
+      const userId = randomUUID();
+      const emailUserPropertyId = randomUUID();
+      const idUserPropertyId = randomUUID();
+
+      await Promise.all([
+        upsertUserProperty(
+          {
+            id: idUserPropertyId,
+            workspaceId: workspace.id,
+            definition: {
+              type: UserPropertyDefinitionType.Id,
+            },
+            name: "id",
+          },
+          {
+            skipProtectedCheck: true,
+          },
+        ),
+        upsertUserProperty(
+          {
+            id: emailUserPropertyId,
+            workspaceId: workspace.id,
+            definition: {
+              type: UserPropertyDefinitionType.Trait,
+              path: "email",
+            },
+            name: "email",
+          },
+          {
+            skipProtectedCheck: true,
+          },
+        ),
+      ]);
+
+      await insertUserPropertyAssignments([
+        {
+          workspaceId: workspace.id,
+          userId,
+          userPropertyId: idUserPropertyId,
+          value: userId,
+        },
+        {
+          workspaceId: workspace.id,
+          userId,
+          userPropertyId: emailUserPropertyId,
+          value: "test@example.com",
+        },
+      ]);
+
+      await worker.runUntil(async () => {
+        const firstMessageId = randomUUID();
+        await submitBatch({
+          workspaceId: workspace.id,
+          data: {
+            batch: [
+              {
+                type: EventType.Track,
+                event: "APPOINTMENT_UPDATE",
+                userId,
+                messageId: firstMessageId,
+                properties: {
+                  appointmentId: "appointment-1",
+                },
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          },
+        });
+
+        const handle1 = await testEnv.client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: `workflow-${randomUUID()}`,
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V3,
+                eventKey: "appointment-1",
+                messageId: firstMessageId,
+              },
+            ],
+          },
+        );
+
+        await handle1.result();
+        expect(senderMock).toHaveBeenCalledTimes(1);
+
+        const journeyEvents = await db().query.userJourneyEvent.findMany({
+          where: and(
+            eq(dbUserJourneyEvent.journeyId, journey.id),
+            eq(dbUserJourneyEvent.userId, userId),
+          ),
+        });
+        logger().debug({ journeyEvents }, "journey events");
+        expect(journeyEvents.length).toBeGreaterThan(0);
+        expect(
+          journeyEvents.every((event) => event.eventKey === "appointment-1"),
+        ).toBe(true);
+        expect(
+          journeyEvents.filter((event) => event.eventKey === "appointment-1"),
+        ).not.toHaveLength(0);
+        expect(
+          journeyEvents
+            .filter((event) => event.eventKey === "appointment-1")
+            .every((event) => event.eventKeyName === "appointmentId"),
+        ).toBe(true);
+
+        const secondMessageId = randomUUID();
+        await submitBatch({
+          workspaceId: workspace.id,
+          data: {
+            batch: [
+              {
+                type: EventType.Track,
+                event: "APPOINTMENT_UPDATE",
+                userId,
+                messageId: secondMessageId,
+                properties: {
+                  appointmentId: "appointment-1",
+                },
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          },
+        });
+
+        const handle2 = await testEnv.client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: `workflow-${randomUUID()}`,
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V3,
+                eventKey: "appointment-1",
+                messageId: secondMessageId,
+              },
+            ],
+          },
+        );
+
+        await handle2.result();
+        expect(senderMock).toHaveBeenCalledTimes(1);
+      });
+
+      expect(senderMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
@@ -762,7 +963,6 @@ describe("keyedEventEntry journeys", () => {
 
     it("only the cancelled journey should send a message", async () => {
       await worker.runUntil(async () => {
-
         const handle1 = await testEnv.client.workflow.start(
           userJourneyWorkflow,
           {
@@ -1095,7 +1295,6 @@ describe("keyedEventEntry journeys", () => {
 
     it("only the cancelled journey should send a message", async () => {
       await worker.runUntil(async () => {
-
         const handle1 = await testEnv.client.workflow.start(
           userJourneyWorkflow,
           {
