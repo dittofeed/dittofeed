@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-loop-func */
 /* eslint-disable no-await-in-loop */
+import type { InspectOptions } from "node:util";
+import { inspect } from "node:util";
+
 import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
@@ -62,10 +65,8 @@ import {
   findAllUserPropertyAssignments,
   toSavedUserPropertyResource,
 } from "../userProperties";
+import type { ComputePropertiesArgs } from "./computePropertiesIncremental";
 import {
-  computeAssignments,
-  computeState,
-  processAssignments,
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
@@ -405,10 +406,106 @@ enum EventsStepType {
   Delay = "Delay",
 }
 
+type ClickhouseModule = typeof import("../clickhouse");
+type CommandCallArgs = Parameters<ClickhouseModule["command"]>;
+type QueryCallArgs = Parameters<ClickhouseModule["query"]>;
+
+interface ClickhouseCommandCall {
+  params: CommandCallArgs[0];
+  options: Record<string, unknown> | undefined;
+}
+
+interface ClickhouseQueryCall {
+  params: QueryCallArgs[0];
+  options: Record<string, unknown> | undefined;
+}
+
+interface ClickhouseCounters {
+  commands: number;
+  queries: number;
+  commandCalls: ClickhouseCommandCall[];
+  queryCalls: ClickhouseQueryCall[];
+}
+
+const INSPECT_OPTIONS: InspectOptions = {
+  depth: 4,
+  breakLength: 120,
+  compact: false,
+};
+
+function sanitizeOptions(
+  options: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!options) {
+    return options;
+  }
+  const { clickhouseClient, ...rest } = options;
+  void clickhouseClient;
+  if (Object.keys(rest).length === 0) {
+    return undefined;
+  }
+  return rest;
+}
+
+function renderClickhouseCalls(
+  calls: ClickhouseCommandCall[] | ClickhouseQueryCall[],
+  type: "command" | "query",
+): string {
+  if (calls.length === 0) {
+    return `no ${type}s recorded`;
+  }
+  return calls
+    .map((call, index) => {
+      const lines: string[] = [`#${index + 1}`];
+      const params = call.params;
+      if (params && typeof params === "object") {
+        const { query, ...rest } = params as Record<string, unknown>;
+        if (typeof query === "string") {
+          lines.push(`query:\n${query}`);
+        } else if (query !== undefined) {
+          lines.push(`query: ${inspect(query, INSPECT_OPTIONS)}`);
+        }
+        if (Object.keys(rest).length > 0) {
+          lines.push(`params: ${inspect(rest, INSPECT_OPTIONS)}`);
+        }
+      } else {
+        lines.push(`params: ${inspect(params, INSPECT_OPTIONS)}`);
+      }
+      if (call.options !== undefined) {
+        lines.push(`options: ${inspect(call.options, INSPECT_OPTIONS)}`);
+      }
+      return lines.join("\n");
+    })
+    .join("\n\n");
+}
+
+function buildClickhouseExpectationMessage({
+  description,
+  expected,
+  actual,
+  type,
+  calls,
+}: {
+  description?: string;
+  expected: number;
+  actual: number;
+  type: "command" | "query";
+  calls: ClickhouseCommandCall[] | ClickhouseQueryCall[];
+}): string {
+  const prefix = description ? `${description} - ` : "";
+  const label =
+    type === "command"
+      ? "ClickHouse command count mismatch"
+      : "ClickHouse query count mismatch";
+  const renderedCalls = renderClickhouseCalls(calls, type);
+  return `${prefix}${label}\nExpected: ${expected}\nActual: ${actual}\nObserved calls:\n${renderedCalls}`;
+}
+
 interface StepContext {
   now: number;
   workspace: Workspace;
   segments: SavedSegmentResource[];
+  clickhouseCounters: ClickhouseCounters;
 }
 
 type EventBuilder = (ctx: StepContext) => TestEvent;
@@ -478,6 +575,7 @@ interface AssertStep {
     | TestIndexedState
     | ((ctx: StepContext) => TestIndexedState)
   )[];
+  clickhouseCounts?: Partial<ClickhouseCounters>;
 }
 
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
@@ -526,6 +624,63 @@ interface TableTest {
   segments?: TestSegment[];
   journeys?: TestJourney[];
   steps: TableStep[];
+}
+
+async function runComputePropertiesIncrementalWithCounters({
+  args,
+  counters,
+}: {
+  args: ComputePropertiesArgs;
+  counters: ClickhouseCounters;
+}): Promise<void> {
+  let computation: Promise<void> | undefined;
+
+  jest.isolateModules(() => {
+    const actualClickhouse = jest.requireActual(
+      "../clickhouse",
+    ) as typeof import("../clickhouse");
+
+    jest.doMock("../clickhouse", () => ({
+      ...actualClickhouse,
+      command: (
+        ...commandArgs: Parameters<typeof actualClickhouse.command>
+      ) => {
+        counters.commands += 1;
+        const [params, options] = commandArgs;
+        counters.commandCalls.push({
+          params,
+          options: sanitizeOptions(options),
+        });
+        return actualClickhouse.command(...commandArgs);
+      },
+      query: (...queryArgs: Parameters<typeof actualClickhouse.query>) => {
+        counters.queries += 1;
+        const [params, options] = queryArgs;
+        counters.queryCalls.push({
+          params,
+          options: sanitizeOptions(options),
+        });
+        return actualClickhouse.query(...queryArgs);
+      },
+    }));
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const workflow =
+      require("./computePropertiesWorkflow/activities/computeProperties") as typeof import("./computePropertiesWorkflow/activities/computeProperties");
+    computation = workflow.computePropertiesIncremental(args);
+  });
+
+  if (!computation) {
+    throw new Error("computePropertiesIncremental failed to initialize");
+  }
+
+  jest.dontMock("../clickhouse");
+
+  try {
+    await computation;
+  } finally {
+    jest.resetModules();
+  }
 }
 
 async function upsertJourneys({
@@ -711,6 +866,479 @@ describe("computeProperties", () => {
               type: "user_property",
               lastValue: "test@email.com",
               name: "email",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "prunes a trait user property from recomputation when no events are received",
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          // ensure next period bound is after created at date of user property
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email: "test@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "computes user property correctly initially",
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test@email.com",
+                id: "user-1",
+              },
+            },
+          ],
+          states: [
+            {
+              userId: "user-1",
+              type: "user_property",
+              lastValue: "test@email.com",
+              name: "email",
+            },
+          ],
+          clickhouseCounts: {
+            commands: 2,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "does not recompute a trait user property when no events are received",
+          clickhouseCounts: {
+            commands: 2,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                unrelatedTrait: "unrelated",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                email: "test@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "does not recompute a trait user property when the received events don't match the user property path or event type",
+          clickhouseCounts: {
+            commands: 2,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email: "test2@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "recomputes a trait user property when the received events match the user property path or event type",
+          clickhouseCounts: {
+            commands: 4,
+          },
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test2@email.com",
+                id: "user-1",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "prunes an anyof trait user property from recomputation when no events are received",
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Group,
+            entry: "1",
+            nodes: [
+              {
+                type: UserPropertyDefinitionType.AnyOf,
+                id: "1",
+                children: ["2", "3"],
+              },
+              {
+                type: UserPropertyDefinitionType.Trait,
+                id: "2",
+                path: "email1",
+              },
+              {
+                type: UserPropertyDefinitionType.Trait,
+                id: "3",
+                path: "email2",
+              },
+            ],
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          // ensure next period bound is after created at date of user property
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email1: "test@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "computes user property correctly initially",
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test@email.com",
+                id: "user-1",
+              },
+            },
+          ],
+          clickhouseCounts: {
+            commands: 3,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "does not recompute an anyof trait user property when no events are received",
+          clickhouseCounts: {
+            commands: 3,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                unrelatedTrait: "unrelated",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                email1: "test@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "does not recompute an anyof trait user property when the received events don't match the user property path or event type",
+          clickhouseCounts: {
+            commands: 3,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email1: "test2@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "recomputes an anyof trait user property when the received events match the user property path or event type",
+          clickhouseCounts: {
+            commands: 5,
+          },
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test2@email.com",
+                id: "user-1",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "prunes a grouped trait segment from recomputation when no events are received",
+      userProperties: [],
+      segments: [
+        {
+          name: "andSegment",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "1",
+              children: ["2", "3"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "2",
+                path: "env",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              {
+                type: SegmentNodeType.Trait,
+                id: "3",
+                path: "status",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "running",
+                },
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          // ensure next period bound is after created at date of user property
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+                status: "running",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "computes grouped trait segment correctly initially",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+          ],
+          clickhouseCounts: {
+            commands: 5,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "does not recompute a grouped trait segment when no events are received",
+          clickhouseCounts: {
+            commands: 5,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                unrelatedTrait: "unrelated",
+              },
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                env: "prod",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "does not recompute a grouped trait segment when the received events don't match the user property path or event type",
+          clickhouseCounts: {
+            commands: 5,
+          },
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "recomputes grouped trait segment when the received events match the user property path or event type",
+          clickhouseCounts: {
+            commands: 8,
+          },
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
             },
           ],
         },
@@ -7832,6 +8460,13 @@ describe("computeProperties", () => {
 
     let now = Date.now();
 
+    const clickhouseCounters: ClickhouseCounters = {
+      commands: 0,
+      queries: 0,
+      commandCalls: [],
+      queryCalls: [],
+    };
+
     const [workspace] = await db()
       .insert(schema.workspace)
       .values({
@@ -7898,6 +8533,7 @@ describe("computeProperties", () => {
         workspace,
         segments,
         now,
+        clickhouseCounters,
       };
       switch (step.type) {
         case EventsStepType.SubmitEvents: {
@@ -8011,7 +8647,7 @@ describe("computeProperties", () => {
           );
           break;
         }
-        case EventsStepType.ComputeProperties:
+        case EventsStepType.ComputeProperties: {
           logger().debug(
             {
               segments,
@@ -8019,27 +8655,19 @@ describe("computeProperties", () => {
             },
             "computeProperties step",
           );
-          await computeState({
-            workspaceId,
-            segments,
-            now,
-            userProperties,
-          });
-          await computeAssignments({
-            workspaceId,
-            segments,
-            userProperties,
-            now,
-          });
-          await processAssignments({
-            workspaceId,
-            segments,
-            integrations: [],
-            journeys,
-            userProperties,
-            now,
+          await runComputePropertiesIncrementalWithCounters({
+            args: {
+              workspaceId,
+              segments,
+              userProperties,
+              integrations: [],
+              journeys,
+              now,
+            },
+            counters: clickhouseCounters,
           });
           break;
+        }
         case EventsStepType.Sleep:
           now += step.timeMs;
           logger().debug(
@@ -8305,6 +8933,29 @@ describe("computeProperties", () => {
 
             if (assertedJourney.times !== undefined) {
               expect(timesForJourney).toEqual(assertedJourney.times);
+            }
+          }
+          if (step.clickhouseCounts) {
+            const { commands, queries } = step.clickhouseCounts;
+            if (commands !== undefined) {
+              const message = buildClickhouseExpectationMessage({
+                description: step.description,
+                expected: commands,
+                actual: clickhouseCounters.commands,
+                type: "command",
+                calls: clickhouseCounters.commandCalls,
+              });
+              expect(clickhouseCounters.commands, message).toEqual(commands);
+            }
+            if (queries !== undefined) {
+              const message = buildClickhouseExpectationMessage({
+                description: step.description,
+                expected: queries,
+                actual: clickhouseCounters.queries,
+                type: "query",
+                calls: clickhouseCounters.queryCalls,
+              });
+              expect(clickhouseCounters.queries, message).toEqual(queries);
             }
           }
           break;
