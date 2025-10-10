@@ -103,7 +103,7 @@ describe("keyedEventEntry journeys", () => {
     await testEnv.teardown();
   });
 
-  describe.only("when the same appointment event is received twice", () => {
+  describe("when the same appointment event is received twice", () => {
     it("runs the keyed journey only once per appointment id", async () => {
       const messageNodeId = "send-reminder";
       const templateId = randomUUID();
