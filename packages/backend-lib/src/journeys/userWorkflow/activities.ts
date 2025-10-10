@@ -404,6 +404,16 @@ export async function isRunnable({
         })
       : null,
   ]);
+  logger().debug(
+    {
+      previousExitEvent,
+      journeyId,
+      userId,
+      eventKey,
+      eventKeyName,
+    },
+    "previous exit event found, checking if journey is runnable",
+  );
   if (!previousExitEvent) {
     return true;
   }

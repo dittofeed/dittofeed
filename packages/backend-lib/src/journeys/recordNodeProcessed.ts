@@ -15,6 +15,7 @@ export async function recordNodeProcessed({
   journeyId,
   workspaceId,
   eventKey,
+  eventKeyName,
 }: RecordNodeProcessedParams) {
   const journeyStartedAtDate = new Date(journeyStartedAt);
   const nodeId = getNodeId(node);
@@ -36,6 +37,7 @@ export async function recordNodeProcessed({
     type: node.type,
     nodeId,
     eventKey,
+    eventKeyName,
   };
   await Promise.all([
     db()

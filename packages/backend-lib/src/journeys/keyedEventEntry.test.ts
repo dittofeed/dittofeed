@@ -5,12 +5,15 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
+import { and, eq } from "drizzle-orm";
+
 import { submitBatch } from "../apps/batch";
-import { insert } from "../db";
+import { db, insert } from "../db";
 import {
   journey as dbJourney,
   segment as dbSegment,
   userProperty as dbUserProperty,
+  userJourneyEvent as dbUserJourneyEvent,
 } from "../db/schema";
 import {
   BatchItem,
@@ -49,6 +52,7 @@ import {
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
+import logger from "../logger";
 
 jest.setTimeout(15000);
 
@@ -230,6 +234,26 @@ describe("keyedEventEntry journeys", () => {
 
         await handle1.result();
         expect(senderMock).toHaveBeenCalledTimes(1);
+
+        const journeyEvents = await db().query.userJourneyEvent.findMany({
+          where: and(
+            eq(dbUserJourneyEvent.journeyId, journey.id),
+            eq(dbUserJourneyEvent.userId, userId),
+          ),
+        });
+        logger().debug({ journeyEvents }, "journey events");
+        expect(journeyEvents.length).toBeGreaterThan(0);
+        expect(
+          journeyEvents.every((event) => event.eventKey === "appointment-1"),
+        ).toBe(true);
+        expect(
+          journeyEvents.filter((event) => event.eventKey === "appointment-1"),
+        ).not.toHaveLength(0);
+        expect(
+          journeyEvents
+            .filter((event) => event.eventKey === "appointment-1")
+            .every((event) => event.eventKeyName === "appointmentId"),
+        ).toBe(true);
 
         const secondMessageId = randomUUID();
         await submitBatch({
