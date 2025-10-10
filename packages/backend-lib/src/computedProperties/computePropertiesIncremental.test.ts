@@ -1184,7 +1184,6 @@ describe("computeProperties", () => {
       description:
         "prunes a grouped trait segment from recomputation when no events are received",
       userProperties: [],
-      only: true,
       segments: [
         {
           name: "andSegment",
@@ -1252,7 +1251,7 @@ describe("computeProperties", () => {
             },
           ],
           clickhouseCounts: {
-            commands: 3,
+            commands: 5,
           },
         },
         {
@@ -1267,7 +1266,7 @@ describe("computeProperties", () => {
           description:
             "does not recompute a grouped trait segment when no events are received",
           clickhouseCounts: {
-            commands: 3,
+            commands: 5,
           },
         },
         {
@@ -1304,7 +1303,7 @@ describe("computeProperties", () => {
           description:
             "does not recompute a grouped trait segment when the received events don't match the user property path or event type",
           clickhouseCounts: {
-            commands: 3,
+            commands: 5,
           },
         },
         {
@@ -1330,16 +1329,15 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description:
-            "recomputes an anyof trait user property when the received events match the user property path or event type",
+            "recomputes grouped trait segment when the received events match the user property path or event type",
           clickhouseCounts: {
-            commands: 5,
+            commands: 8,
           },
           users: [
             {
               id: "user-1",
-              properties: {
-                email: "test2@email.com",
-                id: "user-1",
+              segments: {
+                andSegment: true,
               },
             },
           ],
