@@ -1184,6 +1184,7 @@ describe("computeProperties", () => {
       description:
         "prunes a grouped trait segment from recomputation when no events are received",
       userProperties: [],
+      only: true,
       segments: [
         {
           name: "andSegment",
