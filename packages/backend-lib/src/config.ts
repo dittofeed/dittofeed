@@ -92,6 +92,9 @@ const BaseRawConfigProps = {
   computePropertiesAttempts: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  computePropertiesJitterMs: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   secretKey: Type.Optional(Type.String()),
   password: Type.Optional(Type.String()),
   computePropertiesWorkflowTaskTimeout: Type.Optional(
@@ -253,6 +256,7 @@ export type Config = Overwrite<
     computedPropertiesTopicName: string;
     computePropertiesAttempts: number;
     computePropertiesInterval: number;
+    computePropertiesJitterMs: number;
     computePropertiesQueueCapacity: number;
     computePropertiesQueueConcurrency: number;
     computePropertiesSchedulerInterval: number;
@@ -598,6 +602,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     computePropertiesInterval: rawConfig.computePropertiesInterval
       ? parseInt(rawConfig.computePropertiesInterval)
       : 120 * 1000,
+    computePropertiesJitterMs: rawConfig.computePropertiesJitterMs
+      ? parseInt(rawConfig.computePropertiesJitterMs)
+      : 0,
     signoutUrl:
       authMode === "single-tenant"
         ? "/api/public/single-tenant/signout"

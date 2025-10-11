@@ -368,12 +368,14 @@ export async function findDueWorkspaceMaxTos({
 }: FindDueWorkspacesParams): Promise<
   { max: Date | null; workspaceId: string }[]
 > {
+  const jitterMs = config().computePropertiesJitterMs;
   const w = aliasedTable(schema.workspace, "w");
   const cpp = aliasedTable(schema.computedPropertyPeriod, "cpp");
   const aggregatedMax = max(cpp.to);
   logger().info(
     {
       interval,
+      jitterMs,
       now,
       limit,
     },
@@ -382,6 +384,10 @@ export async function findDueWorkspaceMaxTos({
 
   const secondsInterval = `${Math.floor(interval / 1000).toString()} seconds`;
   const timestampNow = Math.floor(now / 1000);
+  const overdueCondition =
+    jitterMs > 0
+      ? sql`(to_timestamp(${timestampNow}) - ${aggregatedMax}) > ${secondsInterval}::interval + (interval '1 millisecond' * ${jitterMs}) * random()`
+      : sql`(to_timestamp(${timestampNow}) - ${aggregatedMax}) > ${secondsInterval}::interval`;
   const whereConditions: (SQL | undefined)[] = [
     eq(w.status, WorkspaceStatusDbEnum.Active),
     not(eq(w.type, WorkspaceTypeAppEnum.Parent)),
@@ -412,7 +418,7 @@ export async function findDueWorkspaceMaxTos({
    * - We filter on w.status, w.type, feature.name, and feature.enabled, as before.
    * - In the HAVING clause, we check:
    *    (a) aggregatedMax IS NULL  => no computations ever run (cold start)
-   *    (b) aggregatedMax is older than `interval`.
+   *    (b) aggregatedMax is older than `interval` (plus optional jitter allowance).
    * - Then we order by aggregatedMax ASC (nulls first) so that brand-new
    *   (never computed) workspaces appear first, then oldest computations after.
    */
@@ -438,7 +444,7 @@ export async function findDueWorkspaceMaxTos({
         // Cold start: aggregatedMax is null => no existing compute records
         sql`${aggregatedMax} IS NULL`,
         // Overdue: last computation older than our interval
-        sql`(to_timestamp(${timestampNow}) - ${aggregatedMax}) > ${secondsInterval}::interval`,
+        overdueCondition,
       ),
     )
     .orderBy(sql`${aggregatedMax} ASC NULLS FIRST`)
