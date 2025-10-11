@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
+import config, { type Config } from "../config";
 import { db, insert } from "../db";
 import { segment as dbSegment, workspace as dbWorkspace } from "../db/schema";
 import { toSegmentResource } from "../segments";
@@ -13,10 +14,35 @@ import {
 } from "../types";
 import {
   createPeriods,
+  findDueWorkspaceMaxTos,
   findDueWorkspaceMinTos,
   getEarliestComputePropertyPeriod,
   getPeriodsByComputedPropertyId,
 } from "./periods";
+
+interface ActualConfigModule {
+  default: () => Config;
+}
+
+function defaultConfigImplementation(): Config {
+  const actualModule: ActualConfigModule = jest.requireActual("../config");
+  return actualModule.default();
+}
+
+jest.mock("../config", () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(defaultConfigImplementation),
+}));
+
+// Keep a reference to the actual implementation's default export
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const actualConfig: () => Config =
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  jest.requireActual("../config").default;
+const mockedConfig = config as jest.MockedFunction<typeof config>;
+const resetConfigMock = () => {
+  mockedConfig.mockImplementation(defaultConfigImplementation);
+};
 
 describe("periods", () => {
   let workspace: typeof dbWorkspace.$inferSelect;
@@ -432,6 +458,26 @@ describe("periods", () => {
         (w) => w.workspaceId === workspace.id,
       );
       expect(dueWorkspace).toBeUndefined();
+    });
+  });
+
+  describe("findDueWorkspaceMaxTos", () => {
+    it("does not throw when jitter is configured", async () => {
+      mockedConfig.mockImplementation(() => ({
+        ...actualConfig(),
+        computePropertiesJitterMs: 1000,
+      }));
+      const interval = actualConfig().computePropertiesInterval;
+      try {
+        const result = await findDueWorkspaceMaxTos({
+          now: Date.now(),
+          interval,
+          limit: 5,
+        });
+        expect(Array.isArray(result)).toBe(true);
+      } finally {
+        resetConfigMock();
+      }
     });
   });
 });
