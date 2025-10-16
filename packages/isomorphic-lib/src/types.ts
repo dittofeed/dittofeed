@@ -1,7 +1,11 @@
 import { Static, TSchema, Type } from "@sinclair/typebox";
 import { Result } from "neverthrow";
 
-import { SEGMENT_ID_HEADER, WORKSPACE_ID_HEADER } from "./constants/headers";
+import {
+  MANUAL_SEGMENT_APPEND_HEADER,
+  SEGMENT_ID_HEADER,
+  WORKSPACE_ID_HEADER,
+} from "./constants/headers";
 
 export type Present<T> = T extends undefined | null ? never : T;
 
@@ -4852,6 +4856,8 @@ export const FeatureConfigByType = {
 export const ManualSegmentUploadCsvHeaders = Type.Object({
   [WORKSPACE_ID_HEADER]: WorkspaceId,
   [SEGMENT_ID_HEADER]: Type.String(),
+  // Optional header to control whether new values append or replace
+  [MANUAL_SEGMENT_APPEND_HEADER]: Type.Optional(Type.String()),
 });
 
 export type ManualSegmentUploadCsvHeaders = Static<
