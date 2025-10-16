@@ -37,6 +37,7 @@ export function useJourneyMutation(journeyId: string) {
       requestData,
       { headers: authHeaders },
     );
+    console.log(response.data);
     return response.data;
   };
 

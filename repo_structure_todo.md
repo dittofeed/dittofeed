@@ -1,0 +1,1063 @@
+- [x] .cursor
+  - [x] rules
+    - [x] final-newline.mdc
+- [x] .devcontainer
+  - [x] devcontainer.json
+- [x] .dockerignore
+- [x] .eslintrc.js
+- [x] .github
+  - [x] workflows
+    - [x] admin-cli-ci.yaml
+    - [x] admin-cli-deps-ci.yaml
+    - [x] api-ci.yaml
+    - [x] api-deps-ci.yaml
+    - [x] backend-lib-ci.yaml
+    - [x] dashboard-ci.yaml
+    - [x] dashboard-deps-ci.yaml
+    - [x] docker-build-publish.yaml
+    - [x] emailo-ci.yaml
+    - [x] isomorphic-lib-ci.yaml
+    - [x] lite-ci.yaml
+    - [x] shared-workflow.yaml
+    - [x] worker-ci.yaml
+- [x] .gitignore
+- [x] .prettierrc.js
+- [x] .tmp
+  - [x] .gitkeep
+  - [x] open-api-apps.json
+- [x] .yarn
+  - [x] releases
+    - [x] yarn-4.1.1.cjs
+- [x] .yarnrc.yml
+- [x] LICENSE
+- [x] README.md
+- [x] controlled-select-reference.ts
+- [x] dev-setup.sh
+- [x] docker-compose.ee.yaml
+- [x] docker-compose.lite.yaml
+- [x] docker-compose.yaml
+- [x] examples
+  - [x] git-workflows
+    - [x] dfconfig.yaml
+    - [x] journeys
+      - [x] onboarding.yaml
+    - [x] segments
+      - [x] recentlyCreatedUsers.yaml
+    - [x] templates
+      - [x] 10ReasonsToUpgrade.liquid.html
+      - [x] 10ReasonsToUpgrade.yaml
+      - [x] welcome.liquid.html
+      - [x] welcome.yaml
+  - [x] supabase
+    - [x] .gitignore
+    - [x] README.md
+    - [x] app
+      - [x] account
+        - [x] account-form.tsx
+        - [x] avatar.tsx
+        - [x] page.tsx
+      - [x] auth
+        - [x] callback
+          - [x] route.ts
+        - [x] signout
+          - [x] route.ts
+      - [x] auth-form.tsx
+      - [x] database.types.ts
+      - [x] dittofeed-provider.tsx
+      - [x] favicon.ico
+      - [x] globals.css
+      - [x] layout.tsx
+      - [x] page.module.css
+      - [x] page.tsx
+      - [x] supabase-provider.tsx
+    - [x] middleware.ts
+    - [x] next-env.d.ts
+    - [x] next.config.js
+    - [x] package-lock.json
+    - [x] package.json
+    - [x] public
+      - [x] next.svg
+      - [x] vercel.svg
+    - [x] supabase
+      - [x] .gitignore
+      - [x] config.toml
+      - [x] migrations
+        - [x] 20221017024722_init.sql
+    - [x] tsconfig.json
+- [x] grafana-datasource-prometheus.yaml
+- [x] helm-charts
+  - [x] dittofeed
+    - [x] .helmignore
+    - [x] Chart.lock
+    - [x] Chart.yaml
+    - [x] README.md
+    - [x] templates
+      - [x] NOTES.txt
+      - [x] _helpers.tpl
+      - [x] deployment.yaml
+      - [x] ingress.yaml
+      - [x] service.yaml
+      - [x] serviceaccount.yaml
+      - [x] temporal.yaml
+      - [x] tests
+        - [x] test-connection.yaml
+      - [x] workers.yaml
+    - [x] values.yaml
+  - [x] dittofeed-admin-cli
+    - [x] .helmignore
+    - [x] Chart.yaml
+    - [x] README.md
+    - [x] templates
+      - [x] _helpers.tpl
+      - [x] deployment.yaml
+      - [x] serviceaccount.yaml
+    - [x] values.yaml
+- [x] jest.config.js
+- [x] mnt
+  - [x] .gitkeep
+- [x] otel-collector-config.yaml
+- [x] package.json
+- [ ] packages
+  - [ ] admin-cli
+    - [ ] Dockerfile
+    - [ ] package.json
+    - [ ] scripts
+      - [ ] admin.sh
+      - [ ] cli.ts
+      - [ ] install-deps.sh
+    - [ ] src
+      - [ ] bootstrap.ts
+      - [ ] cli.ts
+      - [ ] commandDefinitions.ts
+      - [ ] hubspot.ts
+      - [ ] reset.ts
+      - [ ] spawn.ts
+      - [ ] upgrades.ts
+    - [ ] tsconfig.json
+  - [ ] api
+    - [ ] .eslintrc.js
+    - [ ] Dockerfile
+    - [ ] package.json
+    - [ ] scripts
+      - [ ] generateSegmentRequest.ts
+      - [ ] seedDemo.ts
+      - [ ] segmentTest.ts
+      - [ ] startServer.ts
+    - [ ] src
+      - [ ] buildApp
+        - [ ] adminAuth.test.ts
+        - [ ] adminAuth.ts
+        - [ ] cors.ts
+        - [ ] multipart.ts
+        - [ ] requestContext.ts
+        - [ ] router.ts
+      - [ ] buildApp.ts
+      - [ ] config.ts
+      - [ ] controllers
+        - [ ] analysisController.ts
+        - [ ] apiKeyController.ts
+        - [ ] broadcastsController.ts
+        - [ ] componentConfigurationsController.ts
+        - [ ] computedPropertiesController.ts
+        - [ ] contentController.ts
+        - [ ] debugController.ts
+        - [ ] deliveriesController.ts
+        - [ ] endToEndWebhooks.deprecated-test.ts
+        - [ ] eventsController.ts
+        - [ ] groupsController.ts
+        - [ ] indexController.ts
+        - [ ] integrationsController.ts
+        - [ ] journeysController.ts
+        - [ ] permissionsController.ts
+        - [ ] publicAppsController.ts
+        - [ ] resourcesController.ts
+        - [ ] secretsController.ts
+        - [ ] segmentsController.ts
+        - [ ] settingsController.ts
+        - [ ] singleTenantController.ts
+        - [ ] subscriptionGroupsController.ts
+        - [ ] subscriptionManagementController.ts
+        - [ ] userPropertiesController.ts
+        - [ ] usersController.ts
+        - [ ] webhooksController.ts
+      - [ ] openTelemetry.ts
+      - [ ] types.ts
+      - [ ] workspace.ts
+    - [ ] tsconfig.build.json
+    - [ ] tsconfig.json
+  - [ ] backend-lib
+    - [ ] .eslintrc.json
+    - [ ] clickhouse_config.dev.xml
+    - [ ] drizzle
+      - [ ] 0000_lethal_trish_tilby.sql
+      - [ ] 0001_brave_randall.sql
+      - [ ] 0002_spicy_inertia.sql
+      - [ ] 0003_hesitant_lionheart.sql
+      - [ ] 0004_mighty_madame_web.sql
+      - [ ] 0005_equal_raza.sql
+      - [ ] 0006_talented_mattie_franklin.sql
+      - [ ] 0007_mysterious_norman_osborn.sql
+      - [ ] 0008_huge_toad_men.sql
+      - [ ] meta
+        - [ ] 0000_snapshot.json
+        - [ ] 0001_snapshot.json
+        - [ ] 0002_snapshot.json
+        - [ ] 0003_snapshot.json
+        - [ ] 0004_snapshot.json
+        - [ ] 0005_snapshot.json
+        - [ ] 0006_snapshot.json
+        - [ ] 0007_snapshot.json
+        - [ ] 0008_snapshot.json
+        - [ ] _journal.json
+    - [ ] drizzle.config.ts
+    - [ ] package.json
+    - [ ] scripts
+      - [ ] fcmNotification.ts
+      - [ ] local-ch-access.sh
+      - [ ] local-pg-access.sh
+      - [ ] sendgridEmail.ts
+    - [ ] src
+      - [ ] adminApiKeys.ts
+      - [ ] analysis.test.ts
+      - [ ] analysis.ts
+      - [ ] apps
+        - [ ] batch.test.ts
+        - [ ] batch.ts
+        - [ ] files.ts
+        - [ ] group.ts
+        - [ ] track.ts
+      - [ ] apps.test.ts
+      - [ ] apps.ts
+      - [ ] auth.test.ts
+      - [ ] auth.ts
+      - [ ] backendDiContainer.ts
+      - [ ] blobStorage.ts
+      - [ ] bootstrap
+        - [ ] messageTemplates.ts
+      - [ ] bootstrap.test.ts
+      - [ ] bootstrap.ts
+      - [ ] broadcasts
+        - [ ] activities.ts
+        - [ ] broadcastWorkflowV2.test.ts
+        - [ ] broadcastWorkflowV2.ts
+        - [ ] lifecycle.ts
+        - [ ] recomputeBroadcastSegmentWorkflow.ts
+      - [ ] broadcasts.ts
+      - [ ] clickhouse.ts
+      - [ ] componentConfigurations.test.ts
+      - [ ] componentConfigurations.ts
+      - [ ] computedProperties
+        - [ ] broadcastBatchWorkflow.ts
+        - [ ] broadcastWorkflow.ts
+        - [ ] computePropertiesIncremental.test.ts
+        - [ ] computePropertiesIncremental.ts
+        - [ ] computePropertiesQueueWorkflow.test.ts
+        - [ ] computePropertiesQueueWorkflow.ts
+        - [ ] computePropertiesWorkflow
+          - [ ] activities
+            - [ ] computeProperties.test.ts
+            - [ ] computeProperties.ts
+            - [ ] computePropertiesScheduler.test.ts
+            - [ ] computePropertiesScheduler.ts
+            - [ ] performBroadcast.ts
+          - [ ] activities.ts
+          - [ ] lifecycle.ts
+        - [ ] computePropertiesWorkflow.ts
+        - [ ] comutePropertiesSchedulerWorkflow.ts
+        - [ ] periods.test.ts
+        - [ ] periods.ts
+        - [ ] queueUtils.ts
+      - [ ] config
+        - [ ] loader.ts
+      - [ ] config.ts
+      - [ ] constants.ts
+      - [ ] crypto.ts
+      - [ ] dates.test.ts
+      - [ ] dates.ts
+      - [ ] db
+        - [ ] relations.ts
+        - [ ] schema.ts
+      - [ ] db.ts
+      - [ ] deliveries.test.ts
+      - [ ] deliveries.ts
+      - [ ] destinations
+        - [ ] amazonses.test.ts
+        - [ ] amazonses.ts
+        - [ ] fcm.ts
+        - [ ] mailchimp.test.ts
+        - [ ] mailchimp.ts
+        - [ ] postmark.test.ts
+        - [ ] postmark.ts
+        - [ ] resend.ts
+        - [ ] sendgrid.ts
+        - [ ] signalwire.ts
+        - [ ] smtp.ts
+        - [ ] twilio.ts
+      - [ ] dir.ts
+      - [ ] dynamicLoader.ts
+      - [ ] eventEntry.test.ts
+      - [ ] features.ts
+      - [ ] formatRegistry.ts
+      - [ ] globalCronWorkflow.ts
+      - [ ] gmail.ts
+      - [ ] groups.test.ts
+      - [ ] groups.ts
+      - [ ] integrations
+        - [ ] hubspot
+          - [ ] activities.test.ts
+          - [ ] activities.ts
+          - [ ] signalUtils.ts
+        - [ ] hubspotUserWorkflow.ts
+        - [ ] hubspotWorkflow.ts
+        - [ ] subscriptions.ts
+      - [ ] integrations.ts
+      - [ ] journeys
+        - [ ] bootstrap
+          - [ ] activities.ts
+          - [ ] lifecycle.ts
+        - [ ] bootstrap.ts
+        - [ ] endToEnd.test.ts
+        - [ ] hiddenEvent.test.ts
+        - [ ] keyedEventEntry.test.ts
+        - [ ] randomCohortJourney.test.ts
+        - [ ] reEnter.test.ts
+        - [ ] recordNodeProcessed.ts
+        - [ ] userWorkflow
+          - [ ] activities.test.ts
+          - [ ] activities.ts
+          - [ ] lifecycle.ts
+          - [ ] types.ts
+        - [ ] userWorkflow.ts
+        - [ ] waitForTest.test.ts
+      - [ ] journeys.test.ts
+      - [ ] journeys.ts
+      - [ ] jsonPath.ts
+      - [ ] kafka.ts
+      - [ ] liquid.test.ts
+      - [ ] liquid.ts
+      - [ ] logger.ts
+      - [ ] messaging
+        - [ ] email.test.ts
+        - [ ] email.ts
+        - [ ] sms.test.ts
+        - [ ] sms.ts
+        - [ ] testTemplate.test.ts
+      - [ ] messaging.test.ts
+      - [ ] messaging.ts
+      - [ ] migrate.ts
+      - [ ] mobilePushTemplates.ts
+      - [ ] onboarding.ts
+      - [ ] openIdProfile.ts
+      - [ ] openTelemetry
+        - [ ] constants.ts
+      - [ ] openTelemetry.ts
+      - [ ] pagination.ts
+      - [ ] rbac.ts
+      - [ ] requestContext.test.ts
+      - [ ] requestContext.ts
+      - [ ] requestContextPostProcessor.ts
+      - [ ] resiliency.test.ts
+      - [ ] resiliency.ts
+      - [ ] resources.ts
+      - [ ] restartUserJourneyWorkflow
+        - [ ] activities.ts
+        - [ ] lifecycle.ts
+      - [ ] restartUserJourneyWorkflow.ts
+      - [ ] retry.ts
+      - [ ] secrets.test.ts
+      - [ ] secrets.ts
+      - [ ] segmentIO.ts
+      - [ ] segments
+        - [ ] manualSegment
+          - [ ] activities.test.ts
+          - [ ] activities.ts
+        - [ ] manualSegmentWorkflow.ts
+        - [ ] manualSegments.ts
+        - [ ] manualSegmentsWorkflow.test.ts
+        - [ ] updateManualSegmentJourney.test.ts
+      - [ ] segments.test.ts
+      - [ ] segments.ts
+      - [ ] subscriptionGroups.test.ts
+      - [ ] subscriptionGroups.ts
+      - [ ] subscriptionManagementEndToEnd.test.ts
+      - [ ] temporal
+        - [ ] activities
+          - [ ] shared.ts
+        - [ ] activities.ts
+        - [ ] activity.ts
+        - [ ] activityInboundInterceptor.ts
+        - [ ] client.ts
+        - [ ] connectWorkflowClient.ts
+        - [ ] connection.ts
+        - [ ] createConnection.ts
+        - [ ] semaphore.ts
+        - [ ] workflow.ts
+        - [ ] workflowInboundCallsInterceptor.ts
+        - [ ] workflows.ts
+      - [ ] transferResources.test.ts
+      - [ ] transferResources.ts
+      - [ ] typeAssertions.ts
+      - [ ] types.ts
+      - [ ] userEvents
+        - [ ] clickhouse.ts
+      - [ ] userEvents.test.ts
+      - [ ] userEvents.ts
+      - [ ] userProperties.test.ts
+      - [ ] userProperties.ts
+      - [ ] userWorkflow.test.ts
+      - [ ] users.test.ts
+      - [ ] users.ts
+      - [ ] workerLogger.ts
+      - [ ] workspaceOccupantSettings.test.ts
+      - [ ] workspaceOccupantSettings.ts
+      - [ ] workspaces
+        - [ ] createWorkspace.ts
+        - [ ] createWorkspaces.test.ts
+      - [ ] workspaces.test.ts
+      - [ ] workspaces.ts
+    - [ ] temporal-dynamicconfig
+      - [ ] dev.yaml
+      - [ ] prod.yaml
+    - [ ] test
+      - [ ] computeProperties.ts
+      - [ ] customBlocks.ts
+      - [ ] factories
+        - [ ] jwt.ts
+      - [ ] globalSetup.ts
+      - [ ] globalTeardown.ts
+      - [ ] kafkaSkaffold.ts
+      - [ ] setup.ts
+      - [ ] temporal.ts
+      - [ ] testEvents.ts
+      - [ ] testHelpers.ts
+    - [ ] tsconfig.build.json
+    - [ ] tsconfig.json
+  - [ ] dashboard
+    - [ ] .eslintrc.json
+    - [ ] .gitignore
+    - [ ] Dockerfile
+    - [ ] README.md
+    - [ ] licenses
+      - [ ] mantis-LICENSE
+      - [ ] responsive-html-email-template-LICENSE
+    - [ ] next-env.d.ts
+    - [ ] next.config.js
+    - [ ] package.json
+    - [ ] public
+      - [ ] favicon.ico
+      - [ ] favicon.png
+      - [ ] logo.png
+      - [ ] mobile-mock.svg
+      - [ ] vercel.svg
+    - [ ] sample-uploads
+      - [ ] missing-email-users.csv
+      - [ ] missing-headers-users.csv
+      - [ ] missing-identifiers.csv
+      - [ ] missing-some-identifiers.csv
+      - [ ] subscription-group-actions.csv
+      - [ ] users.csv
+    - [ ] scripts
+      - [ ] buildCustomServer.ts
+    - [ ] src
+      - [ ] components
+        - [ ] adminApiKeyTable.tsx
+        - [ ] analysisChart
+          - [ ] analysisChartFilters.tsx
+          - [ ] analysisChartGroupBy.tsx
+          - [ ] analysisSummaryPanel.tsx
+        - [ ] analysisChart.tsx
+        - [ ] app.tsx
+        - [ ] authorizeGmail.tsx
+        - [ ] broadcast.tsx
+        - [ ] broadcasts
+          - [ ] broadcastsLayoutV2.tsx
+          - [ ] broadcastsShared.ts
+          - [ ] configuration.tsx
+          - [ ] content.tsx
+          - [ ] deliveries.tsx
+          - [ ] events.tsx
+          - [ ] indexTable.tsx
+          - [ ] recipients.tsx
+        - [ ] broadcastsTable.tsx
+        - [ ] bulletList.tsx
+        - [ ] calendar.tsx
+        - [ ] channelProviderAutocomplete.tsx
+        - [ ] codeDiff.tsx
+        - [ ] collapsable.tsx
+        - [ ] commitAndPush.tsx
+        - [ ] config.ts
+        - [ ] confirmDeleteDialog.tsx
+        - [ ] csvUploader.tsx
+        - [ ] dashboardContent.tsx
+        - [ ] dashboardHead.tsx
+        - [ ] dateRangeSelector.tsx
+        - [ ] deliveries
+          - [ ] deliveriesFilter.tsx
+        - [ ] deliveriesTable.tsx
+        - [ ] deliveriesTableV2
+          - [ ] constants.ts
+          - [ ] deliveriesBody.tsx
+          - [ ] deliveriesDownloadButton.tsx
+          - [ ] deliveriesSortButton.tsx
+        - [ ] deliveriesTableV2.tsx
+        - [ ] discordLink.tsx
+        - [ ] dittofeedSdk.tsx
+        - [ ] durationDescription.test.ts
+        - [ ] durationDescription.tsx
+        - [ ] durationSelect.tsx
+        - [ ] editableName
+          - [ ] editableName.module.css
+          - [ ] v2.tsx
+        - [ ] emailPreviewHeader.tsx
+        - [ ] errorBoundary.tsx
+        - [ ] eventDetailsSidebar.tsx
+        - [ ] eventsAutocomplete.tsx
+        - [ ] eventsTable.tsx
+        - [ ] externalLink.tsx
+        - [ ] form
+          - [ ] Field.tsx
+          - [ ] FieldGroup.tsx
+          - [ ] FieldSection.tsx
+          - [ ] Fields.tsx
+          - [ ] SimpleTextField.tsx
+          - [ ] SimpleToggle.tsx
+          - [ ] select.tsx
+          - [ ] types.ts
+        - [ ] gitBranchIcon.tsx
+        - [ ] greyButtonStyle.tsx
+        - [ ] greyScaleStyles.tsx
+        - [ ] headers.tsx
+        - [ ] icons
+          - [ ] hubspotIcon.tsx
+        - [ ] infoBox.tsx
+        - [ ] infoTooltip.tsx
+        - [ ] inlineDrawer.tsx
+        - [ ] journeys
+          - [ ] defaults.ts
+          - [ ] edgeTypes
+            - [ ] edgeTypes.module.css
+            - [ ] placeholderEdge.tsx
+            - [ ] workflowEdge.tsx
+          - [ ] edgeTypes.ts
+          - [ ] findJourneyNode.ts
+          - [ ] findNode.ts
+          - [ ] globalJourneyErrors.ts
+          - [ ] isJourneyNode.tsx
+          - [ ] isLabelNode.ts
+          - [ ] journeyNodeLabel.ts
+          - [ ] journeysBuilder.tsx
+          - [ ] layoutNodes.ts
+          - [ ] nodeEditor.tsx
+          - [ ] nodeTypes
+            - [ ] defaultNodeTypeProps.ts
+            - [ ] emptyNode.tsx
+            - [ ] journeyNode.tsx
+            - [ ] labelNode.tsx
+            - [ ] nodeTypes.module.css
+            - [ ] styles.ts
+          - [ ] nodeTypes.ts
+          - [ ] sidebar.tsx
+          - [ ] stepper.tsx
+          - [ ] store.test.ts
+          - [ ] store.ts
+          - [ ] v2
+            - [ ] editor.tsx
+            - [ ] journeysTable.tsx
+            - [ ] layout.tsx
+            - [ ] shared.ts
+            - [ ] summary.tsx
+          - [ ] v2.tsx
+        - [ ] journeysTable.tsx
+        - [ ] layout
+          - [ ] context.ts
+          - [ ] drawer
+            - [ ] drawerContent
+              - [ ] navCard.tsx
+              - [ ] navigation
+                - [ ] collapsibleNavItem.tsx
+                - [ ] minimalNavGroup.tsx
+                - [ ] minimalNavItem.tsx
+                - [ ] navGroup.tsx
+                - [ ] navItem.tsx
+              - [ ] navigation.tsx
+              - [ ] simpleBar.tsx
+            - [ ] drawerContent.tsx
+            - [ ] drawerHeader
+              - [ ] drawerHeaderStyled.tsx
+            - [ ] drawerHeader.tsx
+            - [ ] miniDrawerStyled.js
+          - [ ] drawer.tsx
+          - [ ] header
+            - [ ] appBarStyled.tsx
+            - [ ] headerContent
+              - [ ] mobileSection.tsx
+              - [ ] profile
+                - [ ] profileTab.tsx
+              - [ ] profile.tsx
+              - [ ] search.tsx
+            - [ ] headerContent.tsx
+          - [ ] header.tsx
+        - [ ] layout.tsx
+        - [ ] loadingModal.tsx
+        - [ ] mainCard.tsx
+        - [ ] mainLayout.tsx
+        - [ ] menuItems
+          - [ ] main.ts
+          - [ ] types.ts
+        - [ ] messageTemplateAutocomplete.tsx
+        - [ ] messages
+          - [ ] codeEmailBodyEditor.tsx
+          - [ ] emailEditor.tsx
+          - [ ] emailPreview.tsx
+          - [ ] lowCodeEmailBodyEditor.tsx
+          - [ ] smsEditor.tsx
+          - [ ] templatePageContent.tsx
+          - [ ] templatesTable.tsx
+          - [ ] webhookEditor.tsx
+          - [ ] webhookPreview.tsx
+        - [ ] permissionsTable.tsx
+        - [ ] publisher.tsx
+        - [ ] rangeCalendar
+          - [ ] aria.css
+        - [ ] rangeCalendar.tsx
+        - [ ] recomputedRecently.tsx
+        - [ ] resourceList.tsx
+        - [ ] resourceTable.tsx
+        - [ ] secretEditor.tsx
+        - [ ] segments
+          - [ ] editor.tsx
+          - [ ] editorV2.tsx
+          - [ ] segmentsTable.tsx
+        - [ ] segmentsAutocomplete.tsx
+        - [ ] settingsMenu.tsx
+        - [ ] shared
+          - [ ] filterStyles.tsx
+        - [ ] smsPreviewBody.tsx
+        - [ ] squarePaper.tsx
+        - [ ] subscriptionGroupAutocomplete.tsx
+        - [ ] subscriptionGroups
+          - [ ] subscriptionGroupsTable.tsx
+        - [ ] subscriptionManagement.tsx
+        - [ ] supportEmailLink.tsx
+        - [ ] tabLink.tsx
+        - [ ] templateEditor.tsx
+        - [ ] templatePreview.tsx
+        - [ ] timeField.tsx
+        - [ ] timeUnitSelect.tsx
+        - [ ] timezoneAutocomplete.tsx
+        - [ ] traitAutocomplete.tsx
+        - [ ] transitions.tsx
+        - [ ] userEvents
+          - [ ] userEventsFilter.tsx
+        - [ ] userEventsTable.tsx
+        - [ ] userLayout.tsx
+        - [ ] userPropertiesTable.tsx
+        - [ ] userTabs.tsx
+        - [ ] usersFilter.tsx
+        - [ ] usersFilterSelector.tsx
+        - [ ] usersTable
+          - [ ] userFiltersState.ts
+          - [ ] usersFilterSelectorV2.tsx
+          - [ ] usersFilterV2.tsx
+        - [ ] usersTable.tsx
+        - [ ] usersTableV2.tsx
+        - [ ] webhookSecretTable.tsx
+      - [ ] instrumentation.page.ts
+      - [ ] lib
+        - [ ] addInitialStateToProps.ts
+        - [ ] apiBase.ts
+        - [ ] apiRequestHandlerFactory.ts
+        - [ ] appStore.ts
+        - [ ] appsApi.ts
+        - [ ] authModeProvider.ts
+        - [ ] broadcasts.ts
+        - [ ] cascadingMessageFilters.ts
+        - [ ] constants.ts
+        - [ ] copyToClipboard.tsx
+        - [ ] createEmotionCache.ts
+        - [ ] dashboardBase.ts
+        - [ ] datagridCells.tsx
+        - [ ] dates.ts
+        - [ ] defaultTemplateDefinition.ts
+        - [ ] email.ts
+        - [ ] filterStore.ts
+        - [ ] formatCurl.ts
+        - [ ] isNode.ts
+        - [ ] journeys.ts
+        - [ ] messaging.ts
+        - [ ] notices.ts
+        - [ ] oauth.ts
+        - [ ] requestContext.ts
+        - [ ] segments.ts
+        - [ ] types.ts
+        - [ ] unifiedDiff.d.ts
+        - [ ] unifiedDiff.js
+        - [ ] useAnalysisChartQuery.ts
+        - [ ] useAnalysisSummaryQuery.ts
+        - [ ] useArchiveBroadcastMutation.ts
+        - [ ] useBroadcastMutation.ts
+        - [ ] useBroadcastQuery.ts
+        - [ ] useBroadcastsQuery.ts
+        - [ ] useCancelBroadcastMutation.ts
+        - [ ] useComputedPropertyPeriodsQuery.ts
+        - [ ] useCreateBroadcastMutation.ts
+        - [ ] useCreateJourneyMutation.ts
+        - [ ] useCreateSubscriptionGroupMutation.ts
+        - [ ] useDeleteJourneyMutation.ts
+        - [ ] useDeleteMessageTemplateMutation.ts
+        - [ ] useDeleteSegmentMutation.ts
+        - [ ] useDeleteSubscriptionGroupMutation.ts
+        - [ ] useDeleteUserMutation.ts
+        - [ ] useDeleteUserPropertyMutation.ts
+        - [ ] useDownloadDeliveriesMutation.ts
+        - [ ] useDownloadEventsMutation.ts
+        - [ ] useDownloadSegmentsMutation.ts
+        - [ ] useEventsQuery.ts
+        - [ ] useGmailAuthorizationQuery.ts
+        - [ ] useIsFirstRender.ts
+        - [ ] useJourneyMutation.ts
+        - [ ] useJourneyQuery.ts
+        - [ ] useJourneyStats.ts
+        - [ ] useJourneyStatsQueryV2.ts
+        - [ ] useJourneysQuery.ts
+        - [ ] useMessageTemplateQuery.ts
+        - [ ] useMessageTemplateUpdateMutation.ts
+        - [ ] useMessageTemplatesQuery.ts
+        - [ ] useOauthSetCsrfMutation.ts
+        - [ ] useOnceWhen.ts
+        - [ ] usePauseBroadcastMutation.ts
+        - [ ] usePermissionsMutations.ts
+        - [ ] usePermissionsQuery.ts
+        - [ ] usePropertiesQuery.ts
+        - [ ] useRecomputeBroadcastSegmentMutation.ts
+        - [ ] useRenderTemplateQuery.ts
+        - [ ] useResourcesQuery.ts
+        - [ ] useResumeBroadcastMutation.ts
+        - [ ] useSegmentQuery.ts
+        - [ ] useSegmentResourcesQuery.ts
+        - [ ] useSegmentsQuery.ts
+        - [ ] useSingleTenantLoginMutation.ts
+        - [ ] useStartBroadcastMutation.ts
+        - [ ] useSubscriptionGroupsQuery.ts
+        - [ ] useSubscriptionGroupsResourcesQuery.ts
+        - [ ] useTestTemplateMutation.ts
+        - [ ] useTraitsQuery.ts
+        - [ ] useTriggerRecomputePropertiesMutation.ts
+        - [ ] useUpdateEffect.ts
+        - [ ] useUpdateSegmentsMutation.ts
+        - [ ] useUpdateSubscriptionsMutation.ts
+        - [ ] useUploadCsvMutation.ts
+        - [ ] useUpsertUserPropertyMutation.ts
+        - [ ] useUserPropertiesQuery.ts
+        - [ ] useUserPropertyResourcesQuery.ts
+        - [ ] useUsersCountQuery.ts
+        - [ ] useUsersQuery.ts
+        - [ ] userProperties.ts
+        - [ ] warningTheme.ts
+      - [ ] pages
+        - [ ] _app.page.tsx
+        - [ ] _document.page.tsx
+        - [ ] analysis
+          - [ ] messages.page.tsx
+          - [ ] overview.page.tsx
+        - [ ] api
+          - [ ] index.page.ts
+          - [ ] oauth
+            - [ ] set-csrf-cookie.page.ts
+        - [ ] auth
+          - [ ] single-tenant.page.tsx
+        - [ ] broadcasts
+          - [ ] [id].page.tsx
+          - [ ] broadcastLayout.tsx
+          - [ ] getBroadcastAppState.ts
+          - [ ] review
+            - [ ] [id].page.tsx
+          - [ ] segment
+            - [ ] [id].page.tsx
+          - [ ] template
+            - [ ] [id].page.tsx
+          - [ ] v2.page.tsx
+        - [ ] broadcasts.page.tsx
+        - [ ] contact.page.tsx
+        - [ ] deliveries
+          - [ ] getDeliveriesData.ts
+        - [ ] deliveries.page.tsx
+        - [ ] events.page.tsx
+        - [ ] journeys
+          - [ ] [id].page.tsx
+          - [ ] configure
+            - [ ] [id].page.tsx
+          - [ ] getServerSideProps.ts
+          - [ ] index.page.tsx
+          - [ ] v2.page.tsx
+        - [ ] oauth2
+          - [ ] callback
+            - [ ] [provider].page.tsx
+          - [ ] initiate
+            - [ ] gmail.page.tsx
+        - [ ] public
+          - [ ] subscription-management.page.tsx
+        - [ ] segments
+          - [ ] [id]
+            - [ ] getSegmentServerSideProps.tsx
+            - [ ] segmentLayout.tsx
+            - [ ] users.page.tsx
+          - [ ] [id].page.tsx
+          - [ ] index.page.tsx
+          - [ ] v1.page.tsx
+        - [ ] select-workspace.page.tsx
+        - [ ] settings.page.tsx
+        - [ ] subscription-groups
+          - [ ] [id].page.tsx
+          - [ ] getSubscriptionGroupsSSP.ts
+          - [ ] subscriptionGroupLayout.tsx
+          - [ ] upload
+            - [ ] [id].page.tsx
+          - [ ] users
+            - [ ] [id].page.tsx
+        - [ ] subscription-groups.page.tsx
+        - [ ] templates
+          - [ ] email
+            - [ ] [id].page.tsx
+          - [ ] index.page.tsx
+          - [ ] mobile-push
+            - [ ] [id].page.tsx
+          - [ ] sms
+            - [ ] [id].page.tsx
+          - [ ] webhook
+            - [ ] [id].page.tsx
+        - [ ] user-properties
+          - [ ] [id].page.tsx
+          - [ ] index.page.tsx
+        - [ ] users
+          - [ ] [id].page.tsx
+          - [ ] deliveries
+            - [ ] [id].page.tsx
+          - [ ] events
+            - [ ] [id].page.tsx
+          - [ ] segments
+            - [ ] [id].page.tsx
+        - [ ] users.page.tsx
+        - [ ] waiting-room.page.tsx
+      - [ ] styles
+        - [ ] globals.css
+        - [ ] time-field-aria.css
+      - [ ] themeCustomization
+        - [ ] index.js
+        - [ ] overrides
+          - [ ] Badge.js
+          - [ ] Button.js
+          - [ ] CardContent.js
+          - [ ] Checkbox.js
+          - [ ] Chip.js
+          - [ ] IconButton.js
+          - [ ] InputLabel.js
+          - [ ] LinearProgress.js
+          - [ ] Link.js
+          - [ ] ListItemIcon.js
+          - [ ] Tab.js
+          - [ ] TableCell.js
+          - [ ] Tabs.js
+          - [ ] Typography.js
+          - [ ] index.js
+        - [ ] palette.js
+        - [ ] shadows.ts
+        - [ ] theme
+          - [ ] index.js
+        - [ ] typography.js
+    - [ ] test
+      - [ ] __mocks__
+        - [ ] styleMock.ts
+    - [ ] tsconfig.build.json
+    - [ ] tsconfig.json
+  - [ ] emailo
+    - [ ] README.md
+    - [ ] emailo-screenshot.png
+    - [ ] index.html
+    - [ ] package.json
+    - [ ] postcss.config.js
+    - [ ] scripts
+      - [ ] rpc.ts
+      - [ ] snippetEntry.tsx
+    - [ ] src
+      - [ ] components
+        - [ ] button.tsx
+        - [ ] contentItemMenu
+          - [ ] hooks
+            - [ ] useContentItemActions.ts
+            - [ ] useData.ts
+        - [ ] contentItemMenu.tsx
+        - [ ] contentTypePicker.tsx
+        - [ ] dropdown.tsx
+        - [ ] editLinkPopover.tsx
+        - [ ] fontFamilyPicker.tsx
+        - [ ] fontSizePicker.tsx
+        - [ ] icon.tsx
+        - [ ] panels
+          - [ ] colorPicker
+            - [ ] colorButton.tsx
+          - [ ] colorpicker.tsx
+          - [ ] linkEditorPanel.tsx
+          - [ ] linkPreviewPanel.tsx
+        - [ ] panels.tsx
+        - [ ] surface.tsx
+        - [ ] textMenu
+          - [ ] hooks
+            - [ ] useTextmenuCommands.ts
+            - [ ] useTextmenuContentTypes.ts
+            - [ ] useTextmenuStates.ts
+          - [ ] types.ts
+        - [ ] textMenu.tsx
+        - [ ] toggle.tsx
+        - [ ] toolbar.tsx
+        - [ ] tooltip
+          - [ ] types.ts
+        - [ ] tooltip.tsx
+      - [ ] constants.ts
+      - [ ] emailo.tsx
+      - [ ] prod.js
+      - [ ] tipTapExtensions
+        - [ ] blockquoteFigure
+          - [ ] quote.ts
+          - [ ] quoteCaption.ts
+        - [ ] blockquoteFigure.ts
+        - [ ] figure.ts
+        - [ ] fontSize.ts
+        - [ ] image
+          - [ ] types.ts
+        - [ ] image.tsx
+        - [ ] link.ts
+        - [ ] markup
+          - [ ] block.tsx
+          - [ ] inline.tsx
+        - [ ] selection.ts
+        - [ ] slashCommand
+          - [ ] commandButton.tsx
+          - [ ] groups.ts
+          - [ ] menuList.tsx
+          - [ ] types.ts
+        - [ ] slashCommand.ts
+        - [ ] trailingNode.ts
+        - [ ] unsubscribeLink
+          - [ ] utils.ts
+        - [ ] unsubscribeLink.tsx
+        - [ ] userProperty
+          - [ ] utils.ts
+        - [ ] userProperty.tsx
+      - [ ] tipTapExtensions.ts
+      - [ ] toMjml.test.ts
+      - [ ] toMjml.ts
+      - [ ] types.ts
+      - [ ] useEmailo.ts
+      - [ ] user-variable-popup.png
+      - [ ] utils
+        - [ ] isCustomNodeSelected.ts
+        - [ ] isNodeTypeSelected.ts
+        - [ ] isTextSelected.ts
+      - [ ] utils.ts
+    - [ ] styles
+      - [ ] editor.css
+      - [ ] globals.css
+      - [ ] index.css
+      - [ ] partials
+        - [ ] animations.css
+        - [ ] blocks.css
+        - [ ] code.css
+        - [ ] collab.css
+        - [ ] lists.css
+        - [ ] placeholder.css
+        - [ ] table.css
+        - [ ] typography.css
+    - [ ] tailwind.config.js
+    - [ ] tsconfig.build.json
+    - [ ] tsconfig.cjs.json
+    - [ ] tsconfig.esm.json
+    - [ ] tsconfig.json
+    - [ ] vite.config.ts
+  - [ ] isomorphic-lib
+    - [ ] eslintrc.json
+    - [ ] package.json
+    - [ ] src
+      - [ ] arrays.ts
+      - [ ] auth.ts
+      - [ ] broadcasts.ts
+      - [ ] channels.ts
+      - [ ] constants
+        - [ ] headers.ts
+      - [ ] constants.ts
+      - [ ] diContainer.ts
+      - [ ] email.ts
+      - [ ] encode.ts
+      - [ ] equality.ts
+      - [ ] events.ts
+      - [ ] first.ts
+      - [ ] isoDiContainer.ts
+      - [ ] journeys.ts
+      - [ ] jsonPath.ts
+      - [ ] maps.ts
+      - [ ] messageTemplates.ts
+      - [ ] numbers.ts
+      - [ ] objects.ts
+      - [ ] protectedUserProperties.ts
+      - [ ] resultHandling
+        - [ ] resultUtils.ts
+        - [ ] schemaValidation.ts
+      - [ ] segments.ts
+      - [ ] sms.ts
+      - [ ] strings.ts
+      - [ ] subscriptionGroups.ts
+      - [ ] time.ts
+      - [ ] typeAssertions.ts
+      - [ ] typeRefs.ts
+      - [ ] types.ts
+      - [ ] urls.ts
+      - [ ] userProperties.ts
+      - [ ] webhook.ts
+    - [ ] tsconfig.build.json
+    - [ ] tsconfig.json
+  - [ ] lite
+    - [ ] Dockerfile
+    - [ ] README.md
+    - [ ] package.json
+    - [ ] scripts
+      - [ ] startLite.ts
+    - [ ] src
+      - [ ] config.ts
+      - [ ] openTelemetry.ts
+    - [ ] tsconfig.json
+  - [ ] worker
+    - [ ] Dockerfile
+    - [ ] package.json
+    - [ ] scripts
+      - [ ] startWorker.ts
+    - [ ] src
+      - [ ] buildWorker.ts
+      - [ ] config.ts
+      - [ ] openTelemetry.ts
+    - [ ] tsconfig.json
+- [x] prometheus.yaml
+- [x] render
+  - [x] clickhouse
+    - [x] Dockerfile
+  - [x] temporal
+    - [x] elasticsearch
+      - [x] Dockerfile
+      - [x] elasticsearch.yml
+    - [x] server
+      - [x] auto-setup
+        - [x] Dockerfile
+      - [x] dynamicconfig.yaml
+    - [x] web
+      - [x] Dockerfile
+- [x] render.yaml
+- [x] scripts
+  - [x] admin-lite.sh
+  - [x] admin.sh
+  - [x] bootstrap-dev.sh
+  - [x] bootstrap.sh
+  - [x] checkout-fork.sh
+- [x] tsconfig.base.json
+- [x] tsconfig.eslint.json
+- [x] tsconfig.json
+- [x] yarn.lock
+- [x] yarn.lock.backup
