@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 import {
+  MANUAL_SEGMENT_APPEND_HEADER,
   SEGMENT_ID_HEADER,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
@@ -20,6 +21,7 @@ import { USERS_QUERY_KEY } from "./useUsersQuery";
 export interface UploadCsvMutationParams {
   segmentId: string;
   data: FormData;
+  append?: boolean;
 }
 
 // Define the mutation function type
@@ -36,7 +38,11 @@ export function useUploadCsvMutation(
   const authHeaders = useAuthHeaders();
   const baseApiUrl = useBaseApiUrl();
 
-  const mutationFn: UploadCsvMutationFn = async ({ segmentId, data }) => {
+  const mutationFn: UploadCsvMutationFn = async ({
+    segmentId,
+    data,
+    append,
+  }) => {
     if (workspace.type !== CompletionStatus.Successful) {
       throw new Error("Workspace not available for CSV upload");
     }
@@ -47,6 +53,7 @@ export function useUploadCsvMutation(
         ...authHeaders,
         [WORKSPACE_ID_HEADER]: workspaceId,
         [SEGMENT_ID_HEADER]: segmentId,
+        [MANUAL_SEGMENT_APPEND_HEADER]: String(Boolean(append)),
         // Axios will automatically set Content-Type to multipart/form-data for FormData
       },
     });

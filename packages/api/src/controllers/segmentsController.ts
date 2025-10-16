@@ -22,6 +22,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import {
   DataSources,
+  MANUAL_SEGMENT_APPEND_HEADER,
   SEGMENT_ID_HEADER,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
@@ -256,6 +257,11 @@ export default async function segmentsController(fastify: FastifyInstance) {
       const csvStream = file;
       const workspaceId = request.headers[WORKSPACE_ID_HEADER];
       const segmentId = request.headers[SEGMENT_ID_HEADER];
+      const appendHeader = request.headers[MANUAL_SEGMENT_APPEND_HEADER];
+      const append =
+        typeof appendHeader === "string"
+          ? ["1", "true", "yes", "append"].includes(appendHeader.toLowerCase())
+          : appendHeader === true;
 
       // Parse the CSV stream into a JavaScript object with an array of rows
       const csvPromise = new Promise<CsvParseResult>((resolve) => {
@@ -399,6 +405,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
         segmentId,
         userIds,
         sync: true,
+        append,
       });
 
       const response = await reply.status(200).send();

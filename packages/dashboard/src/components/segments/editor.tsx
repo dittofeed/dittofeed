@@ -4,7 +4,9 @@ import {
   Autocomplete,
   Box,
   Button,
+  Checkbox,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputLabel,
   MenuItem,
@@ -66,6 +68,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import {
   DateInput,
@@ -2635,6 +2638,7 @@ function ManualNodeComponent({ node: _node }: { node: ManualSegmentNode }) {
   const { disabled } = state;
   const { workspace } = useAppStorePick(["workspace"]);
   const { mutateAsync, isPending: isUploading } = useUploadCsvMutation();
+  const [append, setAppend] = useState(false);
 
   const handleSubmit = useCallback(
     async ({ data }: { data: FormData }) => {
@@ -2645,13 +2649,24 @@ function ManualNodeComponent({ node: _node }: { node: ManualSegmentNode }) {
       await mutateAsync({
         segmentId: state.editedSegment.id,
         data,
+        append,
       });
     },
-    [workspace, state.editedSegment.id, mutateAsync],
+    [workspace, state.editedSegment.id, mutateAsync, append],
   );
   return (
     <Stack direction="column" spacing={3}>
       <SubtleHeader>Upload CSV for Manual Segment</SubtleHeader>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={append}
+            onChange={(e) => setAppend(e.target.checked)}
+            disabled={disabled || isUploading}
+          />
+        }
+        label="Append entries (unchecked replaces existing users)"
+      />
       <CsvUploader
         disabled={disabled || isUploading}
         submit={handleSubmit}
