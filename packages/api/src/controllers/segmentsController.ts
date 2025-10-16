@@ -260,9 +260,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
       const appendHeader = request.headers[MANUAL_SEGMENT_APPEND_HEADER];
       const append =
         typeof appendHeader === "string"
-          ? ["1", "true", "yes", "append"].includes(
-              appendHeader.toLowerCase(),
-            )
+          ? ["1", "true", "yes", "append"].includes(appendHeader.toLowerCase())
           : appendHeader === true;
 
       // Parse the CSV stream into a JavaScript object with an array of rows
