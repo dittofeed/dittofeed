@@ -162,19 +162,21 @@ const SingleTenantAuth: NextPage<SingleTenantAuthProps> =
             Login
           </LoadingButton>
         </Stack>
-        <Stack
-          direction="column"
-          spacing={1}
-          sx={{
-            p: 2,
-            fontWeight: 600,
-            ...getWarningStyles(theme),
-          }}
-        >
-          {warnings.map((warning) => (
-            <li key={warning}>{warning}</li>
-          ))}
-        </Stack>
+        {Boolean(warnings.length) && (
+          <Stack
+            direction="column"
+            spacing={1}
+            sx={{
+              p: 2,
+              fontWeight: 600,
+              ...getWarningStyles(theme),
+            }}
+          >
+            {warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </Stack>
+        )}
       </Stack>
     );
   };
