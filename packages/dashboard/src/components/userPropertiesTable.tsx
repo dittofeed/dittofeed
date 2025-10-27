@@ -171,8 +171,8 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   };
 
   const handleDuplicate = () => {
-    if (!duplicateUserProperty) {
-      console.error("duplicateUserProperty function not found in table meta");
+    if (!duplicateUserProperty || isProtected) {
+      console.error("duplicateUserProperty function not found in table meta or user property is protected");
       return;
     }
     duplicateUserProperty(rowName);

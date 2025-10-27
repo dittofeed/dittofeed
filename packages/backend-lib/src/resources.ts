@@ -1,5 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
+import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { err, ok, Result } from "neverthrow";
 
 import { Db, db } from "./db";
 import * as schema from "./db/schema";
@@ -9,6 +11,8 @@ import {
   BroadcastResourceVersion,
   ChannelType,
   DBResourceTypeEnum,
+  DuplicateResourceError,
+  DuplicateResourceErrorType,
   DuplicateResourceRequest,
   DuplicateResourceResponse,
   DuplicateResourceType,
@@ -113,7 +117,9 @@ export async function duplicateResource({
   name,
   workspaceId,
   resourceType,
-}: DuplicateResourceRequest): Promise<DuplicateResourceResponse> {
+}: DuplicateResourceRequest): Promise<
+  Result<DuplicateResourceResponse, DuplicateResourceError>
+> {
   return db().transaction(async (tx) => {
     const existingNames = await fetchExistingNames({
       tx,
@@ -131,7 +137,10 @@ export async function duplicateResource({
           ),
         });
         if (!original) {
-          throw new Error(`Segment ${name} not found in workspace`);
+          return err({
+            type: DuplicateResourceErrorType.ResourceNotFound,
+            message: `Segment ${name} not found in workspace`,
+          });
         }
         const duplicateName = buildDuplicateName(name, existingNames);
         const inserted = await tx
@@ -150,9 +159,12 @@ export async function duplicateResource({
           });
         const newSegment = inserted[0];
         if (!newSegment) {
-          throw new Error("Failed to duplicate segment");
+          return err({
+            type: DuplicateResourceErrorType.ResourceNotFound,
+            message: "Failed to duplicate segment",
+          });
         }
-        return newSegment;
+        return ok(newSegment);
       }
       case DuplicateResourceTypeEnum.MessageTemplate: {
         const original = await tx.query.messageTemplate.findFirst({
@@ -166,7 +178,10 @@ export async function duplicateResource({
           ),
         });
         if (!original) {
-          throw new Error(`Message template ${name} not found in workspace`);
+          return err({
+            type: DuplicateResourceErrorType.ResourceNotFound,
+            message: `Message template ${name} not found in workspace`,
+          });
         }
         const duplicateName = buildDuplicateName(name, existingNames);
         const inserted = await tx
@@ -184,9 +199,12 @@ export async function duplicateResource({
           });
         const newTemplate = inserted[0];
         if (!newTemplate) {
-          throw new Error("Failed to duplicate message template");
+          return err({
+            type: DuplicateResourceErrorType.ResourceNotFound,
+            message: "Failed to duplicate message template",
+          });
         }
-        return newTemplate;
+        return ok(newTemplate);
       }
       case DuplicateResourceTypeEnum.Journey: {
         const original = await tx.query.journey.findFirst({
@@ -197,7 +215,10 @@ export async function duplicateResource({
           ),
         });
         if (!original) {
-          throw new Error(`Journey ${name} not found in workspace`);
+          return err({
+            type: DuplicateResourceErrorType.ResourceNotFound,
+            message: `Journey ${name} not found in workspace`,
+          });
         }
         const duplicateName = buildDuplicateName(name, existingNames);
         const inserted = await tx
@@ -215,9 +236,12 @@ export async function duplicateResource({
           });
         const newJourney = inserted[0];
         if (!newJourney) {
-          throw new Error("Failed to duplicate journey");
+          return err({
+            type: DuplicateResourceErrorType.ResourceNotFound,
+            message: "Failed to duplicate journey",
+          });
         }
-        return newJourney;
+        return ok(newJourney);
       }
       case DuplicateResourceTypeEnum.Broadcast: {
         const original = await tx.query.broadcast.findFirst({
@@ -227,7 +251,10 @@ export async function duplicateResource({
           ),
         });
         if (!original) {
-          throw new Error(`Broadcast ${name} not found in workspace`);
+          return err({
+            type: DuplicateResourceErrorType.ResourceNotFound,
+            message: `Broadcast ${name} not found in workspace`,
+          });
         }
         const duplicateName = buildDuplicateName(name, existingNames);
         const inserted = await tx
@@ -248,11 +275,20 @@ export async function duplicateResource({
           });
         const newBroadcast = inserted[0];
         if (!newBroadcast) {
-          throw new Error("Failed to duplicate broadcast");
+          return err({
+            type: DuplicateResourceErrorType.ResourceNotFound,
+            message: "Failed to duplicate broadcast",
+          });
         }
-        return newBroadcast;
+        return ok(newBroadcast);
       }
       case DuplicateResourceTypeEnum.UserProperty: {
+        if (protectedUserProperties.has(name)) {
+          return err({
+            type: DuplicateResourceErrorType.ProtectedResource,
+            message: `Cannot duplicate protected user property: ${name}`,
+          });
+        }
         const original = await tx.query.userProperty.findFirst({
           where: and(
             eq(schema.userProperty.workspaceId, workspaceId),
@@ -264,7 +300,10 @@ export async function duplicateResource({
           ),
         });
         if (!original) {
-          throw new Error(`User property ${name} not found in workspace`);
+          return err({
+            type: DuplicateResourceErrorType.ResourceNotFound,
+            message: `User property ${name} not found in workspace`,
+          });
         }
         const duplicateName = buildDuplicateName(name, existingNames);
         const inserted = await tx
@@ -283,13 +322,19 @@ export async function duplicateResource({
           });
         const newUserProperty = inserted[0];
         if (!newUserProperty) {
-          throw new Error("Failed to duplicate user property");
+          return err({
+            type: DuplicateResourceErrorType.ResourceNotFound,
+            message: "Failed to duplicate user property",
+          });
         }
-        return newUserProperty;
+        return ok(newUserProperty);
       }
       default: {
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        throw new Error(`Unsupported resource type ${resourceType}`);
+        return err({
+          type: DuplicateResourceErrorType.ResourceNotFound,
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          message: `Unsupported resource type ${resourceType}`,
+        });
       }
     }
   });

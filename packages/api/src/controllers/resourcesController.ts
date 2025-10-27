@@ -2,6 +2,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { duplicateResource, getResources } from "backend-lib/src/resources";
 import { FastifyInstance } from "fastify";
 import {
+  DuplicateResourceError,
   DuplicateResourceRequest,
   DuplicateResourceResponse,
   GetResourcesRequest,
@@ -37,12 +38,16 @@ export default async function resourcesController(fastify: FastifyInstance) {
         body: DuplicateResourceRequest,
         response: {
           200: DuplicateResourceResponse,
+          400: DuplicateResourceError,
         },
       },
     },
     async (request, reply) => {
-      const response = await duplicateResource(request.body);
-      return reply.status(200).send(response);
+      const result = await duplicateResource(request.body);
+      if (result.isErr()) {
+        return reply.status(400).send(result.error);
+      }
+      return reply.status(200).send(result.value);
     },
   );
 }

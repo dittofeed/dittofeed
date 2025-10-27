@@ -5137,6 +5137,36 @@ export const UpsertUserPropertyError = Type.Union([
 
 export type UpsertUserPropertyError = Static<typeof UpsertUserPropertyError>;
 
+export enum DuplicateResourceErrorType {
+  ResourceNotFound = "ResourceNotFound",
+  ProtectedResource = "ProtectedResource",
+}
+
+export const DuplicateResourceNotFoundError = Type.Object({
+  type: Type.Literal(DuplicateResourceErrorType.ResourceNotFound),
+  message: Type.String(),
+});
+
+export type DuplicateResourceNotFoundError = Static<
+  typeof DuplicateResourceNotFoundError
+>;
+
+export const DuplicateResourceProtectedError = Type.Object({
+  type: Type.Literal(DuplicateResourceErrorType.ProtectedResource),
+  message: Type.String(),
+});
+
+export type DuplicateResourceProtectedError = Static<
+  typeof DuplicateResourceProtectedError
+>;
+
+export const DuplicateResourceError = Type.Union([
+  DuplicateResourceNotFoundError,
+  DuplicateResourceProtectedError,
+]);
+
+export type DuplicateResourceError = Static<typeof DuplicateResourceError>;
+
 export const ComponentConfigurationEnum = {
   DeliveriesTable: "DeliveriesTable",
   Broadcast: "Broadcast",

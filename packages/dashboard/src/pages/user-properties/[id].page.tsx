@@ -1110,10 +1110,9 @@ export default function NewUserProperty() {
     },
   });
 
-  if (!editedUserProperty) {
-    return null;
-  }
-  const { name } = editedUserProperty;
+  const isProtected = editedUserProperty
+    ? protectedUserProperties.has(editedUserProperty.name)
+    : false;
 
   const handleDuplicate = useCallback(() => {
     if (!editedUserProperty || duplicateUserPropertyMutation.isPending) {
@@ -1130,7 +1129,7 @@ export default function NewUserProperty() {
       {
         label: "Duplicate user property",
         icon: <ContentCopyOutlined />,
-        disabled: !editedUserProperty,
+        disabled: !editedUserProperty || isProtected,
         action: handleDuplicate,
       },
       {
@@ -1143,33 +1142,50 @@ export default function NewUserProperty() {
           }
           copyToClipboard({
             value: JSON.stringify(editedUserProperty.definition),
-            successNotice: "User property definition copied to clipboard as JSON.",
+            successNotice:
+              "User property definition copied to clipboard as JSON.",
             failureNotice: "Failed to copy user property definition.",
           });
         },
       },
     ],
-    [editedUserProperty, handleDuplicate],
+    [editedUserProperty, handleDuplicate, isProtected],
   );
 
-  const handleSave = apiRequestHandlerFactory({
-    request: userPropertyUpdateRequest,
-    setRequest: setUserPropertyUpdateRequest,
-    responseSchema: UserPropertyResource,
-    setResponse: upsertUserProperty,
-    onSuccessNotice: `Saved user property ${editedUserProperty.name}`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to save user property ${editedUserProperty.name}`,
-    requestConfig: {
-      method: "PUT",
-      url: `${apiBase}/api/user-properties`,
-      data: editedUserProperty,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-  const isProtected = protectedUserProperties.has(editedUserProperty.name);
+  const handleSave = useMemo(
+    () =>
+      editedUserProperty
+        ? apiRequestHandlerFactory({
+            request: userPropertyUpdateRequest,
+            setRequest: setUserPropertyUpdateRequest,
+            responseSchema: UserPropertyResource,
+            setResponse: upsertUserProperty,
+            onSuccessNotice: `Saved user property ${editedUserProperty.name}`,
+            onFailureNoticeHandler: () =>
+              `API Error: Failed to save user property ${editedUserProperty.name}`,
+            requestConfig: {
+              method: "PUT",
+              url: `${apiBase}/api/user-properties`,
+              data: editedUserProperty,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          })
+        : () => {},
+    [
+      apiBase,
+      editedUserProperty,
+      setUserPropertyUpdateRequest,
+      upsertUserProperty,
+      userPropertyUpdateRequest,
+    ],
+  );
+
+  if (!editedUserProperty) {
+    return null;
+  }
+  const { name } = editedUserProperty;
   let body: React.ReactNode = null;
   // deal with zustand / nextjs hydration being async
   if (id === editedUserProperty.id) {
