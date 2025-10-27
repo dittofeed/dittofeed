@@ -9,6 +9,8 @@ Relevant resources include:
 - Journeys
 - Broadcasts
 
+See the [AGENTS.md](AGENTS.md) file for instructions on how to work within this project.
+
 ## Steps
 
 ### Create a new Resources method
