@@ -399,10 +399,10 @@ export default function JourneysTable() {
     },
     // Pass functions via meta
     meta: {
-      duplicateJourney: (journeyName: string) => {
+      duplicateJourney: (name: string) => {
         if (duplicateJourneyMutation.isPending) return;
         duplicateJourneyMutation.mutate({
-          name: journeyName,
+          name,
           resourceType: DuplicateResourceTypeEnum.Journey,
         });
       },

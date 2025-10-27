@@ -332,6 +332,14 @@ export default function JourneyV2Layout({
     useJourneyQuery(id);
   const { mutate: updateJourney, isPending: isJourneyMutationPending } =
     useJourneyMutation(state.id);
+
+  const [optionsDialogOpen, setOptionsDialogOpen] = useState(false);
+  const [canRunMultiple, setCanRunMultiple] = useState(
+    !!journey?.canRunMultiple,
+  );
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
   const duplicateJourneyMutation = useDuplicateResourceMutation({
     onSuccess: (data) => {
       setSnackbarOpen(true);
@@ -359,13 +367,6 @@ export default function JourneyV2Layout({
     "resetJourneyState",
     "setViewDraft",
   ]);
-
-  const [optionsDialogOpen, setOptionsDialogOpen] = useState(false);
-  const [canRunMultiple, setCanRunMultiple] = useState(
-    !!journey?.canRunMultiple,
-  );
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   useEffect(() => {
     if (journey) {

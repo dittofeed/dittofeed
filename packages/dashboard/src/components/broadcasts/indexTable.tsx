@@ -453,10 +453,10 @@ export default function BroadcastsTable() {
     },
     // Pass functions via meta
     meta: {
-      duplicateBroadcast: (broadcastName: string) => {
+      duplicateBroadcast: (name: string) => {
         if (duplicateBroadcastMutation.isPending) return;
         duplicateBroadcastMutation.mutate({
-          name: broadcastName,
+          name,
           resourceType: DuplicateResourceTypeEnum.Broadcast,
         });
       },
