@@ -172,7 +172,9 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
 
   const handleDuplicate = () => {
     if (!duplicateUserProperty || isProtected) {
-      console.error("duplicateUserProperty function not found in table meta or user property is protected");
+      console.error(
+        "duplicateUserProperty function not found in table meta or user property is protected",
+      );
       return;
     }
     duplicateUserProperty(rowName);
@@ -351,7 +353,7 @@ export default function UserPropertiesTable({
     onError: (error) => {
       console.error("Failed to duplicate user property:", error);
       const errorMsg =
-        (error.response?.data as { message?: string })?.message ?? "API Error";
+        (error.response?.data as { message?: string }).message ?? "API Error";
       setSnackbarMessage(`Failed to duplicate user property: ${errorMsg}`);
       setSnackbarOpen(true);
     },
@@ -446,10 +448,10 @@ export default function UserPropertiesTable({
         if (deleteUserPropertyMutation.isPending) return;
         deleteUserPropertyMutation.mutate(userPropertyId);
       },
-      duplicateUserProperty: (userPropertyName: string) => {
+      duplicateUserProperty: (name: string) => {
         if (duplicateUserPropertyMutation.isPending) return;
         duplicateUserPropertyMutation.mutate({
-          name: userPropertyName,
+          name,
           resourceType: DuplicateResourceTypeEnum.UserProperty,
         });
       },
