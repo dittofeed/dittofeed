@@ -143,4 +143,74 @@ describe("duplicateResource", () => {
     });
     expect(stored?.name).toBe("Custom Property (1)");
   });
+
+  it("re-duplicating a duplicate strips the suffix and increments correctly", async () => {
+    const workspace = unwrap(
+      await createWorkspace({
+        id: randomUUID(),
+        name: `workspace-${randomUUID()}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+
+    // Create original
+    const original = unwrap(
+      await insert({
+        table: schema.segment,
+        values: {
+          id: randomUUID(),
+          workspaceId: workspace.id,
+          name: "My Template",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Everyone,
+              id: "entry",
+            },
+            nodes: [],
+          },
+          updatedAt: new Date(),
+        },
+      }),
+    );
+
+    // First duplicate: My Template -> My Template (1)
+    const firstDuplicateResult = await duplicateResource({
+      workspaceId: workspace.id,
+      name: original.name,
+      resourceType: "Segment",
+    });
+
+    expect(firstDuplicateResult.isOk()).toBe(true);
+    if (firstDuplicateResult.isErr()) {
+      throw new Error("Expected first duplicate to be Ok");
+    }
+    expect(firstDuplicateResult.value.name).toBe("My Template (1)");
+
+    // Second duplicate from "My Template (1)": should become "My Template (2)"
+    const secondDuplicateResult = await duplicateResource({
+      workspaceId: workspace.id,
+      name: firstDuplicateResult.value.name,
+      resourceType: "Segment",
+    });
+
+    expect(secondDuplicateResult.isOk()).toBe(true);
+    if (secondDuplicateResult.isErr()) {
+      throw new Error("Expected second duplicate to be Ok");
+    }
+    expect(secondDuplicateResult.value.name).toBe("My Template (2)");
+
+    // Third duplicate from "My Template (2)": should become "My Template (3)"
+    const thirdDuplicateResult = await duplicateResource({
+      workspaceId: workspace.id,
+      name: secondDuplicateResult.value.name,
+      resourceType: "Segment",
+    });
+
+    expect(thirdDuplicateResult.isOk()).toBe(true);
+    if (thirdDuplicateResult.isErr()) {
+      throw new Error("Expected third duplicate to be Ok");
+    }
+    expect(thirdDuplicateResult.value.name).toBe("My Template (3)");
+  });
 });

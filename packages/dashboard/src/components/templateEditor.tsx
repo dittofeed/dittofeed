@@ -66,7 +66,7 @@ import {
 import { LoremIpsum } from "lorem-ipsum";
 import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import { useImmer } from "use-immer";
 
@@ -387,22 +387,15 @@ export default function TemplateEditor({
     useMessageTemplateUpdateMutation();
   const testTemplateMutation = useTestTemplateMutation();
 
-  const setSnackbarState = useState({
-    open: false,
-    message: "",
-  })[1];
-
   const duplicateMessageTemplateMutation = useDuplicateResourceMutation({
     onSuccess: (data) => {
-      setSnackbarState({
-        open: true,
-        message: `Message template duplicated as "${data.name}"!`,
+      enqueueSnackbar(`Message template duplicated as "${data.name}"!`, {
+        variant: "success",
       });
     },
     onError: () => {
-      setSnackbarState({
-        open: true,
-        message: "Failed to duplicate message template.",
+      enqueueSnackbar("Failed to duplicate message template.", {
+        variant: "error",
       });
     },
   });

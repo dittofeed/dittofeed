@@ -26,10 +26,14 @@ import {
 
 function buildDuplicateName(baseName: string, existingNames: string[]): string {
   const existing = new Set(existingNames);
+
+  // Strip existing " (N)" suffix if present to get the true base name
+  const nameWithoutSuffix = baseName.replace(/\s+\(\d+\)$/, "");
+
   let index = 1;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
-    const candidate = `${baseName} (${index})`;
+    const candidate = `${nameWithoutSuffix} (${index})`;
     if (!existing.has(candidate)) {
       return candidate;
     }
