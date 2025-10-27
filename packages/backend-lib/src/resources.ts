@@ -191,7 +191,6 @@ export async function duplicateResource({
             workspaceId: original.workspaceId,
             name: duplicateName,
             definition: original.definition,
-            draft: original.draft,
             canRunMultiple: original.canRunMultiple,
             resourceType: original.resourceType,
           })
