@@ -17,7 +17,6 @@ import {
   FormLabel,
   IconButton,
   Slide,
-  Snackbar,
   Stack,
   styled,
   SxProps,
@@ -388,10 +387,10 @@ export default function TemplateEditor({
     useMessageTemplateUpdateMutation();
   const testTemplateMutation = useTestTemplateMutation();
 
-  const [snackbarState, setSnackbarState] = useState({
+  const setSnackbarState = useState({
     open: false,
     message: "",
-  });
+  })[1];
 
   const duplicateMessageTemplateMutation = useDuplicateResourceMutation({
     onSuccess: (data) => {
