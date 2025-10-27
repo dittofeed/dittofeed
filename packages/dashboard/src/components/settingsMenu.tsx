@@ -99,6 +99,7 @@ export function SettingsMenu({ commands }: { commands: SettingsCommand[] }) {
           onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
           options={commands}
           getOptionLabel={(option) => option.label}
+          isOptionEqualToValue={(option, value) => option.label === value.label}
           onChange={handleCommandSelect}
           renderInput={(params) => (
             <TextField
