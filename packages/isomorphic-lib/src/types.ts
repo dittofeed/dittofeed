@@ -5137,6 +5137,36 @@ export const UpsertUserPropertyError = Type.Union([
 
 export type UpsertUserPropertyError = Static<typeof UpsertUserPropertyError>;
 
+export enum DuplicateResourceErrorType {
+  ResourceNotFound = "ResourceNotFound",
+  ProtectedResource = "ProtectedResource",
+}
+
+export const DuplicateResourceNotFoundError = Type.Object({
+  type: Type.Literal(DuplicateResourceErrorType.ResourceNotFound),
+  message: Type.String(),
+});
+
+export type DuplicateResourceNotFoundError = Static<
+  typeof DuplicateResourceNotFoundError
+>;
+
+export const DuplicateResourceProtectedError = Type.Object({
+  type: Type.Literal(DuplicateResourceErrorType.ProtectedResource),
+  message: Type.String(),
+});
+
+export type DuplicateResourceProtectedError = Static<
+  typeof DuplicateResourceProtectedError
+>;
+
+export const DuplicateResourceError = Type.Union([
+  DuplicateResourceNotFoundError,
+  DuplicateResourceProtectedError,
+]);
+
+export type DuplicateResourceError = Static<typeof DuplicateResourceError>;
+
 export const ComponentConfigurationEnum = {
   DeliveriesTable: "DeliveriesTable",
   Broadcast: "Broadcast",
@@ -5478,6 +5508,37 @@ export const GetResourcesResponse = Type.Object({
 });
 
 export type GetResourcesResponse = Static<typeof GetResourcesResponse>;
+
+export const DuplicateResourceTypeEnum = {
+  Segment: "Segment",
+  MessageTemplate: "MessageTemplate",
+  Journey: "Journey",
+  Broadcast: "Broadcast",
+  UserProperty: "UserProperty",
+} as const;
+
+export const DuplicateResourceType = Type.KeyOf(
+  Type.Const(DuplicateResourceTypeEnum),
+);
+
+export type DuplicateResourceType = Static<typeof DuplicateResourceType>;
+
+export const DuplicateResourceRequest = Type.Object({
+  workspaceId: Type.String(),
+  name: Type.String(),
+  resourceType: DuplicateResourceType,
+});
+
+export type DuplicateResourceRequest = Static<typeof DuplicateResourceRequest>;
+
+export const DuplicateResourceResponse = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+});
+
+export type DuplicateResourceResponse = Static<
+  typeof DuplicateResourceResponse
+>;
 
 export const ListDataSourceConfigurationRequest = Type.Object({
   workspaceId: Type.String(),

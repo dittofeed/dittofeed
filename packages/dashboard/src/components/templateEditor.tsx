@@ -47,6 +47,7 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
+  DuplicateResourceTypeEnum,
   EmailProviderType,
   EmailProviderTypeSchema,
   InternalEventType,
@@ -65,7 +66,7 @@ import {
 import { LoremIpsum } from "lorem-ipsum";
 import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
-import React, { useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import { useImmer } from "use-immer";
 
@@ -75,6 +76,7 @@ import {
   noticeAnchorOrigin as anchorOrigin,
   noticeAnchorOrigin,
 } from "../lib/notices";
+import { useDuplicateResourceMutation } from "../lib/useDuplicateResourceMutation";
 import { useMessageTemplateQuery } from "../lib/useMessageTemplateQuery";
 import {
   UpsertMessageTemplateParams,
@@ -384,6 +386,19 @@ export default function TemplateEditor({
   const { mutate: updateTemplate, isPending: isUpdating } =
     useMessageTemplateUpdateMutation();
   const testTemplateMutation = useTestTemplateMutation();
+
+  const duplicateMessageTemplateMutation = useDuplicateResourceMutation({
+    onSuccess: (data) => {
+      enqueueSnackbar(`Message template duplicated as "${data.name}"!`, {
+        variant: "success",
+      });
+    },
+    onError: () => {
+      enqueueSnackbar("Failed to duplicate message template.", {
+        variant: "error",
+      });
+    },
+  });
 
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
@@ -841,8 +856,24 @@ export default function TemplateEditor({
     viewDraft,
   ]);
 
+  const handleDuplicate = useCallback(() => {
+    if (!template || duplicateMessageTemplateMutation.isPending) {
+      return;
+    }
+    duplicateMessageTemplateMutation.mutate({
+      name: template.name,
+      resourceType: DuplicateResourceTypeEnum.MessageTemplate,
+    });
+  }, [template, duplicateMessageTemplateMutation]);
+
   const commands: SettingsCommand[] = useMemo(() => {
     return [
+      {
+        label: "Duplicate message template",
+        icon: <ContentCopyOutlined />,
+        disabled: !template,
+        action: handleDuplicate,
+      },
       {
         label: "Copy template definition as JSON",
         icon: <ContentCopyOutlined />,
@@ -856,7 +887,7 @@ export default function TemplateEditor({
         },
       },
     ];
-  }, [template?.definition]);
+  }, [template, handleDuplicate]);
 
   if (!workspace || !template || !renderEditorParams) {
     return null;

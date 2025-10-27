@@ -12,6 +12,7 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
+  Snackbar,
   Stack,
   Step,
   StepButton,
@@ -22,6 +23,7 @@ import {
 import { deepEquals } from "isomorphic-lib/src/equality";
 import {
   CompletionStatus,
+  DuplicateResourceTypeEnum,
   JourneyDefinition,
   JourneyResourceStatus,
   SavedJourneyResource,
@@ -33,6 +35,7 @@ import { useAppStorePick } from "../../../lib/appStore";
 import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
 import { copyToClipboard } from "../../../lib/copyToClipboard";
 import formatCurl from "../../../lib/formatCurl";
+import { useDuplicateResourceMutation } from "../../../lib/useDuplicateResourceMutation";
 import { useJourneyMutation } from "../../../lib/useJourneyMutation";
 import { useJourneyQuery } from "../../../lib/useJourneyQuery";
 import { useSegmentsQuery } from "../../../lib/useSegmentsQuery";
@@ -329,6 +332,24 @@ export default function JourneyV2Layout({
     useJourneyQuery(id);
   const { mutate: updateJourney, isPending: isJourneyMutationPending } =
     useJourneyMutation(state.id);
+
+  const [optionsDialogOpen, setOptionsDialogOpen] = useState(false);
+  const [canRunMultiple, setCanRunMultiple] = useState(
+    !!journey?.canRunMultiple,
+  );
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
+  const duplicateJourneyMutation = useDuplicateResourceMutation({
+    onSuccess: (data) => {
+      setSnackbarOpen(true);
+      setSnackbarMessage(`Journey duplicated as "${data.name}"!`);
+    },
+    onError: () => {
+      setSnackbarOpen(true);
+      setSnackbarMessage("Failed to duplicate journey.");
+    },
+  });
   const {
     workspace,
     journeyNodes,
@@ -346,11 +367,6 @@ export default function JourneyV2Layout({
     "resetJourneyState",
     "setViewDraft",
   ]);
-
-  const [optionsDialogOpen, setOptionsDialogOpen] = useState(false);
-  const [canRunMultiple, setCanRunMultiple] = useState(
-    !!journey?.canRunMultiple,
-  );
 
   useEffect(() => {
     if (journey) {
@@ -497,8 +513,24 @@ export default function JourneyV2Layout({
     setViewDraft,
   ]);
 
+  const handleDuplicate = useCallback(() => {
+    if (!journey || duplicateJourneyMutation.isPending) {
+      return;
+    }
+    duplicateJourneyMutation.mutate({
+      name: journey.name,
+      resourceType: DuplicateResourceTypeEnum.Journey,
+    });
+  }, [journey, duplicateJourneyMutation]);
+
   const settingsCommands: SettingsCommand[] = useMemo(() => {
     return [
+      {
+        label: "Duplicate journey",
+        icon: <ContentCopyOutlined />,
+        disabled: !journey,
+        action: handleDuplicate,
+      },
       {
         label: "Copy journey definition as JSON",
         icon: <ContentCopyOutlined />,
@@ -531,7 +563,7 @@ export default function JourneyV2Layout({
         },
       },
     ];
-  }, [journey]);
+  }, [journey, handleDuplicate]);
 
   const handleOptionsDialogClose = useCallback(() => {
     setOptionsDialogOpen(false);
@@ -564,6 +596,10 @@ export default function JourneyV2Layout({
     },
     [journey, workspace, canRunMultiple, updateJourney],
   );
+
+  const handleSnackbarClose = useCallback(() => {
+    setSnackbarOpen(false);
+  }, []);
 
   return (
     <Stack
@@ -687,6 +723,13 @@ export default function JourneyV2Layout({
           </Stack>
         </DialogContent>
       </Dialog>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </Stack>
   );
 }

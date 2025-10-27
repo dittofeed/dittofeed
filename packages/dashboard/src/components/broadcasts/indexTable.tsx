@@ -4,6 +4,7 @@ import {
   ArrowDownward,
   ArrowUpward,
   Computer,
+  ContentCopy as ContentCopyIcon,
   Home,
   KeyboardArrowLeft,
   KeyboardArrowRight,
@@ -54,12 +55,14 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { AxiosError } from "axios";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import {
   BroadcastResource,
   BroadcastResourceV2,
   BroadcastV2Config,
   ChannelType,
+  DuplicateResourceTypeEnum,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -68,6 +71,7 @@ import { useUniversalRouter } from "../../lib/authModeProvider";
 import { useArchiveBroadcastMutation } from "../../lib/useArchiveBroadcastMutation";
 import { useBroadcastsQuery } from "../../lib/useBroadcastsQuery";
 import { useCreateBroadcastMutation } from "../../lib/useCreateBroadcastMutation";
+import { useDuplicateResourceMutation } from "../../lib/useDuplicateResourceMutation";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 
 // Use the union type for the table row data
@@ -102,14 +106,18 @@ function humanizeBroadcastStatus(status: string): string {
 }
 
 // Cell renderer for Actions column
-function ActionsCell({ row }: CellContext<Row, unknown>) {
+function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const rowId = row.original.id;
+  const rowName = row.original.name;
   const isArchived = !!row.original.archived;
   const queryClient = useQueryClient();
 
   // Instantiate the hook directly in the cell component for the specific broadcast
   const archiveMutation = useArchiveBroadcastMutation(rowId);
+
+  // Access functions from table meta
+  const duplicateBroadcast = table.options.meta?.duplicateBroadcast;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -119,6 +127,15 @@ function ActionsCell({ row }: CellContext<Row, unknown>) {
   };
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleDuplicate = () => {
+    if (!duplicateBroadcast) {
+      console.error("duplicateBroadcast function not found in table meta");
+      return;
+    }
+    duplicateBroadcast(rowName);
+    handleClose();
   };
 
   const handleArchiveToggle = () => {
@@ -174,6 +191,10 @@ function ActionsCell({ row }: CellContext<Row, unknown>) {
           },
         }}
       >
+        <MenuItem onClick={handleDuplicate}>
+          <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
+          Duplicate
+        </MenuItem>
         <MenuItem
           onClick={handleArchiveToggle}
           sx={{ color: theme.palette.grey[700] }}
@@ -343,6 +364,21 @@ export default function BroadcastsTable() {
   const query = useBroadcastsQuery();
   const createBroadcastMutation = useCreateBroadcastMutation();
 
+  const duplicateBroadcastMutation = useDuplicateResourceMutation({
+    onSuccess: (data) => {
+      setSnackbarMessage(`Broadcast duplicated as "${data.name}"!`);
+      setSnackbarOpen(true);
+    },
+    onError: (error) => {
+      console.error("Failed to duplicate broadcast:", error);
+      const errorMsg =
+        (error as AxiosError<{ message?: string }>).response?.data.message ??
+        "API Error";
+      setSnackbarMessage(`Failed to duplicate broadcast: ${errorMsg}`);
+      setSnackbarOpen(true);
+    },
+  });
+
   // query.data is (BroadcastResource | BroadcastResourceV2)[]
   const rawData: Row[] = query.data ?? [];
 
@@ -415,8 +451,16 @@ export default function BroadcastsTable() {
       pagination,
       sorting,
     },
-    // meta is no longer needed for archive/unarchive as ActionsCell handles it
-    meta: {},
+    // Pass functions via meta
+    meta: {
+      duplicateBroadcast: (name: string) => {
+        if (duplicateBroadcastMutation.isPending) return;
+        duplicateBroadcastMutation.mutate({
+          name,
+          resourceType: DuplicateResourceTypeEnum.Broadcast,
+        });
+      },
+    },
   });
 
   const handleCreateBroadcast = () => {
@@ -770,16 +814,9 @@ export default function BroadcastsTable() {
   );
 }
 
-/* eslint-disable @typescript-eslint/no-empty-interface */
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface TableMeta<TData = unknown> {
-    // TableMeta is augmented globally by react-table itself,
-    // this empty interface was here because we previously added
-    // archiveBroadcast and unarchiveBroadcast.
-    // Since ActionsCell now handles its own mutations, this augmentation
-    // is no longer needed for those specific functions.
-    // If other meta properties are added elsewhere, this can be extended.
+    duplicateBroadcast?: (broadcastName: string) => void;
   }
 }
-/* eslint-enable @typescript-eslint/no-empty-interface */

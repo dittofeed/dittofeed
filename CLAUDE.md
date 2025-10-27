@@ -1,0 +1,1 @@
+See the contents of the [AGENTS.md](AGENTS.md) file for instructions on how to work within this project.

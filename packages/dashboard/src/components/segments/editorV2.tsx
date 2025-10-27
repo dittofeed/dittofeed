@@ -18,7 +18,10 @@ import {
 } from "@mui/material";
 import { formatDistanceToNow } from "date-fns";
 import deepEqual from "fast-deep-equal";
-import { SegmentResource } from "isomorphic-lib/src/types";
+import {
+  DuplicateResourceTypeEnum,
+  SegmentResource,
+} from "isomorphic-lib/src/types";
 import { useCallback, useMemo } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { useImmer } from "use-immer";
@@ -26,6 +29,7 @@ import { useImmer } from "use-immer";
 import { copyToClipboard } from "../../lib/copyToClipboard";
 import formatCurl from "../../lib/formatCurl";
 import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPeriodsQuery";
+import { useDuplicateResourceMutation } from "../../lib/useDuplicateResourceMutation";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import { EditableNameProps, EditableTitle } from "../editableName/v2";
@@ -115,8 +119,15 @@ export function formatSegmentCurl(segment: SegmentResource) {
 
 export function getSegmentCommands(
   segment: SegmentResource,
+  onDuplicate: () => void,
 ): SettingsCommand[] {
   return [
+    {
+      label: "Duplicate segment",
+      icon: <ContentCopyOutlined />,
+      disabled: !segment,
+      action: onDuplicate,
+    },
     {
       label: "Copy segment definition as JSON",
       icon: <ContentCopyOutlined />,
@@ -252,6 +263,21 @@ export function SegmentEditorV2({
     },
   });
 
+  const duplicateSegmentMutation = useDuplicateResourceMutation({
+    onSuccess: (data) => {
+      setState((draft) => {
+        draft.snackbarOpen = true;
+        draft.snackbarMessage = `Segment duplicated as "${data.name}"!`;
+      });
+    },
+    onError: () => {
+      setState((draft) => {
+        draft.snackbarOpen = true;
+        draft.snackbarMessage = "Failed to duplicate segment.";
+      });
+    },
+  });
+
   const handleDefinitionSave = useCallback(() => {
     if (!id || !state.editedSegment) {
       return;
@@ -263,9 +289,19 @@ export function SegmentEditorV2({
     });
   }, [id, segmentsUpdateMutation, state.editedSegment]);
 
+  const handleDuplicate = useCallback(() => {
+    if (!segment || duplicateSegmentMutation.isPending) {
+      return;
+    }
+    duplicateSegmentMutation.mutate({
+      name: segment.name,
+      resourceType: DuplicateResourceTypeEnum.Segment,
+    });
+  }, [segment, duplicateSegmentMutation]);
+
   const commands = useMemo(
-    () => (segment ? getSegmentCommands(segment) : []),
-    [segment],
+    () => (segment ? getSegmentCommands(segment, handleDuplicate) : []),
+    [segment, handleDuplicate],
   );
 
   const handleNameSave: EditableNameProps["onSubmit"] = useDebouncedCallback(
