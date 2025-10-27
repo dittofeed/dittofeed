@@ -3,6 +3,7 @@ import {
   ArrowDownward,
   ArrowUpward,
   Computer,
+  ContentCopy as ContentCopyIcon,
   Delete as DeleteIcon,
   DownloadForOffline,
   Home,
@@ -60,6 +61,7 @@ import { DEFAULT_SEGMENT_DEFINITION } from "isomorphic-lib/src/constants";
 import {
   CompletionStatus,
   ComputedPropertyPeriod,
+  DuplicateResourceTypeEnum,
   MinimalJourneysResource,
   SegmentDefinition,
   SegmentResource,
@@ -73,6 +75,7 @@ import { useUniversalRouter } from "../../lib/authModeProvider";
 import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPeriodsQuery";
 import { useDeleteSegmentMutation } from "../../lib/useDeleteSegmentMutation";
 import { useDownloadSegmentsMutation } from "../../lib/useDownloadSegmentsMutation";
+import { useDuplicateResourceMutation } from "../../lib/useDuplicateResourceMutation";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import {
   SEGMENTS_QUERY_KEY,
@@ -168,9 +171,11 @@ function TimeCell({ getValue }: CellContext<Row, unknown>) {
 function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const rowId = row.original.id;
+  const rowName = row.original.name;
 
-  // Access delete function from table meta
+  // Access functions from table meta
   const deleteSegment = table.options.meta?.deleteSegment;
+  const duplicateSegment = table.options.meta?.duplicateSegment;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -180,6 +185,15 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   };
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleDuplicate = () => {
+    if (!duplicateSegment) {
+      console.error("duplicateSegment function not found in table meta");
+      return;
+    }
+    duplicateSegment(rowName);
+    handleClose();
   };
 
   const handleDelete = () => {
@@ -220,6 +234,10 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
           },
         }}
       >
+        <MenuItem onClick={handleDuplicate}>
+          <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
+          Duplicate
+        </MenuItem>
         <MenuItem
           onClick={handleDelete}
           sx={{ color: theme.palette.error.main }}
@@ -372,6 +390,21 @@ export function SegmentsTable({
     },
   });
 
+  const duplicateSegmentMutation = useDuplicateResourceMutation({
+    onSuccess: (data) => {
+      setSnackbarMessage(`Segment duplicated as "${data.name}"!`);
+      setSnackbarOpen(true);
+    },
+    onError: (error) => {
+      console.error("Failed to duplicate segment:", error);
+      const errorMsg =
+        (error as AxiosError<{ message?: string }>).response?.data.message ??
+        "API Error";
+      setSnackbarMessage(`Failed to duplicate segment: ${errorMsg}`);
+      setSnackbarOpen(true);
+    },
+  });
+
   const createSegmentMutation = useUpdateSegmentsMutation({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [SEGMENTS_QUERY_KEY] });
@@ -477,12 +510,19 @@ export function SegmentsTable({
       pagination,
       sorting,
     },
-    // Pass the delete function via meta
+    // Pass functions via meta
     meta: {
       deleteSegment: (segmentId: string) => {
         if (deleteSegmentMutation.isPending) return;
         // Optional: Add confirmation dialog here
         deleteSegmentMutation.mutate(segmentId);
+      },
+      duplicateSegment: (segmentName: string) => {
+        if (duplicateSegmentMutation.isPending) return;
+        duplicateSegmentMutation.mutate({
+          name: segmentName,
+          resourceType: DuplicateResourceTypeEnum.Segment,
+        });
       },
     },
   });
@@ -754,5 +794,6 @@ declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface TableMeta<TData = unknown> {
     deleteSegment?: (segmentId: string) => void;
+    duplicateSegment?: (segmentName: string) => void;
   }
 }

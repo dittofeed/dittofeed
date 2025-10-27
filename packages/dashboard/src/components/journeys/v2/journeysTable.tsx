@@ -3,6 +3,7 @@ import {
   ArrowDownward,
   ArrowUpward,
   Computer,
+  ContentCopy as ContentCopyIcon,
   Delete as DeleteIcon,
   Home,
   KeyboardArrowLeft,
@@ -51,8 +52,10 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { AxiosError } from "axios";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import {
+  DuplicateResourceTypeEnum,
   GetJourneysResponseItem,
   JourneyResourceStatus,
 } from "isomorphic-lib/src/types";
@@ -62,6 +65,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useUniversalRouter } from "../../../lib/authModeProvider";
 import { useCreateJourneyMutation } from "../../../lib/useCreateJourneyMutation";
 import { useDeleteJourneyMutation } from "../../../lib/useDeleteJourneyMutation";
+import { useDuplicateResourceMutation } from "../../../lib/useDuplicateResourceMutation";
 import { useJourneyMutation } from "../../../lib/useJourneyMutation";
 import { useJourneysQuery } from "../../../lib/useJourneysQuery";
 import { GreyButton, greyButtonStyle } from "../../greyButtonStyle";
@@ -85,12 +89,17 @@ function humanizeJourneyStatus(status: JourneyResourceStatus): string {
   }
 }
 
-function ActionsCell({ row }: CellContext<Row, unknown>) {
+function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const { id, status } = row.original;
+  const rowName = row.original.name;
   const router = useUniversalRouter();
   const journeyMutation = useJourneyMutation(id);
   const deleteJourneyMutation = useDeleteJourneyMutation();
+
+  // Access functions from table meta
+  const duplicateJourney = table.options.meta?.duplicateJourney;
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -107,6 +116,15 @@ function ActionsCell({ row }: CellContext<Row, unknown>) {
     journeyMutation.mutate({
       status: newStatus,
     });
+    handleClose();
+  };
+
+  const handleDuplicate = () => {
+    if (!duplicateJourney) {
+      console.error("duplicateJourney function not found in table meta");
+      return;
+    }
+    duplicateJourney(rowName);
     handleClose();
   };
 
@@ -140,7 +158,28 @@ function ActionsCell({ row }: CellContext<Row, unknown>) {
           )}
         </IconButton>
       </Tooltip>
-      <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        MenuListProps={{
+          "aria-labelledby": "actions-button",
+        }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            boxShadow: theme.shadows[2],
+          },
+        }}
+      >
         <MenuItem onClick={handleEdit}>
           <OpenInNewIcon fontSize="small" sx={{ mr: 1 }} />
           Edit
@@ -160,6 +199,10 @@ function ActionsCell({ row }: CellContext<Row, unknown>) {
             )}
           </MenuItem>
         )}
+        <MenuItem onClick={handleDuplicate}>
+          <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
+          Duplicate
+        </MenuItem>
         <MenuItem
           onClick={handleDelete}
           sx={{ color: theme.palette.error.main }}
@@ -297,6 +340,21 @@ export default function JourneysTable() {
     }
   }, [query.isError]);
 
+  const duplicateJourneyMutation = useDuplicateResourceMutation({
+    onSuccess: (data) => {
+      setSnackbarMessage(`Journey duplicated as "${data.name}"!`);
+      setSnackbarOpen(true);
+    },
+    onError: (error) => {
+      console.error("Failed to duplicate journey:", error);
+      const errorMsg =
+        (error as AxiosError<{ message?: string }>).response?.data.message ??
+        "API Error";
+      setSnackbarMessage(`Failed to duplicate journey: ${errorMsg}`);
+      setSnackbarOpen(true);
+    },
+  });
+
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
       {
@@ -338,6 +396,16 @@ export default function JourneysTable() {
     state: {
       pagination,
       sorting,
+    },
+    // Pass functions via meta
+    meta: {
+      duplicateJourney: (journeyName: string) => {
+        if (duplicateJourneyMutation.isPending) return;
+        duplicateJourneyMutation.mutate({
+          name: journeyName,
+          resourceType: DuplicateResourceTypeEnum.Journey,
+        });
+      },
     },
   });
 
@@ -590,4 +658,12 @@ export default function JourneysTable() {
       />
     </>
   );
+}
+
+// Add type definition for table meta
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<TData = unknown> {
+    duplicateJourney?: (journeyName: string) => void;
+  }
 }
