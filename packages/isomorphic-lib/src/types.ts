@@ -5479,6 +5479,36 @@ export const GetResourcesResponse = Type.Object({
 
 export type GetResourcesResponse = Static<typeof GetResourcesResponse>;
 
+export const DuplicateResourceTypeEnum = {
+  Segment: "Segment",
+  MessageTemplate: "MessageTemplate",
+  Journey: "Journey",
+  Broadcast: "Broadcast",
+} as const;
+
+export const DuplicateResourceType = Type.KeyOf(
+  Type.Const(DuplicateResourceTypeEnum),
+);
+
+export type DuplicateResourceType = Static<typeof DuplicateResourceType>;
+
+export const DuplicateResourceRequest = Type.Object({
+  workspaceId: Type.String(),
+  name: Type.String(),
+  resourceType: DuplicateResourceType,
+});
+
+export type DuplicateResourceRequest = Static<typeof DuplicateResourceRequest>;
+
+export const DuplicateResourceResponse = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+});
+
+export type DuplicateResourceResponse = Static<
+  typeof DuplicateResourceResponse
+>;
+
 export const ListDataSourceConfigurationRequest = Type.Object({
   workspaceId: Type.String(),
 });
