@@ -89,6 +89,21 @@ async function fetchExistingNames({
         .where(eq(schema.broadcast.workspaceId, workspaceId));
       return names.map((row) => row.name);
     }
+    case DuplicateResourceTypeEnum.UserProperty: {
+      const names = await tx
+        .select({ name: schema.userProperty.name })
+        .from(schema.userProperty)
+        .where(
+          and(
+            eq(schema.userProperty.workspaceId, workspaceId),
+            eq(
+              schema.userProperty.resourceType,
+              DBResourceTypeEnum.Declarative,
+            ),
+          ),
+        );
+      return names.map((row) => row.name);
+    }
     default:
       return [];
   }
@@ -236,6 +251,41 @@ export async function duplicateResource({
           throw new Error("Failed to duplicate broadcast");
         }
         return newBroadcast;
+      }
+      case DuplicateResourceTypeEnum.UserProperty: {
+        const original = await tx.query.userProperty.findFirst({
+          where: and(
+            eq(schema.userProperty.workspaceId, workspaceId),
+            eq(schema.userProperty.name, name),
+            eq(
+              schema.userProperty.resourceType,
+              DBResourceTypeEnum.Declarative,
+            ),
+          ),
+        });
+        if (!original) {
+          throw new Error(`User property ${name} not found in workspace`);
+        }
+        const duplicateName = buildDuplicateName(name, existingNames);
+        const inserted = await tx
+          .insert(schema.userProperty)
+          .values({
+            workspaceId: original.workspaceId,
+            name: duplicateName,
+            definition: original.definition,
+            resourceType: original.resourceType,
+            status: original.status,
+            exampleValue: original.exampleValue,
+          })
+          .returning({
+            id: schema.userProperty.id,
+            name: schema.userProperty.name,
+          });
+        const newUserProperty = inserted[0];
+        if (!newUserProperty) {
+          throw new Error("Failed to duplicate user property");
+        }
+        return newUserProperty;
       }
       default: {
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions

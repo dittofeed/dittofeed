@@ -19,6 +19,7 @@ import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { JOURNEYS_QUERY_KEY } from "./constants";
 import { BROADCASTS_QUERY_KEY } from "./useBroadcastsQuery";
 import { SEGMENTS_QUERY_KEY } from "./useSegmentsQuery";
+import { USER_PROPERTIES_QUERY_KEY } from "./useUserPropertiesQuery";
 
 const MESSAGE_TEMPLATES_QUERY_KEY = "messageTemplates";
 
@@ -142,6 +143,19 @@ export function useDuplicateResourceMutation(
             }
             queryClient.invalidateQueries({
               queryKey: [BROADCASTS_QUERY_KEY, { workspaceId }],
+            });
+            break;
+          case DuplicateResourceTypeEnum.UserProperty:
+            if (savedData.id) {
+              queryClient.invalidateQueries({
+                queryKey: [
+                  USER_PROPERTIES_QUERY_KEY,
+                  { workspaceId, ids: [savedData.id] },
+                ],
+              });
+            }
+            queryClient.invalidateQueries({
+              queryKey: [USER_PROPERTIES_QUERY_KEY, { workspaceId }],
             });
             break;
         }

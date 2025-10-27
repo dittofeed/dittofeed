@@ -5484,6 +5484,7 @@ export const DuplicateResourceTypeEnum = {
   MessageTemplate: "MessageTemplate",
   Journey: "Journey",
   Broadcast: "Broadcast",
+  UserProperty: "UserProperty",
 } as const;
 
 export const DuplicateResourceType = Type.KeyOf(

@@ -1,7 +1,11 @@
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { AddCircleOutlineOutlined, Delete } from "@mui/icons-material";
+import {
+  AddCircleOutlineOutlined,
+  ContentCopyOutlined,
+  Delete,
+} from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
@@ -9,6 +13,7 @@ import {
   IconButton,
   MenuItem,
   Select,
+  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -26,6 +31,7 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   AnyOfUserPropertyDefinition,
   CompletionStatus,
+  DuplicateResourceTypeEnum,
   FileUserPropertyDefinition,
   GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
@@ -39,23 +45,26 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { v4 as uuidv4, validate } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
 import { EditableTitle } from "../../components/editableName/v2";
 import { SubtleHeader } from "../../components/headers";
 import InfoTooltip from "../../components/infoTooltip";
+import { SettingsCommand, SettingsMenu } from "../../components/settingsMenu";
 import TraitAutocomplete from "../../components/traitAutocomplete";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../../lib/appStore";
+import { copyToClipboard } from "../../lib/copyToClipboard";
 import { requestContext } from "../../lib/requestContext";
 import {
   GroupedOption,
   PreloadedState,
   PropsWithInitialState,
 } from "../../lib/types";
+import { useDuplicateResourceMutation } from "../../lib/useDuplicateResourceMutation";
 
 const selectorWidth = "192px";
 
@@ -1087,10 +1096,61 @@ export default function NewUserProperty() {
   ]);
   const theme = useTheme();
 
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
+  const duplicateUserPropertyMutation = useDuplicateResourceMutation({
+    onSuccess: (data) => {
+      setSnackbarMessage(`User property duplicated as "${data.name}"!`);
+      setSnackbarOpen(true);
+    },
+    onError: () => {
+      setSnackbarMessage("Failed to duplicate user property.");
+      setSnackbarOpen(true);
+    },
+  });
+
   if (!editedUserProperty) {
     return null;
   }
   const { name } = editedUserProperty;
+
+  const handleDuplicate = useCallback(() => {
+    if (!editedUserProperty || duplicateUserPropertyMutation.isPending) {
+      return;
+    }
+    duplicateUserPropertyMutation.mutate({
+      name: editedUserProperty.name,
+      resourceType: DuplicateResourceTypeEnum.UserProperty,
+    });
+  }, [editedUserProperty, duplicateUserPropertyMutation]);
+
+  const commands: SettingsCommand[] = useMemo(
+    () => [
+      {
+        label: "Duplicate user property",
+        icon: <ContentCopyOutlined />,
+        disabled: !editedUserProperty,
+        action: handleDuplicate,
+      },
+      {
+        label: "Copy user property definition as JSON",
+        icon: <ContentCopyOutlined />,
+        disabled: !editedUserProperty,
+        action: () => {
+          if (!editedUserProperty) {
+            return;
+          }
+          copyToClipboard({
+            value: JSON.stringify(editedUserProperty.definition),
+            successNotice: "User property definition copied to clipboard as JSON.",
+            failureNotice: "Failed to copy user property definition.",
+          });
+        },
+      },
+    ],
+    [editedUserProperty, handleDuplicate],
+  );
 
   const handleSave = apiRequestHandlerFactory({
     request: userPropertyUpdateRequest,
@@ -1135,9 +1195,12 @@ export default function NewUserProperty() {
               })
             }
           />
-          <Button variant="contained" onClick={handleSave}>
-            Save
-          </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button variant="contained" onClick={handleSave}>
+              Save
+            </Button>
+            <SettingsMenu commands={commands} />
+          </Stack>
         </Stack>
         <Box
           sx={{
@@ -1156,5 +1219,16 @@ export default function NewUserProperty() {
     );
   }
 
-  return <DashboardContent>{body}</DashboardContent>;
+  return (
+    <>
+      <DashboardContent>{body}</DashboardContent>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
+    </>
+  );
 }

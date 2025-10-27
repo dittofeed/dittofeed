@@ -3,6 +3,7 @@ import {
   ArrowDownward,
   ArrowUpward,
   Computer,
+  ContentCopy as ContentCopyIcon,
   Delete as DeleteIcon,
   Home,
   KeyboardArrowLeft,
@@ -56,6 +57,7 @@ import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
   ComputedPropertyPeriod,
+  DuplicateResourceTypeEnum,
   SavedUserPropertyResource,
   UserPropertyDefinitionType,
 } from "isomorphic-lib/src/types";
@@ -66,6 +68,7 @@ import { v4 as uuid } from "uuid";
 
 import { useComputedPropertyPeriodsQuery } from "../lib/useComputedPropertyPeriodsQuery";
 import { useDeleteUserPropertyMutation } from "../lib/useDeleteUserPropertyMutation";
+import { useDuplicateResourceMutation } from "../lib/useDuplicateResourceMutation";
 import { useUpsertUserPropertyMutation } from "../lib/useUpsertUserPropertyMutation";
 import {
   USER_PROPERTIES_QUERY_KEY,
@@ -151,9 +154,11 @@ function TimeCell({ getValue }: CellContext<Row, unknown>) {
 function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const rowId = row.original.id;
+  const rowName = row.original.name;
   const isProtected = row.original.disableDelete;
 
   const deleteUserProperty = table.options.meta?.deleteUserProperty;
+  const duplicateUserProperty = table.options.meta?.duplicateUserProperty;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -163,6 +168,15 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   };
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleDuplicate = () => {
+    if (!duplicateUserProperty) {
+      console.error("duplicateUserProperty function not found in table meta");
+      return;
+    }
+    duplicateUserProperty(rowName);
+    handleClose();
   };
 
   const handleDelete = () => {
@@ -204,6 +218,10 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
           },
         }}
       >
+        <MenuItem onClick={handleDuplicate} disabled={isProtected}>
+          <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
+          Duplicate
+        </MenuItem>
         <MenuItem
           onClick={handleDelete}
           disabled={isProtected}
@@ -325,6 +343,20 @@ export default function UserPropertiesTable({
     },
   });
 
+  const duplicateUserPropertyMutation = useDuplicateResourceMutation({
+    onSuccess: (data) => {
+      setSnackbarMessage(`User property duplicated as "${data.name}"!`);
+      setSnackbarOpen(true);
+    },
+    onError: (error) => {
+      console.error("Failed to duplicate user property:", error);
+      const errorMsg =
+        (error.response?.data as { message?: string })?.message ?? "API Error";
+      setSnackbarMessage(`Failed to duplicate user property: ${errorMsg}`);
+      setSnackbarOpen(true);
+    },
+  });
+
   const createUserPropertyMutation = useUpsertUserPropertyMutation({
     onSuccess: (data) => {
       queryClient.invalidateQueries({
@@ -413,6 +445,13 @@ export default function UserPropertiesTable({
       deleteUserProperty: (userPropertyId: string) => {
         if (deleteUserPropertyMutation.isPending) return;
         deleteUserPropertyMutation.mutate(userPropertyId);
+      },
+      duplicateUserProperty: (userPropertyName: string) => {
+        if (duplicateUserPropertyMutation.isPending) return;
+        duplicateUserPropertyMutation.mutate({
+          name: userPropertyName,
+          resourceType: DuplicateResourceTypeEnum.UserProperty,
+        });
       },
     },
   });
@@ -669,5 +708,6 @@ declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface TableMeta<TData = unknown> {
     deleteUserProperty?: (userPropertyId: string) => void;
+    duplicateUserProperty?: (userPropertyName: string) => void;
   }
 }
