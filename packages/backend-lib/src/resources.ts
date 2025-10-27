@@ -1,7 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
-import { db, Db } from "./db";
+import { Db, db } from "./db";
 import * as schema from "./db/schema";
 import { getMessageTemplates, getSubscribedSegments } from "./journeys";
 import logger from "./logger";
@@ -23,6 +23,7 @@ import {
 function buildDuplicateName(baseName: string, existingNames: string[]): string {
   const existing = new Set(existingNames);
   let index = 1;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
     const candidate = `${baseName} (${index})`;
     if (!existing.has(candidate)) {
@@ -237,8 +238,10 @@ export async function duplicateResource({
         }
         return newBroadcast;
       }
-      default:
+      default: {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         throw new Error(`Unsupported resource type ${resourceType}`);
+      }
     }
   });
 }

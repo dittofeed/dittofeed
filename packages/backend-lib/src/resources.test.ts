@@ -2,24 +2,13 @@ import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { db, endPool, insert } from "./db";
+import { db, insert } from "./db";
 import * as schema from "./db/schema";
 import { duplicateResource } from "./resources";
-import {
-  BroadcastResourceVersionEnum,
-  ChannelType,
-  JourneyDefinition,
-  JourneyDraft,
-  SegmentDefinition,
-  SegmentNodeType,
-} from "./types";
+import { SegmentDefinition, SegmentNodeType } from "./types";
 import { createWorkspace } from "./workspaces";
 
 describe("duplicateResource", () => {
-  afterAll(async () => {
-    await endPool();
-  });
-
   it("duplicates a segment with generated name suffix", async () => {
     const workspace = unwrap(
       await createWorkspace({
