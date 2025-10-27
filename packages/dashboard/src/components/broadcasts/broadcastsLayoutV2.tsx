@@ -1,5 +1,4 @@
 import CloseIcon from "@mui/icons-material/Close";
-import { ContentCopyOutlined } from "@mui/icons-material";
 import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
 import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
@@ -8,7 +7,6 @@ import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { LoadingButton } from "@mui/lab";
 import {
-  Snackbar,
   SxProps,
   Theme,
   Tooltip,
@@ -22,11 +20,7 @@ import Stack from "@mui/material/Stack";
 import Step from "@mui/material/Step";
 import StepButton from "@mui/material/StepButton";
 import Stepper from "@mui/material/Stepper";
-import {
-  BroadcastStepKey,
-  CompletionStatus,
-  DuplicateResourceTypeEnum,
-} from "isomorphic-lib/src/types";
+import { BroadcastStepKey, CompletionStatus } from "isomorphic-lib/src/types";
 import React, { useCallback, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";

@@ -517,10 +517,10 @@ export function SegmentsTable({
         // Optional: Add confirmation dialog here
         deleteSegmentMutation.mutate(segmentId);
       },
-      duplicateSegment: (segmentName: string) => {
+      duplicateSegment: (originalSegmentName: string) => {
         if (duplicateSegmentMutation.isPending) return;
         duplicateSegmentMutation.mutate({
-          name: segmentName,
+          name: originalSegmentName,
           resourceType: DuplicateResourceTypeEnum.Segment,
         });
       },

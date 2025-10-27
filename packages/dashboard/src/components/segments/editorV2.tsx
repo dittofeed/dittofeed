@@ -22,7 +22,7 @@ import {
   DuplicateResourceTypeEnum,
   SegmentResource,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { useImmer } from "use-immer";
 
