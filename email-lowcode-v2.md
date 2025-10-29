@@ -32,7 +32,7 @@ There will be four basic blocks:
 
 **The left drawer**
 
-This will contain the node palette, the layout palette, the user properties editor, and the node editor. These can be toggled between, using a set of buttons at the top of the drawer. However, only one of these will be visible at a time.
+This will contain the node palette, the layout palette, the global settings editor, the user properties editor, and the node editor. These can be toggled between, using a set of buttons at the top of the drawer. However, only one of these will be visible at a time.
 
 **Editor Body / Canvas**
 
@@ -48,8 +48,37 @@ The topbar will contain the following:
 - A publish button (which will be disabled if the email is already up to date)
 - A toggle to view the email in a mobile view
 - A toggle to view the currently published email (as opposed to the current draft)
-- A method to revert the draft history.
+- A method to revert the draft history
+- A button to open a preview of the email (as a modal)
 
 **Right Drawer**
 
-This will contain the AI chat assistant, which will be used to help the user design their email.
+This will contain the AI chat assistant, which will be used to help the user design their email
+
+## Implementation Steps
+
+See the [AGENTS.md](AGENTS.md) file for instructions on how to work within this project.
+
+### 1. Create limited body node types
+
+We'll be defining typescript types in `packages/isomorphic-lib/src/types.ts` using typebox schemas. These types should define the node types:
+
+- Paragraph
+- Button
+- Row
+
+Where there are multiple variants of the Row node, with different numbers of columns.
+
+Call the top level type `LowCodeEmailBodyNodeV2`.
+
+### 2. Create the editor body
+
+Create the editor body component, as `packages/dashboard/src/components/lowCodeEmailEditorV2/body.tsx`, creating the `lowCodeEmailEditorV2` folder.
+
+Then creating a new page in `packages/dashboard/src/pages/dev/email-lowcode-v2.page.tsx`, which will render the editor body component with hardcoded for easy development and testing. Create a redirect route in `packages/dashboard/next.config.js` so that all `/dashboard/dev` requests 404 outside of dev and testing environments - be conscious of the `/dashboard` `basePath` setting.
+
+As far as styling this component, do not use mui as in the rest of the dashboard. Instead use plain css, written in a `packages/dashboard/src/components/lowCodeEmailEditorV2/styles.css` file, which should be imported into the page.
+
+### 3. Create a method to convert the editor body to MJML
+
+Implement a new directory and file `packages/backend-lib/src/lowCodeEmailV2/body.ts`. Implement a method `lowCodeBodyToMjml` which will convert the editor body to an MJML string.
