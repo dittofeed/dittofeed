@@ -6261,3 +6261,6 @@ export const GetJourneyEditorStatsResponse = Type.Object({
 export type GetJourneyEditorStatsResponse = Static<
   typeof GetJourneyEditorStatsResponse
 >;
+
+// Re-export Low Code Email V2 types
+export * from "./types/lowCodeEmailV2";
