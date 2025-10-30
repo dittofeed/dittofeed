@@ -640,10 +640,10 @@ export async function userJourneyWorkflow(
           }
           case DelayVariantType.LocalTime: {
             const now = Date.now();
-            let nexTime: number;
+            let nextTime: number;
             // Use patch for backwards compatibility with existing workflows
             if (wf.patched("local-delay-improvements")) {
-              nexTime = await findNextLocalizedTimeV2({
+              nextTime = await findNextLocalizedTimeV2({
                 workspaceId,
                 userId,
                 now,
@@ -653,13 +653,13 @@ export async function userJourneyWorkflow(
               });
             } else {
               // Legacy behavior: hardcoded to 5 AM
-              nexTime = await findNextLocalizedTime({
+              nextTime = await findNextLocalizedTime({
                 workspaceId,
                 userId,
                 now,
               });
             }
-            delay = nexTime - now;
+            delay = nextTime - now;
             break;
           }
           case DelayVariantType.UserProperty: {
