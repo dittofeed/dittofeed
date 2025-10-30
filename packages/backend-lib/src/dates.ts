@@ -63,6 +63,11 @@ export function findNextLocalizedTimeInner({
   throw new Error("Could not find next localized time");
 }
 
+/**
+ * @deprecated Use findNextLocalizedTimeV2 instead. This function hardcodes hour to 5
+ * and doesn't support custom minutes or allowedDaysOfWeek parameters.
+ * Kept for backwards compatibility with existing temporal workflows.
+ */
 export async function findNextLocalizedTime({
   workspaceId,
   userId,
