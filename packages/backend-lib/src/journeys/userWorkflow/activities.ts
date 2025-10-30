@@ -56,7 +56,11 @@ import {
 } from "../recordNodeProcessed";
 import { GetSegmentAssignmentVersion } from "./types";
 
-export { findNextLocalizedTime, getUserPropertyDelay } from "../../dates";
+export {
+  findNextLocalizedTime,
+  findNextLocalizedTimeV2,
+  getUserPropertyDelay,
+} from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
 
 function safeWorkflowId(): string | undefined {

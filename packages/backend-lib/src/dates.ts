@@ -84,6 +84,32 @@ export async function findNextLocalizedTime({
   });
 }
 
+export async function findNextLocalizedTimeV2({
+  workspaceId,
+  userId,
+  now,
+  hour,
+  minute,
+  allowedDaysOfWeek,
+}: {
+  workspaceId: string;
+  userId: string;
+  now: number;
+} & LocalTimeDelayVariantFields): Promise<number> {
+  const { latLon } = await findAllUserPropertyAssignments({
+    workspaceId,
+    userId,
+    userProperties: ["latLon"],
+  });
+  return findNextLocalizedTimeInner({
+    latLon: typeof latLon === "string" ? latLon : undefined,
+    now,
+    hour,
+    minute,
+    allowedDaysOfWeek,
+  });
+}
+
 export interface BaseGetUserPropertyDelayParams {
   workspaceId: string;
   userId: string;

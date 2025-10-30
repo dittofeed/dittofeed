@@ -2,7 +2,11 @@ import { randomUUID } from "crypto";
 import { differenceInHours } from "date-fns";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { findNextLocalizedTimeInner, getUserPropertyDelay } from "./dates";
+import {
+  findNextLocalizedTimeInner,
+  findNextLocalizedTimeV2,
+  getUserPropertyDelay,
+} from "./dates";
 import { insert } from "./db";
 import { userProperty as dbUserProperty } from "./db/schema";
 import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
@@ -65,6 +69,201 @@ describe("findNextLocalizedTimeInner", () => {
     });
     expect(result).toBeGreaterThan(now);
     expect(differenceInHours(result, now)).toBe(20);
+  });
+});
+
+describe("findNextLocalizedTimeV2", () => {
+  let userId: string;
+  let workspaceId: string;
+  let latLonPropertyId: string;
+
+  beforeEach(async () => {
+    userId = randomUUID();
+    const workspace = unwrap(
+      await createWorkspace({
+        id: randomUUID(),
+        name: `test-workspace-${randomUUID()}`,
+        updatedAt: new Date(),
+      }),
+    );
+    workspaceId = workspace.id;
+
+    // Create latLon user property
+    const latLonProperty = unwrap(
+      await insert({
+        table: dbUserProperty,
+        values: {
+          id: randomUUID(),
+          name: "latLon",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            path: "latLon",
+            event: "*",
+          } satisfies UserPropertyDefinition,
+          workspaceId: workspace.id,
+          updatedAt: new Date(),
+        },
+      }),
+    );
+    latLonPropertyId = latLonProperty.id;
+  });
+
+  describe("with custom hour parameter", () => {
+    it("should schedule for the specified hour, not hardcoded 5 AM", async () => {
+      // Tuesday 2023-12-19, slightly after 4 PM in Los Angeles time
+      const now = new Date("2023-12-19T23:00:12.123Z").getTime();
+
+      await insertUserPropertyAssignments([
+        {
+          workspaceId,
+          userId,
+          userPropertyId: latLonPropertyId,
+          value: "33.8121,-117.9190", // Disneyland, Los Angeles
+        },
+      ]);
+
+      // Schedule for 8 PM (hour: 20) local time
+      const result = await findNextLocalizedTimeV2({
+        workspaceId,
+        userId,
+        now,
+        hour: 20,
+      });
+
+      expect(result).toBeGreaterThan(now);
+      // Should be ~4 hours until 8 PM local time, not ~30 hours until 5 AM next day
+      expect(differenceInHours(result, now)).toBe(4);
+    });
+
+    it("should work with different hour values", async () => {
+      const now = new Date("2023-12-19T23:00:12.123Z").getTime();
+
+      await insertUserPropertyAssignments([
+        {
+          workspaceId,
+          userId,
+          userPropertyId: latLonPropertyId,
+          value: "35.6764,139.6500", // Tokyo
+        },
+      ]);
+
+      // Schedule for 10 AM Tokyo time
+      // Current time is ~8 AM Tokyo time, so 10 AM is ~2 hours away
+      const result = await findNextLocalizedTimeV2({
+        workspaceId,
+        userId,
+        now,
+        hour: 10,
+      });
+
+      expect(result).toBeGreaterThan(now);
+      expect(differenceInHours(result, now)).toBe(1);
+    });
+  });
+
+  describe("with custom minute parameter", () => {
+    it("should schedule for the specified minute when provided", async () => {
+      const now = new Date("2023-12-19T23:00:12.123Z").getTime();
+
+      await insertUserPropertyAssignments([
+        {
+          workspaceId,
+          userId,
+          userPropertyId: latLonPropertyId,
+          value: "33.8121,-117.9190",
+        },
+      ]);
+
+      // Schedule for 8:30 PM local time
+      const result = await findNextLocalizedTimeV2({
+        workspaceId,
+        userId,
+        now,
+        hour: 20,
+        minute: 30,
+      });
+
+      const resultDate = new Date(result);
+      expect(result).toBeGreaterThan(now);
+      // Verify it's scheduled for XX:30, not XX:00
+      expect(resultDate.getUTCMinutes()).toBe(30);
+    });
+
+    it("should default to minute 0 when not specified", async () => {
+      const now = new Date("2023-12-19T23:00:12.123Z").getTime();
+
+      await insertUserPropertyAssignments([
+        {
+          workspaceId,
+          userId,
+          userPropertyId: latLonPropertyId,
+          value: "33.8121,-117.9190",
+        },
+      ]);
+
+      const result = await findNextLocalizedTimeV2({
+        workspaceId,
+        userId,
+        now,
+        hour: 20,
+      });
+
+      const resultDate = new Date(result);
+      expect(resultDate.getUTCMinutes()).toBe(0);
+    });
+  });
+
+  describe("with allowedDaysOfWeek parameter", () => {
+    it("should respect allowedDaysOfWeek when provided", async () => {
+      // Tuesday, 2023-12-19, slightly after 8 AM Tokyo time
+      const now = new Date("2023-12-19T23:00:12.12Z").getTime();
+
+      await insertUserPropertyAssignments([
+        {
+          workspaceId,
+          userId,
+          userPropertyId: latLonPropertyId,
+          value: "35.6764,139.6500", // Tokyo
+        },
+      ]);
+
+      // Schedule for Thursday (day 4) at 5 AM
+      const result = await findNextLocalizedTimeV2({
+        workspaceId,
+        userId,
+        now,
+        hour: 5,
+        allowedDaysOfWeek: [4],
+      });
+
+      expect(result).toBeGreaterThan(now);
+      // Should be 44 hours until Thursday at 5 AM, not 20 hours until next day at 5 AM
+      expect(differenceInHours(result, now)).toBe(44);
+    });
+
+    it("should allow any day when allowedDaysOfWeek is not specified", async () => {
+      const now = new Date("2023-12-19T23:00:12.12Z").getTime();
+
+      await insertUserPropertyAssignments([
+        {
+          workspaceId,
+          userId,
+          userPropertyId: latLonPropertyId,
+          value: "35.6764,139.6500",
+        },
+      ]);
+
+      const result = await findNextLocalizedTimeV2({
+        workspaceId,
+        userId,
+        now,
+        hour: 5,
+      });
+
+      expect(result).toBeGreaterThan(now);
+      // Should schedule for next occurrence (20 hours), not wait for specific day
+      expect(differenceInHours(result, now)).toBe(20);
+    });
   });
 });
 

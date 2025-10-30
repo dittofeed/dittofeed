@@ -81,7 +81,7 @@ const WORKFLOW_NAME = "userJourneyWorkflow";
 const {
   onNodeProcessedV2,
   isRunnable,
-  findNextLocalizedTime,
+  findNextLocalizedTimeV2,
   getEarliestComputePropertyPeriod,
   getUserPropertyDelay,
   getWorkspace,
@@ -639,10 +639,13 @@ export async function userJourneyWorkflow(
           }
           case DelayVariantType.LocalTime: {
             const now = Date.now();
-            const nexTime = await findNextLocalizedTime({
+            const nexTime = await findNextLocalizedTimeV2({
               workspaceId,
               userId,
               now,
+              hour: currentNode.variant.hour,
+              minute: currentNode.variant.minute,
+              allowedDaysOfWeek: currentNode.variant.allowedDaysOfWeek,
             });
             delay = nexTime - now;
             break;
