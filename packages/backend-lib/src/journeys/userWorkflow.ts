@@ -82,6 +82,7 @@ const {
   onNodeProcessedV2,
   isRunnable,
   findNextLocalizedTime,
+  findNextLocalizedTimeV2,
   getEarliestComputePropertyPeriod,
   getUserPropertyDelay,
   getWorkspace,
@@ -639,12 +640,26 @@ export async function userJourneyWorkflow(
           }
           case DelayVariantType.LocalTime: {
             const now = Date.now();
-            const nexTime = await findNextLocalizedTime({
-              workspaceId,
-              userId,
-              now,
-            });
-            delay = nexTime - now;
+            let nextTime: number;
+            // Use patch for backwards compatibility with existing workflows
+            if (wf.patched("local-delay-improvements")) {
+              nextTime = await findNextLocalizedTimeV2({
+                workspaceId,
+                userId,
+                now,
+                hour: currentNode.variant.hour,
+                minute: currentNode.variant.minute,
+                allowedDaysOfWeek: currentNode.variant.allowedDaysOfWeek,
+              });
+            } else {
+              // Legacy behavior: hardcoded to 5 AM
+              nextTime = await findNextLocalizedTime({
+                workspaceId,
+                userId,
+                now,
+              });
+            }
+            delay = nextTime - now;
             break;
           }
           case DelayVariantType.UserProperty: {
