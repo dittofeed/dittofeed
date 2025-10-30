@@ -1,20 +1,20 @@
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
+import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
 import { createEnvAndWorker } from "../../test/temporal";
-import { and, eq } from "drizzle-orm";
-
 import { submitBatch } from "../apps/batch";
 import { db, insert } from "../db";
 import {
   journey as dbJourney,
   segment as dbSegment,
-  userProperty as dbUserProperty,
   userJourneyEvent as dbUserJourneyEvent,
+  userProperty as dbUserProperty,
 } from "../db/schema";
+import logger from "../logger";
 import {
   BatchItem,
   ChannelType,
@@ -52,7 +52,6 @@ import {
   UserJourneyWorkflowVersion,
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
-import logger from "../logger";
 
 jest.setTimeout(15000);
 
