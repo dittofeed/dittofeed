@@ -452,6 +452,37 @@ describe("findNextLocalizedTimeV2", () => {
       expect(differenceInHours(result, now)).toBe(23);
     });
 
+    it("should respect user's assigned timezone property", async () => {
+      // Wednesday 2023-12-20, 3 AM UTC
+      const now = new Date("2023-12-20T03:00:00.000Z").getTime();
+
+      // Assign user to Europe/London timezone (UTC+0 in winter)
+      await insertUserPropertyAssignments([
+        {
+          workspaceId,
+          userId,
+          userPropertyId: timezonePropertyId,
+          value: "Europe/London",
+        },
+      ]);
+
+      // Schedule for 10 AM in user's timezone
+      const result = await findNextLocalizedTimeV2({
+        workspaceId,
+        userId,
+        now,
+        hour: 10,
+      });
+
+      expect(result).toBeGreaterThan(now);
+      // At 3 AM UTC = 3 AM in London, next 10 AM is 7 hours away
+      expect(differenceInHours(result, now)).toBe(7);
+
+      // Verify the actual scheduled time
+      const resultDate = new Date(result);
+      expect(resultDate.toISOString()).toBe("2023-12-20T10:00:00.000Z");
+    });
+
     it("should use latLon when no timezone property but latLon is set", async () => {
       // Tuesday 2023-12-19, 11 PM UTC
       const now = new Date("2023-12-19T23:00:12.123Z").getTime();
