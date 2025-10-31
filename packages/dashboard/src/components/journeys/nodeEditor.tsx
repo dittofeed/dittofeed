@@ -69,6 +69,7 @@ import {
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
 import { SubscriptionGroupAutocompleteV2 } from "../subscriptionGroupAutocomplete";
+import { TimezoneAutocomplete } from "../timezoneAutocomplete";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { waitForTimeoutLabel } from "./store";
@@ -963,6 +964,26 @@ function DelayNodeFields({
           <SubtleHeader>Allowed Days of the Week</SubtleHeader>
           <Stack direction="row" spacing={1}>
             {dayEls}
+          </Stack>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <TimezoneAutocomplete
+              value={nodeVariant.defaultTimezone}
+              disabled={disabled}
+              label="Default Timezone (Optional)"
+              handler={(timezone) => {
+                updateJourneyNodeData(nodeId, (node) => {
+                  const props = node.data.nodeTypeProps;
+                  if (
+                    props.type === JourneyNodeType.DelayNode &&
+                    props.variant.type === DelayVariantType.LocalTime
+                  ) {
+                    props.variant.defaultTimezone = timezone ?? undefined;
+                  }
+                });
+              }}
+              sx={{ flexGrow: 1 }}
+            />
+            <InfoTooltip title="Default timezone that local time will be expressed in, if a user's timezone cannot be inferred." />
           </Stack>
         </>
       );

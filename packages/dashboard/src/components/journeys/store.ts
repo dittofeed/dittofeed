@@ -835,6 +835,7 @@ function journeyDefinitionFromStateBranch(
               minute: uiNode.variant.minute,
               hour: uiNode.variant.hour,
               allowedDaysOfWeek: uiNode.variant.allowedDaysOfWeek,
+              defaultTimezone: uiNode.variant.defaultTimezone,
             };
             break;
           }
@@ -1613,6 +1614,7 @@ export function journeyBranchToState(
               hour: node.variant.hour,
               minute: node.variant.minute,
               allowedDaysOfWeek: node.variant.allowedDaysOfWeek,
+              defaultTimezone: node.variant.defaultTimezone,
             };
             break;
           }
