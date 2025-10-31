@@ -28,6 +28,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   KeyedPerformedSegmentNode,
+  LocalTimeDelayVariant,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
@@ -1422,6 +1423,142 @@ describe("keyedEventEntry journeys", () => {
           "should have sent a reminder message for appointment 2 but not a cancellation message",
         ).toHaveLength(1);
         expect(senderMock).toHaveBeenCalledTimes(3);
+      });
+    });
+  });
+
+  describe("when a journey uses a local time delay with defaultTimezone", () => {
+    let journey: Journey;
+    let journeyDefinition: JourneyDefinition;
+    let userId: string;
+    let idUserPropertyId: string;
+
+    beforeEach(async () => {
+      userId = randomUUID();
+      idUserPropertyId = randomUUID();
+
+      journeyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.EventEntryNode,
+          event: "SIGNUP",
+          key: "signupId",
+          child: "delay-until-morning",
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            type: JourneyNodeType.DelayNode,
+            id: "delay-until-morning",
+            variant: {
+              type: DelayVariantType.LocalTime,
+              hour: 9,
+              minute: 0,
+              defaultTimezone: "America/New_York",
+            } satisfies LocalTimeDelayVariant,
+            child: JourneyNodeType.ExitNode,
+          },
+        ],
+      };
+
+      journey = await insert({
+        table: dbJourney,
+        values: {
+          id: randomUUID(),
+          name: "delay-timezone-journey",
+          definition: journeyDefinition,
+          workspaceId: workspace.id,
+          status: "Running",
+          canRunMultiple: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      }).then(unwrap);
+
+      await upsertUserProperty(
+        {
+          id: idUserPropertyId,
+          workspaceId: workspace.id,
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+          name: "id",
+        },
+        {
+          skipProtectedCheck: true,
+        },
+      );
+
+      await insertUserPropertyAssignments([
+        {
+          workspaceId: workspace.id,
+          userId,
+          userPropertyId: idUserPropertyId,
+          value: userId,
+        },
+      ]);
+    });
+
+    it("should delay until 9 AM in the defaultTimezone (America/New_York)", async () => {
+      await worker.runUntil(async () => {
+        // Get the current time in the test environment
+        const startTime = await testEnv.currentTimeMs();
+
+        const messageId = randomUUID();
+        const signupId = randomUUID();
+
+        // Submit the batch to create the event
+        await submitBatch({
+          workspaceId: workspace.id,
+          data: {
+            batch: [
+              {
+                type: EventType.Track,
+                event: "SIGNUP",
+                userId,
+                messageId,
+                properties: {
+                  signupId,
+                },
+                timestamp: new Date(startTime).toISOString(),
+              } satisfies BatchItem,
+            ],
+          },
+        });
+
+        // Execute the workflow and wait for it to complete
+        await testEnv.client.workflow.execute(userJourneyWorkflow, {
+          workflowId: `workflow-${userId}-${signupId}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: signupId,
+              messageId,
+            },
+          ],
+        });
+
+        // Get the time after the workflow completes
+        const endTime = await testEnv.currentTimeMs();
+
+        // Convert the end time to America/New_York timezone and verify it's 9 AM
+        const endDate = new Date(endTime);
+        const formatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: "America/New_York",
+          hour: "numeric",
+          minute: "numeric",
+          hour12: false,
+        });
+        const nyTime = formatter.format(endDate);
+
+        // Should be 9:00 in New York time
+        expect(nyTime).toBe("09:00");
       });
     });
   });
