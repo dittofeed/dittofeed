@@ -991,6 +991,7 @@ export const LocalTimeDelayVariant = Type.Object({
   minute: Type.Optional(Type.Number()),
   hour: Type.Number(),
   allowedDaysOfWeek: Type.Optional(Type.Array(AllowedDayIndices)),
+  defaultTimezone: Type.Optional(Type.String()),
   // TODO support additional time units
 });
 

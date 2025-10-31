@@ -650,6 +650,7 @@ export async function userJourneyWorkflow(
                 hour: currentNode.variant.hour,
                 minute: currentNode.variant.minute,
                 allowedDaysOfWeek: currentNode.variant.allowedDaysOfWeek,
+                defaultTimezone: currentNode.variant.defaultTimezone,
               });
             } else {
               // Legacy behavior: hardcoded to 5 AM

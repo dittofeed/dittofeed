@@ -29,16 +29,29 @@ function getTimezone({ latLon }: { latLon: string }): string {
 
 export function findNextLocalizedTimeInner({
   latLon,
+  userTimezone,
+  defaultTimezone,
   now,
   hour,
   minute = 0,
   allowedDaysOfWeek,
 }: LocalTimeDelayVariantFields & {
   latLon?: string;
+  userTimezone?: string;
   now: number;
 }): number {
-  const timezone =
-    typeof latLon === "string" ? getTimezone({ latLon }) : DEFAULT_TIMEZONE;
+  // Priority: user property timezone > defaultTimezone > latLon-derived timezone > UTC
+  let timezone: string;
+  if (userTimezone) {
+    timezone = userTimezone;
+  } else if (defaultTimezone) {
+    timezone = defaultTimezone;
+  } else if (typeof latLon === "string") {
+    timezone = getTimezone({ latLon });
+  } else {
+    timezone = DEFAULT_TIMEZONE;
+  }
+
   const offset = getTimezoneOffset(timezone, now);
   const zoned = offset + now;
 
@@ -96,18 +109,21 @@ export async function findNextLocalizedTimeV2({
   hour,
   minute,
   allowedDaysOfWeek,
+  defaultTimezone,
 }: {
   workspaceId: string;
   userId: string;
   now: number;
 } & LocalTimeDelayVariantFields): Promise<number> {
-  const { latLon } = await findAllUserPropertyAssignments({
+  const { latLon, timezone } = await findAllUserPropertyAssignments({
     workspaceId,
     userId,
-    userProperties: ["latLon"],
+    userProperties: ["latLon", "timezone"],
   });
   return findNextLocalizedTimeInner({
     latLon: typeof latLon === "string" ? latLon : undefined,
+    userTimezone: typeof timezone === "string" ? timezone : undefined,
+    defaultTimezone,
     now,
     hour,
     minute,
