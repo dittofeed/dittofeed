@@ -40,14 +40,14 @@ export function findNextLocalizedTimeInner({
   userTimezone?: string;
   now: number;
 }): number {
-  // Priority: user property timezone > defaultTimezone > latLon-derived timezone > UTC
+  // Priority: user property timezone > latLon-derived timezone > defaultTimezone > UTC
   let timezone: string;
   if (userTimezone) {
     timezone = userTimezone;
-  } else if (defaultTimezone) {
-    timezone = defaultTimezone;
   } else if (typeof latLon === "string") {
     timezone = getTimezone({ latLon });
+  } else if (defaultTimezone) {
+    timezone = defaultTimezone;
   } else {
     timezone = DEFAULT_TIMEZONE;
   }
