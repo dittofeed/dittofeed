@@ -13,9 +13,16 @@ The simplest variant specifies that the user should wait for a fixed amount of t
 
 ### Localized Delay
 
-The localized delay variant allows you to specify a delay so that the journey waits for a specific time of day and/or day of the week in the users's timezone.
+The localized delay variant allows you to specify a delay so that the journey waits for a specific time of day and/or day of the week in the user's timezone.
 
-This requires that the user has a specified `latLon` user property e.g. `"33.812511,-117.9189762"`.
+#### Timezone Resolution
+
+The system determines the user's timezone using the following priority order:
+
+1. **User's `timezone` property** - If the user has a `timezone` user property set (e.g., `"America/New_York"`), this takes highest priority
+2. **User's `latLon` property** - If no timezone property is set but the user has a `latLon` property (e.g., `"33.812511,-117.9189762"`), the timezone is derived from the geographic coordinates
+3. **Default timezone** - If neither user property is available, the journey's configured default timezone is used
+4. **UTC** - As a final fallback, UTC is used if no other timezone information is available
 
 ### User Property Delay
 

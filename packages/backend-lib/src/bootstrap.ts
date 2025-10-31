@@ -266,6 +266,15 @@ export async function bootstrapPostgres({
       },
       exampleValue: "33.812511,-117.9189762",
     },
+    {
+      name: "timezone",
+      workspaceId,
+      definition: {
+        type: UserPropertyDefinitionType.Trait,
+        path: "timezone",
+      },
+      exampleValue: '"America/New_York"',
+    },
   ];
   if (userPropertyAllowList) {
     userProperties = userProperties.filter((up) =>
