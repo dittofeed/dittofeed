@@ -2,6 +2,8 @@
 
 The purpose of this task is to add the deliveries count to the deliveries table component.
 
+Ensure that when you want to use typechecking or run tests, use the commands defined in [AGENTS](./agents.md).
+
 ## Steps
 
 1. Add a new `searchDeliveriesCount` function to the `packages/backend-lib/src/deliveries.ts` file.
