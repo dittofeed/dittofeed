@@ -54,6 +54,7 @@ import {
   DeliveriesAllowedColumn,
   JSONValue,
   MinimalJourneysResource,
+  SearchDeliveriesCountResponse,
   SearchDeliveriesRequest,
   SearchDeliveriesRequestSortBy,
   SearchDeliveriesRequestSortByEnum,
@@ -697,6 +698,45 @@ export function useDeliveryBodyState({
     placeholderData: keepPreviousData,
   });
 
+  const countQueryParams = useMemo(() => {
+    if (!resolvedQueryParams) {
+      return null;
+    }
+    // Omit cursor, limit, sortBy, sortDirection for count query
+    const { cursor, limit, sortBy, sortDirection, ...countParams } =
+      resolvedQueryParams;
+    return countParams;
+  }, [resolvedQueryParams]);
+
+  const countQuery = useQuery<SearchDeliveriesCountResponse | null>({
+    queryKey: [
+      "deliveries-count",
+      filtersHash,
+      userId,
+      groupId,
+      journeyId,
+      triggeringProperties,
+      contextValues,
+      workspace,
+      startDate,
+      endDate,
+    ],
+    queryFn: async () => {
+      if (!countQueryParams) {
+        return null;
+      }
+      const response = await axios.get(`${baseApiUrl}/deliveries/count`, {
+        params: countQueryParams,
+        headers: authHeaders,
+      });
+      const result = unwrap(
+        schemaValidateWithErr(response.data, SearchDeliveriesCountResponse),
+      );
+      return result;
+    },
+    placeholderData: keepPreviousData,
+  });
+
   const data = useMemo<Delivery[] | null>(() => {
     if (
       !query.data ||
@@ -804,6 +844,7 @@ export function useDeliveryBodyState({
     setState,
     data,
     query,
+    countQuery,
     onNextPage,
     onPreviousPage,
     onFirstPage,
@@ -823,7 +864,7 @@ export function DeliveriesBody({
   footerRowSx,
   ...hookProps
 }: DeliveriesBodyProps) {
-  const { data, query, onNextPage, onPreviousPage, onFirstPage } =
+  const { data, query, countQuery, onNextPage, onPreviousPage, onFirstPage } =
     useDeliveryBodyState(hookProps);
 
   const { workspace } = useAppStorePick(["workspace"]);
@@ -1143,17 +1184,24 @@ export function DeliveriesBody({
                         Next
                       </GreyButton>
                     </Stack>
-                    <Box
-                      sx={{
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      {query.isFetching && (
-                        <CircularProgress color="inherit" size={20} />
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      {countQuery.data && (
+                        <Typography variant="body2" color="text.secondary">
+                          Total: {countQuery.data.count.toLocaleString()}
+                        </Typography>
                       )}
-                    </Box>
+                      <Box
+                        sx={{
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        {(query.isFetching || countQuery.isFetching) && (
+                          <CircularProgress color="inherit" size={20} />
+                        )}
+                      </Box>
+                    </Stack>
                   </Stack>
                 </TableCell>
               </TableRow>

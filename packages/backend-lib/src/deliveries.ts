@@ -30,6 +30,8 @@ import {
   InternalEventType,
   MessageSendSuccessContents,
   MessageSendSuccessVariant,
+  SearchDeliveriesCountRequest,
+  SearchDeliveriesCountResponse,
   SearchDeliveriesRequest,
   SearchDeliveriesRequestSortByEnum,
   SearchDeliveriesResponse,
@@ -757,6 +759,96 @@ export async function searchDeliveries({
     items,
     cursor: responseCursor,
     previousCursor: responsePreviousCursor,
+  };
+}
+
+export async function searchDeliveriesCount({
+  workspaceId,
+  journeyId,
+  channels,
+  userId,
+  to,
+  from,
+  statuses,
+  templateIds,
+  startDate,
+  endDate,
+  groupId,
+  broadcastId,
+  triggeringProperties: triggeringPropertiesInput,
+  contextValues: contextValuesInput,
+  abortSignal,
+}: SearchDeliveriesCountRequest & {
+  abortSignal?: AbortSignal;
+}): Promise<SearchDeliveriesCountResponse> {
+  const queryBuilder = new ClickHouseQueryBuilder();
+
+  // Build the base query without limit, cursor, sortBy, sortDirection
+  const { query: baseQuery } = buildDeliverySearchQuery(
+    {
+      workspaceId,
+      journeyId,
+      channels,
+      userId,
+      to,
+      from,
+      statuses,
+      templateIds,
+      startDate,
+      endDate,
+      groupId,
+      broadcastId,
+      triggeringProperties: triggeringPropertiesInput,
+      contextValues: contextValuesInput,
+      // Use default values that won't affect the count - we'll wrap in a count query
+      sortBy: SearchDeliveriesRequestSortByEnum.sentAt,
+      sortDirection: SortDirectionEnum.Desc,
+      // Set a large limit to ensure we don't artificially limit the count
+      limit: 1000000,
+      cursor: undefined,
+    },
+    queryBuilder,
+  );
+
+  // Wrap the base query to get a count
+  const countQuery = `
+    SELECT COUNT(*) as count
+    FROM (
+      ${baseQuery}
+    ) as subquery
+  `;
+
+  logger().debug(
+    {
+      query: countQuery,
+      queryParams: queryBuilder.getQueries(),
+    },
+    "searchDeliveriesCount query",
+  );
+
+  const result = await chQuery({
+    query: countQuery,
+    query_params: queryBuilder.getQueries(),
+    format: "JSONEachRow",
+    clickhouse_settings: {
+      date_time_output_format: "iso",
+      function_json_value_return_type_allow_complex: 1,
+    },
+    abort_signal: abortSignal,
+  });
+
+  const rows: Array<{ count: string }> = [];
+  await streamClickhouseQuery(result, (queryRows) => {
+    for (const row of queryRows) {
+      rows.push(row as { count: string });
+    }
+  });
+
+  const count = rows.length > 0 ? parseInt(rows[0].count, 10) : 0;
+
+  return {
+    workspaceId,
+    count,
   };
 }
 

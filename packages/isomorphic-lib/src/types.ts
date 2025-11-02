@@ -5616,6 +5616,26 @@ export type DownloadDeliveriesRequest = Static<
   typeof DownloadDeliveriesRequest
 >;
 
+export const SearchDeliveriesCountRequest = Type.Omit(SearchDeliveriesRequest, [
+  "limit",
+  "cursor",
+  "sortBy",
+  "sortDirection",
+]);
+
+export type SearchDeliveriesCountRequest = Static<
+  typeof SearchDeliveriesCountRequest
+>;
+
+export const SearchDeliveriesCountResponse = Type.Object({
+  workspaceId: Type.String(),
+  count: Type.Number(),
+});
+
+export type SearchDeliveriesCountResponse = Static<
+  typeof SearchDeliveriesCountResponse
+>;
+
 export const BroadcastConfigTypeEnum = {
   V2: "V2",
 } as const;

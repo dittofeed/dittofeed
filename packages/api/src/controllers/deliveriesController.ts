@@ -2,10 +2,13 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
   buildDeliveriesFile,
   searchDeliveries,
+  searchDeliveriesCount,
 } from "backend-lib/src/deliveries";
 import logger from "backend-lib/src/logger";
 import {
   DownloadDeliveriesRequest,
+  SearchDeliveriesCountRequest,
+  SearchDeliveriesCountResponse,
   SearchDeliveriesRequest,
   SearchDeliveriesResponse,
 } from "backend-lib/src/types";
@@ -44,6 +47,40 @@ export default async function deliveriesController(fastify: FastifyInstance) {
         abortSignal: controller.signal,
       });
       return reply.status(200).send(deliveries);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/count",
+    {
+      schema: {
+        description: "Get the count of deliveries matching the search criteria.",
+        tags: ["Deliveries"],
+        querystring: SearchDeliveriesCountRequest,
+        response: {
+          200: SearchDeliveriesCountResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const controller = new AbortController();
+      request.raw.on("close", () => {
+        if (request.raw.destroyed) {
+          logger().info(
+            {
+              workspaceId: request.query.workspaceId,
+            },
+            "delivery count search aborted",
+          );
+          controller.abort();
+        }
+      });
+
+      const count = await searchDeliveriesCount({
+        ...request.query,
+        abortSignal: controller.signal,
+      });
+      return reply.status(200).send(count);
     },
   );
 
