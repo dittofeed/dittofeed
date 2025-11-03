@@ -621,8 +621,9 @@ ${queryBody.fromClause}
     abort_signal: abortSignal,
   });
 
-  const rows = await resultSet.json<{ count: number }>();
-  return rows[0]?.count ?? 0;
+  const rows = await resultSet.json<{ count: number | string }>();
+  const rawCount = rows[0]?.count;
+  return typeof rawCount === "number" ? rawCount : Number(rawCount ?? 0);
 }
 
 export const SearchDeliveryRow = Type.Object({
