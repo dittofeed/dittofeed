@@ -73,20 +73,39 @@ function serializeCursorOffset(offset: number): string {
   });
 }
 
-export function buildDeliverySearchQuery(
-  params: SearchDeliveriesRequest,
+interface BuildDeliverySearchQueryBodyParams {
+  workspaceId: string;
+  journeyId?: string;
+  channels?: ChannelType[];
+  userId?: string | string[];
+  to?: string[];
+  from?: string[];
+  statuses?: string[];
+  templateIds?: string[];
+  startDate?: string;
+  endDate?: string;
+  groupId?: string | string[];
+  broadcastId?: string;
+  triggeringProperties?: Array<{ key: string; value: string | number }>;
+  contextValues?: Array<{ key: string; value: string | number }>;
+  includeLimit?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export function buildDeliverySearchQueryBody(
+  params: BuildDeliverySearchQueryBodyParams,
   qb: ClickHouseQueryBuilder,
 ): {
-  query: string;
-  queryParams: Record<string, unknown>;
+  ctes: string;
+  fromClause: string;
+  whereClause: string;
+  orderByClause: string;
+  limitClause: string;
 } {
   const {
     workspaceId,
-    cursor,
-    limit = 20,
     journeyId,
-    sortBy = SearchDeliveriesRequestSortByEnum.sentAt,
-    sortDirection = SortDirectionEnum.Desc,
     channels,
     userId,
     to,
@@ -99,9 +118,11 @@ export function buildDeliverySearchQuery(
     broadcastId,
     triggeringProperties: triggeringPropertiesInput,
     contextValues: contextValuesInput,
+    includeLimit = false,
+    limit = 20,
+    offset = 0,
   } = params;
 
-  const offset = parseCursorOffset(cursor);
   const triggeringProperties = triggeringPropertiesInput
     ? triggeringPropertiesInput.map(({ key, value }) => ({ key, value }))
     : undefined;
@@ -345,36 +366,14 @@ export function buildDeliverySearchQuery(
   // Determine whether to put LIMIT in inner query or outer query based on Phase 4 strategy
   // Case A (99% of queries - no context/triggering filters): Keep LIMIT in inner query
   // Case B (with context/triggering filters): Move LIMIT to outer query
-  const innerLimit = !hasContextOrTriggeringFilters
-    ? `LIMIT ${qb.addQueryValue(limit, "UInt64")} OFFSET ${qb.addQueryValue(offset, "UInt64")}`
-    : "";
-  const outerLimit = hasContextOrTriggeringFilters
-    ? `LIMIT ${qb.addQueryValue(limit, "UInt64")} OFFSET ${qb.addQueryValue(offset, "UInt64")}`
-    : "";
-
-  let sortByClause: string;
-  const direction = sortDirection === SortDirectionEnum.Desc ? "DESC" : "ASC";
-  switch (sortBy) {
-    case "sentAt": {
-      sortByClause = `sent_at ${direction}, origin_message_id ASC`;
-      break;
-    }
-    case "status": {
-      sortByClause = `last_event ${direction}, sent_at DESC, origin_message_id ASC`;
-      break;
-    }
-    case "from": {
-      sortByClause = `JSON_VALUE(properties, '$.variant.from') ${direction}, sent_at DESC, origin_message_id ASC`;
-      break;
-    }
-    case "to": {
-      sortByClause = `JSON_VALUE(properties, '$.variant.to') ${direction}, sent_at DESC, origin_message_id ASC`;
-      break;
-    }
-    default: {
-      assertUnreachable(sortBy);
-    }
-  }
+  const innerLimit =
+    includeLimit && !hasContextOrTriggeringFilters
+      ? `LIMIT ${qb.addQueryValue(limit, "UInt64")} OFFSET ${qb.addQueryValue(offset, "UInt64")}`
+      : "";
+  const outerLimit =
+    includeLimit && hasContextOrTriggeringFilters
+      ? `LIMIT ${qb.addQueryValue(limit, "UInt64")} OFFSET ${qb.addQueryValue(offset, "UInt64")}`
+      : "";
 
   // Build final WHERE clause for context/triggering filtering
   let finalWhereClause = "";
@@ -395,8 +394,8 @@ export function buildDeliverySearchQuery(
     finalWhereClause = ` WHERE JSONExtractString(uev.message_raw, 'context') != '' AND (${contextValuesClause})`;
   }
 
-  // Build the optimized query using CTEs and the internal_events table
-  const query = `
+  // Build the CTEs (Common Table Expressions)
+  const ctes = `
     WITH message_sends AS (
       SELECT DISTINCT * FROM (
         SELECT
@@ -444,18 +443,10 @@ export function buildDeliverySearchQuery(
         )
     )`
         : ""
-    }
-    SELECT
-      if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}') as last_event,
-      uev.properties as properties,
-      JSONExtractString(uev.message_raw, 'context') as context,
-      if(se.origin_message_id != '', se.max_event_time, ms.event_time) as updated_at,
-      ms.event_time as sent_at,
-      ms.user_or_anonymous_id as user_or_anonymous_id,
-      ms.message_id as origin_message_id,
-      ms.triggering_message_id as triggering_message_id,
-      ms.workspace_id as workspace_id,
-      if(uev.anonymous_id != '', 1, 0) as is_anonymous
+    }`;
+
+  // Build the FROM clause with joins
+  const fromClause = `
     FROM message_sends ms
     LEFT JOIN status_events se ON
       ms.workspace_id = se.workspace_id
@@ -488,11 +479,117 @@ export function buildDeliverySearchQuery(
       AND ms.processing_time = uev.processing_time
       AND ms.event_time = uev.event_time
       AND ms.message_id = uev.message_id
-    ${hasValidTriggeringPropsTrigger ? `LEFT JOIN triggering_events ON ms.triggering_message_id = triggering_events.message_id` : ""}
-    ${finalWhereClause}
-    ${statuses ? `${finalWhereClause ? "AND" : "WHERE"} if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}') IN ${qb.addQueryValue(statuses, "Array(String)")}` : ""}
+    ${hasValidTriggeringPropsTrigger ? `LEFT JOIN triggering_events ON ms.triggering_message_id = triggering_events.message_id` : ""}`;
+
+  // Build the WHERE clause with status filtering
+  const whereClause = `${finalWhereClause}
+    ${statuses ? `${finalWhereClause ? "AND" : "WHERE"} if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}') IN ${qb.addQueryValue(statuses, "Array(String)")}` : ""}`;
+
+  return {
+    ctes,
+    fromClause,
+    whereClause,
+    orderByClause: "", // Will be set by caller for search queries
+    limitClause: outerLimit,
+  };
+}
+
+export function buildDeliverySearchQuery(
+  params: SearchDeliveriesRequest,
+  qb: ClickHouseQueryBuilder,
+): {
+  query: string;
+  queryParams: Record<string, unknown>;
+} {
+  const {
+    workspaceId,
+    cursor,
+    limit = 20,
+    journeyId,
+    sortBy = SearchDeliveriesRequestSortByEnum.sentAt,
+    sortDirection = SortDirectionEnum.Desc,
+    channels,
+    userId,
+    to,
+    from,
+    statuses,
+    templateIds,
+    startDate,
+    endDate,
+    groupId,
+    broadcastId,
+    triggeringProperties,
+    contextValues,
+  } = params;
+
+  const offset = parseCursorOffset(cursor);
+
+  const { ctes, fromClause, whereClause, limitClause } =
+    buildDeliverySearchQueryBody(
+      {
+        workspaceId,
+        journeyId,
+        channels,
+        userId,
+        to,
+        from,
+        statuses,
+        templateIds,
+        startDate,
+        endDate,
+        groupId,
+        broadcastId,
+        triggeringProperties,
+        contextValues,
+        includeLimit: true,
+        limit,
+        offset,
+      },
+      qb,
+    );
+
+  // Build sort clause
+  let sortByClause: string;
+  const direction = sortDirection === SortDirectionEnum.Desc ? "DESC" : "ASC";
+  switch (sortBy) {
+    case "sentAt": {
+      sortByClause = `sent_at ${direction}, origin_message_id ASC`;
+      break;
+    }
+    case "status": {
+      sortByClause = `last_event ${direction}, sent_at DESC, origin_message_id ASC`;
+      break;
+    }
+    case "from": {
+      sortByClause = `JSON_VALUE(properties, '$.variant.from') ${direction}, sent_at DESC, origin_message_id ASC`;
+      break;
+    }
+    case "to": {
+      sortByClause = `JSON_VALUE(properties, '$.variant.to') ${direction}, sent_at DESC, origin_message_id ASC`;
+      break;
+    }
+    default: {
+      assertUnreachable(sortBy);
+    }
+  }
+
+  const query = `
+    ${ctes}
+    SELECT
+      if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}') as last_event,
+      uev.properties as properties,
+      JSONExtractString(uev.message_raw, 'context') as context,
+      if(se.origin_message_id != '', se.max_event_time, ms.event_time) as updated_at,
+      ms.event_time as sent_at,
+      ms.user_or_anonymous_id as user_or_anonymous_id,
+      ms.message_id as origin_message_id,
+      ms.triggering_message_id as triggering_message_id,
+      ms.workspace_id as workspace_id,
+      if(uev.anonymous_id != '', 1, 0) as is_anonymous
+    ${fromClause}
+    ${whereClause}
     ORDER BY ${sortByClause}
-    ${outerLimit}
+    ${limitClause}
   `;
 
   return {
@@ -783,8 +880,8 @@ export async function searchDeliveriesCount({
 }): Promise<SearchDeliveriesCountResponse> {
   const queryBuilder = new ClickHouseQueryBuilder();
 
-  // Build the base query without limit, cursor, sortBy, sortDirection
-  const { query: baseQuery } = buildDeliverySearchQuery(
+  // Build the query body without limit - we'll use COUNT(*) instead
+  const { ctes, fromClause, whereClause } = buildDeliverySearchQueryBody(
     {
       workspaceId,
       journeyId,
@@ -800,22 +897,17 @@ export async function searchDeliveriesCount({
       broadcastId,
       triggeringProperties: triggeringPropertiesInput,
       contextValues: contextValuesInput,
-      // Use default values that won't affect the count - we'll wrap in a count query
-      sortBy: SearchDeliveriesRequestSortByEnum.sentAt,
-      sortDirection: SortDirectionEnum.Desc,
-      // Set a large limit to ensure we don't artificially limit the count
-      limit: 1000000,
-      cursor: undefined,
+      includeLimit: false, // Don't include LIMIT/OFFSET for counting
     },
     queryBuilder,
   );
 
-  // Wrap the base query to get a count
+  // Build count query using the query body components
   const countQuery = `
+    ${ctes}
     SELECT COUNT(*) as count
-    FROM (
-      ${baseQuery}
-    ) as subquery
+    ${fromClause}
+    ${whereClause}
   `;
 
   logger().debug(
