@@ -159,6 +159,10 @@ export async function computePropertiesQueueWorkflow(
   const { computePropertiesContainedV2 } = proxyActivities<typeof activities>({
     startToCloseTimeout: initialConfig.computePropertiesTimeout,
     taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
+    retry: {
+      // Don't retry the activity if it fails, because retries are built into the queue + scheduler workflow
+      maximumAttempts: 1,
+    },
   });
 
   logger.info("Loaded config values", {
