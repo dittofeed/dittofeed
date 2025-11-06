@@ -123,6 +123,7 @@ export async function computePropertiesIncremental(
     };
     span.setAttributes(commonAttributes);
     try {
+      // FIXME filter out computed properties that are not running
       const prunedComputedProperties = await pruneComputedProperties(args);
       const prunedArgs = {
         ...args,

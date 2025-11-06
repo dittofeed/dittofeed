@@ -4144,7 +4144,9 @@ export async function processAssignments({
 }
 
 enum PrunedType {
+  // A computed property state node that requires a query to determine if it should be pruned
   ComputedPropertyQuery = "ComputedPropertyQuery",
+  // A computed property state node that *should definitely* be pruned
   ComputedPropertyValue = "ComputedPropertyValue",
 }
 
