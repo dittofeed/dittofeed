@@ -11,9 +11,9 @@ import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { SEGMENTS_QUERY_KEY } from "./useSegmentsQuery";
 
-export type SegmentStatusUpdate = {
+export interface SegmentStatusUpdate {
   status: SegmentStatus;
-};
+}
 
 // Mutation hook for updating segment status
 export function useSegmentStatusMutation(segmentId: string) {

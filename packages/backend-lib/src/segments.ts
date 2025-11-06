@@ -1103,9 +1103,7 @@ export async function deleteSegment({
 }: DeleteSegmentRequest): Promise<Segment | null> {
   const [deleted] = await db()
     .delete(dbSegment)
-    .where(
-      and(eq(dbSegment.id, id), eq(dbSegment.workspaceId, workspaceId)),
-    )
+    .where(and(eq(dbSegment.id, id), eq(dbSegment.workspaceId, workspaceId)))
     .returning();
 
   if (!deleted) {

@@ -72,12 +72,12 @@ import { v4 as uuid } from "uuid";
 import { useComputedPropertyPeriodsQuery } from "../lib/useComputedPropertyPeriodsQuery";
 import { useDeleteUserPropertyMutation } from "../lib/useDeleteUserPropertyMutation";
 import { useDuplicateResourceMutation } from "../lib/useDuplicateResourceMutation";
-import { useUserPropertyStatusMutation } from "../lib/useUserPropertyStatusMutation";
 import { useUpsertUserPropertyMutation } from "../lib/useUpsertUserPropertyMutation";
 import {
   USER_PROPERTIES_QUERY_KEY,
   useUserPropertiesQuery,
 } from "../lib/useUserPropertiesQuery";
+import { useUserPropertyStatusMutation } from "../lib/useUserPropertyStatusMutation";
 import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 
 export type UserPropertiesAllowedColumn =

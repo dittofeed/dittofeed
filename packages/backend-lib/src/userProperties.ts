@@ -25,12 +25,12 @@ import { db, QueryError, queryResult, upsert } from "./db";
 import { userProperty as dbUserProperty } from "./db/schema";
 import logger from "./logger";
 import {
+  DeleteUserPropertyRequest,
   EnrichedUserProperty,
   GroupChildrenUserPropertyDefinitions,
   JSONValue,
   KeyedPerformedUserPropertyDefinition,
   PerformedUserPropertyDefinition,
-  DeleteUserPropertyRequest,
   SavedUserPropertyResource,
   UpdateUserPropertyStatusRequest,
   UpsertUserPropertyError,
@@ -42,7 +42,6 @@ import {
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
   UserPropertyResource,
-  UserPropertyStatus,
 } from "./types";
 
 export function enrichUserProperty(
@@ -935,12 +934,7 @@ export async function deleteUserProperty({
       and(
         eq(dbUserProperty.workspaceId, workspaceId),
         eq(dbUserProperty.id, id),
-        not(
-          inArray(
-            dbUserProperty.name,
-            Array.from(protectedUserProperties),
-          ),
-        ),
+        not(inArray(dbUserProperty.name, Array.from(protectedUserProperties))),
       ),
     )
     .returning();

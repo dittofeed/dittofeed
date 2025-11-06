@@ -11,9 +11,9 @@ import { useAppStorePick } from "./appStore";
 import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { USER_PROPERTIES_QUERY_KEY } from "./useUserPropertiesQuery";
 
-export type UserPropertyStatusUpdate = {
+export interface UserPropertyStatusUpdate {
   status: UserPropertyStatus;
-};
+}
 
 // Mutation hook for updating user property status
 export function useUserPropertyStatusMutation(userPropertyId: string) {
@@ -41,18 +41,20 @@ export function useUserPropertyStatusMutation(userPropertyId: string) {
     return response.data;
   };
 
-  return useMutation<SavedUserPropertyResource, Error, UserPropertyStatusUpdate>(
-    {
-      mutationFn,
-      // Always refetch after error or success to ensure consistency
-      onSettled: () => {
-        if (workspace.type !== CompletionStatus.Successful) {
-          return;
-        }
-        const workspaceId = workspace.value.id;
-        const queryKey = [USER_PROPERTIES_QUERY_KEY, { workspaceId }];
-        queryClient.invalidateQueries({ queryKey });
-      },
+  return useMutation<
+    SavedUserPropertyResource,
+    Error,
+    UserPropertyStatusUpdate
+  >({
+    mutationFn,
+    // Always refetch after error or success to ensure consistency
+    onSettled: () => {
+      if (workspace.type !== CompletionStatus.Successful) {
+        return;
+      }
+      const workspaceId = workspace.value.id;
+      const queryKey = [USER_PROPERTIES_QUERY_KEY, { workspaceId }];
+      queryClient.invalidateQueries({ queryKey });
     },
-  );
+  });
 }
