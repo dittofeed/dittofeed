@@ -672,16 +672,14 @@ export function useDeliveryBodyState({
     groupId,
   ]);
 
-  const countQueryParams = useMemo<Partial<SearchDeliveriesRequest> | null>(
-    () => {
+  const countQueryParams =
+    useMemo<Partial<SearchDeliveriesRequest> | null>(() => {
       if (!resolvedQueryParams) {
         return null;
       }
       const { cursor: _cursor, limit: _limit, ...rest } = resolvedQueryParams;
       return rest;
-    },
-    [resolvedQueryParams],
-  );
+    }, [resolvedQueryParams]);
 
   const countQueryParamsKey = useMemo(
     () => (countQueryParams ? JSON.stringify(countQueryParams) : "none"),
