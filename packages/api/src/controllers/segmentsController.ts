@@ -9,6 +9,7 @@ import {
   buildSegmentsFile,
   deleteSegment,
   toSegmentResource,
+  updateSegmentStatus,
   upsertSegment,
 } from "backend-lib/src/segments";
 import {
@@ -49,6 +50,7 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   UpdateManualSegmentUsersRequest,
+  UpdateSegmentStatusRequest,
   UpsertSegmentResource,
   UpsertSegmentValidationError,
   UserUploadRowErrors,
@@ -161,6 +163,36 @@ export default async function segmentsController(fastify: FastifyInstance) {
         return reply.status(400).send(result.error);
       }
       return reply.status(200).send(result.value);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().patch(
+    "/status",
+    {
+      schema: {
+        description: "Update segment status.",
+        tags: ["Segments"],
+        body: UpdateSegmentStatusRequest,
+        response: {
+          200: SavedSegmentResource,
+          404: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, id, status }: UpdateSegmentStatusRequest =
+        request.body;
+
+      const updated = await updateSegmentStatus({
+        workspaceId,
+        id,
+        status,
+      });
+      if (!updated) {
+        return reply.status(404).send();
+      }
+
+      return reply.status(200).send(updated);
     },
   );
 

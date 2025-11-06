@@ -2,6 +2,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
   deleteUserProperty,
   findAllUserPropertyResources,
+  updateUserPropertyStatus,
   upsertUserProperty,
 } from "backend-lib/src/userProperties";
 import { FastifyInstance } from "fastify";
@@ -11,6 +12,7 @@ import {
   ReadAllUserPropertiesRequest,
   ReadAllUserPropertiesResponse,
   SavedUserPropertyResource,
+  UpdateUserPropertyStatusRequest,
   UpsertUserPropertyError,
   UpsertUserPropertyResource,
 } from "isomorphic-lib/src/types";
@@ -88,6 +90,36 @@ export default async function userPropertiesController(
       }
 
       return reply.status(204).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().patch(
+    "/status",
+    {
+      schema: {
+        description: "Update user property status.",
+        tags: ["User Properties"],
+        body: UpdateUserPropertyStatusRequest,
+        response: {
+          200: SavedUserPropertyResource,
+          404: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, id, status }: UpdateUserPropertyStatusRequest =
+        request.body;
+
+      const updated = await updateUserPropertyStatus({
+        workspaceId,
+        id,
+        status,
+      });
+      if (!updated) {
+        return reply.status(404).send();
+      }
+
+      return reply.status(200).send(updated);
     },
   );
 }

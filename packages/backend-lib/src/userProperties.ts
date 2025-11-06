@@ -32,6 +32,7 @@ import {
   PerformedUserPropertyDefinition,
   DeleteUserPropertyRequest,
   SavedUserPropertyResource,
+  UpdateUserPropertyStatusRequest,
   UpsertUserPropertyError,
   UpsertUserPropertyErrorType,
   UpsertUserPropertyResource,
@@ -41,6 +42,7 @@ import {
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
   UserPropertyResource,
+  UserPropertyStatus,
 } from "./types";
 
 export function enrichUserProperty(
@@ -87,6 +89,7 @@ export function toSavedUserPropertyResource(
       updatedAt,
       exampleValue,
       definitionUpdatedAt,
+      status,
     }) => ({
       workspaceId,
       name,
@@ -96,6 +99,7 @@ export function toSavedUserPropertyResource(
       createdAt: createdAt.getTime(),
       updatedAt: updatedAt.getTime(),
       definitionUpdatedAt: definitionUpdatedAt.getTime(),
+      status,
     }),
   );
 }
@@ -169,6 +173,7 @@ export async function findAllUserPropertyResources({
     definitionUpdatedAt: up.definitionUpdatedAt.getTime(),
     createdAt: up.createdAt.getTime(),
     updatedAt: up.updatedAt.getTime(),
+    status: up.status,
   }));
 }
 
@@ -886,6 +891,38 @@ export async function findUserIdsByUserPropertyValue({
   });
   const rows = await result.json<{ user_id: string }>();
   return rows.map((row) => row.user_id);
+}
+
+export async function updateUserPropertyStatus({
+  workspaceId,
+  id,
+  status,
+}: UpdateUserPropertyStatusRequest): Promise<SavedUserPropertyResource | null> {
+  const [updated] = await db()
+    .update(dbUserProperty)
+    .set({ status })
+    .where(
+      and(
+        eq(dbUserProperty.workspaceId, workspaceId),
+        eq(dbUserProperty.id, id),
+      ),
+    )
+    .returning();
+
+  if (!updated) {
+    return null;
+  }
+
+  const result = toSavedUserPropertyResource(updated);
+  if (result.isErr()) {
+    logger().error(
+      { err: result.error, workspaceId, id },
+      "failed to convert user property to resource after status update",
+    );
+    return null;
+  }
+
+  return result.value;
 }
 
 export async function deleteUserProperty({

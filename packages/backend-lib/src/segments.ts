@@ -48,6 +48,7 @@ import {
   SegmentOperatorType,
   SegmentStatus,
   SegmentStatusEnum,
+  UpdateSegmentStatusRequest,
   UpsertSegmentResource,
   UpsertSegmentValidationError,
   UpsertSegmentValidationErrorType,
@@ -1067,6 +1068,33 @@ export async function getSegmentAssignmentDb({
   });
   const rows = await result.json<{ latest_segment_value: boolean }>();
   return rows[0]?.latest_segment_value ?? null;
+}
+
+export async function updateSegmentStatus({
+  workspaceId,
+  id,
+  status,
+}: UpdateSegmentStatusRequest): Promise<SavedSegmentResource | null> {
+  const [updated] = await db()
+    .update(dbSegment)
+    .set({ status })
+    .where(and(eq(dbSegment.workspaceId, workspaceId), eq(dbSegment.id, id)))
+    .returning();
+
+  if (!updated) {
+    return null;
+  }
+
+  const result = toSegmentResource(updated);
+  if (result.isErr()) {
+    logger().error(
+      { err: result.error, workspaceId, id },
+      "failed to convert segment to resource after status update",
+    );
+    return null;
+  }
+
+  return result.value;
 }
 
 export async function deleteSegment({

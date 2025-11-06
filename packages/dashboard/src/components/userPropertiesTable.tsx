@@ -12,6 +12,8 @@ import {
   KeyboardDoubleArrowRight,
   MoreVert as MoreVertIcon,
   OpenInNew as OpenInNewIcon,
+  Pause as PauseIcon,
+  PlayArrow as PlayArrowIcon,
   UnfoldMore,
 } from "@mui/icons-material";
 import {
@@ -60,6 +62,7 @@ import {
   DuplicateResourceTypeEnum,
   SavedUserPropertyResource,
   UserPropertyDefinitionType,
+  UserPropertyStatusEnum,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -69,6 +72,7 @@ import { v4 as uuid } from "uuid";
 import { useComputedPropertyPeriodsQuery } from "../lib/useComputedPropertyPeriodsQuery";
 import { useDeleteUserPropertyMutation } from "../lib/useDeleteUserPropertyMutation";
 import { useDuplicateResourceMutation } from "../lib/useDuplicateResourceMutation";
+import { useUserPropertyStatusMutation } from "../lib/useUserPropertyStatusMutation";
 import { useUpsertUserPropertyMutation } from "../lib/useUpsertUserPropertyMutation";
 import {
   USER_PROPERTIES_QUERY_KEY,
@@ -78,12 +82,13 @@ import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 
 export type UserPropertiesAllowedColumn =
   | "name"
+  | "status"
   | "lastRecomputed"
   | "updatedAt"
   | "actions";
 
 export const DEFAULT_ALLOWED_USER_PROPERTIES_COLUMNS: UserPropertiesAllowedColumn[] =
-  ["name", "lastRecomputed", "updatedAt", "actions"];
+  ["name", "status", "lastRecomputed", "updatedAt", "actions"];
 
 type Row = SavedUserPropertyResource & {
   disableDelete?: boolean;
@@ -155,10 +160,12 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const rowId = row.original.id;
   const rowName = row.original.name;
+  const rowStatus = row.original.status;
   const isProtected = row.original.disableDelete;
 
   const deleteUserProperty = table.options.meta?.deleteUserProperty;
   const duplicateUserProperty = table.options.meta?.duplicateUserProperty;
+  const toggleUserPropertyStatus = table.options.meta?.toggleUserPropertyStatus;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -178,6 +185,18 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
       return;
     }
     duplicateUserProperty(rowName);
+    handleClose();
+  };
+
+  const handleToggleStatus = () => {
+    if (!toggleUserPropertyStatus) {
+      return;
+    }
+    const newStatus =
+      rowStatus === UserPropertyStatusEnum.Running
+        ? UserPropertyStatusEnum.Paused
+        : UserPropertyStatusEnum.Running;
+    toggleUserPropertyStatus(rowId, newStatus);
     handleClose();
   };
 
@@ -220,6 +239,19 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
           },
         }}
       >
+        <MenuItem onClick={handleToggleStatus}>
+          {rowStatus === UserPropertyStatusEnum.Running ? (
+            <>
+              <PauseIcon fontSize="small" sx={{ mr: 1 }} />
+              Pause
+            </>
+          ) : (
+            <>
+              <PlayArrowIcon fontSize="small" sx={{ mr: 1 }} />
+              Resume
+            </>
+          )}
+        </MenuItem>
         <MenuItem onClick={handleDuplicate} disabled={isProtected}>
           <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
           Duplicate
@@ -271,6 +303,16 @@ function NameCell({ row, getValue }: CellContext<Row, unknown>) {
       </Tooltip>
     </Stack>
   );
+}
+
+function StatusCell({ getValue }: CellContext<Row, unknown>) {
+  const status = getValue<string | undefined>();
+
+  if (!status) {
+    return null;
+  }
+
+  return <Typography variant="body2">{status}</Typography>;
 }
 
 export default function UserPropertiesTable({
@@ -377,6 +419,29 @@ export default function UserPropertiesTable({
     },
   });
 
+  const [statusUpdateId, setStatusUpdateId] = useState<string | null>(null);
+  const statusMutation = useUserPropertyStatusMutation(statusUpdateId ?? "");
+
+  const handleToggleUserPropertyStatus = (
+    userPropertyId: string,
+    newStatus: "NotStarted" | "Running" | "Paused",
+  ) => {
+    setStatusUpdateId(userPropertyId);
+    statusMutation.mutate(
+      { status: newStatus },
+      {
+        onSuccess: () => {
+          setSnackbarMessage("User property status updated successfully!");
+          setSnackbarOpen(true);
+        },
+        onError: () => {
+          setSnackbarMessage("Failed to update user property status.");
+          setSnackbarOpen(true);
+        },
+      },
+    );
+  };
+
   const handleCreateUserProperty = () => {
     if (userPropertyName.trim() && !createUserPropertyMutation.isPending) {
       const newUserPropertyId = uuid();
@@ -406,6 +471,12 @@ export default function UserPropertiesTable({
         header: "Name",
         accessorKey: "name",
         cell: NameCell,
+      },
+      status: {
+        id: "status",
+        header: "Status",
+        accessorKey: "status",
+        cell: StatusCell,
       },
       lastRecomputed: {
         id: "lastRecomputed",
@@ -454,6 +525,12 @@ export default function UserPropertiesTable({
           name,
           resourceType: DuplicateResourceTypeEnum.UserProperty,
         });
+      },
+      toggleUserPropertyStatus: (
+        userPropertyId: string,
+        newStatus: "NotStarted" | "Running" | "Paused",
+      ) => {
+        handleToggleUserPropertyStatus(userPropertyId, newStatus);
       },
     },
   });
@@ -711,5 +788,9 @@ declare module "@tanstack/react-table" {
   interface TableMeta<TData = unknown> {
     deleteUserProperty?: (userPropertyId: string) => void;
     duplicateUserProperty?: (userPropertyName: string) => void;
+    toggleUserPropertyStatus?: (
+      userPropertyId: string,
+      newStatus: "NotStarted" | "Running" | "Paused",
+    ) => void;
   }
 }

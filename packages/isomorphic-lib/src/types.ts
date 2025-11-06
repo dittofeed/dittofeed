@@ -1477,6 +1477,16 @@ export const DeleteSegmentRequest = Type.Object({
 
 export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
 
+export const UpdateSegmentStatusRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+  status: SegmentStatus,
+});
+
+export type UpdateSegmentStatusRequest = Static<
+  typeof UpdateSegmentStatusRequest
+>;
+
 export const UserId = Type.String({
   description:
     "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",
@@ -2509,6 +2519,16 @@ export const DeleteJourneyRequest = Type.Object({
 
 export type DeleteJourneyRequest = Static<typeof DeleteJourneyRequest>;
 
+export const UserPropertyStatusEnum = {
+  NotStarted: "NotStarted",
+  Running: "Running",
+  Paused: "Paused",
+} as const;
+
+export const UserPropertyStatus = Type.KeyOf(Type.Const(UserPropertyStatusEnum));
+
+export type UserPropertyStatus = Static<typeof UserPropertyStatus>;
+
 export const UserPropertyResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
@@ -2517,6 +2537,7 @@ export const UserPropertyResource = Type.Object({
   exampleValue: Type.Optional(Type.String()),
   updatedAt: Type.Number(),
   lastRecomputed: Type.Optional(Type.Number()),
+  status: Type.Optional(UserPropertyStatus),
 });
 
 export type UserPropertyResource = Static<typeof UserPropertyResource>;
@@ -2550,6 +2571,16 @@ export const DeleteUserPropertyRequest = Type.Object({
 
 export type DeleteUserPropertyRequest = Static<
   typeof DeleteUserPropertyRequest
+>;
+
+export const UpdateUserPropertyStatusRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+  status: UserPropertyStatus,
+});
+
+export type UpdateUserPropertyStatusRequest = Static<
+  typeof UpdateUserPropertyStatusRequest
 >;
 
 export const ReadAllUserPropertiesRequest = Type.Object({
