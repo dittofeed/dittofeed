@@ -1074,7 +1074,9 @@ export async function updateSegmentStatus({
   workspaceId,
   id,
   status,
-}: UpdateSegmentStatusRequest): Promise<Result<SavedSegmentResource, Error>> {
+}: UpdateSegmentStatusRequest): Promise<
+  Result<SavedSegmentResource | null, Error>
+> {
   return db().transaction(async (tx) => {
     // Fetch the segment to check if it's manual
     const segment = await tx.query.segment.findFirst({
@@ -1082,7 +1084,7 @@ export async function updateSegmentStatus({
     });
 
     if (!segment) {
-      return err(new Error("Segment not found"));
+      return ok(null);
     }
 
     // Check if the segment definition is valid and if it's a manual segment

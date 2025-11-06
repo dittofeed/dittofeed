@@ -33,6 +33,7 @@ import {
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  BaseMessageResponse,
   BaseUserUploadRow,
   BatchItem,
   ClearManualSegmentRequest,
@@ -175,6 +176,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
         body: UpdateSegmentStatusRequest,
         response: {
           200: SavedSegmentResource,
+          400: BaseMessageResponse,
           404: EmptyResponse,
         },
       },
@@ -188,11 +190,16 @@ export default async function segmentsController(fastify: FastifyInstance) {
         id,
         status,
       });
-      if (!updated) {
+      if (updated.isErr()) {
+        return reply.status(400).send({
+          message: updated.error.message,
+        });
+      }
+      if (!updated.value) {
         return reply.status(404).send();
       }
 
-      return reply.status(200).send(updated);
+      return reply.status(200).send(updated.value);
     },
   );
 
