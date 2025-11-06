@@ -1884,8 +1884,8 @@ export function createCommands(yargs: Argv): Argv {
         cursor,
       }) => {
         const debugQb = new ClickHouseQueryBuilder({ debug: true });
-        const { query } = await buildDeliverySearchQuery(
-          {
+        const { query } = await buildDeliverySearchQuery({
+          params: {
             workspaceId,
             journeyId,
             broadcastId,
@@ -1905,8 +1905,8 @@ export function createCommands(yargs: Argv): Argv {
             limit,
             cursor,
           },
-          debugQb,
-        );
+          qb: debugQb,
+        });
 
         const productionQuery = query
           .replace(/user_events_v2/g, "dittofeed.user_events_v2")

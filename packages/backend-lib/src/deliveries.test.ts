@@ -7,6 +7,7 @@ import {
   getDeliveryBody,
   parseSearchDeliveryRow,
   searchDeliveries,
+  searchDeliveriesCount,
   SearchDeliveryRow,
 } from "./deliveries";
 import logger from "./logger";
@@ -2349,6 +2350,78 @@ describe("deliveries", () => {
         expect(deliveries.items).toHaveLength(1);
         expect(deliveries.items[0]?.originMessageId).toEqual(messageIdLocal);
       });
+    });
+  });
+
+  describe("searchDeliveriesCount", () => {
+    it("returns the deduplicated count for matching deliveries", async () => {
+      const messageSentEventProperties: Omit<MessageSendSuccess, "type"> = {
+        variant: {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: {
+            type: EmailProviderType.SendGrid,
+          },
+        },
+      };
+
+      const sharedTemplateId = randomUUID();
+      const firstEvent: BatchItem = {
+        userId: randomUUID(),
+        timestamp: new Date().toISOString(),
+        type: EventType.Track,
+        messageId: randomUUID(),
+        event: InternalEventType.MessageSent,
+        properties: {
+          workspaceId,
+          journeyId: randomUUID(),
+          nodeId: randomUUID(),
+          runId: randomUUID(),
+          templateId: sharedTemplateId,
+          messageId: randomUUID(),
+          ...messageSentEventProperties,
+        },
+      };
+      const duplicateEvent = firstEvent;
+      const secondEvent: BatchItem = {
+        userId: randomUUID(),
+        timestamp: new Date().toISOString(),
+        type: EventType.Track,
+        messageId: randomUUID(),
+        event: InternalEventType.MessageSent,
+        properties: {
+          workspaceId,
+          journeyId: randomUUID(),
+          nodeId: randomUUID(),
+          runId: randomUUID(),
+          templateId: randomUUID(),
+          messageId: randomUUID(),
+          ...messageSentEventProperties,
+        },
+      };
+
+      await submitBatch({
+        workspaceId,
+        data: {
+          batch: [firstEvent, duplicateEvent, secondEvent],
+        },
+      });
+
+      const count = await searchDeliveriesCount({
+        workspaceId,
+      });
+
+      expect(count).toBe(2);
+
+      const filteredCount = await searchDeliveriesCount({
+        workspaceId,
+        templateIds: [sharedTemplateId],
+      });
+
+      expect(filteredCount).toBe(1);
     });
   });
   describe("parseSearchDeliveryRow", () => {

@@ -31,6 +31,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { Static, Type } from "@sinclair/typebox";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   ColumnDef,
@@ -346,6 +347,12 @@ interface WebhookDelivery extends BaseDelivery {
 }
 
 type Delivery = EmailDelivery | SmsDelivery | WebhookDelivery;
+
+const DeliveriesCountResponseSchema = Type.Object({
+  count: Type.Number(),
+});
+
+type DeliveriesCountResponse = Static<typeof DeliveriesCountResponseSchema>;
 
 function getOrigin({
   journeys,
@@ -665,6 +672,20 @@ export function useDeliveryBodyState({
     groupId,
   ]);
 
+  const countQueryParams =
+    useMemo<Partial<SearchDeliveriesRequest> | null>(() => {
+      if (!resolvedQueryParams) {
+        return null;
+      }
+      const { cursor: _cursor, limit: _limit, ...rest } = resolvedQueryParams;
+      return rest;
+    }, [resolvedQueryParams]);
+
+  const countQueryParamsKey = useMemo(
+    () => (countQueryParams ? JSON.stringify(countQueryParams) : "none"),
+    [countQueryParams],
+  );
+
   const query = useQuery<SearchDeliveriesResponse | null>({
     queryKey: [
       "deliveries",
@@ -691,6 +712,25 @@ export function useDeliveryBodyState({
       });
       const result = unwrap(
         schemaValidateWithErr(response.data, SearchDeliveriesResponse),
+      );
+      return result;
+    },
+    placeholderData: keepPreviousData,
+  });
+
+  const countQuery = useQuery<DeliveriesCountResponse | null>({
+    queryKey: ["deliveries", "count", countQueryParamsKey],
+    enabled: Boolean(countQueryParams),
+    queryFn: async () => {
+      if (!countQueryParams) {
+        return null;
+      }
+      const response = await axios.get(`${baseApiUrl}/deliveries/count`, {
+        params: countQueryParams,
+        headers: authHeaders,
+      });
+      const result = unwrap(
+        schemaValidateWithErr(response.data, DeliveriesCountResponseSchema),
       );
       return result;
     },
@@ -804,6 +844,7 @@ export function useDeliveryBodyState({
     setState,
     data,
     query,
+    countQuery,
     onNextPage,
     onPreviousPage,
     onFirstPage,
@@ -823,7 +864,7 @@ export function DeliveriesBody({
   footerRowSx,
   ...hookProps
 }: DeliveriesBodyProps) {
-  const { data, query, onNextPage, onPreviousPage, onFirstPage } =
+  const { data, query, countQuery, onNextPage, onPreviousPage, onFirstPage } =
     useDeliveryBodyState(hookProps);
 
   const { workspace } = useAppStorePick(["workspace"]);
@@ -1150,9 +1191,17 @@ export function DeliveriesBody({
                         alignItems: "center",
                       }}
                     >
-                      {query.isFetching && (
-                        <CircularProgress color="inherit" size={20} />
-                      )}
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Total deliveries:{" "}
+                          {countQuery.data?.count !== undefined
+                            ? countQuery.data.count.toLocaleString()
+                            : "—"}
+                        </Typography>
+                        {(query.isFetching || countQuery.isFetching) && (
+                          <CircularProgress color="inherit" size={20} />
+                        )}
+                      </Stack>
                     </Box>
                   </Stack>
                 </TableCell>
