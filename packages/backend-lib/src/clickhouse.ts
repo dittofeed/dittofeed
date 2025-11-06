@@ -261,7 +261,15 @@ export async function command(
       },
       "clickhouse-command",
     );
-    return client.command({ query_id: queryId, ...params });
+    try {
+      return client.command({ query_id: queryId, ...params });
+    } catch (error) {
+      logger().error(
+        { err: error, queryId },
+        "Error executing clickhouse command",
+      );
+      throw error;
+    }
   });
 }
 
@@ -284,10 +292,18 @@ export async function query(
       },
       "clickhouse-query",
     );
-    return client.query<"JSONEachRow">({
-      query_id: queryId,
-      ...params,
-      format: "JSONEachRow",
-    });
+    try {
+      return client.query<"JSONEachRow">({
+        query_id: queryId,
+        ...params,
+        format: "JSONEachRow",
+      });
+    } catch (error) {
+      logger().error(
+        { err: error, queryId },
+        "Error executing clickhouse query",
+      );
+      throw error;
+    }
   });
 }
