@@ -48,6 +48,7 @@ import {
   SegmentOperatorType,
   SegmentStatus,
   SegmentStatusEnum,
+  UpdateSegmentStatusRequest,
   UpsertSegmentResource,
   UpsertSegmentValidationError,
   UpsertSegmentValidationErrorType,
@@ -1069,15 +1070,40 @@ export async function getSegmentAssignmentDb({
   return rows[0]?.latest_segment_value ?? null;
 }
 
+export async function updateSegmentStatus({
+  workspaceId,
+  id,
+  status,
+}: UpdateSegmentStatusRequest): Promise<SavedSegmentResource | null> {
+  const [updated] = await db()
+    .update(dbSegment)
+    .set({ status })
+    .where(and(eq(dbSegment.workspaceId, workspaceId), eq(dbSegment.id, id)))
+    .returning();
+
+  if (!updated) {
+    return null;
+  }
+
+  const result = toSegmentResource(updated);
+  if (result.isErr()) {
+    logger().error(
+      { err: result.error, workspaceId, id },
+      "failed to convert segment to resource after status update",
+    );
+    return null;
+  }
+
+  return result.value;
+}
+
 export async function deleteSegment({
   workspaceId,
   id,
 }: DeleteSegmentRequest): Promise<Segment | null> {
   const [deleted] = await db()
     .delete(dbSegment)
-    .where(
-      and(eq(dbSegment.id, id), eq(dbSegment.workspaceId, workspaceId)),
-    )
+    .where(and(eq(dbSegment.id, id), eq(dbSegment.workspaceId, workspaceId)))
     .returning();
 
   if (!deleted) {

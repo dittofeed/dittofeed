@@ -13,6 +13,8 @@ import {
   KeyboardDoubleArrowRight,
   MoreVert as MoreVertIcon,
   OpenInNew as OpenInNewIcon,
+  Pause as PauseIcon,
+  PlayArrow as PlayArrowIcon,
   UnfoldMore,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
@@ -65,6 +67,7 @@ import {
   MinimalJourneysResource,
   SegmentDefinition,
   SegmentResource,
+  SegmentStatusEnum,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -81,12 +84,14 @@ import {
   SEGMENTS_QUERY_KEY,
   useSegmentsQuery,
 } from "../../lib/useSegmentsQuery";
+import { useSegmentStatusMutation } from "../../lib/useSegmentStatusMutation";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { RelatedResourceSelect } from "../resourceTable";
 
 export type SegmentsAllowedColumn =
   | "name"
+  | "status"
   | "journeysUsedBy"
   | "lastRecomputed"
   | "updatedAt"
@@ -94,6 +99,7 @@ export type SegmentsAllowedColumn =
 
 export const DEFAULT_ALLOWED_SEGMENTS_COLUMNS: SegmentsAllowedColumn[] = [
   "name",
+  "status",
   "journeysUsedBy",
   "lastRecomputed",
   "updatedAt",
@@ -167,15 +173,27 @@ function TimeCell({ getValue }: CellContext<Row, unknown>) {
   );
 }
 
+function StatusCell({ getValue }: CellContext<Row, unknown>) {
+  const status = getValue<string | undefined>();
+
+  if (!status) {
+    return null;
+  }
+
+  return <Typography variant="body2">{status}</Typography>;
+}
+
 // Cell renderer for Actions column
 function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
   const rowId = row.original.id;
   const rowName = row.original.name;
+  const rowStatus = row.original.status;
 
   // Access functions from table meta
   const deleteSegment = table.options.meta?.deleteSegment;
   const duplicateSegment = table.options.meta?.duplicateSegment;
+  const toggleSegmentStatus = table.options.meta?.toggleSegmentStatus;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -193,6 +211,18 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
       return;
     }
     duplicateSegment(rowName);
+    handleClose();
+  };
+
+  const handleToggleStatus = () => {
+    if (!toggleSegmentStatus) {
+      return;
+    }
+    const newStatus =
+      rowStatus === SegmentStatusEnum.Running
+        ? SegmentStatusEnum.Paused
+        : SegmentStatusEnum.Running;
+    toggleSegmentStatus(rowId, newStatus);
     handleClose();
   };
 
@@ -234,6 +264,19 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
           },
         }}
       >
+        <MenuItem onClick={handleToggleStatus}>
+          {rowStatus === SegmentStatusEnum.Running ? (
+            <>
+              <PauseIcon fontSize="small" sx={{ mr: 1 }} />
+              Pause
+            </>
+          ) : (
+            <>
+              <PlayArrowIcon fontSize="small" sx={{ mr: 1 }} />
+              Resume
+            </>
+          )}
+        </MenuItem>
         <MenuItem onClick={handleDuplicate}>
           <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
           Duplicate
@@ -405,6 +448,27 @@ export function SegmentsTable({
     },
   });
 
+  const statusMutation = useSegmentStatusMutation();
+
+  const handleToggleSegmentStatus = (
+    segmentId: string,
+    newStatus: "NotStarted" | "Running" | "Paused",
+  ) => {
+    statusMutation.mutate(
+      { id: segmentId, status: newStatus },
+      {
+        onSuccess: () => {
+          setSnackbarMessage("Segment status updated successfully!");
+          setSnackbarOpen(true);
+        },
+        onError: () => {
+          setSnackbarMessage("Failed to update segment status.");
+          setSnackbarOpen(true);
+        },
+      },
+    );
+  };
+
   const createSegmentMutation = useUpdateSegmentsMutation({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [SEGMENTS_QUERY_KEY] });
@@ -467,6 +531,12 @@ export function SegmentsTable({
         accessorKey: "name",
         cell: NameCell,
       },
+      status: {
+        id: "status",
+        header: "Status",
+        accessorKey: "status",
+        cell: StatusCell,
+      },
       journeysUsedBy: {
         id: "journeysUsedBy",
         header: "Journeys Used By",
@@ -523,6 +593,12 @@ export function SegmentsTable({
           name: originalSegmentName,
           resourceType: DuplicateResourceTypeEnum.Segment,
         });
+      },
+      toggleSegmentStatus: (
+        segmentId: string,
+        newStatus: "NotStarted" | "Running" | "Paused",
+      ) => {
+        handleToggleSegmentStatus(segmentId, newStatus);
       },
     },
   });
@@ -795,5 +871,9 @@ declare module "@tanstack/react-table" {
   interface TableMeta<TData = unknown> {
     deleteSegment?: (segmentId: string) => void;
     duplicateSegment?: (segmentName: string) => void;
+    toggleSegmentStatus?: (
+      segmentId: string,
+      newStatus: "NotStarted" | "Running" | "Paused",
+    ) => void;
   }
 }

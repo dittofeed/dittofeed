@@ -25,13 +25,16 @@ import { db, QueryError, queryResult, upsert } from "./db";
 import { userProperty as dbUserProperty } from "./db/schema";
 import logger from "./logger";
 import {
+  DeleteUserPropertyRequest,
   EnrichedUserProperty,
   GroupChildrenUserPropertyDefinitions,
   JSONValue,
   KeyedPerformedUserPropertyDefinition,
   PerformedUserPropertyDefinition,
-  DeleteUserPropertyRequest,
   SavedUserPropertyResource,
+  UpdateUserPropertyStatusError,
+  UpdateUserPropertyStatusErrorType,
+  UpdateUserPropertyStatusRequest,
   UpsertUserPropertyError,
   UpsertUserPropertyErrorType,
   UpsertUserPropertyResource,
@@ -87,6 +90,7 @@ export function toSavedUserPropertyResource(
       updatedAt,
       exampleValue,
       definitionUpdatedAt,
+      status,
     }) => ({
       workspaceId,
       name,
@@ -96,6 +100,7 @@ export function toSavedUserPropertyResource(
       createdAt: createdAt.getTime(),
       updatedAt: updatedAt.getTime(),
       definitionUpdatedAt: definitionUpdatedAt.getTime(),
+      status,
     }),
   );
 }
@@ -169,6 +174,7 @@ export async function findAllUserPropertyResources({
     definitionUpdatedAt: up.definitionUpdatedAt.getTime(),
     createdAt: up.createdAt.getTime(),
     updatedAt: up.updatedAt.getTime(),
+    status: up.status,
   }));
 }
 
@@ -888,6 +894,67 @@ export async function findUserIdsByUserPropertyValue({
   return rows.map((row) => row.user_id);
 }
 
+export async function updateUserPropertyStatus({
+  workspaceId,
+  id,
+  status,
+}: UpdateUserPropertyStatusRequest): Promise<
+  Result<SavedUserPropertyResource, UpdateUserPropertyStatusError>
+> {
+  const [updated] = await db()
+    .update(dbUserProperty)
+    .set({ status })
+    .where(
+      and(
+        eq(dbUserProperty.workspaceId, workspaceId),
+        eq(dbUserProperty.id, id),
+        not(inArray(dbUserProperty.name, Array.from(protectedUserProperties))),
+      ),
+    )
+    .returning();
+
+  if (!updated) {
+    // Check if it's because the property is protected or doesn't exist
+    const userProperties = await db()
+      .select()
+      .from(dbUserProperty)
+      .where(
+        and(
+          eq(dbUserProperty.workspaceId, workspaceId),
+          eq(dbUserProperty.id, id),
+        ),
+      );
+
+    const userProperty = userProperties[0];
+
+    if (userProperty && protectedUserProperties.has(userProperty.name)) {
+      return err({
+        type: UpdateUserPropertyStatusErrorType.ProtectedUserProperty,
+        message: "Cannot update status of protected user property",
+      });
+    }
+
+    return err({
+      type: UpdateUserPropertyStatusErrorType.NotFound,
+      message: "User property not found",
+    });
+  }
+
+  const result = toSavedUserPropertyResource(updated);
+  if (result.isErr()) {
+    logger().error(
+      { err: result.error, workspaceId, id },
+      "failed to convert user property to resource after status update",
+    );
+    return err({
+      type: UpdateUserPropertyStatusErrorType.NotFound,
+      message: "Failed to convert user property to resource",
+    });
+  }
+
+  return ok(result.value);
+}
+
 export async function deleteUserProperty({
   workspaceId,
   id,
@@ -898,12 +965,7 @@ export async function deleteUserProperty({
       and(
         eq(dbUserProperty.workspaceId, workspaceId),
         eq(dbUserProperty.id, id),
-        not(
-          inArray(
-            dbUserProperty.name,
-            Array.from(protectedUserProperties),
-          ),
-        ),
+        not(inArray(dbUserProperty.name, Array.from(protectedUserProperties))),
       ),
     )
     .returning();
