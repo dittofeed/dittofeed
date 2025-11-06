@@ -2583,6 +2583,38 @@ export type UpdateUserPropertyStatusRequest = Static<
   typeof UpdateUserPropertyStatusRequest
 >;
 
+export enum UpdateUserPropertyStatusErrorType {
+  ProtectedUserProperty = "ProtectedUserProperty",
+  NotFound = "NotFound",
+}
+
+export const UpdateUserPropertyStatusProtectedError = Type.Object({
+  type: Type.Literal(UpdateUserPropertyStatusErrorType.ProtectedUserProperty),
+  message: Type.String(),
+});
+
+export type UpdateUserPropertyStatusProtectedError = Static<
+  typeof UpdateUserPropertyStatusProtectedError
+>;
+
+export const UpdateUserPropertyStatusNotFoundError = Type.Object({
+  type: Type.Literal(UpdateUserPropertyStatusErrorType.NotFound),
+  message: Type.String(),
+});
+
+export type UpdateUserPropertyStatusNotFoundError = Static<
+  typeof UpdateUserPropertyStatusNotFoundError
+>;
+
+export const UpdateUserPropertyStatusError = Type.Union([
+  UpdateUserPropertyStatusProtectedError,
+  UpdateUserPropertyStatusNotFoundError,
+]);
+
+export type UpdateUserPropertyStatusError = Static<
+  typeof UpdateUserPropertyStatusError
+>;
+
 export const ReadAllUserPropertiesRequest = Type.Object({
   workspaceId: Type.String(),
 });

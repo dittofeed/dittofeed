@@ -12,6 +12,7 @@ import {
   ReadAllUserPropertiesRequest,
   ReadAllUserPropertiesResponse,
   SavedUserPropertyResource,
+  UpdateUserPropertyStatusError,
   UpdateUserPropertyStatusRequest,
   UpsertUserPropertyError,
   UpsertUserPropertyResource,
@@ -102,6 +103,7 @@ export default async function userPropertiesController(
         body: UpdateUserPropertyStatusRequest,
         response: {
           200: SavedUserPropertyResource,
+          400: UpdateUserPropertyStatusError,
           404: EmptyResponse,
         },
       },
@@ -110,16 +112,17 @@ export default async function userPropertiesController(
       const { workspaceId, id, status }: UpdateUserPropertyStatusRequest =
         request.body;
 
-      const updated = await updateUserPropertyStatus({
+      const result = await updateUserPropertyStatus({
         workspaceId,
         id,
         status,
       });
-      if (!updated) {
-        return reply.status(404).send();
+
+      if (result.isErr()) {
+        return reply.status(400).send(result.error);
       }
 
-      return reply.status(200).send(updated);
+      return reply.status(200).send(result.value);
     },
   );
 }

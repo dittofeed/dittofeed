@@ -239,7 +239,7 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
           },
         }}
       >
-        <MenuItem onClick={handleToggleStatus}>
+        <MenuItem onClick={handleToggleStatus} disabled={isProtected}>
           {rowStatus === UserPropertyStatusEnum.Running ? (
             <>
               <PauseIcon fontSize="small" sx={{ mr: 1 }} />

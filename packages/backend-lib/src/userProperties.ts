@@ -32,6 +32,8 @@ import {
   KeyedPerformedUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   SavedUserPropertyResource,
+  UpdateUserPropertyStatusError,
+  UpdateUserPropertyStatusErrorType,
   UpdateUserPropertyStatusRequest,
   UpsertUserPropertyError,
   UpsertUserPropertyErrorType,
@@ -896,7 +898,9 @@ export async function updateUserPropertyStatus({
   workspaceId,
   id,
   status,
-}: UpdateUserPropertyStatusRequest): Promise<SavedUserPropertyResource | null> {
+}: UpdateUserPropertyStatusRequest): Promise<
+  Result<SavedUserPropertyResource, UpdateUserPropertyStatusError>
+> {
   const [updated] = await db()
     .update(dbUserProperty)
     .set({ status })
@@ -904,12 +908,36 @@ export async function updateUserPropertyStatus({
       and(
         eq(dbUserProperty.workspaceId, workspaceId),
         eq(dbUserProperty.id, id),
+        not(inArray(dbUserProperty.name, Array.from(protectedUserProperties))),
       ),
     )
     .returning();
 
   if (!updated) {
-    return null;
+    // Check if it's because the property is protected or doesn't exist
+    const userProperties = await db()
+      .select()
+      .from(dbUserProperty)
+      .where(
+        and(
+          eq(dbUserProperty.workspaceId, workspaceId),
+          eq(dbUserProperty.id, id),
+        ),
+      );
+
+    const userProperty = userProperties[0];
+
+    if (userProperty && protectedUserProperties.has(userProperty.name)) {
+      return err({
+        type: UpdateUserPropertyStatusErrorType.ProtectedUserProperty,
+        message: "Cannot update status of protected user property",
+      });
+    }
+
+    return err({
+      type: UpdateUserPropertyStatusErrorType.NotFound,
+      message: "User property not found",
+    });
   }
 
   const result = toSavedUserPropertyResource(updated);
@@ -918,10 +946,13 @@ export async function updateUserPropertyStatus({
       { err: result.error, workspaceId, id },
       "failed to convert user property to resource after status update",
     );
-    return null;
+    return err({
+      type: UpdateUserPropertyStatusErrorType.NotFound,
+      message: "Failed to convert user property to resource",
+    });
   }
 
-  return result.value;
+  return ok(result.value);
 }
 
 export async function deleteUserProperty({
