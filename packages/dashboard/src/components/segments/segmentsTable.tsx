@@ -448,16 +448,14 @@ export function SegmentsTable({
     },
   });
 
-  const [statusUpdateId, setStatusUpdateId] = useState<string | null>(null);
-  const statusMutation = useSegmentStatusMutation(statusUpdateId ?? "");
+  const statusMutation = useSegmentStatusMutation();
 
   const handleToggleSegmentStatus = (
     segmentId: string,
     newStatus: "NotStarted" | "Running" | "Paused",
   ) => {
-    setStatusUpdateId(segmentId);
     statusMutation.mutate(
-      { status: newStatus },
+      { id: segmentId, status: newStatus },
       {
         onSuccess: () => {
           setSnackbarMessage("Segment status updated successfully!");

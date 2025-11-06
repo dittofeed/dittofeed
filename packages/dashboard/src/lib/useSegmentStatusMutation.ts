@@ -12,11 +12,12 @@ import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { SEGMENTS_QUERY_KEY } from "./useSegmentsQuery";
 
 export interface SegmentStatusUpdate {
+  id: string;
   status: SegmentStatus;
 }
 
 // Mutation hook for updating segment status
-export function useSegmentStatusMutation(segmentId: string) {
+export function useSegmentStatusMutation() {
   const { workspace } = useAppStorePick(["workspace"]);
   const queryClient = useQueryClient();
   const authHeaders = useAuthHeaders();
@@ -29,7 +30,7 @@ export function useSegmentStatusMutation(segmentId: string) {
     const workspaceId = workspace.value.id;
     const requestData: UpdateSegmentStatusRequest = {
       workspaceId,
-      id: segmentId,
+      id: update.id,
       status: update.status,
     };
 

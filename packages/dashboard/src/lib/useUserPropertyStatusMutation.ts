@@ -12,11 +12,12 @@ import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
 import { USER_PROPERTIES_QUERY_KEY } from "./useUserPropertiesQuery";
 
 export interface UserPropertyStatusUpdate {
+  id: string;
   status: UserPropertyStatus;
 }
 
 // Mutation hook for updating user property status
-export function useUserPropertyStatusMutation(userPropertyId: string) {
+export function useUserPropertyStatusMutation() {
   const { workspace } = useAppStorePick(["workspace"]);
   const queryClient = useQueryClient();
   const authHeaders = useAuthHeaders();
@@ -29,7 +30,7 @@ export function useUserPropertyStatusMutation(userPropertyId: string) {
     const workspaceId = workspace.value.id;
     const requestData: UpdateUserPropertyStatusRequest = {
       workspaceId,
-      id: userPropertyId,
+      id: update.id,
       status: update.status,
     };
 

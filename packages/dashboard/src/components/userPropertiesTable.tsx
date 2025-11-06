@@ -419,16 +419,14 @@ export default function UserPropertiesTable({
     },
   });
 
-  const [statusUpdateId, setStatusUpdateId] = useState<string | null>(null);
-  const statusMutation = useUserPropertyStatusMutation(statusUpdateId ?? "");
+  const statusMutation = useUserPropertyStatusMutation();
 
   const handleToggleUserPropertyStatus = (
     userPropertyId: string,
     newStatus: "NotStarted" | "Running" | "Paused",
   ) => {
-    setStatusUpdateId(userPropertyId);
     statusMutation.mutate(
-      { status: newStatus },
+      { id: userPropertyId, status: newStatus },
       {
         onSuccess: () => {
           setSnackbarMessage("User property status updated successfully!");
