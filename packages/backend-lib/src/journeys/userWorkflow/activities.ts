@@ -3,11 +3,13 @@ import { Context } from "@temporalio/activity";
 import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { sleep } from "isomorphic-lib/src/time";
 import { err, Result } from "neverthrow";
 import pRetry from "p-retry";
 import { omit } from "remeda";
 
 import { submitTrack } from "../../apps/track";
+import { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
 import {
   WORKFLOW_HISTORY_LENGTH_METRIC,
   WORKFLOW_HISTORY_SIZE_METRIC,
@@ -62,6 +64,7 @@ export {
   getUserPropertyDelay,
 } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
+export { getEarliestComputePropertyPeriod };
 
 function safeWorkflowId(): string | undefined {
   try {
@@ -604,7 +607,90 @@ export function getWorkspace(workspaceId: string) {
   });
 }
 
-export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
+export interface WaitForComputePropertiesParams {
+  workspaceId: string;
+  after: number;
+  baseDelayMs?: number;
+  maxAttempts?: number;
+}
+
+const WAIT_FOR_COMPUTE_PROPERTIES_DEFAULTS = {
+  baseDelayMs: 10_000,
+  maxAttempts: 5,
+} as const;
+
+export async function waitForComputeProperties({
+  workspaceId,
+  after,
+  baseDelayMs = WAIT_FOR_COMPUTE_PROPERTIES_DEFAULTS.baseDelayMs,
+  maxAttempts = WAIT_FOR_COMPUTE_PROPERTIES_DEFAULTS.maxAttempts,
+}: WaitForComputePropertiesParams): Promise<boolean> {
+  const context = Context.current();
+  logger().debug(
+    {
+      workspaceId,
+      after,
+      baseDelayMs,
+      maxAttempts,
+    },
+    "waitForComputeProperties started",
+  );
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const period = await getEarliestComputePropertyPeriod({ workspaceId });
+
+    context.heartbeat({ attempt, period, workspaceId });
+    logger().debug(
+      {
+        workspaceId,
+        attempt,
+        period,
+        after,
+      },
+      "checking compute property sync progress",
+    );
+
+    if (period > after) {
+      logger().debug(
+        {
+          workspaceId,
+          period,
+          after,
+        },
+        "compute properties synced after message",
+      );
+      return true;
+    }
+
+    if (attempt === maxAttempts - 1) {
+      break;
+    }
+
+    const delay = baseDelayMs * 2 ** (attempt + 1);
+    logger().debug(
+      {
+        workspaceId,
+        delay,
+        attempt,
+      },
+      "compute properties not synced, sleeping before retry",
+    );
+
+    // eslint-disable-next-line no-await-in-loop
+    await sleep(delay);
+  }
+
+  logger().warn(
+    {
+      workspaceId,
+      after,
+      attempts: maxAttempts,
+    },
+    "waitForComputeProperties timed out",
+  );
+  return false;
+}
 
 let WORKFLOW_HISTORY_SIZE_HISTOGRAM: Histogram | null = null;
 let WORKFLOW_HISTORY_LENGTH_HISTOGRAM: Histogram | null = null;

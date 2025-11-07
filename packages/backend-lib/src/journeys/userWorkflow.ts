@@ -91,6 +91,11 @@ const {
   startToCloseTimeout: "2 minutes",
 });
 
+const { waitForComputeProperties } = proxyActivities<typeof activities>({
+  startToCloseTimeout: "10 minutes",
+  heartbeatTimeout: "30 seconds",
+});
+
 const { getEventsById, getSegmentAssignment } = wf.proxyLocalActivities<
   typeof activities
 >({
@@ -940,27 +945,34 @@ export async function userJourneyWorkflow(
         }
 
         if (currentNode.syncProperties) {
-          const now = Date.now();
+          const after = Date.now();
+          let succeeded: boolean;
 
-          // retry until compute properties workflow as run after message was sent
-          const succeeded = await retryExponential({
-            sleep,
-            check: async () => {
-              const period = await getEarliestComputePropertyPeriod({
-                workspaceId,
-              });
-              logger.debug("retrying until compute properties are updated", {
-                period,
-                now,
-                workspaceId,
-                userId,
-              });
-              return period > now;
-            },
-            logger,
-            baseDelay: 10000,
-            maxAttempts: 5,
-          });
+          if (wf.patched("wait-for-compute-properties-activity")) {
+            succeeded = await waitForComputeProperties({
+              workspaceId,
+              after,
+            });
+          } else {
+            succeeded = await retryExponential({
+              sleep,
+              check: async () => {
+                const period = await getEarliestComputePropertyPeriod({
+                  workspaceId,
+                });
+                logger.debug("retrying until compute properties are updated", {
+                  period,
+                  after,
+                  workspaceId,
+                  userId,
+                });
+                return period > after;
+              },
+              logger,
+              baseDelay: 10000,
+              maxAttempts: 5,
+            });
+          }
 
           if (!succeeded) {
             logger.error(

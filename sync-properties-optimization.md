@@ -44,3 +44,5 @@ This is the code that is causing the issue:
 Create a new activity called `waitForComputeProperties` that will wait for the compute properties to be updated. Rather than polling inside of the workflow, we'll do polling within the activity, and use a heartbeat to ensure that the activity is still running.
 
 Use `yarn workspace backend-lib check` to check for type errors.
+
+Use the patch api for backwards compatibility.
