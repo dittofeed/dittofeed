@@ -1,9 +1,13 @@
+import { MockActivityEnvironment } from "@temporalio/testing";
 import { randomUUID } from "crypto";
+import { sleep } from "isomorphic-lib/src/time";
 import { ok } from "neverthrow";
 
 import { submitBatch } from "../../apps/batch";
+import { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
+import { upsertJourney } from "../../journeys";
 import logger from "../../logger";
 import {
   ChannelType,
@@ -11,15 +15,30 @@ import {
   EventType,
   InternalEventType,
   JourneyNodeType,
-  JourneyStatus,
   UserPropertyDefinitionType,
 } from "../../types";
 import {
   insertUserPropertyAssignments,
   upsertUserProperty,
 } from "../../userProperties";
-import { sendMessageFactory } from "./activities";
-import { upsertJourney } from "../../journeys";
+import { sendMessageFactory, waitForComputeProperties } from "./activities";
+
+jest.mock("isomorphic-lib/src/time", () => ({
+  sleep: jest.fn(),
+}));
+
+jest.mock("../../computedProperties/periods", () => {
+  const actual = jest.requireActual("../../computedProperties/periods");
+  return {
+    ...actual,
+    getEarliestComputePropertyPeriod: jest.fn(),
+  };
+});
+
+const mockSleep = jest.mocked(sleep);
+const mockGetEarliestComputePropertyPeriod = jest.mocked(
+  getEarliestComputePropertyPeriod,
+);
 
 describe("user workflows activity test", () => {
   let workspaceId: string;
@@ -213,5 +232,41 @@ describe("user workflows activity test", () => {
         ).toHaveLength(1);
       });
     });
+  });
+});
+
+describe("waitForComputeProperties", () => {
+  let activityEnv: MockActivityEnvironment;
+
+  beforeEach(() => {
+    mockSleep.mockReset();
+    mockGetEarliestComputePropertyPeriod.mockReset();
+    activityEnv = new MockActivityEnvironment();
+  });
+
+  it("polls until compute properties are newer than the message send", async () => {
+    const workspaceId = randomUUID();
+    const after = Date.now();
+    const periods = [after - 1, after, after + 5_000];
+
+    mockGetEarliestComputePropertyPeriod.mockImplementation(async () => {
+      const next = periods.shift();
+      return typeof next === "number" ? next : after + 5_000;
+    });
+
+    let elapsedMs = 0;
+    mockSleep.mockImplementation(async (ms: number) => {
+      elapsedMs += ms;
+    });
+
+    const result = await activityEnv.run(waitForComputeProperties, {
+      workspaceId,
+      after,
+    });
+
+    expect(result).toBe(true);
+    expect(mockGetEarliestComputePropertyPeriod).toHaveBeenCalledTimes(3);
+    expect(mockSleep).toHaveBeenCalledTimes(6);
+    expect(elapsedMs).toBe(60_000);
   });
 });

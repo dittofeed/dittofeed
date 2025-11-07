@@ -166,6 +166,12 @@ const BaseRawConfigProps = {
   computePropertiesTimeout: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  waitForComputePropertiesBaseDelayMs: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  waitForComputePropertiesMaxAttempts: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   // OpenTelemetry metrics export interval (milliseconds)
   metricsExportIntervalMs: Type.Optional(
     Type.String({ format: "naturalNumber" }),
@@ -303,6 +309,8 @@ export type Config = Overwrite<
     clickhouseMaxBytesRatioBeforeExternalGroupBy?: number;
     computePropertiesSplit: boolean;
     computePropertiesTimeout: number;
+    waitForComputePropertiesBaseDelayMs: number;
+    waitForComputePropertiesMaxAttempts: number;
     metricsExportIntervalMs: number;
     batchChunkSize: number;
     // Cold storage timeouts (ms)
@@ -690,6 +698,14 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     computePropertiesTimeout: rawConfig.computePropertiesTimeout
       ? parseInt(rawConfig.computePropertiesTimeout)
       : 5 * 60 * 1000,
+    waitForComputePropertiesBaseDelayMs:
+      rawConfig.waitForComputePropertiesBaseDelayMs
+        ? parseInt(rawConfig.waitForComputePropertiesBaseDelayMs)
+        : 10_000,
+    waitForComputePropertiesMaxAttempts:
+      rawConfig.waitForComputePropertiesMaxAttempts
+        ? parseInt(rawConfig.waitForComputePropertiesMaxAttempts)
+        : 5,
     metricsExportIntervalMs: rawConfig.metricsExportIntervalMs
       ? parseInt(rawConfig.metricsExportIntervalMs)
       : 60 * 1000,

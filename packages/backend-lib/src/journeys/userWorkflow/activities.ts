@@ -3,11 +3,14 @@ import { Context } from "@temporalio/activity";
 import { and, eq, inArray } from "drizzle-orm";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { sleep } from "isomorphic-lib/src/time";
 import { err, Result } from "neverthrow";
 import pRetry from "p-retry";
 import { omit } from "remeda";
 
 import { submitTrack } from "../../apps/track";
+import { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
+import config from "../../config";
 import {
   WORKFLOW_HISTORY_LENGTH_METRIC,
   WORKFLOW_HISTORY_SIZE_METRIC,
@@ -62,6 +65,7 @@ export {
   getUserPropertyDelay,
 } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
+export { getEarliestComputePropertyPeriod };
 
 function safeWorkflowId(): string | undefined {
   try {
@@ -604,7 +608,127 @@ export function getWorkspace(workspaceId: string) {
   });
 }
 
-export { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
+export interface WaitForComputePropertiesParams {
+  workspaceId: string;
+  after: number;
+  baseDelayMs?: number;
+  maxAttempts?: number;
+}
+
+// Polls for the earliest compute-property period to advance beyond `after`.
+// By default this will run up to ~18 minutes (5 attempts with exponential
+// backoff starting at 10s), but the base delay and attempt count can be tuned
+// via config or per-call overrides.
+const HEARTBEAT_CHUNK_MS = 10_000;
+
+async function sleepWithHeartbeat({
+  context,
+  delayMs,
+  heartbeatPayload,
+}: {
+  context: Context;
+  delayMs: number;
+  heartbeatPayload: Record<string, unknown>;
+}) {
+  let remaining = delayMs;
+  while (remaining > 0) {
+    const chunk = Math.min(HEARTBEAT_CHUNK_MS, remaining);
+    // eslint-disable-next-line no-await-in-loop
+    await sleep(chunk);
+    remaining -= chunk;
+    context.heartbeat(heartbeatPayload);
+  }
+}
+
+// Polls for the earliest compute-property period to advance beyond `after`.
+// By default this will run up to ~18 minutes (5 attempts with exponential
+// backoff starting at 10s), but the base delay and attempt count can be tuned
+// via config or per-call overrides.
+export async function waitForComputeProperties({
+  workspaceId,
+  after,
+  baseDelayMs,
+  maxAttempts,
+}: WaitForComputePropertiesParams): Promise<boolean> {
+  const cfg = config();
+  const effectiveBaseDelayMs =
+    baseDelayMs ?? cfg.waitForComputePropertiesBaseDelayMs;
+  const effectiveMaxAttempts =
+    maxAttempts ?? cfg.waitForComputePropertiesMaxAttempts;
+  const context = Context.current();
+  logger().debug(
+    {
+      workspaceId,
+      after,
+      baseDelayMs: effectiveBaseDelayMs,
+      maxAttempts: effectiveMaxAttempts,
+    },
+    "waitForComputeProperties started",
+  );
+
+  for (let attempt = 0; attempt < effectiveMaxAttempts; attempt += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const period = await getEarliestComputePropertyPeriod({ workspaceId });
+
+    context.heartbeat({ attempt, period, workspaceId });
+    logger().debug(
+      {
+        workspaceId,
+        attempt,
+        period,
+        after,
+      },
+      "checking compute property sync progress",
+    );
+
+    const heartbeatPayload = { attempt, period, workspaceId, after };
+
+    if (period > after) {
+      logger().debug(
+        {
+          workspaceId,
+          period,
+          after,
+        },
+        "compute properties synced after message",
+      );
+      return true;
+    }
+
+    context.heartbeat(heartbeatPayload);
+
+    if (attempt === effectiveMaxAttempts - 1) {
+      break;
+    }
+
+    const delay = effectiveBaseDelayMs * 2 ** (attempt + 1);
+    logger().debug(
+      {
+        workspaceId,
+        delay,
+        attempt,
+      },
+      "compute properties not synced, sleeping before retry",
+    );
+
+    // eslint-disable-next-line no-await-in-loop
+    await sleepWithHeartbeat({
+      context,
+      delayMs: delay,
+      heartbeatPayload,
+    });
+  }
+
+  logger().warn(
+    {
+      workspaceId,
+      after,
+      attempts: effectiveMaxAttempts,
+    },
+    "waitForComputeProperties timed out",
+  );
+  return false;
+}
 
 let WORKFLOW_HISTORY_SIZE_HISTOGRAM: Histogram | null = null;
 let WORKFLOW_HISTORY_LENGTH_HISTOGRAM: Histogram | null = null;
