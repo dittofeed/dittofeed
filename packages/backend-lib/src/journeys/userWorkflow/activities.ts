@@ -615,6 +615,35 @@ export interface WaitForComputePropertiesParams {
   maxAttempts?: number;
 }
 
+// Polls for the earliest compute-property period to advance beyond `after`.
+// By default this will run up to ~18 minutes (5 attempts with exponential
+// backoff starting at 10s), but the base delay and attempt count can be tuned
+// via config or per-call overrides.
+const HEARTBEAT_CHUNK_MS = 10_000;
+
+async function sleepWithHeartbeat({
+  context,
+  delayMs,
+  heartbeatPayload,
+}: {
+  context: Context;
+  delayMs: number;
+  heartbeatPayload: Record<string, unknown>;
+}) {
+  let remaining = delayMs;
+  while (remaining > 0) {
+    const chunk = Math.min(HEARTBEAT_CHUNK_MS, remaining);
+    // eslint-disable-next-line no-await-in-loop
+    await sleep(chunk);
+    remaining -= chunk;
+    context.heartbeat(heartbeatPayload);
+  }
+}
+
+// Polls for the earliest compute-property period to advance beyond `after`.
+// By default this will run up to ~18 minutes (5 attempts with exponential
+// backoff starting at 10s), but the base delay and attempt count can be tuned
+// via config or per-call overrides.
 export async function waitForComputeProperties({
   workspaceId,
   after,
@@ -652,6 +681,8 @@ export async function waitForComputeProperties({
       "checking compute property sync progress",
     );
 
+    const heartbeatPayload = { attempt, period, workspaceId, after };
+
     if (period > after) {
       logger().debug(
         {
@@ -663,6 +694,8 @@ export async function waitForComputeProperties({
       );
       return true;
     }
+
+    context.heartbeat(heartbeatPayload);
 
     if (attempt === effectiveMaxAttempts - 1) {
       break;
@@ -679,7 +712,11 @@ export async function waitForComputeProperties({
     );
 
     // eslint-disable-next-line no-await-in-loop
-    await sleep(delay);
+    await sleepWithHeartbeat({
+      context,
+      delayMs: delay,
+      heartbeatPayload,
+    });
   }
 
   logger().warn(

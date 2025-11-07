@@ -4,6 +4,7 @@ import { ok } from "neverthrow";
 import { submitBatch } from "../../apps/batch";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
+import { upsertJourney } from "../../journeys";
 import logger from "../../logger";
 import {
   ChannelType,
@@ -19,7 +20,6 @@ import {
   upsertUserProperty,
 } from "../../userProperties";
 import { sendMessageFactory } from "./activities";
-import { upsertJourney } from "../../journeys";
 
 describe("user workflows activity test", () => {
   let workspaceId: string;

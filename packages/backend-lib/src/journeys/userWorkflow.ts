@@ -92,8 +92,11 @@ const {
 });
 
 const { waitForComputeProperties } = proxyActivities<typeof activities>({
-  startToCloseTimeout: "10 minutes",
+  startToCloseTimeout: "20 minutes",
   heartbeatTimeout: "30 seconds",
+  retry: {
+    maximumAttempts: 3,
+  },
 });
 
 const { getEventsById, getSegmentAssignment } = wf.proxyLocalActivities<
