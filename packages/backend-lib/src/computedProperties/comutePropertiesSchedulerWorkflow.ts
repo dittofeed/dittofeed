@@ -103,9 +103,12 @@ export async function computePropertiesSchedulerWorkflow(
           });
         } catch (err) {
           if (err instanceof WorkflowNotFoundError) {
-            logger.info("Scheduler: Queue workflow not found, retrying after delay", {
-              delayMs: computePropertiesSchedulerQueueRestartDelay,
-            });
+            logger.info(
+              "Scheduler: Queue workflow not found, retrying after delay",
+              {
+                delayMs: computePropertiesSchedulerQueueRestartDelay,
+              },
+            );
             skipSchedulerIntervalSleep = true;
             await sleep(computePropertiesSchedulerQueueRestartDelay);
           } else {
