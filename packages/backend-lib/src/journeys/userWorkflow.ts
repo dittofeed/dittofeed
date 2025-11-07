@@ -960,6 +960,13 @@ export async function userJourneyWorkflow(
             succeeded = await retryExponential({
               sleep,
               check: async () => {
+                if (wf.patched("wait-for-compute-properties-activity")) {
+                  logger.error(
+                    "using deprecated in workflow retry method for syncProperties",
+                    defaultLoggingFields,
+                  );
+                  return true;
+                }
                 const period = await getEarliestComputePropertyPeriod({
                   workspaceId,
                 });
