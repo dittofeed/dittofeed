@@ -10,6 +10,7 @@ import { omit } from "remeda";
 
 import { submitTrack } from "../../apps/track";
 import { getEarliestComputePropertyPeriod } from "../../computedProperties/periods";
+import config from "../../config";
 import {
   WORKFLOW_HISTORY_LENGTH_METRIC,
   WORKFLOW_HISTORY_SIZE_METRIC,
@@ -614,29 +615,29 @@ export interface WaitForComputePropertiesParams {
   maxAttempts?: number;
 }
 
-const WAIT_FOR_COMPUTE_PROPERTIES_DEFAULTS = {
-  baseDelayMs: 10_000,
-  maxAttempts: 5,
-} as const;
-
 export async function waitForComputeProperties({
   workspaceId,
   after,
-  baseDelayMs = WAIT_FOR_COMPUTE_PROPERTIES_DEFAULTS.baseDelayMs,
-  maxAttempts = WAIT_FOR_COMPUTE_PROPERTIES_DEFAULTS.maxAttempts,
+  baseDelayMs,
+  maxAttempts,
 }: WaitForComputePropertiesParams): Promise<boolean> {
+  const cfg = config();
+  const effectiveBaseDelayMs =
+    baseDelayMs ?? cfg.waitForComputePropertiesBaseDelayMs;
+  const effectiveMaxAttempts =
+    maxAttempts ?? cfg.waitForComputePropertiesMaxAttempts;
   const context = Context.current();
   logger().debug(
     {
       workspaceId,
       after,
-      baseDelayMs,
-      maxAttempts,
+      baseDelayMs: effectiveBaseDelayMs,
+      maxAttempts: effectiveMaxAttempts,
     },
     "waitForComputeProperties started",
   );
 
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+  for (let attempt = 0; attempt < effectiveMaxAttempts; attempt += 1) {
     // eslint-disable-next-line no-await-in-loop
     const period = await getEarliestComputePropertyPeriod({ workspaceId });
 
@@ -663,11 +664,11 @@ export async function waitForComputeProperties({
       return true;
     }
 
-    if (attempt === maxAttempts - 1) {
+    if (attempt === effectiveMaxAttempts - 1) {
       break;
     }
 
-    const delay = baseDelayMs * 2 ** (attempt + 1);
+    const delay = effectiveBaseDelayMs * 2 ** (attempt + 1);
     logger().debug(
       {
         workspaceId,
@@ -685,7 +686,7 @@ export async function waitForComputeProperties({
     {
       workspaceId,
       after,
-      attempts: maxAttempts,
+      attempts: effectiveMaxAttempts,
     },
     "waitForComputeProperties timed out",
   );
