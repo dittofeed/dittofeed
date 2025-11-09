@@ -23,6 +23,64 @@ import {
   PostMarkEventType,
 } from "../types";
 
+const POSTMARK_METADATA_MAX_KEY_LENGTH = 20;
+const POSTMARK_METADATA_MAX_VALUE_LENGTH = 80;
+const POSTMARK_METADATA_MAX_FIELDS = 10;
+
+const MESSAGE_METADATA_FIELDS_SET = new Set<string>(MESSAGE_METADATA_FIELDS);
+
+function sanitizePostmarkMetadata(
+  metadata: Record<string, string> | undefined,
+): Record<string, string> | undefined {
+  if (!metadata) {
+    return undefined;
+  }
+
+  const isPriorityField = (key: string) => MESSAGE_METADATA_FIELDS_SET.has(key);
+
+  const { sanitized, dropped } = R.pipe(
+    metadata,
+    R.entries(),
+    R.partition(([key]) => isPriorityField(key)),
+    R.flatMap((x) => x),
+    R.reduce(
+      (acc, [key, value]) => {
+        if (Object.keys(acc.sanitized).length >= POSTMARK_METADATA_MAX_FIELDS) {
+          acc.dropped.push({ key, reason: "max_fields_exceeded" });
+          return acc;
+        }
+
+        if (key.length > POSTMARK_METADATA_MAX_KEY_LENGTH) {
+          acc.dropped.push({ key, reason: "key_too_long" });
+          return acc;
+        }
+
+        if (value.length > POSTMARK_METADATA_MAX_VALUE_LENGTH) {
+          acc.dropped.push({ key, reason: "value_too_long", value });
+          return acc;
+        }
+
+        acc.sanitized[key] = value;
+
+        return acc;
+      },
+      {
+        sanitized: {} as Record<string, string>,
+        dropped: [] as { key: string; reason: string; value?: string }[],
+      },
+    ),
+  );
+
+  if (dropped.length > 0) {
+    logger().warn(
+      { dropped },
+      "Postmark metadata keys were dropped due to API constraints",
+    );
+  }
+
+  return R.isEmpty(sanitized) ? undefined : sanitized;
+}
+
 export async function sendMail({
   apiKey,
   mailData,
@@ -31,8 +89,16 @@ export async function sendMail({
   mailData: Message;
 }): Promise<ResultAsync<MessageSendingResponse | null, DefaultResponse>> {
   const postmarkClient = new ServerClient(apiKey);
+
+  const sanitizedMailData = {
+    ...mailData,
+    Metadata: sanitizePostmarkMetadata(
+      mailData.Metadata as Record<string, string> | undefined,
+    ),
+  };
+
   try {
-    const response = await postmarkClient.sendEmail(mailData);
+    const response = await postmarkClient.sendEmail(sanitizedMailData);
     if (response.ErrorCode) {
       return err(response);
     }
