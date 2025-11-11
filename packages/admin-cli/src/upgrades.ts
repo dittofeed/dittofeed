@@ -465,17 +465,14 @@ export async function createComputedPropertyStateV3() {
     "Creating computed_property_state_v3 table and materialized view",
   );
 
-  await Promise.all(
-    [
-      CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
-      CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
-    ].map((queryString) =>
-      command({
-        query: queryString,
-        clickhouse_settings: { wait_end_of_query: 1 },
-      }),
-    ),
-  );
+  await command({
+    query: CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  await command({
+    query: CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
 
   logger().info(
     "Finished creating computed_property_state_v3 table and materialized view",
