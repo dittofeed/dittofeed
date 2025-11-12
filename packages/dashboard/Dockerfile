@@ -1,5 +1,5 @@
 # use buster in the build step, lite in the production step
-FROM node:20-slim AS builder
+FROM node:20.19.5-bullseye-slim AS builder
 
 # Accept the build argument in the builder stage
 ARG APP_VERSION
@@ -26,7 +26,7 @@ RUN yarn workspace emailo build && \
     yarn workspace dashboard build
 
 # Production image, copy all the files and run next
-FROM node:20-slim AS runner
+FROM node:20.19.5-bullseye-slim AS runner
 
 # Redefine the ARG in the production stage
 ARG APP_VERSION

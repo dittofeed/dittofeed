@@ -1,5 +1,5 @@
 # Rebuild the source code only when needed
-FROM node:20 AS builder
+FROM node:20.19.5-bullseye AS builder
 
 # Accept the build argument in the builder stage
 ARG APP_VERSION

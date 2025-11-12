@@ -1,5 +1,5 @@
 # Rebuild the source code only when needed
-FROM node:20-slim AS builder
+FROM node:20.19.5-bullseye-slim AS builder
 
 # Accept the build argument in the builder stage
 ARG APP_VERSION
@@ -31,7 +31,7 @@ RUN yarn workspace emailo build && \
     yarn workspace api build
 
 # Production image
-FROM node:20-slim AS runner
+FROM node:20.19.5-bullseye-slim AS runner
 
 # Redefine the ARG in the production stage
 ARG APP_VERSION
