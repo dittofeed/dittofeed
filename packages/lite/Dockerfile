@@ -1,4 +1,4 @@
-FROM node:20 AS builder
+FROM node:20.19.5-bullseye AS builder
 
 # Accept the build argument in the builder stage
 ARG APP_VERSION
@@ -43,7 +43,7 @@ COPY ./packages/lite/ ./packages/lite
 RUN yarn workspace lite build
 
 # Production image
-FROM node:20 AS runner
+FROM node:20.19.5-bullseye-slim AS runner
 
 # Redefine the ARG in the production stage
 ARG APP_VERSION
@@ -91,15 +91,7 @@ ENV NODE_ENV=production \
     PRE_BUILT=true \
     AUTH_MODE='single-tenant' \
     WORKSPACE_NAME=${WORKSPACE_NAME} \
-    PATH="$PATH:/root/.temporalio/bin" \
     APP_VERSION=${APP_VERSION}
-
-# provide admin-cli scripts entrypoint
-COPY ./packages/admin-cli/scripts/install-deps.sh ./
-COPY ./packages/admin-cli/scripts/admin.sh ./
-RUN chmod +x ./install-deps.sh && \
-    chmod +x ./admin.sh && \
-    ./install-deps.sh
 
 EXPOSE 3000
 
