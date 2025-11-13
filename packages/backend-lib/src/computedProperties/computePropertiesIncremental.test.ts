@@ -5379,6 +5379,7 @@ describe("computeProperties", () => {
           },
         },
       ],
+      only: true,
       segments: [
         {
           name: "emailNotExists",
