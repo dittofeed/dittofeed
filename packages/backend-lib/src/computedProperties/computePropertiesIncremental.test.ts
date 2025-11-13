@@ -5429,6 +5429,64 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          description:
+            "the not exists segments should be calculated correctly initially",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                emailNotExists: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                emailNotExists: true,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                emailNotExists: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          segments: [
+            {
+              name: "emailNotExists",
+              definition: {
+                entryNode: {
+                  type: SegmentNodeType.Trait,
+                  // Make a change that should not be impactful, other than updating the state ids
+                  id: "2",
+                  path: "email",
+                  operator: {
+                    type: SegmentOperatorType.NotExists,
+                  },
+                },
+                nodes: [],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "the not exists segments should be calculated correctly after making a no-op update to the segment definition and recomputing",
           users: [
             {
               id: "user-1",
