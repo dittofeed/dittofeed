@@ -1197,6 +1197,7 @@ function segmentToResolvedState({
           ];
         }
         case SegmentOperatorType.NotEquals: {
+          // FIXME
           return [
             buildRecentUpdateSegmentQuery({
               workspaceId,
@@ -1226,6 +1227,7 @@ function segmentToResolvedState({
           ];
         }
         case SegmentOperatorType.NotExists: {
+          // FIXME
           return [
             buildRecentUpdateSegmentQuery({
               workspaceId,
@@ -1715,6 +1717,7 @@ export function segmentNodeToStateSubQuery({
       if (!path) {
         return [];
       }
+      // FIXME
       if (
         node.operator.type === SegmentOperatorType.NotEquals ||
         node.operator.type === SegmentOperatorType.NotExists
@@ -4374,7 +4377,7 @@ function segmentNodeToPruned({
       }
       switch (node.operator.type) {
         case SegmentOperatorType.Equals:
-        case SegmentOperatorType.NotEquals:
+        case SegmentOperatorType.NotEquals: // FIXME
         case SegmentOperatorType.Exists:
         case SegmentOperatorType.GreaterThanOrEqual:
         case SegmentOperatorType.LessThan: {
