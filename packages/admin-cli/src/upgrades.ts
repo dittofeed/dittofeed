@@ -19,6 +19,9 @@ import { publicDrizzleMigrate } from "backend-lib/src/migrate";
 import {
   EmailProviderSecret,
   EmailProviderType,
+  SegmentDefinition,
+  SegmentNodeType,
+  SegmentOperatorType,
   Workspace,
 } from "backend-lib/src/types";
 import {
@@ -30,7 +33,6 @@ import {
   GROUP_MATERIALIZED_VIEWS,
   GROUP_TABLES,
 } from "backend-lib/src/userEvents/clickhouse";
-import { Type } from "@sinclair/typebox";
 import { and, eq, inArray, like, sql } from "drizzle-orm";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { parseInt } from "isomorphic-lib/src/numbers";
@@ -297,8 +299,7 @@ export async function refreshNotExistsSegmentDefinitionUpdatedAt() {
 
   for (const seg of segments) {
     try {
-      const def = seg.definition as unknown;
-      const parsed = schemaValidateWithErr(def, Type.Any());
+      const parsed = schemaValidateWithErr(seg.definition, SegmentDefinition);
       if (parsed.isErr()) {
         logger().error(
           { segmentId: seg.id, err: parsed.error },
@@ -307,21 +308,16 @@ export async function refreshNotExistsSegmentDefinitionUpdatedAt() {
         // eslint-disable-next-line no-continue
         continue;
       }
-      const definition = parsed.value as {
-        entryNode?: { id?: string; type?: string; operator?: { type?: string } };
-        nodes?: { id?: string; type?: string; operator?: { type?: string } }[];
-      };
+      const definition = parsed.value;
 
       const nodes = definition.nodes ?? [];
-      const entryNode = definition.entryNode ?? {};
-      const allNodes = [entryNode, ...nodes];
+      const allNodes = [definition.entryNode, ...nodes];
 
       const hasNotExistsTraitNode = allNodes.some(
-        (n) =>
-          n &&
-          n.type === "Trait" &&
-          n.operator &&
-          n.operator.type === "NotExists",
+        (node) =>
+          node.type === SegmentNodeType.Trait &&
+          "operator" in node &&
+          node.operator?.type === SegmentOperatorType.NotExists,
       );
 
       if (!hasNotExistsTraitNode) {
