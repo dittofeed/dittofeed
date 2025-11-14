@@ -5422,6 +5422,12 @@ describe("computeProperties", () => {
               offsetMs: -100,
               traits: {},
             },
+            {
+              type: EventType.Identify,
+              userId: "user-4",
+              offsetMs: -100,
+              traits: {},
+            },
           ],
         },
         {
@@ -5446,6 +5452,12 @@ describe("computeProperties", () => {
             },
             {
               id: "user-3",
+              segments: {
+                emailNotExists: true,
+              },
+            },
+            {
+              id: "user-4",
               segments: {
                 emailNotExists: true,
               },
@@ -5487,6 +5499,14 @@ describe("computeProperties", () => {
                 email: "test3@email.com",
               },
             },
+            {
+              type: EventType.Identify,
+              userId: "user-4",
+              offsetMs: -100,
+              traits: {
+                email: "test4@email.com",
+              },
+            },
           ],
         },
         {
@@ -5526,6 +5546,12 @@ describe("computeProperties", () => {
                 emailNotExists: null,
               },
             },
+            {
+              id: "user-4",
+              segments: {
+                emailNotExists: null,
+              },
+            },
           ],
         },
         {
@@ -5541,6 +5567,14 @@ describe("computeProperties", () => {
               offsetMs: -100,
               traits: {
                 email: "test2@email.com",
+              },
+            },
+            {
+              type: EventType.Identify,
+              userId: "user-4",
+              offsetMs: -100,
+              traits: {
+                unrelated: "value",
               },
             },
           ],
@@ -5567,6 +5601,12 @@ describe("computeProperties", () => {
             },
             {
               id: "user-3",
+              segments: {
+                emailNotExists: null,
+              },
+            },
+            {
+              id: "user-4",
               segments: {
                 emailNotExists: null,
               },
