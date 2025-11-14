@@ -93,6 +93,7 @@ import { spawnWithEnv } from "./spawn";
 import {
   backfillInternalEvents,
   disentangleResendSendgrid,
+  refreshNotExistsSegmentDefinitionUpdatedAt,
   transferComputedPropertyStateV2ToV3,
   transferComputedPropertyStateV2ToV3Query,
   upgradeV010Post,
@@ -134,6 +135,14 @@ export function createCommands(yargs: Argv): Argv {
       "Initialize the dittofeed application and creates a workspace.",
       boostrapOptions,
       bootstrapHandler,
+    )
+    .command(
+      "refresh-not-exists-segment-definition-updated-at",
+      "Refreshes definitionUpdatedAt for segments that contain Trait NotExists nodes to force recomputation.",
+      (y) => y,
+      async () => {
+        await refreshNotExistsSegmentDefinitionUpdatedAt();
+      },
     )
     .command(
       "print-transfer-computed-property-state-v2-v3-query",

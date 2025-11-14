@@ -19,6 +19,9 @@ import { publicDrizzleMigrate } from "backend-lib/src/migrate";
 import {
   EmailProviderSecret,
   EmailProviderType,
+  SegmentDefinition,
+  SegmentNodeType,
+  SegmentOperatorType,
   Workspace,
 } from "backend-lib/src/types";
 import {
@@ -271,6 +274,95 @@ export async function upgradeV021Pre() {
   await createGroupTables();
 
   logger().info("Pre-upgrade steps for v0.21.0 completed.");
+}
+
+export async function refreshNotExistsSegmentDefinitionUpdatedAt() {
+  logger().info(
+    "Refreshing definitionUpdatedAt for segments with NotExists trait nodes",
+  );
+
+  const now = new Date();
+  const batchSize = 100;
+
+  await db().transaction(async (tx) => {
+    let offset = 0;
+    const allIdsToUpdate: string[] = [];
+
+    // Paginate through running segments in stable batches.
+    // We use limit/offset inside a transaction to get a consistent snapshot.
+    // If the dataset grows significantly, we can revisit this to use keyset
+    // pagination, but this is acceptable for an upgrade script.
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const segments = await tx.query.segment.findMany({
+        where: eq(schema.segment.status, "Running"),
+        limit: batchSize,
+        offset,
+      });
+
+      if (!segments.length) {
+        break;
+      }
+
+      for (const seg of segments) {
+        try {
+          const parsed = schemaValidateWithErr(
+            seg.definition,
+            SegmentDefinition,
+          );
+          if (parsed.isErr()) {
+            logger().error(
+              { segmentId: seg.id, err: parsed.error },
+              "Failed to parse segment definition JSON when searching for NotExists nodes",
+            );
+            // eslint-disable-next-line no-continue
+            continue;
+          }
+          const definition = parsed.value;
+
+          const { nodes } = definition;
+          const allNodes = [definition.entryNode, ...nodes];
+
+          const hasNotExistsTraitNode = allNodes.some(
+            (node) =>
+              node.type === SegmentNodeType.Trait &&
+              "operator" in node &&
+              node.operator?.type === SegmentOperatorType.NotExists,
+          );
+
+          if (hasNotExistsTraitNode) {
+            allIdsToUpdate.push(seg.id);
+          }
+        } catch (err) {
+          logger().error(
+            { segmentId: seg.id, err },
+            "Error while inspecting segment definition for NotExists nodes",
+          );
+        }
+      }
+
+      offset += segments.length;
+    }
+
+    if (allIdsToUpdate.length > 0) {
+      await tx
+        .update(schema.segment)
+        .set({
+          definitionUpdatedAt: now,
+          updatedAt: now,
+        })
+        .where(inArray(schema.segment.id, allIdsToUpdate));
+
+      logger().info(
+        { totalUpdated: allIdsToUpdate.length },
+        "Completed refreshing definitionUpdatedAt for segments with NotExists trait nodes",
+      );
+    } else {
+      logger().info(
+        "No segments with NotExists trait nodes found during refresh operation",
+      );
+    }
+  });
 }
 
 export function transferComputedPropertyStateV2ToV3Query({
@@ -923,5 +1015,6 @@ export async function upgradeV023Post() {
   logger().info("Performing post-upgrade steps for v0.23.0");
   await resetGlobalCron();
   await startComputePropertiesWorkflowGlobal();
+  await refreshNotExistsSegmentDefinitionUpdatedAt();
   logger().info("Post-upgrade steps for v0.23.0 completed.");
 }
