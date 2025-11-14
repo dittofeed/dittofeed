@@ -5379,7 +5379,6 @@ describe("computeProperties", () => {
           },
         },
       ],
-      only: true,
       segments: [
         {
           name: "emailNotExists",
@@ -5475,6 +5474,13 @@ describe("computeProperties", () => {
               },
             },
           ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
         },
         {
           type: EventsStepType.Sleep,
