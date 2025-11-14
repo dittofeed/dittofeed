@@ -1223,7 +1223,6 @@ function segmentToResolvedState({
           ];
         }
         case SegmentOperatorType.NotEquals: {
-          // FIXME
           return [
             buildRecentUpdateSegmentQuery({
               workspaceId,
@@ -1746,7 +1745,6 @@ export function segmentNodeToStateSubQuery({
       if (!path) {
         return [];
       }
-      // FIXME
       if (node.operator.type === SegmentOperatorType.NotEquals) {
         const varName = qb.getVariableName();
         return [
@@ -4434,7 +4432,7 @@ function segmentNodeToPruned({
       }
       switch (node.operator.type) {
         case SegmentOperatorType.Equals:
-        case SegmentOperatorType.NotEquals: // FIXME
+        case SegmentOperatorType.NotEquals:
         case SegmentOperatorType.Exists:
         case SegmentOperatorType.GreaterThanOrEqual:
         case SegmentOperatorType.LessThan: {
