@@ -25,6 +25,7 @@ import { validate as validateUuid } from "uuid";
 
 import { submitBatch } from "./apps/batch";
 import { getObject, storage } from "./blobStorage";
+import { MESSAGE_METADATA_FIELDS } from "./constants";
 import { db, TxQueryError, txQueryResult } from "./db";
 import {
   defaultEmailProvider as dbDefaultEmailProvider,
@@ -1502,6 +1503,11 @@ export async function sendEmail({
             }))
           : [];
       const fromWithName = emailName ? `${emailName} <${from}>` : from;
+      const baseMetadata = R.merge(messageTags, {
+        workspaceId,
+        templateId,
+      });
+      const metadata = R.pick(baseMetadata, MESSAGE_METADATA_FIELDS);
       const mailData: PostMarkRequiredFields = {
         To: to,
         From: fromWithName,
@@ -1518,11 +1524,7 @@ export async function sendEmail({
                 Value: value,
               }))
             : undefined,
-        Metadata: {
-          workspaceId,
-          templateId,
-          ...messageTags,
-        },
+        Metadata: metadata,
       };
 
       if (!emailProvider.apiKey) {
