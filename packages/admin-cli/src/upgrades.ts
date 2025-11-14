@@ -30,7 +30,8 @@ import {
   GROUP_MATERIALIZED_VIEWS,
   GROUP_TABLES,
 } from "backend-lib/src/userEvents/clickhouse";
-import { and, eq, inArray } from "drizzle-orm";
+import { Type } from "@sinclair/typebox";
+import { and, eq, inArray, like, sql } from "drizzle-orm";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { parseInt } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -271,6 +272,87 @@ export async function upgradeV021Pre() {
   await createGroupTables();
 
   logger().info("Pre-upgrade steps for v0.21.0 completed.");
+}
+
+export async function refreshNotExistsSegmentDefinitionUpdatedAt() {
+  logger().info(
+    "Refreshing definitionUpdatedAt for segments with NotExists trait nodes",
+  );
+
+  const segments = await db().query.segment.findMany({
+    where: and(
+      // Only consider running segments; adjust if you want to include others.
+      eq(schema.segment.status, "Running"),
+      // Rough filter by JSON containing NotExists; we will validate below.
+      like(schema.segment.definition, sql`'%\"type\":\"NotExists\"%'`),
+    ),
+  });
+
+  if (!segments.length) {
+    logger().info("No segments with NotExists trait nodes found.");
+    return;
+  }
+
+  const now = new Date();
+
+  for (const seg of segments) {
+    try {
+      const def = seg.definition as unknown;
+      const parsed = schemaValidateWithErr(def, Type.Any());
+      if (parsed.isErr()) {
+        logger().error(
+          { segmentId: seg.id, err: parsed.error },
+          "Failed to parse segment definition JSON when searching for NotExists nodes",
+        );
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+      const definition = parsed.value as {
+        entryNode?: { id?: string; type?: string; operator?: { type?: string } };
+        nodes?: { id?: string; type?: string; operator?: { type?: string } }[];
+      };
+
+      const nodes = definition.nodes ?? [];
+      const entryNode = definition.entryNode ?? {};
+      const allNodes = [entryNode, ...nodes];
+
+      const hasNotExistsTraitNode = allNodes.some(
+        (n) =>
+          n &&
+          n.type === "Trait" &&
+          n.operator &&
+          n.operator.type === "NotExists",
+      );
+
+      if (!hasNotExistsTraitNode) {
+        // JSON contained "NotExists" string but not in the shape we care about.
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
+      await db()
+        .update(schema.segment)
+        .set({
+          definitionUpdatedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(schema.segment.id, seg.id));
+
+      logger().info(
+        { segmentId: seg.id, workspaceId: seg.workspaceId },
+        "Refreshed definitionUpdatedAt for segment with NotExists trait node",
+      );
+    } catch (err) {
+      logger().error(
+        { segmentId: seg.id, err },
+        "Error while refreshing definitionUpdatedAt for segment",
+      );
+    }
+  }
+
+  logger().info(
+    "Completed refreshing definitionUpdatedAt for segments with NotExists trait nodes",
+  );
 }
 
 export function transferComputedPropertyStateV2ToV3Query({
@@ -923,5 +1005,6 @@ export async function upgradeV023Post() {
   logger().info("Performing post-upgrade steps for v0.23.0");
   await resetGlobalCron();
   await startComputePropertiesWorkflowGlobal();
+  await refreshNotExistsSegmentDefinitionUpdatedAt();
   logger().info("Post-upgrade steps for v0.23.0 completed.");
 }

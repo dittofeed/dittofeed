@@ -345,6 +345,32 @@ interface FullSubQueryData {
 }
 type SubQueryData = Omit<FullSubQueryData, "version">;
 
+function getSegmentNodeVersion(
+  segment: SavedSegmentResource,
+  nodeId: string,
+): number | null {
+  const definition = segment.definition;
+  if (!definition) {
+    return null;
+  }
+  const nodes: SegmentNode[] = [
+    definition.entryNode,
+    ...(definition.nodes ?? []),
+  ];
+  const node = nodes.find((n) => n.id === nodeId);
+  if (!node) {
+    return null;
+  }
+  if (
+    node.type === SegmentNodeType.Trait &&
+    node.operator?.type === SegmentOperatorType.NotExists
+  ) {
+    // Version 1 for Trait + NotExists semantics fix
+    return 1;
+  }
+  return null;
+}
+
 export function segmentNodeStateId(
   segment: SavedSegmentResource,
   nodeId: string,
@@ -358,10 +384,10 @@ export function segmentNodeStateId(
     );
     return null;
   }
-  return uuidv5(
-    `${segment.definitionUpdatedAt.toString()}:${nodeId}`,
-    segment.id,
-  );
+  const nodeVersion = getSegmentNodeVersion(segment, nodeId);
+  const versionSuffix = nodeVersion !== null ? `:v${nodeVersion}` : "";
+  const name = `${segment.definitionUpdatedAt.toString()}:${nodeId}${versionSuffix}`;
+  return uuidv5(name, segment.id);
 }
 
 function segmentToIndexed({
