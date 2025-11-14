@@ -33,7 +33,7 @@ import {
   GROUP_MATERIALIZED_VIEWS,
   GROUP_TABLES,
 } from "backend-lib/src/userEvents/clickhouse";
-import { and, eq, inArray, like, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { parseInt } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -281,74 +281,88 @@ export async function refreshNotExistsSegmentDefinitionUpdatedAt() {
     "Refreshing definitionUpdatedAt for segments with NotExists trait nodes",
   );
 
-  const segments = await db().query.segment.findMany({
-    where: and(
-      // Only consider running segments; adjust if you want to include others.
-      eq(schema.segment.status, "Running"),
-      // Rough filter by JSON containing NotExists; we will validate below.
-      like(schema.segment.definition, sql`'%\"type\":\"NotExists\"%'`),
-    ),
-  });
-
-  if (!segments.length) {
-    logger().info("No segments with NotExists trait nodes found.");
-    return;
-  }
-
   const now = new Date();
+  const batchSize = 100;
 
-  for (const seg of segments) {
-    try {
-      const parsed = schemaValidateWithErr(seg.definition, SegmentDefinition);
-      if (parsed.isErr()) {
-        logger().error(
-          { segmentId: seg.id, err: parsed.error },
-          "Failed to parse segment definition JSON when searching for NotExists nodes",
-        );
-        // eslint-disable-next-line no-continue
-        continue;
-      }
-      const definition = parsed.value;
+  await db().transaction(async (tx) => {
+    let offset = 0;
+    const allIdsToUpdate: string[] = [];
 
-      const nodes = definition.nodes ?? [];
-      const allNodes = [definition.entryNode, ...nodes];
+    // Paginate through running segments in stable batches.
+    // We use limit/offset inside a transaction to get a consistent snapshot.
+    // If the dataset grows significantly, we can revisit this to use keyset
+    // pagination, but this is acceptable for an upgrade script.
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const segments = await tx.query.segment.findMany({
+        where: eq(schema.segment.status, "Running"),
+        limit: batchSize,
+        offset,
+      });
 
-      const hasNotExistsTraitNode = allNodes.some(
-        (node) =>
-          node.type === SegmentNodeType.Trait &&
-          "operator" in node &&
-          node.operator?.type === SegmentOperatorType.NotExists,
-      );
-
-      if (!hasNotExistsTraitNode) {
-        // JSON contained "NotExists" string but not in the shape we care about.
-        // eslint-disable-next-line no-continue
-        continue;
+      if (!segments.length) {
+        break;
       }
 
-      await db()
+      for (const seg of segments) {
+        try {
+          const parsed = schemaValidateWithErr(
+            seg.definition,
+            SegmentDefinition,
+          );
+          if (parsed.isErr()) {
+            logger().error(
+              { segmentId: seg.id, err: parsed.error },
+              "Failed to parse segment definition JSON when searching for NotExists nodes",
+            );
+            // eslint-disable-next-line no-continue
+            continue;
+          }
+          const definition = parsed.value;
+
+          const { nodes } = definition;
+          const allNodes = [definition.entryNode, ...nodes];
+
+          const hasNotExistsTraitNode = allNodes.some(
+            (node) =>
+              node.type === SegmentNodeType.Trait &&
+              "operator" in node &&
+              node.operator?.type === SegmentOperatorType.NotExists,
+          );
+
+          if (hasNotExistsTraitNode) {
+            allIdsToUpdate.push(seg.id);
+          }
+        } catch (err) {
+          logger().error(
+            { segmentId: seg.id, err },
+            "Error while inspecting segment definition for NotExists nodes",
+          );
+        }
+      }
+
+      offset += segments.length;
+    }
+
+    if (allIdsToUpdate.length > 0) {
+      await tx
         .update(schema.segment)
         .set({
           definitionUpdatedAt: now,
           updatedAt: now,
         })
-        .where(eq(schema.segment.id, seg.id));
+        .where(inArray(schema.segment.id, allIdsToUpdate));
 
       logger().info(
-        { segmentId: seg.id, workspaceId: seg.workspaceId },
-        "Refreshed definitionUpdatedAt for segment with NotExists trait node",
+        { totalUpdated: allIdsToUpdate.length },
+        "Completed refreshing definitionUpdatedAt for segments with NotExists trait nodes",
       );
-    } catch (err) {
-      logger().error(
-        { segmentId: seg.id, err },
-        "Error while refreshing definitionUpdatedAt for segment",
+    } else {
+      logger().info(
+        "No segments with NotExists trait nodes found during refresh operation",
       );
     }
-  }
-
-  logger().info(
-    "Completed refreshing definitionUpdatedAt for segments with NotExists trait nodes",
-  );
+  });
 }
 
 export function transferComputedPropertyStateV2ToV3Query({
