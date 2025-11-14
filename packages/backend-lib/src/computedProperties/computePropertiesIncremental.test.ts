@@ -5371,6 +5371,7 @@ describe("computeProperties", () => {
     },
     {
       description: "trait segment with not exists operator",
+      only: true,
       userProperties: [
         {
           name: "id",
@@ -5476,6 +5477,19 @@ describe("computeProperties", () => {
           ],
         },
         {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              userId: "user-3",
+              offsetMs: -100,
+              traits: {
+                email: "test3@email.com",
+              },
+            },
+          ],
+        },
+        {
           type: EventsStepType.Sleep,
           timeMs: 1000,
         },
@@ -5492,7 +5506,7 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description:
-            "the not exists segments should be calculated correctly after making a no-op update to the segment definition and recomputing",
+            "the not exists segments should be calculated correctly after making a no-op update to the segment definition submitting a user event and recomputing",
           users: [
             {
               id: "user-1",
@@ -5509,7 +5523,52 @@ describe("computeProperties", () => {
             {
               id: "user-3",
               segments: {
-                emailNotExists: true,
+                emailNotExists: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              userId: "user-2",
+              offsetMs: -100,
+              traits: {
+                email: "test2@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "when a users trait value is updated with a present value, the users should be removed from the not exists segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                emailNotExists: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                emailNotExists: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                emailNotExists: null,
               },
             },
           ],
