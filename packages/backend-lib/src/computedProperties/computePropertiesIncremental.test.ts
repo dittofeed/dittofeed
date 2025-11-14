@@ -5371,7 +5371,6 @@ describe("computeProperties", () => {
     },
     {
       description: "trait segment with not exists operator",
-      only: true,
       userProperties: [
         {
           name: "id",
