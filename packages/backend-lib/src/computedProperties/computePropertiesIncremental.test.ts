@@ -8932,16 +8932,29 @@ describe("computeProperties", () => {
                       ).toEqual(user.segments);
                     })
                   : null,
-                // user.subscriptions
-                //     ? getUserSubscriptions({
-                //         userId: user.id,
-                //         workspaceId,
-                //       }).then((s) => {
-                //         expect(
-                //           s,
-                //           `${step.description ? `${step.description}: ` : ""}subscriptions for: ${user.id}`,
-                //         ).toEqual(user.subscriptions);
-                //       })
+                user.subscriptions
+                  ? getUserSubscriptions({
+                      userId: user.id,
+                      workspaceId,
+                    }).then((s) => {
+                      for (const [sgName, sgValue] of Object.entries(
+                        user.subscriptions ?? [],
+                      )) {
+                        const actualSubscription = s.find(
+                          (sg) => sg.name === sgName,
+                        );
+                        if (!actualSubscription) {
+                          throw new Error(
+                            `subscription ${sgName} not found for user ${user.id}`,
+                          );
+                        }
+                        expect(
+                          actualSubscription.isSubscribed,
+                          `${step.description ? `${step.description}: ` : ""}subscription ${sgName} for: ${user.id}`,
+                        ).toEqual(sgValue);
+                      }
+                    })
+                  : null,
               ]);
             }) ?? [];
           const userCountAssertion = step.userCount
