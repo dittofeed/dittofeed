@@ -349,7 +349,7 @@ function getSegmentNodeVersion(
   segment: SavedSegmentResource,
   nodeId: string,
 ): number | null {
-  const definition = segment.definition;
+  const { definition } = segment;
   if (!definition) {
     return null;
   }
@@ -3175,23 +3175,30 @@ async function execAssignmentQueryGroup({
         ),
       );
     } else {
-      return withSpan({ name: "exec-assignment-query" }, async (span) => {
+      await withSpan({ name: "exec-assignment-query" }, async (span) => {
         span.setAttribute("workspaceId", workspaceId);
-        span.setAttribute("computedPropertyId", assignmentQuery.computedPropertyId);
-        span.setAttribute("computedPropertyType", assignmentQuery.computedPropertyType);
+        span.setAttribute(
+          "computedPropertyId",
+          assignmentQuery.computedPropertyId,
+        );
+        span.setAttribute(
+          "computedPropertyType",
+          assignmentQuery.computedPropertyType,
+        );
         return command(
-        {
-          query: assignmentQuery.query,
-          query_params: qb.getQueries(),
-          clickhouse_settings: {
-            wait_end_of_query: 1,
-            max_execution_time:
-              config().clickhouseComputePropertiesMaxExecutionTime,
+          {
+            query: assignmentQuery.query,
+            query_params: qb.getQueries(),
+            clickhouse_settings: {
+              wait_end_of_query: 1,
+              max_execution_time:
+                config().clickhouseComputePropertiesMaxExecutionTime,
+            },
           },
-        },
-        { clickhouseClient },
-      );
-    });
+          { clickhouseClient },
+        );
+      });
+    }
   }
 }
 
