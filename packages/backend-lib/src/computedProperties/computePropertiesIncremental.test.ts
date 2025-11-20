@@ -812,6 +812,7 @@ async function upsertComputedProperties({
         name: sg.name,
         type: sg.type,
         channel: sg.channel,
+        createdAt: new Date(now),
         updatedAt: new Date(now),
       }),
     ),
@@ -8930,6 +8931,11 @@ describe("computeProperties", () => {
                   ? findAllSegmentAssignments({
                       userId: user.id,
                       workspaceId,
+                      segmentIds: segments
+                        .filter((s) =>
+                          test.segments?.some((t) => t.name === s.name),
+                        )
+                        .map((s) => s.id),
                     }).then((s) => {
                       expect(
                         s,
