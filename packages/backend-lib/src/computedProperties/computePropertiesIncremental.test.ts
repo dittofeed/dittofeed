@@ -34,10 +34,12 @@ import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
   getUserSubscriptions,
   subscriptionGroupToResource,
+  upsertSubscriptionGroup,
 } from "../subscriptionGroups";
 import {
   AppFileType,
   BlobStorageFile,
+  ChannelType,
   ComputedPropertyStep,
   ComputedPropertyStepEnum,
   CursorDirectionEnum,
@@ -590,7 +592,7 @@ type TestSegment = Pick<SegmentResource, "name" | "definition">;
 type TestJourneyResource = Pick<SavedJourneyResource, "name" | "definition">;
 type TestSubscriptionGroup = Pick<
   SavedSubscriptionGroupResource,
-  "name" | "id" | "channel" | "type"
+  "name" | "channel" | "type"
 >;
 
 interface TestJourney {
@@ -804,24 +806,13 @@ async function upsertComputedProperties({
       }),
     ),
     ...subscriptionGroups.map((sg) =>
-      upsert({
-        table: schema.subscriptionGroup,
-        target: [
-          schema.subscriptionGroup.workspaceId,
-          schema.subscriptionGroup.name,
-        ],
-        values: {
-          id: randomUUID(),
-          workspaceId,
-          name: sg.name,
-          type: sg.type,
-          channel: sg.channel,
-        },
-        set: {
-          updatedAt: new Date(now),
-          name: sg.name,
-          type: sg.type,
-        },
+      upsertSubscriptionGroup({
+        id: randomUUID(),
+        workspaceId,
+        name: sg.name,
+        type: sg.type,
+        channel: sg.channel,
+        updatedAt: new Date(now),
       }),
     ),
   ]);
@@ -6978,6 +6969,13 @@ describe("computeProperties", () => {
           },
         },
       ],
+      subscriptionGroups: [
+        {
+          name: "optOut",
+          channel: ChannelType.Email,
+          type: SubscriptionGroupType.OptOut,
+        },
+      ],
       userProperties: [
         {
           name: "email",
@@ -7013,6 +7011,9 @@ describe("computeProperties", () => {
               segments: {
                 optOut: null,
               },
+              subscriptions: {
+                optOut: true,
+              },
             },
           ],
         },
@@ -7047,6 +7048,9 @@ describe("computeProperties", () => {
               segments: {
                 optOut: null,
               },
+              subscriptions: {
+                optOut: false,
+              },
             },
           ],
         },
@@ -7079,6 +7083,9 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
+                optOut: true,
+              },
+              subscriptions: {
                 optOut: true,
               },
             },

@@ -28,7 +28,6 @@ import {
 } from "./db/schema";
 import logger from "./logger";
 import {
-  findAllSegmentAssignments,
   findAllSegmentAssignmentsByIdsForUsers,
   insertSegmentAssignments,
   SegmentBulkUpsertItem,
@@ -119,7 +118,6 @@ export async function getSubscriptionGroupsWithAssignments({
   if (userIds.length === 0) {
     return [];
   }
-
   const subscriptionGroups = await db().query.subscriptionGroup.findMany({
     where: and(
       eq(dbSubscriptionGroup.workspaceId, workspaceId),
@@ -218,9 +216,13 @@ export async function upsertSubscriptionGroup({
   type,
   workspaceId,
   channel,
-}: UpsertSubscriptionGroupResource): Promise<
-  Result<SubscriptionGroup, SubscriptionGroupUpsertValidationError>
-> {
+  createdAt,
+  updatedAt,
+}: UpsertSubscriptionGroupResource & {
+  // dates are used for deterministic testing
+  createdAt?: Date;
+  updatedAt?: Date;
+}): Promise<Result<SubscriptionGroup, SubscriptionGroupUpsertValidationError>> {
   if (id && !validateUuid(id)) {
     return err({
       type: SubscriptionGroupUpsertValidationErrorType.IdError,
@@ -263,6 +265,8 @@ export async function upsertSubscriptionGroup({
             name,
             type,
             channel,
+            createdAt,
+            updatedAt,
           })
           .returning(),
       );
@@ -289,6 +293,8 @@ export async function upsertSubscriptionGroup({
             name,
             type,
             channel,
+            createdAt,
+            updatedAt,
           })
           .where(and(...conditions))
           .returning(),
@@ -329,11 +335,15 @@ export async function upsertSubscriptionGroup({
         definition: segmentDefinition,
         subscriptionGroupId: subscriptionGroup.id,
         resourceType: "Internal",
+        createdAt,
+        updatedAt,
       },
       target: [dbSegment.workspaceId, dbSegment.name],
       set: {
         name: segmentName,
         definition: segmentDefinition,
+        createdAt,
+        updatedAt,
       },
       tx,
     }).then(unwrap);
