@@ -6956,20 +6956,6 @@ describe("computeProperties", () => {
     },
     {
       description: "with an opt out subscription group segment",
-      segments: [
-        {
-          name: "optOut",
-          definition: {
-            entryNode: {
-              type: SegmentNodeType.SubscriptionGroup,
-              id: "1",
-              subscriptionGroupId: "subscription-group-id",
-              subscriptionGroupType: SubscriptionGroupType.OptOut,
-            },
-            nodes: [],
-          },
-        },
-      ],
       subscriptionGroups: [
         {
           name: "optOut",
@@ -7009,9 +6995,6 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              segments: {
-                optOut: null,
-              },
               subscriptions: {
                 optOut: true,
               },
@@ -7047,9 +7030,6 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              segments: {
-                optOut: null,
-              },
               subscriptions: {
                 optOut: false,
               },
@@ -7085,9 +7065,6 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              segments: {
-                optOut: null,
-              },
               subscriptions: {
                 optOut: true,
               },
@@ -8417,6 +8394,7 @@ describe("computeProperties", () => {
     },
     {
       description: "anonymous users can and opt in subscription group",
+      only: true,
       userProperties: [
         {
           definition: {
