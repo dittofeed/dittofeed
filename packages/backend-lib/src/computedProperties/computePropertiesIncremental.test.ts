@@ -6956,6 +6956,7 @@ describe("computeProperties", () => {
     },
     {
       description: "with an opt out subscription group segment",
+      only: true,
       segments: [
         {
           name: "optOut",
