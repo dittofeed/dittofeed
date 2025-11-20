@@ -32,6 +32,10 @@ import { toJourneyResource } from "../journeys";
 import logger from "../logger";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
+  getUserSubscriptions,
+  subscriptionGroupToResource,
+} from "../subscriptionGroups";
+import {
   AppFileType,
   BlobStorageFile,
   ComputedPropertyStep,
@@ -71,10 +75,6 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
-import {
-  getUserSubscriptions,
-  subscriptionGroupToResource,
-} from "../subscriptionGroups";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
