@@ -529,12 +529,25 @@ export async function getUserSubscriptions({
     }
     const inSegment = assignments[segment.id] === true;
 
-    const { id, name, channel } = subscriptionGroup;
+    const { id, name, channel, type } = subscriptionGroup;
+
+    // For opt-out subscription groups, users are subscribed by default unless they've explicitly unsubscribed
+    // For opt-in subscription groups, users are NOT subscribed unless they've explicitly opted in
+    const isSubscribed =
+      type === SubscriptionGroupType.OptOut
+        ? assignments[segment.id] !== false
+        : inSegment;
+
+    // FIXME
+    // const isSubscribed =
+    //   type === SubscriptionGroupType.OptIn && inSegment === null
+    //     ? false
+    //     : inSegment === true;
 
     subscriptions.push({
       id,
       name,
-      isSubscribed: inSegment,
+      isSubscribed,
       channel,
     });
   }
