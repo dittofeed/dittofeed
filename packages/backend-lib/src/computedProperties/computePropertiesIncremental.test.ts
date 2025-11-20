@@ -48,6 +48,7 @@ import {
   SavedHasStartedJourneyResource,
   SavedJourneyResource,
   SavedSegmentResource,
+  SavedSubscriptionGroupResource,
   SavedUserPropertyResource,
   SegmentHasBeenOperatorComparator,
   SegmentNodeType,
@@ -70,6 +71,10 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
+import {
+  getUserSubscriptions,
+  subscriptionGroupToResource,
+} from "../subscriptionGroups";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -506,6 +511,7 @@ interface StepContext {
   now: number;
   workspace: Workspace;
   segments: SavedSegmentResource[];
+  subscriptionGroups: SavedSubscriptionGroupResource[];
   clickhouseCounters: ClickhouseCounters;
 }
 
@@ -582,6 +588,10 @@ interface AssertStep {
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
 type TestSegment = Pick<SegmentResource, "name" | "definition">;
 type TestJourneyResource = Pick<SavedJourneyResource, "name" | "definition">;
+type TestSubscriptionGroup = Pick<
+  SavedSubscriptionGroupResource,
+  "name" | "id" | "channel" | "type"
+>;
 
 interface TestJourney {
   name: string;
@@ -593,9 +603,11 @@ interface UpdateComputedPropertyStep {
   updater?: (ctx: StepContext) => {
     userProperties?: TestUserProperty[];
     segments?: TestSegment[];
+    subscriptionGroups?: TestSubscriptionGroup[];
   };
   userProperties?: TestUserProperty[];
   segments?: TestSegment[];
+  subscriptionGroups?: TestSubscriptionGroup[];
 }
 
 interface UpdateJourneyStep {
@@ -622,6 +634,7 @@ interface TableTest {
   skip?: true;
   only?: true;
   userProperties?: TestUserProperty[];
+  subscriptionGroups?: TestSubscriptionGroup[];
   segments?: TestSegment[];
   journeys?: TestJourney[];
   steps: TableStep[];
@@ -736,15 +749,18 @@ async function upsertComputedProperties({
   workspaceId,
   segments,
   userProperties,
+  subscriptionGroups,
   now,
 }: {
   workspaceId: string;
   segments: TestSegment[];
   userProperties: TestUserProperty[];
+  subscriptionGroups: TestSubscriptionGroup[];
   now: number;
 }): Promise<{
   segments: SavedSegmentResource[];
   userProperties: SavedUserPropertyResource[];
+  subscriptionGroups: SavedSubscriptionGroupResource[];
 }> {
   await Promise.all([
     ...userProperties.map((up) =>
@@ -787,17 +803,43 @@ async function upsertComputedProperties({
         },
       }),
     ),
+    ...subscriptionGroups.map((sg) =>
+      upsert({
+        table: schema.subscriptionGroup,
+        target: [
+          schema.subscriptionGroup.workspaceId,
+          schema.subscriptionGroup.name,
+        ],
+        values: {
+          id: randomUUID(),
+          workspaceId,
+          name: sg.name,
+          type: sg.type,
+          channel: sg.channel,
+        },
+        set: {
+          updatedAt: new Date(now),
+          name: sg.name,
+          type: sg.type,
+        },
+      }),
+    ),
   ]);
-  const [segmentModels, userPropertyModels] = await Promise.all([
-    db()
-      .select()
-      .from(schema.segment)
-      .where(eq(schema.segment.workspaceId, workspaceId)),
-    db()
-      .select()
-      .from(schema.userProperty)
-      .where(eq(schema.userProperty.workspaceId, workspaceId)),
-  ]);
+  const [segmentModels, userPropertyModels, subscriptionGroupModels] =
+    await Promise.all([
+      db()
+        .select()
+        .from(schema.segment)
+        .where(eq(schema.segment.workspaceId, workspaceId)),
+      db()
+        .select()
+        .from(schema.userProperty)
+        .where(eq(schema.userProperty.workspaceId, workspaceId)),
+      db()
+        .select()
+        .from(schema.subscriptionGroup)
+        .where(eq(schema.subscriptionGroup.workspaceId, workspaceId)),
+    ]);
   const segmentResources = segmentModels.map((s) =>
     unwrap(toSegmentResource(s)),
   );
@@ -805,9 +847,13 @@ async function upsertComputedProperties({
   const userPropertyResources = userPropertyModels.map((up) =>
     unwrap(toSavedUserPropertyResource(up)),
   );
+  const subscriptionGroupResources = subscriptionGroupModels.map((sg) =>
+    subscriptionGroupToResource(sg),
+  );
   return {
     segments: segmentResources,
     userProperties: userPropertyResources,
+    subscriptionGroups: subscriptionGroupResources,
   };
 }
 
@@ -8646,12 +8692,14 @@ describe("computeProperties", () => {
 
     const workspaceId = workspace.id;
 
-    let { userProperties, segments } = await upsertComputedProperties({
-      workspaceId,
-      userProperties: test.userProperties ?? [],
-      segments: test.segments ?? [],
-      now,
-    });
+    let { userProperties, segments, subscriptionGroups } =
+      await upsertComputedProperties({
+        workspaceId,
+        userProperties: test.userProperties ?? [],
+        segments: test.segments ?? [],
+        subscriptionGroups: test.subscriptionGroups ?? [],
+        now,
+      });
 
     let journeys: SavedHasStartedJourneyResource[] = await Promise.all(
       test.journeys?.map(async ({ name, entrySegmentName }) => {
@@ -8698,6 +8746,7 @@ describe("computeProperties", () => {
         segments,
         now,
         clickhouseCounters,
+        subscriptionGroups,
       };
       switch (step.type) {
         case EventsStepType.SubmitEvents: {
@@ -8883,6 +8932,16 @@ describe("computeProperties", () => {
                       ).toEqual(user.segments);
                     })
                   : null,
+                // user.subscriptions
+                //     ? getUserSubscriptions({
+                //         userId: user.id,
+                //         workspaceId,
+                //       }).then((s) => {
+                //         expect(
+                //           s,
+                //           `${step.description ? `${step.description}: ` : ""}subscriptions for: ${user.id}`,
+                //         ).toEqual(user.subscriptions);
+                //       })
               ]);
             }) ?? [];
           const userCountAssertion = step.userCount
@@ -9125,29 +9184,35 @@ describe("computeProperties", () => {
           break;
         }
         case EventsStepType.UpdateComputedProperty: {
-          let segmentsAndUserProperties: Required<
-            Pick<UpdateComputedPropertyStep, "userProperties" | "segments">
+          let toUpdate: Required<
+            Pick<
+              UpdateComputedPropertyStep,
+              "userProperties" | "segments" | "subscriptionGroups"
+            >
           >;
           if (step.updater) {
             const updaterResult = step.updater(stepContext);
-            segmentsAndUserProperties = {
+            toUpdate = {
               userProperties: updaterResult.userProperties ?? [],
               segments: updaterResult.segments ?? [],
+              subscriptionGroups: updaterResult.subscriptionGroups ?? [],
             };
           } else {
-            segmentsAndUserProperties = {
+            toUpdate = {
               userProperties: step.userProperties ?? [],
               segments: step.segments ?? [],
+              subscriptionGroups: step.subscriptionGroups ?? [],
             };
           }
 
           const computedProperties = await upsertComputedProperties({
             workspaceId,
             now,
-            ...segmentsAndUserProperties,
+            ...toUpdate,
           });
           segments = computedProperties.segments;
           userProperties = computedProperties.userProperties;
+          subscriptionGroups = computedProperties.subscriptionGroups;
           break;
         }
         case EventsStepType.UpdateJourney: {
