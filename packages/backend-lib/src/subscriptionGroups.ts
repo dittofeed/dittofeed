@@ -103,73 +103,85 @@ export function getSubscriptionGroupDetails(
   };
 }
 
-export async function getSubscriptionGroupWithAssignments({
-  subscriptionGroupId,
+export async function getSubscriptionGroupsWithAssignments({
+  workspaceId,
+  subscriptionGroupIds: subscriptionGroupIdsUnsafe,
   userIds,
 }: {
-  subscriptionGroupId: string;
+  workspaceId: string;
+  subscriptionGroupIds: string[];
   userIds: string[];
 }): Promise<SubscriptionGroupWithAssignment[]> {
-  if (!validateUuid(subscriptionGroupId)) {
-    return [];
-  }
+  const subscriptionGroupIds = subscriptionGroupIdsUnsafe.filter((id) =>
+    validateUuid(id),
+  );
 
   if (userIds.length === 0) {
     return [];
   }
 
-  const sg = await db().query.subscriptionGroup.findFirst({
-    where: eq(dbSubscriptionGroup.id, subscriptionGroupId),
+  const subscriptionGroups = await db().query.subscriptionGroup.findMany({
+    where: and(
+      eq(dbSubscriptionGroup.workspaceId, workspaceId),
+      inArray(dbSubscriptionGroup.id, subscriptionGroupIds),
+    ),
     with: {
       segments: true,
     },
   });
 
-  if (!sg?.segments[0]) {
-    logger().error(
-      {
-        workspaceId: sg?.workspaceId,
-        subscriptionGroupId,
-        userIds,
-      },
-      "No segment found for subscription group",
-    );
-    return [];
-  }
-
-  const segmentId = sg.segments[0].id;
-
+  const segmentIds = subscriptionGroups.flatMap((sg) =>
+    sg.segments.map((s) => s.id),
+  );
   // Use the efficient batch version
   const assignmentsByUser = await findAllSegmentAssignmentsByIdsForUsers({
-    workspaceId: sg.workspaceId,
-    segmentIds: [segmentId],
+    workspaceId,
+    segmentIds,
     userIds,
   });
 
-  return userIds.map((userId) => {
-    const assignments = assignmentsByUser[userId] || [];
-    const value = assignments[0]?.inSegment ?? null;
-    return {
-      ...sg,
-      userId,
-      segmentId,
-      value,
-    };
+  return subscriptionGroups.flatMap((sg) => {
+    const segmentId = sg.segments[0]?.id;
+    if (!segmentId) {
+      logger().error(
+        {
+          workspaceId,
+          subscriptionGroupId: sg.id,
+          userIds,
+        },
+        "No segment found for subscription group",
+      );
+      return [];
+    }
+    return userIds.map((userId) => {
+      const assignments = assignmentsByUser[userId] ?? [];
+      const assignment = assignments.find((a) => a.segmentId === segmentId);
+      const value = assignment?.inSegment ?? null;
+      return {
+        ...sg,
+        userId,
+        segmentId,
+        value,
+      };
+    });
   });
 }
 
 export async function getSubscriptionGroupWithAssignment({
   subscriptionGroupId,
+  workspaceId,
   userId,
 }: {
   subscriptionGroupId: string;
+  workspaceId: string;
   userId: string;
 }): Promise<SubscriptionGroupWithAssignment | null> {
-  const results = await getSubscriptionGroupWithAssignments({
-    subscriptionGroupId,
+  const results = await getSubscriptionGroupsWithAssignments({
+    workspaceId,
+    subscriptionGroupIds: [subscriptionGroupId],
     userIds: [userId],
   });
-  return results[0] || null;
+  return results[0] ?? null;
 }
 
 export function getSubscriptionGroupSegmentName(id: string) {

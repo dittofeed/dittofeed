@@ -392,6 +392,7 @@ interface TableUser {
   id: string;
   properties?: Record<string, JSONValue>;
   segments?: Record<string, boolean | null>;
+  subscriptions?: Record<string, boolean>;
 }
 
 enum EventsStepType {
