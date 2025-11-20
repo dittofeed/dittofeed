@@ -136,15 +136,6 @@ function shouldResetComputedProperty({
   now: number;
   periodBound?: number;
 }): boolean {
-  // logger().debug(
-  //   {
-  //     notDefinitionUpdatedAt: !definitionUpdatedAt,
-  //     definitionUpdatedInPeriod: definitionUpdatedAt <= now,
-  //     definitionUpdatedAfterCreated: definitionUpdatedAt > createdAt,
-  //     definitionUpdatedAt >= (periodBound ?? 0)
-  //   },
-  //   "loc2",
-  // );
   if (!definitionUpdatedAt) {
     return false;
   }

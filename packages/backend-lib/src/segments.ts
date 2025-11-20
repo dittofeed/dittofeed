@@ -189,7 +189,10 @@ export async function findAllSegmentAssignments({
   segmentIds?: string[];
 }): Promise<Record<string, boolean | null>> {
   const segments = await db().query.segment.findMany({
-    where: eq(dbSegment.workspaceId, workspaceId),
+    where: and(
+      eq(dbSegment.workspaceId, workspaceId),
+      segmentIds ? inArray(dbSegment.id, segmentIds) : undefined,
+    ),
   });
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
@@ -197,6 +200,7 @@ export async function findAllSegmentAssignments({
   const segmentIdsClause = segmentIds
     ? `AND computed_property_id IN ${qb.addQueryValue(segmentIds, "Array(String)")}`
     : "";
+
   const query = `
     SELECT
       computed_property_id,

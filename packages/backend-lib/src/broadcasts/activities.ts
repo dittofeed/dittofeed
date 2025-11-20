@@ -24,7 +24,7 @@ import { withSpan } from "../openTelemetry";
 import { toSegmentResource } from "../segments";
 import {
   getSubscriptionGroupDetails,
-  getSubscriptionGroupWithAssignments,
+  getSubscriptionGroupsWithAssignments,
 } from "../subscriptionGroups";
 import {
   BackendMessageSendResult,
@@ -254,9 +254,10 @@ export function sendMessagesFactory(sender: Sender) {
         now: params.now,
       });
 
-      const subscriptionGroup = await getSubscriptionGroupWithAssignments({
-        subscriptionGroupId: broadcast.subscriptionGroupId,
+      const subscriptionGroup = await getSubscriptionGroupsWithAssignments({
+        subscriptionGroupIds: [broadcast.subscriptionGroupId],
         userIds: users.map((user) => user.id),
+        workspaceId: params.workspaceId,
       });
 
       const subscriptionGroupDetailsByUserId = subscriptionGroup.reduce(

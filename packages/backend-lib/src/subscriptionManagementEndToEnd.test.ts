@@ -129,6 +129,7 @@ describe("subscriptionManagementEndToEnd", () => {
     it("should remove the user from the subscription group", async () => {
       let subscriptionGroupWithAssignment =
         await getSubscriptionGroupWithAssignment({
+          workspaceId: workspace.id,
           userId,
           subscriptionGroupId: subscriptionGroup.id,
         });
@@ -209,6 +210,7 @@ describe("subscriptionManagementEndToEnd", () => {
       // looking up subscription details again
       subscriptionGroupWithAssignment =
         await getSubscriptionGroupWithAssignment({
+          workspaceId: workspace.id,
           userId,
           subscriptionGroupId: subscriptionGroup.id,
         });

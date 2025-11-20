@@ -199,7 +199,11 @@ async function sendMessageInner({
       findAllUserPropertyAssignments({ userId, workspaceId, context }),
       db().query.journey.findFirst({ where: eq(dbJourney.id, journeyId) }),
       subscriptionGroupId
-        ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
+        ? getSubscriptionGroupWithAssignment({
+            userId,
+            workspaceId,
+            subscriptionGroupId,
+          })
         : null,
     ]);
 

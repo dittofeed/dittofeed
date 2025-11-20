@@ -32,8 +32,14 @@ import { toJourneyResource } from "../journeys";
 import logger from "../logger";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
+  getUserSubscriptions,
+  subscriptionGroupToResource,
+  upsertSubscriptionGroup,
+} from "../subscriptionGroups";
+import {
   AppFileType,
   BlobStorageFile,
+  ChannelType,
   ComputedPropertyStep,
   ComputedPropertyStepEnum,
   CursorDirectionEnum,
@@ -48,6 +54,7 @@ import {
   SavedHasStartedJourneyResource,
   SavedJourneyResource,
   SavedSegmentResource,
+  SavedSubscriptionGroupResource,
   SavedUserPropertyResource,
   SegmentHasBeenOperatorComparator,
   SegmentNodeType,
@@ -392,6 +399,7 @@ interface TableUser {
   id: string;
   properties?: Record<string, JSONValue>;
   segments?: Record<string, boolean | null>;
+  subscriptions?: Record<string, boolean>;
 }
 
 enum EventsStepType {
@@ -505,6 +513,7 @@ interface StepContext {
   now: number;
   workspace: Workspace;
   segments: SavedSegmentResource[];
+  subscriptionGroups: SavedSubscriptionGroupResource[];
   clickhouseCounters: ClickhouseCounters;
 }
 
@@ -581,6 +590,10 @@ interface AssertStep {
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
 type TestSegment = Pick<SegmentResource, "name" | "definition">;
 type TestJourneyResource = Pick<SavedJourneyResource, "name" | "definition">;
+type TestSubscriptionGroup = Pick<
+  SavedSubscriptionGroupResource,
+  "name" | "channel" | "type"
+>;
 
 interface TestJourney {
   name: string;
@@ -592,9 +605,11 @@ interface UpdateComputedPropertyStep {
   updater?: (ctx: StepContext) => {
     userProperties?: TestUserProperty[];
     segments?: TestSegment[];
+    subscriptionGroups?: TestSubscriptionGroup[];
   };
   userProperties?: TestUserProperty[];
   segments?: TestSegment[];
+  subscriptionGroups?: TestSubscriptionGroup[];
 }
 
 interface UpdateJourneyStep {
@@ -621,6 +636,7 @@ interface TableTest {
   skip?: true;
   only?: true;
   userProperties?: TestUserProperty[];
+  subscriptionGroups?: TestSubscriptionGroup[];
   segments?: TestSegment[];
   journeys?: TestJourney[];
   steps: TableStep[];
@@ -735,15 +751,18 @@ async function upsertComputedProperties({
   workspaceId,
   segments,
   userProperties,
+  subscriptionGroups,
   now,
 }: {
   workspaceId: string;
   segments: TestSegment[];
   userProperties: TestUserProperty[];
+  subscriptionGroups: TestSubscriptionGroup[];
   now: number;
 }): Promise<{
   segments: SavedSegmentResource[];
   userProperties: SavedUserPropertyResource[];
+  subscriptionGroups: SavedSubscriptionGroupResource[];
 }> {
   await Promise.all([
     ...userProperties.map((up) =>
@@ -786,17 +805,33 @@ async function upsertComputedProperties({
         },
       }),
     ),
+    ...subscriptionGroups.map((sg) =>
+      upsertSubscriptionGroup({
+        id: randomUUID(),
+        workspaceId,
+        name: sg.name,
+        type: sg.type,
+        channel: sg.channel,
+        createdAt: new Date(now),
+        updatedAt: new Date(now),
+      }),
+    ),
   ]);
-  const [segmentModels, userPropertyModels] = await Promise.all([
-    db()
-      .select()
-      .from(schema.segment)
-      .where(eq(schema.segment.workspaceId, workspaceId)),
-    db()
-      .select()
-      .from(schema.userProperty)
-      .where(eq(schema.userProperty.workspaceId, workspaceId)),
-  ]);
+  const [segmentModels, userPropertyModels, subscriptionGroupModels] =
+    await Promise.all([
+      db()
+        .select()
+        .from(schema.segment)
+        .where(eq(schema.segment.workspaceId, workspaceId)),
+      db()
+        .select()
+        .from(schema.userProperty)
+        .where(eq(schema.userProperty.workspaceId, workspaceId)),
+      db()
+        .select()
+        .from(schema.subscriptionGroup)
+        .where(eq(schema.subscriptionGroup.workspaceId, workspaceId)),
+    ]);
   const segmentResources = segmentModels.map((s) =>
     unwrap(toSegmentResource(s)),
   );
@@ -804,9 +839,13 @@ async function upsertComputedProperties({
   const userPropertyResources = userPropertyModels.map((up) =>
     unwrap(toSavedUserPropertyResource(up)),
   );
+  const subscriptionGroupResources = subscriptionGroupModels.map((sg) =>
+    subscriptionGroupToResource(sg),
+  );
   return {
     segments: segmentResources,
     userProperties: userPropertyResources,
+    subscriptionGroups: subscriptionGroupResources,
   };
 }
 
@@ -6917,18 +6956,11 @@ describe("computeProperties", () => {
     },
     {
       description: "with an opt out subscription group segment",
-      segments: [
+      subscriptionGroups: [
         {
           name: "optOut",
-          definition: {
-            entryNode: {
-              type: SegmentNodeType.SubscriptionGroup,
-              id: "1",
-              subscriptionGroupId: "subscription-group-id",
-              subscriptionGroupType: SubscriptionGroupType.OptOut,
-            },
-            nodes: [],
-          },
+          channel: ChannelType.Email,
+          type: SubscriptionGroupType.OptOut,
         },
       ],
       userProperties: [
@@ -6963,8 +6995,8 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              segments: {
-                optOut: null,
+              subscriptions: {
+                optOut: true,
               },
             },
           ],
@@ -6976,16 +7008,17 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.SubmitEvents,
           events: [
-            {
-              offsetMs: -100,
-              userId: "user-1",
-              type: EventType.Track,
-              event: InternalEventType.SubscriptionChange,
-              properties: {
-                subscriptionId: "subscription-group-id",
-                action: SubscriptionChange.Unsubscribe,
-              },
-            } satisfies TestEvent & SubscriptionChangeEvent,
+            (ctx) =>
+              ({
+                offsetMs: -100,
+                userId: "user-1",
+                type: EventType.Track,
+                event: InternalEventType.SubscriptionChange,
+                properties: {
+                  subscriptionId: ctx.subscriptionGroups[0]?.id ?? "",
+                  action: SubscriptionChange.Unsubscribe,
+                },
+              }) satisfies TestEvent & SubscriptionChangeEvent,
           ],
         },
         {
@@ -6997,8 +7030,8 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              segments: {
-                optOut: null,
+              subscriptions: {
+                optOut: false,
               },
             },
           ],
@@ -7010,16 +7043,17 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.SubmitEvents,
           events: [
-            {
-              offsetMs: -100,
-              userId: "user-1",
-              type: EventType.Track,
-              event: InternalEventType.SubscriptionChange,
-              properties: {
-                subscriptionId: "subscription-group-id",
-                action: SubscriptionChange.Subscribe,
-              },
-            } satisfies TestEvent & SubscriptionChangeEvent,
+            (ctx) =>
+              ({
+                offsetMs: -100,
+                userId: "user-1",
+                type: EventType.Track,
+                event: InternalEventType.SubscriptionChange,
+                properties: {
+                  subscriptionId: ctx.subscriptionGroups[0]?.id ?? "",
+                  action: SubscriptionChange.Subscribe,
+                },
+              }) satisfies TestEvent & SubscriptionChangeEvent,
           ],
         },
         {
@@ -7031,7 +7065,7 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              segments: {
+              subscriptions: {
                 optOut: true,
               },
             },
@@ -8368,24 +8402,11 @@ describe("computeProperties", () => {
           name: "anonymousId",
         },
       ],
-      segments: [
+      subscriptionGroups: [
         {
           name: "optIn",
-          definition: {
-            entryNode: {
-              type: SegmentNodeType.SubscriptionGroup,
-              id: "1",
-              subscriptionGroupId: "subscription-group-id",
-              subscriptionGroupType: SubscriptionGroupType.OptIn,
-            },
-            nodes: [],
-          },
-        },
-      ],
-      journeys: [
-        {
-          name: "optInAnonymous",
-          entrySegmentName: "optIn",
+          type: SubscriptionGroupType.OptIn,
+          channel: ChannelType.Email,
         },
       ],
       steps: [
@@ -8411,8 +8432,8 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              segments: {
-                optIn: null,
+              subscriptions: {
+                optIn: false,
               },
             },
           ],
@@ -8424,16 +8445,17 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.SubmitEvents,
           events: [
-            {
-              offsetMs: -100,
-              anonymousId: "user-1",
-              type: EventType.Track,
-              event: InternalEventType.SubscriptionChange,
-              properties: {
-                subscriptionId: "subscription-group-id",
-                action: SubscriptionChange.Subscribe,
-              },
-            } satisfies TestEvent & SubscriptionChangeEvent,
+            (ctx) =>
+              ({
+                offsetMs: -100,
+                anonymousId: "user-1",
+                type: EventType.Track,
+                event: InternalEventType.SubscriptionChange,
+                properties: {
+                  subscriptionId: ctx.subscriptionGroups[0]?.id ?? "",
+                  action: SubscriptionChange.Subscribe,
+                },
+              }) satisfies TestEvent & SubscriptionChangeEvent,
           ],
         },
         {
@@ -8445,15 +8467,9 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              segments: {
+              subscriptions: {
                 optIn: true,
               },
-            },
-          ],
-          journeys: [
-            {
-              journeyName: "optInAnonymous",
-              times: 1,
             },
           ],
         },
@@ -8645,12 +8661,14 @@ describe("computeProperties", () => {
 
     const workspaceId = workspace.id;
 
-    let { userProperties, segments } = await upsertComputedProperties({
-      workspaceId,
-      userProperties: test.userProperties ?? [],
-      segments: test.segments ?? [],
-      now,
-    });
+    let { userProperties, segments, subscriptionGroups } =
+      await upsertComputedProperties({
+        workspaceId,
+        userProperties: test.userProperties ?? [],
+        segments: test.segments ?? [],
+        subscriptionGroups: test.subscriptionGroups ?? [],
+        now,
+      });
 
     let journeys: SavedHasStartedJourneyResource[] = await Promise.all(
       test.journeys?.map(async ({ name, entrySegmentName }) => {
@@ -8697,6 +8715,7 @@ describe("computeProperties", () => {
         segments,
         now,
         clickhouseCounters,
+        subscriptionGroups,
       };
       switch (step.type) {
         case EventsStepType.SubmitEvents: {
@@ -8873,6 +8892,11 @@ describe("computeProperties", () => {
                   ? findAllSegmentAssignments({
                       userId: user.id,
                       workspaceId,
+                      segmentIds: segments
+                        .filter((s) =>
+                          test.segments?.some((t) => t.name === s.name),
+                        )
+                        .map((s) => s.id),
                     }).then((s) => {
                       expect(
                         s,
@@ -8880,6 +8904,29 @@ describe("computeProperties", () => {
                           step.description ? `${step.description}: ` : ""
                         }segments for: ${user.id}`,
                       ).toEqual(user.segments);
+                    })
+                  : null,
+                user.subscriptions
+                  ? getUserSubscriptions({
+                      userId: user.id,
+                      workspaceId,
+                    }).then((s) => {
+                      for (const [sgName, sgValue] of Object.entries(
+                        user.subscriptions ?? [],
+                      )) {
+                        const actualSubscription = s.find(
+                          (sg) => sg.name === sgName,
+                        );
+                        if (!actualSubscription) {
+                          throw new Error(
+                            `subscription ${sgName} not found for user ${user.id}`,
+                          );
+                        }
+                        expect(
+                          actualSubscription.isSubscribed,
+                          `${step.description ? `${step.description}: ` : ""}subscription ${sgName} for: ${user.id}`,
+                        ).toEqual(sgValue);
+                      }
                     })
                   : null,
               ]);
@@ -9124,29 +9171,35 @@ describe("computeProperties", () => {
           break;
         }
         case EventsStepType.UpdateComputedProperty: {
-          let segmentsAndUserProperties: Required<
-            Pick<UpdateComputedPropertyStep, "userProperties" | "segments">
+          let toUpdate: Required<
+            Pick<
+              UpdateComputedPropertyStep,
+              "userProperties" | "segments" | "subscriptionGroups"
+            >
           >;
           if (step.updater) {
             const updaterResult = step.updater(stepContext);
-            segmentsAndUserProperties = {
+            toUpdate = {
               userProperties: updaterResult.userProperties ?? [],
               segments: updaterResult.segments ?? [],
+              subscriptionGroups: updaterResult.subscriptionGroups ?? [],
             };
           } else {
-            segmentsAndUserProperties = {
+            toUpdate = {
               userProperties: step.userProperties ?? [],
               segments: step.segments ?? [],
+              subscriptionGroups: step.subscriptionGroups ?? [],
             };
           }
 
           const computedProperties = await upsertComputedProperties({
             workspaceId,
             now,
-            ...segmentsAndUserProperties,
+            ...toUpdate,
           });
           segments = computedProperties.segments;
           userProperties = computedProperties.userProperties;
+          subscriptionGroups = computedProperties.subscriptionGroups;
           break;
         }
         case EventsStepType.UpdateJourney: {

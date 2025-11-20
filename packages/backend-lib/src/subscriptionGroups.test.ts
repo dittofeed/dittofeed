@@ -8,9 +8,12 @@ import { db } from "./db";
 import * as schema from "./db/schema";
 import {
   generateSubscriptionChangeUrl,
+  getUserSubscriptions,
   inSubscriptionGroup,
+  upsertSubscriptionGroup,
 } from "./subscriptionGroups";
 import {
+  ChannelType,
   SubscriptionChange,
   SubscriptionGroup,
   SubscriptionGroupType,
@@ -106,6 +109,77 @@ describe("subscriptionGroups", () => {
       expect(parsed.searchParams.get("i")).toEqual(email);
       expect(parsed.searchParams.get("ik")).toEqual("email");
       expect(parsed.searchParams.get("sub")).toEqual("0");
+    });
+  });
+  describe("getUserSubscriptions", () => {
+    let workspaceId: string;
+    let userId: string;
+
+    beforeEach(async () => {
+      userId = DEBUG_USER_ID1;
+      const workspaceName = randomUUID();
+
+      const bootstrapResult = unwrap(
+        await bootstrapPostgres({
+          workspaceName,
+          workspaceType: WorkspaceTypeAppEnum.Root,
+        }),
+      );
+      workspaceId = bootstrapResult.id;
+    });
+
+    it("should return isSubscribed true for opt-out subscription groups when user has not opted out", async () => {
+      // Create an opt-out subscription group
+      const optOutGroup = unwrap(
+        await upsertSubscriptionGroup({
+          workspaceId,
+          name: "Marketing Emails",
+          type: SubscriptionGroupType.OptOut,
+          channel: ChannelType.Email,
+        }),
+      );
+
+      // Get user subscriptions without the user having any segment assignments
+      const subscriptions = await getUserSubscriptions({
+        workspaceId,
+        userId,
+      });
+
+      // Find the opt-out subscription group
+      const optOutSubscription = subscriptions.find(
+        (s) => s.id === optOutGroup.id,
+      );
+
+      // User should be subscribed to opt-out group by default (no explicit unsubscribe)
+      expect(optOutSubscription).toBeDefined();
+      expect(optOutSubscription?.isSubscribed).toBe(true);
+    });
+
+    it("should return isSubscribed false for opt-in subscription groups when user has not opted in", async () => {
+      // Create an opt-in subscription group
+      const optInGroup = unwrap(
+        await upsertSubscriptionGroup({
+          workspaceId,
+          name: "Newsletter",
+          type: SubscriptionGroupType.OptIn,
+          channel: ChannelType.Email,
+        }),
+      );
+
+      // Get user subscriptions without the user having any segment assignments
+      const subscriptions = await getUserSubscriptions({
+        workspaceId,
+        userId,
+      });
+
+      // Find the opt-in subscription group
+      const optInSubscription = subscriptions.find(
+        (s) => s.id === optInGroup.id,
+      );
+
+      // User should NOT be subscribed to opt-in group by default (no explicit subscribe)
+      expect(optInSubscription).toBeDefined();
+      expect(optInSubscription?.isSubscribed).toBe(false);
     });
   });
 });

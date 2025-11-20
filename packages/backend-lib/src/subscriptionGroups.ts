@@ -28,7 +28,6 @@ import {
 } from "./db/schema";
 import logger from "./logger";
 import {
-  findAllSegmentAssignments,
   findAllSegmentAssignmentsByIdsForUsers,
   insertSegmentAssignments,
   SegmentBulkUpsertItem,
@@ -103,73 +102,96 @@ export function getSubscriptionGroupDetails(
   };
 }
 
-export async function getSubscriptionGroupWithAssignments({
-  subscriptionGroupId,
+export async function getSubscriptionGroupsWithAssignments({
+  workspaceId,
+  subscriptionGroupIds: subscriptionGroupIdsUnsafe,
   userIds,
 }: {
-  subscriptionGroupId: string;
+  workspaceId: string;
+  subscriptionGroupIds?: string[];
   userIds: string[];
 }): Promise<SubscriptionGroupWithAssignment[]> {
-  if (!validateUuid(subscriptionGroupId)) {
-    return [];
-  }
+  const subscriptionGroupIds = subscriptionGroupIdsUnsafe?.filter((id) =>
+    validateUuid(id),
+  );
 
   if (userIds.length === 0) {
     return [];
   }
-
-  const sg = await db().query.subscriptionGroup.findFirst({
-    where: eq(dbSubscriptionGroup.id, subscriptionGroupId),
+  const subscriptionGroups = await db().query.subscriptionGroup.findMany({
+    where: and(
+      eq(dbSubscriptionGroup.workspaceId, workspaceId),
+      subscriptionGroupIds
+        ? inArray(dbSubscriptionGroup.id, subscriptionGroupIds)
+        : undefined,
+    ),
     with: {
       segments: true,
     },
   });
 
-  if (!sg?.segments[0]) {
-    logger().error(
-      {
-        workspaceId: sg?.workspaceId,
-        subscriptionGroupId,
-        userIds,
-      },
-      "No segment found for subscription group",
-    );
-    return [];
-  }
-
-  const segmentId = sg.segments[0].id;
-
+  const segmentIds = subscriptionGroups.flatMap((sg) =>
+    sg.segments.map((s) => s.id),
+  );
   // Use the efficient batch version
   const assignmentsByUser = await findAllSegmentAssignmentsByIdsForUsers({
-    workspaceId: sg.workspaceId,
-    segmentIds: [segmentId],
+    workspaceId,
+    segmentIds,
     userIds,
   });
 
-  return userIds.map((userId) => {
-    const assignments = assignmentsByUser[userId] || [];
-    const value = assignments[0]?.inSegment ?? null;
-    return {
-      ...sg,
-      userId,
-      segmentId,
-      value,
-    };
+  return subscriptionGroups.flatMap((sg) => {
+    const segmentId = sg.segments[0]?.id;
+    if (!segmentId) {
+      logger().error(
+        {
+          workspaceId,
+          subscriptionGroupId: sg.id,
+          userIds,
+        },
+        "No segment found for subscription group",
+      );
+      return [];
+    }
+    return userIds.map((userId) => {
+      const assignments = assignmentsByUser[userId] ?? [];
+      const assignment = assignments.find((a) => a.segmentId === segmentId);
+      const value = assignment?.inSegment ?? null;
+      logger().warn(
+        {
+          subscriptionGroup: sg,
+          value,
+          assignment,
+          userId,
+          segmentId,
+        },
+        "getSubscriptionGroupsWithAssignments loc1",
+      );
+      return {
+        ...sg,
+        userId,
+        segmentId,
+        value,
+      };
+    });
   });
 }
 
 export async function getSubscriptionGroupWithAssignment({
   subscriptionGroupId,
+  workspaceId,
   userId,
 }: {
   subscriptionGroupId: string;
+  workspaceId: string;
   userId: string;
 }): Promise<SubscriptionGroupWithAssignment | null> {
-  const results = await getSubscriptionGroupWithAssignments({
-    subscriptionGroupId,
+  const results = await getSubscriptionGroupsWithAssignments({
+    workspaceId,
+    subscriptionGroupIds: [subscriptionGroupId],
     userIds: [userId],
   });
-  return results[0] || null;
+  return results[0] ?? null;
 }
 
 export function getSubscriptionGroupSegmentName(id: string) {
@@ -204,9 +226,13 @@ export async function upsertSubscriptionGroup({
   type,
   workspaceId,
   channel,
-}: UpsertSubscriptionGroupResource): Promise<
-  Result<SubscriptionGroup, SubscriptionGroupUpsertValidationError>
-> {
+  createdAt,
+  updatedAt,
+}: UpsertSubscriptionGroupResource & {
+  // dates are used for deterministic testing
+  createdAt?: Date;
+  updatedAt?: Date;
+}): Promise<Result<SubscriptionGroup, SubscriptionGroupUpsertValidationError>> {
   if (id && !validateUuid(id)) {
     return err({
       type: SubscriptionGroupUpsertValidationErrorType.IdError,
@@ -249,6 +275,8 @@ export async function upsertSubscriptionGroup({
             name,
             type,
             channel,
+            createdAt,
+            updatedAt,
           })
           .returning(),
       );
@@ -275,6 +303,8 @@ export async function upsertSubscriptionGroup({
             name,
             type,
             channel,
+            createdAt,
+            updatedAt,
           })
           .where(and(...conditions))
           .returning(),
@@ -315,11 +345,15 @@ export async function upsertSubscriptionGroup({
         definition: segmentDefinition,
         subscriptionGroupId: subscriptionGroup.id,
         resourceType: "Internal",
+        createdAt,
+        updatedAt,
       },
       target: [dbSegment.workspaceId, dbSegment.name],
       set: {
         name: segmentName,
         definition: segmentDefinition,
+        createdAt,
+        updatedAt,
       },
       tx,
     }).then(unwrap);
@@ -501,45 +535,29 @@ export async function getUserSubscriptions({
   workspaceId,
   userId,
 }: GetUserSubscriptionsRequest): Promise<UserSubscriptionResource[]> {
-  const subscriptionGroups = await db().query.subscriptionGroup.findMany({
-    where: eq(dbSubscriptionGroup.workspaceId, workspaceId),
-    orderBy: (sg, { asc }) => [asc(sg.name)],
-    with: {
-      segments: true,
-    },
-  });
-  const segmentIds = subscriptionGroups.flatMap((sg) =>
-    sg.segments.map((s) => s.id),
-  );
-  const assignments = await findAllSegmentAssignments({
+  const groupWithAssignments = await getSubscriptionGroupsWithAssignments({
     workspaceId,
-    userId,
-    segmentIds,
+    userIds: [userId],
   });
-  const subscriptions: UserSubscriptionResource[] = [];
+  return groupWithAssignments.map((sg) => {
+    const details = getSubscriptionGroupDetails(sg);
+    const isSubscribed = inSubscriptionGroup(details);
 
-  for (const subscriptionGroup of subscriptionGroups) {
-    const segment = subscriptionGroup.segments[0];
-    if (!segment) {
-      logger().error(
-        { subscriptionGroup },
-        "No segment found for subscription group",
-      );
-      continue;
-    }
-    const inSegment = assignments[segment.id] === true;
-
-    const { id, name, channel } = subscriptionGroup;
-
-    subscriptions.push({
-      id,
-      name,
-      isSubscribed: inSegment,
-      channel,
-    });
-  }
-
-  return subscriptions;
+    logger().warn(
+      {
+        isSubscribed,
+        subscriptionGroup: sg,
+        details,
+      },
+      "getUserSubscriptions loc2",
+    );
+    return {
+      name: sg.name,
+      id: sg.id,
+      channel: sg.channel,
+      isSubscribed,
+    };
+  });
 }
 
 /**
