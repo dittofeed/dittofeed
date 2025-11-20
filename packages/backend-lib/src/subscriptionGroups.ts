@@ -519,12 +519,16 @@ export async function getUserSubscriptions({
     workspaceId,
     userIds: [userId],
   });
-  return groupWithAssignments.map((sg) => ({
-    name: sg.name,
-    id: sg.id,
-    channel: sg.channel,
-    isSubscribed: sg.value ?? false,
-  }));
+  return groupWithAssignments.map((sg) => {
+    const details = getSubscriptionGroupDetails(sg);
+    const isSubscribed = inSubscriptionGroup(details);
+    return {
+      name: sg.name,
+      id: sg.id,
+      channel: sg.channel,
+      isSubscribed,
+    };
+  });
 }
 
 /**
