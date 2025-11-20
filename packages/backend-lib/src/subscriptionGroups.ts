@@ -109,10 +109,10 @@ export async function getSubscriptionGroupsWithAssignments({
   userIds,
 }: {
   workspaceId: string;
-  subscriptionGroupIds: string[];
+  subscriptionGroupIds?: string[];
   userIds: string[];
 }): Promise<SubscriptionGroupWithAssignment[]> {
-  const subscriptionGroupIds = subscriptionGroupIdsUnsafe.filter((id) =>
+  const subscriptionGroupIds = subscriptionGroupIdsUnsafe?.filter((id) =>
     validateUuid(id),
   );
 
@@ -123,7 +123,9 @@ export async function getSubscriptionGroupsWithAssignments({
   const subscriptionGroups = await db().query.subscriptionGroup.findMany({
     where: and(
       eq(dbSubscriptionGroup.workspaceId, workspaceId),
-      inArray(dbSubscriptionGroup.id, subscriptionGroupIds),
+      subscriptionGroupIds
+        ? inArray(dbSubscriptionGroup.id, subscriptionGroupIds)
+        : undefined,
     ),
     with: {
       segments: true,
@@ -513,58 +515,16 @@ export async function getUserSubscriptions({
   workspaceId,
   userId,
 }: GetUserSubscriptionsRequest): Promise<UserSubscriptionResource[]> {
-  const subscriptionGroups = await db().query.subscriptionGroup.findMany({
-    where: eq(dbSubscriptionGroup.workspaceId, workspaceId),
-    orderBy: (sg, { asc }) => [asc(sg.name)],
-    with: {
-      segments: true,
-    },
-  });
-  const segmentIds = subscriptionGroups.flatMap((sg) =>
-    sg.segments.map((s) => s.id),
-  );
-  const assignments = await findAllSegmentAssignments({
+  const groupWithAssignments = await getSubscriptionGroupsWithAssignments({
     workspaceId,
-    userId,
-    segmentIds,
+    userIds: [userId],
   });
-  const subscriptions: UserSubscriptionResource[] = [];
-
-  for (const subscriptionGroup of subscriptionGroups) {
-    const segment = subscriptionGroup.segments[0];
-    if (!segment) {
-      logger().error(
-        { subscriptionGroup },
-        "No segment found for subscription group",
-      );
-      continue;
-    }
-    const inSegment = assignments[segment.id] === true;
-
-    const { id, name, channel, type } = subscriptionGroup;
-
-    // For opt-out subscription groups, users are subscribed by default unless they've explicitly unsubscribed
-    // For opt-in subscription groups, users are NOT subscribed unless they've explicitly opted in
-    const isSubscribed =
-      type === SubscriptionGroupType.OptOut
-        ? assignments[segment.id] !== false
-        : inSegment;
-
-    // FIXME
-    // const isSubscribed =
-    //   type === SubscriptionGroupType.OptIn && inSegment === null
-    //     ? false
-    //     : inSegment === true;
-
-    subscriptions.push({
-      id,
-      name,
-      isSubscribed,
-      channel,
-    });
-  }
-
-  return subscriptions;
+  return groupWithAssignments.map((sg) => ({
+    name: sg.name,
+    id: sg.id,
+    channel: sg.channel,
+    isSubscribed: sg.value ?? false,
+  }));
 }
 
 /**
