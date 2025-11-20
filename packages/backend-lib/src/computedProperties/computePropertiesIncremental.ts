@@ -3129,38 +3129,59 @@ export async function computeState({
   });
 }
 
+interface AssignmentQuery {
+  query: string;
+  computedPropertyId: string;
+  computedPropertyType: "segment" | "user_property";
+}
+
 interface AssignmentQueryGroup {
-  queries: (string | string[])[];
+  queries: (AssignmentQuery | AssignmentQuery[])[];
   qb: ClickHouseQueryBuilder;
 }
 
-async function execAssignmentQueryGroup(
-  group: AssignmentQueryGroup,
-  clickhouseClient: ReturnType<typeof createClickhouseClient>,
-) {
+async function execAssignmentQueryGroup({
+  workspaceId,
+  group,
+  clickhouseClient,
+}: {
+  workspaceId: string;
+  group: AssignmentQueryGroup;
+  clickhouseClient: ReturnType<typeof createClickhouseClient>;
+}) {
   const { queries, qb } = group;
-  for (const query of queries) {
-    if (Array.isArray(query)) {
+  for (const assignmentQuery of queries) {
+    if (Array.isArray(assignmentQuery)) {
       await Promise.all(
-        query.map((q) =>
-          command(
-            {
-              query: q,
-              query_params: qb.getQueries(),
-              clickhouse_settings: {
-                wait_end_of_query: 1,
-                max_execution_time:
-                  config().clickhouseComputePropertiesMaxExecutionTime,
-              },
-            },
-            { clickhouseClient },
-          ),
+        assignmentQuery.map(
+          ({ query, computedPropertyId, computedPropertyType }) =>
+            withSpan({ name: "exec-assignment-query" }, async (span) => {
+              span.setAttribute("workspaceId", workspaceId);
+              span.setAttribute("computedPropertyId", computedPropertyId);
+              span.setAttribute("computedPropertyType", computedPropertyType);
+              return command(
+                {
+                  query,
+                  query_params: qb.getQueries(),
+                  clickhouse_settings: {
+                    wait_end_of_query: 1,
+                    max_execution_time:
+                      config().clickhouseComputePropertiesMaxExecutionTime,
+                  },
+                },
+                { clickhouseClient },
+              );
+            }),
         ),
       );
     } else {
-      await command(
+      return withSpan({ name: "exec-assignment-query" }, async (span) => {
+        span.setAttribute("workspaceId", workspaceId);
+        span.setAttribute("computedPropertyId", assignmentQuery.computedPropertyId);
+        span.setAttribute("computedPropertyType", assignmentQuery.computedPropertyType);
+        return command(
         {
-          query,
+          query: assignmentQuery.query,
           query_params: qb.getQueries(),
           clickhouse_settings: {
             wait_end_of_query: 1,
@@ -3170,7 +3191,7 @@ async function execAssignmentQueryGroup(
         },
         { clickhouseClient },
       );
-    }
+    });
   }
 }
 
