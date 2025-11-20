@@ -23,7 +23,8 @@ RUN mkdir -p packages/dashboard/public/public && \
 RUN yarn workspace emailo build && \
     yarn workspace isomorphic-lib build && \
     yarn workspace backend-lib build && \
-    yarn workspace dashboard build
+    yarn workspace dashboard build && \
+    rm -rf packages/dashboard/.next/cache
 
 # Production image, copy all the files and run next
 FROM node:20.19.5-bullseye-slim AS runner
