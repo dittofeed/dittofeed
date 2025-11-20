@@ -3358,8 +3358,8 @@ export async function computeAssignments({
           }
         }
 
-        const queries: (string | string[])[] = [
-          resolvedQueries,
+        const queries: (string | string)[] = [
+          ...resolvedQueries,
           ...assignmentQueries,
         ];
 
@@ -3406,7 +3406,11 @@ export async function computeAssignments({
         }
 
         segmentQueries.push({
-          queries,
+          queries: queries.map((query) => ({
+            query,
+            computedPropertyId: segment.id,
+            computedPropertyType: "segment" as const,
+          })),
           qb,
         });
       });
@@ -3492,7 +3496,11 @@ export async function computeAssignments({
           return;
         }
         userPropertyQueries.push({
-          queries,
+          queries: queries.map((query) => ({
+            query,
+            computedPropertyId: userProperty.id,
+            computedPropertyType: "user_property" as const,
+          })),
           qb,
         });
       });
@@ -3500,7 +3508,11 @@ export async function computeAssignments({
 
     await Promise.all(
       [...segmentQueries, ...userPropertyQueries].map((group) =>
-        execAssignmentQueryGroup(group, clickhouseClient),
+        execAssignmentQueryGroup({
+          workspaceId,
+          group,
+          clickhouseClient,
+        }),
       ),
     );
 
