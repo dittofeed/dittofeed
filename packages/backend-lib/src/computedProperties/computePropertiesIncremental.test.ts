@@ -8394,7 +8394,6 @@ describe("computeProperties", () => {
     },
     {
       description: "anonymous users can and opt in subscription group",
-      only: true,
       userProperties: [
         {
           definition: {
@@ -8403,24 +8402,11 @@ describe("computeProperties", () => {
           name: "anonymousId",
         },
       ],
-      segments: [
+      subscriptionGroups: [
         {
           name: "optIn",
-          definition: {
-            entryNode: {
-              type: SegmentNodeType.SubscriptionGroup,
-              id: "1",
-              subscriptionGroupId: "subscription-group-id",
-              subscriptionGroupType: SubscriptionGroupType.OptIn,
-            },
-            nodes: [],
-          },
-        },
-      ],
-      journeys: [
-        {
-          name: "optInAnonymous",
-          entrySegmentName: "optIn",
+          type: SubscriptionGroupType.OptIn,
+          channel: ChannelType.Email,
         },
       ],
       steps: [
@@ -8446,8 +8432,8 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              segments: {
-                optIn: null,
+              subscriptions: {
+                optIn: false,
               },
             },
           ],
@@ -8459,16 +8445,17 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.SubmitEvents,
           events: [
-            {
-              offsetMs: -100,
-              anonymousId: "user-1",
-              type: EventType.Track,
-              event: InternalEventType.SubscriptionChange,
-              properties: {
-                subscriptionId: "subscription-group-id",
-                action: SubscriptionChange.Subscribe,
-              },
-            } satisfies TestEvent & SubscriptionChangeEvent,
+            (ctx) =>
+              ({
+                offsetMs: -100,
+                anonymousId: "user-1",
+                type: EventType.Track,
+                event: InternalEventType.SubscriptionChange,
+                properties: {
+                  subscriptionId: ctx.subscriptionGroups[0]?.id ?? "",
+                  action: SubscriptionChange.Subscribe,
+                },
+              }) satisfies TestEvent & SubscriptionChangeEvent,
           ],
         },
         {
@@ -8480,15 +8467,9 @@ describe("computeProperties", () => {
           users: [
             {
               id: "user-1",
-              segments: {
+              subscriptions: {
                 optIn: true,
               },
-            },
-          ],
-          journeys: [
-            {
-              journeyName: "optInAnonymous",
-              times: 1,
             },
           ],
         },
