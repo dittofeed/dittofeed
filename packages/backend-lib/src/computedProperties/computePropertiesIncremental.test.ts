@@ -6956,7 +6956,6 @@ describe("computeProperties", () => {
     },
     {
       description: "with an opt out subscription group segment",
-      only: true,
       segments: [
         {
           name: "optOut",
@@ -7026,16 +7025,17 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.SubmitEvents,
           events: [
-            {
-              offsetMs: -100,
-              userId: "user-1",
-              type: EventType.Track,
-              event: InternalEventType.SubscriptionChange,
-              properties: {
-                subscriptionId: "subscription-group-id",
-                action: SubscriptionChange.Unsubscribe,
-              },
-            } satisfies TestEvent & SubscriptionChangeEvent,
+            (ctx) =>
+              ({
+                offsetMs: -100,
+                userId: "user-1",
+                type: EventType.Track,
+                event: InternalEventType.SubscriptionChange,
+                properties: {
+                  subscriptionId: ctx.subscriptionGroups[0]?.id ?? "",
+                  action: SubscriptionChange.Unsubscribe,
+                },
+              }) satisfies TestEvent & SubscriptionChangeEvent,
           ],
         },
         {
@@ -7063,16 +7063,17 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.SubmitEvents,
           events: [
-            {
-              offsetMs: -100,
-              userId: "user-1",
-              type: EventType.Track,
-              event: InternalEventType.SubscriptionChange,
-              properties: {
-                subscriptionId: "subscription-group-id",
-                action: SubscriptionChange.Subscribe,
-              },
-            } satisfies TestEvent & SubscriptionChangeEvent,
+            (ctx) =>
+              ({
+                offsetMs: -100,
+                userId: "user-1",
+                type: EventType.Track,
+                event: InternalEventType.SubscriptionChange,
+                properties: {
+                  subscriptionId: ctx.subscriptionGroups[0]?.id ?? "",
+                  action: SubscriptionChange.Subscribe,
+                },
+              }) satisfies TestEvent & SubscriptionChangeEvent,
           ],
         },
         {
@@ -7085,7 +7086,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                optOut: true,
+                optOut: null,
               },
               subscriptions: {
                 optOut: true,
