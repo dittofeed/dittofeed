@@ -349,7 +349,7 @@ function getSegmentNodeVersion(
   segment: SavedSegmentResource,
   nodeId: string,
 ): number | null {
-  const definition = segment.definition;
+  const { definition } = segment;
   if (!definition) {
     return null;
   }
@@ -3129,47 +3129,75 @@ export async function computeState({
   });
 }
 
+interface AssignmentQuery {
+  query: string;
+  computedPropertyId: string;
+  computedPropertyType: "segment" | "user_property";
+}
+
 interface AssignmentQueryGroup {
-  queries: (string | string[])[];
+  queries: (AssignmentQuery | AssignmentQuery[])[];
   qb: ClickHouseQueryBuilder;
 }
 
-async function execAssignmentQueryGroup(
-  group: AssignmentQueryGroup,
-  clickhouseClient: ReturnType<typeof createClickhouseClient>,
-) {
+async function execAssignmentQueryGroup({
+  workspaceId,
+  group,
+  clickhouseClient,
+}: {
+  workspaceId: string;
+  group: AssignmentQueryGroup;
+  clickhouseClient: ReturnType<typeof createClickhouseClient>;
+}) {
   const { queries, qb } = group;
-  for (const query of queries) {
-    if (Array.isArray(query)) {
+  for (const assignmentQuery of queries) {
+    if (Array.isArray(assignmentQuery)) {
       await Promise.all(
-        query.map((q) =>
-          command(
-            {
-              query: q,
-              query_params: qb.getQueries(),
-              clickhouse_settings: {
-                wait_end_of_query: 1,
-                max_execution_time:
-                  config().clickhouseComputePropertiesMaxExecutionTime,
-              },
-            },
-            { clickhouseClient },
-          ),
+        assignmentQuery.map(
+          ({ query, computedPropertyId, computedPropertyType }) =>
+            withSpan({ name: "exec-assignment-query" }, async (span) => {
+              span.setAttribute("workspaceId", workspaceId);
+              span.setAttribute("computedPropertyId", computedPropertyId);
+              span.setAttribute("computedPropertyType", computedPropertyType);
+              return command(
+                {
+                  query,
+                  query_params: qb.getQueries(),
+                  clickhouse_settings: {
+                    wait_end_of_query: 1,
+                    max_execution_time:
+                      config().clickhouseComputePropertiesMaxExecutionTime,
+                  },
+                },
+                { clickhouseClient },
+              );
+            }),
         ),
       );
     } else {
-      await command(
-        {
-          query,
-          query_params: qb.getQueries(),
-          clickhouse_settings: {
-            wait_end_of_query: 1,
-            max_execution_time:
-              config().clickhouseComputePropertiesMaxExecutionTime,
+      await withSpan({ name: "exec-assignment-query" }, async (span) => {
+        span.setAttribute("workspaceId", workspaceId);
+        span.setAttribute(
+          "computedPropertyId",
+          assignmentQuery.computedPropertyId,
+        );
+        span.setAttribute(
+          "computedPropertyType",
+          assignmentQuery.computedPropertyType,
+        );
+        return command(
+          {
+            query: assignmentQuery.query,
+            query_params: qb.getQueries(),
+            clickhouse_settings: {
+              wait_end_of_query: 1,
+              max_execution_time:
+                config().clickhouseComputePropertiesMaxExecutionTime,
+            },
           },
-        },
-        { clickhouseClient },
-      );
+          { clickhouseClient },
+        );
+      });
     }
   }
 }
@@ -3337,8 +3365,8 @@ export async function computeAssignments({
           }
         }
 
-        const queries: (string | string[])[] = [
-          resolvedQueries,
+        const queries: (string | string)[] = [
+          ...resolvedQueries,
           ...assignmentQueries,
         ];
 
@@ -3385,7 +3413,11 @@ export async function computeAssignments({
         }
 
         segmentQueries.push({
-          queries,
+          queries: queries.map((query) => ({
+            query,
+            computedPropertyId: segment.id,
+            computedPropertyType: "segment" as const,
+          })),
           qb,
         });
       });
@@ -3471,7 +3503,11 @@ export async function computeAssignments({
           return;
         }
         userPropertyQueries.push({
-          queries,
+          queries: queries.map((query) => ({
+            query,
+            computedPropertyId: userProperty.id,
+            computedPropertyType: "user_property" as const,
+          })),
           qb,
         });
       });
@@ -3479,7 +3515,11 @@ export async function computeAssignments({
 
     await Promise.all(
       [...segmentQueries, ...userPropertyQueries].map((group) =>
-        execAssignmentQueryGroup(group, clickhouseClient),
+        execAssignmentQueryGroup({
+          workspaceId,
+          group,
+          clickhouseClient,
+        }),
       ),
     );
 
