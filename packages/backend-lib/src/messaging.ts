@@ -72,7 +72,7 @@ import {
 import { withSpan } from "./openTelemetry";
 import {
   getSubscriptionGroupDetails,
-  getSubscriptionGroupWithAssignments,
+  getSubscriptionGroupsWithAssignments,
   inSubscriptionGroup,
   SubscriptionGroupDetails,
 } from "./subscriptionGroups";
@@ -2475,8 +2475,9 @@ export async function batchMessageUsers(
   // Get subscription group details and user property assignments for all users in parallel
   const [subscriptionGroupData, usersResult] = await Promise.all([
     subscriptionGroupId
-      ? getSubscriptionGroupWithAssignments({
-          subscriptionGroupId,
+      ? getSubscriptionGroupsWithAssignments({
+          workspaceId,
+          subscriptionGroupIds: [subscriptionGroupId],
           userIds,
         })
       : Promise.resolve([]),
