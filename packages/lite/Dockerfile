@@ -37,7 +37,8 @@ RUN yarn workspace emailo build && \
     yarn workspace api build && \
     yarn workspace worker build && \
     yarn workspace admin-cli build && \
-    yarn workspace dashboard build
+    yarn workspace dashboard build && \
+    rm -rf packages/dashboard/.next/cache
 
 COPY ./packages/lite/ ./packages/lite
 RUN yarn workspace lite build
