@@ -2573,6 +2573,55 @@ export type DeleteUserPropertyRequest = Static<
   typeof DeleteUserPropertyRequest
 >;
 
+// User Property Index types
+export const UserPropertyIndexType = Type.Union([
+  Type.Literal("String"),
+  Type.Literal("Number"),
+  Type.Literal("Date"),
+]);
+
+export type UserPropertyIndexType = Static<typeof UserPropertyIndexType>;
+
+export const UserPropertyIndexResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  userPropertyId: Type.String(),
+  type: UserPropertyIndexType,
+  createdAt: Type.Number(),
+  updatedAt: Type.Number(),
+});
+
+export type UserPropertyIndexResource = Static<
+  typeof UserPropertyIndexResource
+>;
+
+export const GetUserPropertyIndicesRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetUserPropertyIndicesRequest = Static<
+  typeof GetUserPropertyIndicesRequest
+>;
+
+export const UpsertUserPropertyIndexRequest = Type.Object({
+  workspaceId: Type.String(),
+  userPropertyId: Type.String(),
+  type: UserPropertyIndexType,
+});
+
+export type UpsertUserPropertyIndexRequest = Static<
+  typeof UpsertUserPropertyIndexRequest
+>;
+
+export const DeleteUserPropertyIndexRequest = Type.Object({
+  workspaceId: Type.String(),
+  userPropertyId: Type.String(),
+});
+
+export type DeleteUserPropertyIndexRequest = Static<
+  typeof DeleteUserPropertyIndexRequest
+>;
+
 export const UpdateUserPropertyStatusRequest = Type.Object({
   workspaceId: Type.String(),
   id: Type.String(),

@@ -80,10 +80,10 @@ export const userPropertyIndex = pgTable(
 
 **File:** `packages/backend-lib/src/userEvents/clickhouse.ts`
 
-Add queries to create index tables and Materialized Views that populate them.
+Add queries to create index tables and Materialized Views that populate them. The tables are partitioned by workspace and year.
 
 ```typescript
-/// 1. Config Table (Allow List)
+// 1. Config Table (Allow List)
 export const CREATE_USER_PROPERTY_INDEX_CONFIG_QUERY = `
   CREATE TABLE IF NOT EXISTS user_property_index_config (
     workspace_id String,
@@ -95,7 +95,7 @@ export const CREATE_USER_PROPERTY_INDEX_CONFIG_QUERY = `
 `;
 
 // 2. Index Tables 
-// Note: Partitioned by workspace_id and year for efficient drops/detach if needed
+// Partitioned by workspace_id and year for efficient data management
 
 // Number Index
 export const CREATE_USER_PROPERTY_IDX_NUM_QUERY = `
@@ -309,65 +309,78 @@ Create a test file similar to `packages/backend-lib/src/users.test.ts`. You shou
       * Records are removed from Postgres and ClickHouse config.
       * Data is pruned from the index table.
 
-**Test Skeleton:**
-
-```typescript
-import { randomUUID } from "crypto";
-import { db } from "./db";
-import { clickhouseClient } from "./clickhouse";
-import { upsertUserPropertyIndex, deleteUserPropertyIndex } from "./userPropertyIndices";
-
-describe("User Property Indices", () => {
-  let workspaceId: string;
-
-  beforeEach(async () => {
-    workspaceId = randomUUID();
-    // ... Create workspace logic similar to users.test.ts ...
-  });
-
-  it("should backfill data when creating a new index", async () => {
-    // 1. Create user property
-    // 2. Ingest user event (identify) to create assignment in computed_property_assignments_v2
-    // 3. Call upsertUserPropertyIndex({ type: 'Number' })
-    // 4. Assert data exists in user_property_idx_num
-  });
-
-  it("should prune old data when changing index type", async () => {
-    // ... Setup string index ...
-    // ... Call upsertUserPropertyIndex({ type: 'Number' }) ...
-    // Assert str index is empty, num index has data
-  });
-});
-```
-
 ### Step 4: API Endpoints & Router
 
 **File:** `packages/api/src/controllers/userPropertyIndexController.ts`
 
-Create a new controller. **Do not hardcode the paths in the instruction**, but implement endpoints that achieve:
+Create a new controller to expose the logic via REST API. Implement the following operations using the service layer created in Step 3.
 
-1.  **Listing**: Retrieve all indices for a workspace.
-2.  **Upserting**: Handle PUT requests to create/update an index.
-3.  **Deleting**: Handle DELETE requests to remove an index.
+1.  **List Indexes:** GET endpoint to list all configured indexes for the workspace.
+2.  **Upsert Index:** PUT endpoint to call `upsertUserPropertyIndex`.
+3.  **Delete Index:** DELETE endpoint to call `deleteUserPropertyIndex`.
 
 **File:** `packages/api/src/buildApp/router.ts`
-Register the new controller in the API router.
+Register the new controller and endpoints in the API router to ensure they are accessible.
 
-### Step 5: Querying Logic (Hybrid Pagination)
+### Step 5: Modify `getUsers`
 
 **File:** `packages/backend-lib/src/users.ts`
 
-Update `getUsers` to handle the sorting cursor. Ensure **default behavior** (sorting by `user_id`) persists if no `sortBy` parameter is provided or if `sortBy === 'id'`.
+Modify the `getUsers` function to implement the Two-Step (Index + Remainder) Query Strategy.
 
-**Logic Flow:**
+1.  **Update Type Definitions:** Update `GetUsersRequest` (or the internal type used by the function) to accept `sortBy` (string, optional).
+2.  **Define Sorting Cursor:**
+    ```typescript
+    interface UserSortCursor {
+      phase: 'indexed' | 'remainder';
+      userId: string;
+      val?: string | number | null;
+    }
+    ```
+3.  **Implementation Logic:**
+      * **Default Behavior:** If `sortBy` is undefined, null, or `'id'`, use the existing logic (query `computed_property_assignments_v2` or `user_events_v2` ordered by `user_id`).
+      * **Sorted Behavior:**
+          * Look up the index type for the requested `sortBy` property in the Postgres `UserPropertyIndex` table (you likely already have this data cached or can fetch it).
+          * **Phase A (Index):** Query the appropriate index table (`user_property_idx_{type}`).
+              * Clause: `WHERE workspace_id = ... AND computed_property_id = ...`
+              * Cursor Filter: `AND (value, user_id) > (cursor.val, cursor.userId)`
+              * Limit: `pageSize`
+          * **Phase B (Remainder):** If the results from Phase A are less than `pageSize`:
+              * Calculate `remainingLimit = pageSize - resultsA.length`.
+              * Query the main table (Assignments or User Events).
+              * Clause: `WHERE user_id NOT IN (SELECT user_id FROM index_table ...)`
+              * Cursor Filter: If we were *already* in the remainder phase in the previous page, filter by `user_id > cursor.userId`.
+              * Limit: `remainingLimit`.
+      * **Result Merging:** Combine the results.
+      * **Next Cursor:** Construct the cursor for the *last* item in the combined list. If the last item came from the Index, cursor is `{ phase: 'indexed', val: ..., userId: ... }`. If from Remainder, `{ phase: 'remainder', userId: ... }`.
 
-1.  **Check Sort Param**:
-      * If `sortBy` is missing, null, or "id" -\> **Use existing default logic** (Sort by `user_id`).
-      * Otherwise -\> Proceed to Step 2.
-2.  **Parse Cursor**: Determine if we are in the `indexed` phase or `remainder` phase.
-3.  **Phase A (Index)**: Query the specific `user_property_idx_*` table based on the property's configured type.
-4.  **Phase B (Remainder)**: If results from Phase A \< `pageSize`, query the main table, excluding IDs found in the index.
-5.  **Combine**: Return merged results.
+### Step 6: Test `getUsers` Modifications
+
+**File:** `packages/backend-lib/src/users.test.ts`
+
+Add a new `describe` block for "Sorting". You must test:
+
+1.  **Numeric Sort:**
+      * Create a numeric User Property "age".
+      * Create index for "age" (Type: Number).
+      * Create users with various ages (including duplicates).
+      * Call `getUsers({ sortBy: 'age' })`.
+      * **Assert:** Users are returned in correct numeric order.
+2.  **String Sort:**
+      * Create string property "name".
+      * Create index (Type: String).
+      * Call `getUsers({ sortBy: 'name' })`.
+      * **Assert:** Users returned in alphabetical order.
+3.  **Pagination Transition (The "Seam"):**
+      * Create 10 users *with* the property and 10 users *without*.
+      * Call `getUsers({ limit: 5 })` (Page 1 - All Indexed).
+      * Call `getUsers` with cursor from Page 1.
+      * **Assert:** Page 2 contains the remaining 5 indexed users + the first 5 non-indexed users.
+      * Call `getUsers` with cursor from Page 2.
+      * **Assert:** Page 3 contains the remaining 5 non-indexed users.
+4.  **Default Fallback:**
+      * Call `getUsers()` without `sortBy`.
+      * **Assert:** Results are sorted by `user_id`.
 
 -----
 
@@ -375,9 +388,10 @@ Update `getUsers` to handle the sorting cursor. Ensure **default behavior** (sor
 
 ### Step 1: React Query Hooks
 
-Create hooks modeled after `packages/dashboard/src/lib/useUpdateSegmentsMutation.ts` and `packages/dashboard/src/lib/useSegmentsQuery.ts`. Specifically, use `useAppStorePick`, `useAuthHeaders`, and `useBaseApiUrl` for state and configuration.
+Create three new files matching the patterns in `packages/dashboard/src/lib/useSegmentsQuery.ts` and `packages/dashboard/src/lib/useUpdateSegmentsMutation.ts`.
 
 **File:** `packages/dashboard/src/lib/useUserPropertyIndicesQuery.ts`
+This hook lists all indexed properties.
 
 ```typescript
 import { useQuery, UseQueryOptions, UseQueryResult } from "@tanstack/react-query";
@@ -413,7 +427,7 @@ export function useUserPropertyIndicesQuery(
   return useQuery<GetUserPropertyIndicesResponse, Error>({
     queryKey,
     queryFn: async () => {
-      const response = await axios.get(`${baseApiUrl}/path-to-indices`, { 
+      const response = await axios.get(`${baseApiUrl}/path/to/indices`, { // Use actual path defined in Phase 1
         params: { workspaceId },
         headers: authHeaders,
       });
@@ -425,6 +439,7 @@ export function useUserPropertyIndicesQuery(
 ```
 
 **File:** `packages/dashboard/src/lib/useUpsertUserPropertyIndexMutation.ts`
+This hook handles both creating and updating an index (e.g., changing type).
 
 ```typescript
 import { useMutation, UseMutationOptions, UseMutationResult, useQueryClient } from "@tanstack/react-query";
@@ -457,7 +472,7 @@ export function useUpsertUserPropertyIndexMutation(
     const workspaceId = workspace.value.id;
 
     await axios.put(
-      `${baseApiUrl}/path-to-index/${data.userPropertyId}`, 
+      `${baseApiUrl}/path/to/index/${data.userPropertyId}`, // Use actual path defined in Phase 1
       { ...data, workspaceId },
       { headers: { "Content-Type": "application/json", ...authHeaders } },
     );
@@ -479,7 +494,60 @@ export function useUpsertUserPropertyIndexMutation(
 ```
 
 **File:** `packages/dashboard/src/lib/useDeleteUserPropertyIndexMutation.ts`
-(Implement similarly to `useUpsertUserPropertyIndexMutation` but using `axios.delete` and taking only `userPropertyId`).
+This hook handles removing an index.
+
+```typescript
+import { useMutation, UseMutationOptions, UseMutationResult, useQueryClient } from "@tanstack/react-query";
+import axios, { AxiosError } from "axios";
+import { CompletionStatus } from "isomorphic-lib/src/types";
+import { useAppStorePick } from "./appStore";
+import { useAuthHeaders, useBaseApiUrl } from "./authModeProvider";
+import { USER_PROPERTY_INDICES_QUERY_KEY } from "./useUserPropertyIndicesQuery";
+
+export interface DeleteUserPropertyIndexParams {
+  userPropertyId: string;
+}
+
+export function useDeleteUserPropertyIndexMutation(
+  options?: Omit<
+    UseMutationOptions<void, AxiosError, DeleteUserPropertyIndexParams>,
+    "mutationFn"
+  >,
+): UseMutationResult<void, AxiosError, DeleteUserPropertyIndexParams> {
+  const queryClient = useQueryClient();
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
+
+  const mutationFn = async ({ userPropertyId }: DeleteUserPropertyIndexParams) => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      throw new Error("Workspace not available");
+    }
+    const workspaceId = workspace.value.id;
+
+    await axios.delete(
+      `${baseApiUrl}/path/to/index/${userPropertyId}`, // Use actual path defined in Phase 1
+      { 
+        data: { workspaceId },
+        headers: { "Content-Type": "application/json", ...authHeaders } 
+      },
+    );
+  };
+
+  return useMutation({
+    mutationFn,
+    ...options,
+    onSuccess: (data, variables, context) => {
+      options?.onSuccess?.(data, variables, context);
+      if (workspace.type === CompletionStatus.Successful) {
+        queryClient.invalidateQueries({
+          queryKey: [USER_PROPERTY_INDICES_QUERY_KEY, { workspaceId: workspace.value.id }],
+        });
+      }
+    },
+  });
+}
+```
 
 ### Step 2: Configure Dialog Component (Creation UX)
 
