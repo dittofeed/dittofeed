@@ -20,10 +20,12 @@ import {
   subscriptionGroup as dbSubscriptionGroup,
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
+  userPropertyIndex as dbUserPropertyIndex,
   workspace as dbWorkspace,
 } from "./db/schema";
 import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
+import { UserPropertyIndexType } from "./userPropertyIndices";
 import {
   CursorDirectionEnum,
   DBResourceTypeEnum,
@@ -40,10 +42,18 @@ import {
 
 enum CursorKey {
   UserIdKey = "u",
+  PhaseKey = "p",
+  ValueKey = "v",
 }
 
 const Cursor = Type.Object({
   [CursorKey.UserIdKey]: Type.String(),
+  [CursorKey.PhaseKey]: Type.Optional(
+    Type.Union([Type.Literal("indexed"), Type.Literal("remainder")]),
+  ),
+  [CursorKey.ValueKey]: Type.Optional(
+    Type.Union([Type.String(), Type.Number(), Type.Null()]),
+  ),
 });
 
 type Cursor = Static<typeof Cursor>;
@@ -62,6 +72,7 @@ export async function getUsers(
     direction = CursorDirectionEnum.After,
     limit = 10,
     subscriptionGroupFilter,
+    sortBy,
   }: GetUsersRequest,
   {
     allowInternalSegment = false,

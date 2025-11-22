@@ -2702,6 +2702,7 @@ export const GetUsersRequest = Type.Object({
   subscriptionGroupFilter: Type.Optional(Type.Array(Type.String())),
   userPropertyFilter: Type.Optional(GetUsersUserPropertyFilter),
   workspaceId: Type.String(),
+  sortBy: Type.Optional(Type.String()),
 });
 
 export type GetUsersRequest = Static<typeof GetUsersRequest>;
