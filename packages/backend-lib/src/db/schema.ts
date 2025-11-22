@@ -78,6 +78,11 @@ export const userPropertyStatus = pgEnum("UserPropertyStatus", [
   "Running",
   "Paused",
 ]);
+export const dbUserPropertyIndexType = pgEnum("DBUserPropertyIndexType", [
+  "String",
+  "Number",
+  "Date",
+]);
 export const workspaceStatus = pgEnum("WorkspaceStatus", [
   "Active",
   "Tombstoned",
@@ -1074,5 +1079,40 @@ export const workspaceOccupantSetting = pgTable(
     })
       .onUpdate("cascade")
       .onDelete("set null"),
+  ],
+);
+
+export const userPropertyIndex = pgTable(
+  "UserPropertyIndex",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    userPropertyId: uuid().notNull(),
+    type: dbUserPropertyIndexType().notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("UserPropertyIndex_userPropertyId_key").using(
+      "btree",
+      table.userPropertyId.asc().nullsLast().op("uuid_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "UserPropertyIndex_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.userPropertyId],
+      foreignColumns: [userProperty.id],
+      name: "UserPropertyIndex_userPropertyId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
   ],
 );
