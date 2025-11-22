@@ -7,16 +7,12 @@ import {
   userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
-import {
-  UserPropertyDefinitionType,
-  UserProperty,
-  Workspace,
-} from "./types";
+import { UserProperty, UserPropertyDefinitionType, Workspace } from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
 import {
-  upsertUserPropertyIndex,
   deleteUserPropertyIndex,
   getUserPropertyIndices,
+  upsertUserPropertyIndex,
 } from "./userPropertyIndices";
 
 describe("User Property Indices", () => {
@@ -181,7 +177,7 @@ describe("User Property Indices", () => {
       });
 
       // Wait for prune and backfill
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Check Postgres updated
       const indices = await getUserPropertyIndices({

@@ -89,12 +89,15 @@ async function backfillIndex({
     WHERE workspace_id = ${workspaceIdParam}
       AND computed_property_id = ${userPropertyIdParam}
       AND type = 'user_property'
-      AND isNotNull(${valueColumn})
+      AND isNotNull(${valueExtractor})
   `;
 
   await chCommand({
     query,
     query_params: qb.getQueries(),
+    clickhouse_settings: {
+      wait_end_of_query: 1,
+    },
   });
 
   logger().info(
@@ -148,7 +151,8 @@ export async function upsertUserPropertyIndex({
     if (!updatedIndex) {
       throw new Error("Failed to update user property index");
     }
-    return { existing: updatedIndex };
+    // Return the ORIGINAL existing index so we can check if type changed
+    return { existing: existingIndex };
   });
 
   // 2. Perform ClickHouse Operations (Sequentially, outside PG transaction)
