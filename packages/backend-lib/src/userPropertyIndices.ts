@@ -1,7 +1,11 @@
 import { and, eq } from "drizzle-orm";
 
-import { clickhouseClient } from "./clickhouse";
-import { db, txQueryResult } from "./db";
+import {
+  clickhouseClient,
+  ClickHouseQueryBuilder,
+  command as chCommand,
+} from "./clickhouse";
+import { db } from "./db";
 import { userPropertyIndex } from "./db/schema";
 import logger from "./logger";
 
@@ -25,10 +29,14 @@ async function pruneIndex({
     table = "user_property_idx_date";
   }
 
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userPropertyIdParam = qb.addQueryValue(userPropertyId, "String");
+
   // Lightweight Delete
-  await clickhouseClient().command({
-    query: `DELETE FROM ${table} WHERE workspace_id = {workspaceId:String} AND computed_property_id = {userPropertyId:String} SETTINGS mutations_sync = 0, lightweight_deletes_sync = 0`,
-    query_params: { workspaceId, userPropertyId },
+  await chCommand({
+    query: `DELETE FROM ${table} WHERE workspace_id = ${workspaceIdParam} AND computed_property_id = ${userPropertyIdParam} SETTINGS mutations_sync = 0, lightweight_deletes_sync = 0`,
+    query_params: qb.getQueries(),
   });
 
   logger().info(
@@ -65,6 +73,10 @@ async function backfillIndex({
     valueColumn = "value_date";
   }
 
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userPropertyIdParam = qb.addQueryValue(userPropertyId, "String");
+
   const query = `
     INSERT INTO ${targetTable} (workspace_id, computed_property_id, user_id, ${valueColumn}, assigned_at)
     SELECT
@@ -74,15 +86,15 @@ async function backfillIndex({
       ${valueExtractor} as ${valueColumn},
       assigned_at
     FROM computed_property_assignments_v2
-    WHERE workspace_id = {workspaceId:String}
-      AND computed_property_id = {userPropertyId:String}
+    WHERE workspace_id = ${workspaceIdParam}
+      AND computed_property_id = ${userPropertyIdParam}
       AND type = 'user_property'
       AND isNotNull(${valueColumn})
   `;
 
-  await clickhouseClient().command({
+  await chCommand({
     query,
-    query_params: { workspaceId, userPropertyId },
+    query_params: qb.getQueries(),
   });
 
   logger().info(
@@ -203,9 +215,13 @@ export async function deleteUserPropertyIndex({
   }
 
   // 2. Remove from ClickHouse Config
-  await clickhouseClient().command({
-    query: `DELETE FROM user_property_index_config WHERE workspace_id = {workspaceId:String} AND user_property_id = {userPropertyId:String}`,
-    query_params: { workspaceId, userPropertyId },
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userPropertyIdParam = qb.addQueryValue(userPropertyId, "String");
+
+  await chCommand({
+    query: `DELETE FROM user_property_index_config WHERE workspace_id = ${workspaceIdParam} AND user_property_id = ${userPropertyIdParam}`,
+    query_params: qb.getQueries(),
   });
 
   // 3. Prune Data
