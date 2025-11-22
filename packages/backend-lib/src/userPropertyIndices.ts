@@ -129,7 +129,6 @@ export async function upsertUserPropertyIndex({
         and(
           eq(userPropertyIndex.id, existingIndex.id),
           eq(userPropertyIndex.workspaceId, workspaceId),
-          eq(userPropertyIndex.userPropertyId, userPropertyId),
         ),
       )
       .returning();
@@ -172,7 +171,7 @@ export async function deleteUserPropertyIndex({
 }: {
   workspaceId: string;
   userPropertyId: string;
-}) {
+}): Promise<string | null> {
   // 1. Fetch existing state and delete from Postgres in transaction
   const { existing } = await db().transaction(async (tx) => {
     const existingIndex = await tx.query.userPropertyIndex.findFirst({
@@ -187,32 +186,21 @@ export async function deleteUserPropertyIndex({
     }
 
     // Delete from Postgres
-    const deleteResult = await txQueryResult(
-      tx
-        .delete(userPropertyIndex)
-        .where(eq(userPropertyIndex.id, existingIndex.id)),
-    );
-
-    if (deleteResult.isErr()) {
-      logger().error(
-        { err: deleteResult.error, workspaceId, userPropertyId },
-        "Failed to delete user property index from Postgres",
+    await tx
+      .delete(userPropertyIndex)
+      .where(
+        and(
+          eq(userPropertyIndex.id, existingIndex.id),
+          eq(userPropertyIndex.workspaceId, workspaceId),
+        ),
       );
-      throw new Error("Failed to delete user property index from Postgres");
-    }
 
     return { existing: existingIndex };
   });
 
   if (!existing) {
-    logger().info({ workspaceId, userPropertyId }, "No index found to delete");
-    return;
+    return null;
   }
-
-  logger().info(
-    { workspaceId, userPropertyId },
-    "Deleted user property index from Postgres",
-  );
 
   // 2. Remove from ClickHouse Config
   await clickhouseClient().command({
@@ -220,22 +208,13 @@ export async function deleteUserPropertyIndex({
     query_params: { workspaceId, userPropertyId },
   });
 
-  logger().info(
-    { workspaceId, userPropertyId },
-    "Removed from ClickHouse config table",
-  );
-
   // 3. Prune Data
   await pruneIndex({
     workspaceId,
     userPropertyId,
-    type: existing.type as UserPropertyIndexType,
+    type: existing.type,
   });
-
-  logger().info(
-    { workspaceId, userPropertyId },
-    "Completed user property index deletion",
-  );
+  return existing.id;
 }
 
 export async function getUserPropertyIndices({
