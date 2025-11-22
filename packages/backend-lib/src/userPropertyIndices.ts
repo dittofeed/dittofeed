@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 
 import { clickhouseClient } from "./clickhouse";
-import { db } from "./db";
+import { db, txQueryResult } from "./db";
 import { userPropertyIndex } from "./db/schema";
 import logger from "./logger";
 
@@ -16,17 +16,13 @@ async function pruneIndex({
   userPropertyId: string;
   type: UserPropertyIndexType;
 }) {
-  let table = "";
-  if (type === "Number") table = "user_property_idx_num";
-  else if (type === "String") table = "user_property_idx_str";
-  else if (type === "Date") table = "user_property_idx_date";
-
-  if (!table) {
-    logger().warn(
-      { workspaceId, userPropertyId, type },
-      "Unknown index type for pruning",
-    );
-    return;
+  let table: string;
+  if (type === "Number") {
+    table = "user_property_idx_num";
+  } else if (type === "String") {
+    table = "user_property_idx_str";
+  } else {
+    table = "user_property_idx_date";
   }
 
   // Lightweight Delete
@@ -50,9 +46,9 @@ async function backfillIndex({
   userPropertyId: string;
   type: UserPropertyIndexType;
 }) {
-  let targetTable = "";
-  let valueExtractor = "";
-  let valueColumn = "";
+  let targetTable: string;
+  let valueExtractor: string;
+  let valueColumn: string;
 
   if (type === "Number") {
     targetTable = "user_property_idx_num";
@@ -62,19 +58,11 @@ async function backfillIndex({
     targetTable = "user_property_idx_str";
     valueExtractor = "trim(BOTH '\"' FROM user_property_value)";
     valueColumn = "value_str";
-  } else if (type === "Date") {
+  } else {
     targetTable = "user_property_idx_date";
     valueExtractor =
       "parseDateTime64BestEffortOrNull(trim(BOTH '\"' FROM user_property_value), 3)";
     valueColumn = "value_date";
-  }
-
-  if (!targetTable) {
-    logger().warn(
-      { workspaceId, userPropertyId, type },
-      "Unknown index type for backfill",
-    );
-    return;
   }
 
   const query = `
@@ -112,48 +100,63 @@ export async function upsertUserPropertyIndex({
   userPropertyId: string;
   type: UserPropertyIndexType;
 }) {
-  // 1. Fetch existing state (No transaction needed for read)
-  const existing = await db().query.userPropertyIndex.findFirst({
-    where: and(
-      eq(userPropertyIndex.workspaceId, workspaceId),
-      eq(userPropertyIndex.userPropertyId, userPropertyId),
-    ),
-  });
-
-  // 2. Update Postgres Source of Truth
-  await db()
-    .insert(userPropertyIndex)
-    .values({ workspaceId, userPropertyId, type })
-    .onConflictDoUpdate({
-      target: userPropertyIndex.userPropertyId,
-      set: { type, updatedAt: new Date() },
+  // 1. Fetch existing state and update Postgres in transaction
+  const { existing } = await db().transaction(async (tx) => {
+    const existingIndex = await tx.query.userPropertyIndex.findFirst({
+      where: and(
+        eq(userPropertyIndex.workspaceId, workspaceId),
+        eq(userPropertyIndex.userPropertyId, userPropertyId),
+      ),
     });
 
-  logger().info(
-    { workspaceId, userPropertyId, type, existing: !!existing },
-    "Upserted user property index in Postgres",
-  );
+    if (!existingIndex) {
+      const [newIndex] = await tx
+        .insert(userPropertyIndex)
+        .values({ workspaceId, userPropertyId, type })
+        .returning();
 
-  // 3. Perform ClickHouse Operations (Sequentially, outside PG transaction)
+      if (!newIndex) {
+        throw new Error("Failed to create new user property index");
+      }
+      return { existing: null };
+    }
+
+    // Update Postgres Source of Truth
+    const [updatedIndex] = await tx
+      .update(userPropertyIndex)
+      .set({ type })
+      .where(
+        and(
+          eq(userPropertyIndex.id, existingIndex.id),
+          eq(userPropertyIndex.workspaceId, workspaceId),
+          eq(userPropertyIndex.userPropertyId, userPropertyId),
+        ),
+      )
+      .returning();
+
+    if (!updatedIndex) {
+      throw new Error("Failed to update user property index");
+    }
+    return { existing: updatedIndex };
+  });
+
+  // 2. Perform ClickHouse Operations (Sequentially, outside PG transaction)
 
   // A. Update Config (Allow MV to process new events)
   await clickhouseClient().insert({
     table: "user_property_index_config",
-    values: [{ workspace_id: workspaceId, user_property_id: userPropertyId, type }],
+    values: [
+      { workspace_id: workspaceId, user_property_id: userPropertyId, type },
+    ],
     format: "JSONEachRow",
   });
-
-  logger().info(
-    { workspaceId, userPropertyId, type },
-    "Updated ClickHouse config table",
-  );
 
   // B. Handle Type Change (Prune old data if type switched)
   if (existing && existing.type !== type) {
     await pruneIndex({
       workspaceId,
       userPropertyId,
-      type: existing.type as UserPropertyIndexType,
+      type: existing.type,
     });
   }
 
@@ -161,11 +164,6 @@ export async function upsertUserPropertyIndex({
   if (!existing || existing.type !== type) {
     await backfillIndex({ workspaceId, userPropertyId, type });
   }
-
-  logger().info(
-    { workspaceId, userPropertyId, type },
-    "Completed user property index upsert",
-  );
 }
 
 export async function deleteUserPropertyIndex({
@@ -175,23 +173,41 @@ export async function deleteUserPropertyIndex({
   workspaceId: string;
   userPropertyId: string;
 }) {
-  const existing = await db().query.userPropertyIndex.findFirst({
-    where: and(
-      eq(userPropertyIndex.workspaceId, workspaceId),
-      eq(userPropertyIndex.userPropertyId, userPropertyId),
-    ),
+  // 1. Fetch existing state and delete from Postgres in transaction
+  const { existing } = await db().transaction(async (tx) => {
+    const existingIndex = await tx.query.userPropertyIndex.findFirst({
+      where: and(
+        eq(userPropertyIndex.workspaceId, workspaceId),
+        eq(userPropertyIndex.userPropertyId, userPropertyId),
+      ),
+    });
+
+    if (!existingIndex) {
+      return { existing: null };
+    }
+
+    // Delete from Postgres
+    const deleteResult = await txQueryResult(
+      tx
+        .delete(userPropertyIndex)
+        .where(eq(userPropertyIndex.id, existingIndex.id)),
+    );
+
+    if (deleteResult.isErr()) {
+      logger().error(
+        { err: deleteResult.error, workspaceId, userPropertyId },
+        "Failed to delete user property index from Postgres",
+      );
+      throw new Error("Failed to delete user property index from Postgres");
+    }
+
+    return { existing: existingIndex };
   });
 
   if (!existing) {
-    logger().info(
-      { workspaceId, userPropertyId },
-      "No index found to delete",
-    );
+    logger().info({ workspaceId, userPropertyId }, "No index found to delete");
     return;
   }
-
-  // 1. Delete from Postgres
-  await db().delete(userPropertyIndex).where(eq(userPropertyIndex.id, existing.id));
 
   logger().info(
     { workspaceId, userPropertyId },
@@ -227,7 +243,8 @@ export async function getUserPropertyIndices({
 }: {
   workspaceId: string;
 }) {
-  return db().query.userPropertyIndex.findMany({
+  const indices = await db().query.userPropertyIndex.findMany({
     where: eq(userPropertyIndex.workspaceId, workspaceId),
   });
+  return indices;
 }
