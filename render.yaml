@@ -1,5 +1,6 @@
 databases:
   - name: dittofeed-db
+    region: frankfurt
 
 envVarGroups:
   - name: clickhouse-credentials
@@ -34,6 +35,7 @@ services:
   - type: web
     name: dittofeed-lite
     runtime: image
+    region: frankfurt
     autoDeploy: false
     image:
       url: "dittofeed/dittofeed-lite:v0.22.0"
@@ -86,6 +88,7 @@ services:
   - type: worker
     name: admin-cli
     runtime: image
+    region: frankfurt
     autoDeploy: false
     image:
       url: "dittofeed/dittofeed-admin-cli:v0.22.0"
@@ -123,6 +126,7 @@ services:
     name: dittofeed-ch
     env: docker
     plan: standard
+    region: frankfurt
     autoDeploy: false
     dockerfilePath: ./render/clickhouse/Dockerfile
     dockerContext: .
@@ -137,6 +141,7 @@ services:
     name: temporal
     autoDeploy: false
     env: docker
+    region: frankfurt
     dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile
     envVars:
     - fromGroup: temporal-shared
