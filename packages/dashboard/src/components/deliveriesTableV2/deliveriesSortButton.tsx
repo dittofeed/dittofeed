@@ -189,6 +189,7 @@ export function DeliveriesSortButton({
             value={sortDirection}
             sx={greySelectStyles}
             onChange={(e) => {
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               handleSortDirectionChange(e.target.value as SortDirection);
             }}
             MenuProps={{

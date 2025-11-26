@@ -61,6 +61,7 @@ export default function JourneyV2({ id }: { id: string }) {
       throw new Error("Impossible branch, journey is undefined");
     }
     // assume that definition and draft values were not excluded from the query
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const savedJourney = journey as SavedJourneyResource;
     const stateFromJourney = journeyResourceToState(savedJourney);
     initJourneyState(stateFromJourney);

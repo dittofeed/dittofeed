@@ -367,6 +367,7 @@ const userIdCellRenderer = ({
 }: {
   getValue: () => unknown;
   userUriTemplate: string;
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 }) => (
   <UserIdCell value={getValue() as string} userUriTemplate={userUriTemplate} />
 );
@@ -420,6 +421,7 @@ function ActionsCell({ userId }: { userId: string }) {
       onError: (error) => {
         setDeleteError(true);
         if (axios.isAxiosError(error) && error.response?.data) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const errorData = error.response.data as { message?: string };
           setErrorMessage(
             errorData.message ?? "Failed to delete user. Please try again.",
@@ -852,6 +854,7 @@ export default function UsersTableV2({
       for (const propId in user.properties) {
         const prop = user.properties[propId];
         if (prop && prop.name.toLowerCase() === "email") {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           email = prop.value as string;
           break;
         }

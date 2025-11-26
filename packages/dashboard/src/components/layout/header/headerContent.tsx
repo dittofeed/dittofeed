@@ -69,6 +69,7 @@ function BranchSelect() {
       setNewBranchIsOpen(true);
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     setBranch(event.target.value as string);
   };
 

@@ -27,6 +27,7 @@ export const requestContext: <T>(
   gssp: GetDFServerSideProps<PropsWithInitialState<T>>,
 ) => GetServerSideProps<PropsWithInitialState<T>> =
   (gssp) => async (context) => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const { profile } = context.req as { profile?: OpenIdProfile };
     const rc = await getRequestContext(context.req.headers, profile);
     const { onboardingUrl } = backendConfig();

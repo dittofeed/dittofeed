@@ -258,6 +258,7 @@ function JourneyStatusControl() {
       {
         name: journey.name,
         definition,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         status: statusValue.nextStatus as "Running" | "Paused" | "Broadcast",
       },
       {
@@ -554,6 +555,7 @@ export default function JourneyV2Layout({
           if (!journey) {
             return;
           }
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const curl = formatJourneyCurl(journey as SavedJourneyResource);
           copyToClipboard({
             value: curl,

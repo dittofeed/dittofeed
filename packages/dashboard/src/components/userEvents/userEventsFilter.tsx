@@ -248,6 +248,7 @@ export function SelectedUserEventsFilters({
             label={fullLabel}
             onDelete={() =>
               setState((draft) => {
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                 draft.filters.delete(key as Key);
               })
             }
@@ -265,12 +266,14 @@ export function SelectedUserEventsFilters({
           let label: string;
           if (Array.isArray(value)) {
             // Resolve IDs to names for array values
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             const resolvedValues = value.map((id) =>
               resolveIdToName(key as Key, id),
             );
             label = resolvedValues.join(" OR ");
           } else {
             // Resolve ID to name for single values
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             label = resolveIdToName(key as Key, String(value));
           }
           const fullLabel = `${key} = ${label}`;
@@ -665,6 +668,7 @@ export function NewUserEventsFilterButton({
           />
         )}
         renderOption={(props, option) => {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const propsWithKey = props as HTMLAttributes<HTMLLIElement> & {
             key: string;
           };

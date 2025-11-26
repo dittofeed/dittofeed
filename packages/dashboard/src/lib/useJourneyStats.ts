@@ -47,6 +47,7 @@ export function useJourneyStats(
         });
         args.upsertJourneyStats(value);
       } catch (e) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const error = e as Error;
 
         console.error(e);

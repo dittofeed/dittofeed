@@ -534,6 +534,7 @@ export function createCommands(yargs: Argv): Argv {
         const config = backendConfig();
         const redactedConfig = R.mapValues(config, (value, key) => {
           // Cast key to satisfy type checker with SECRETS set
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const k = key as keyof typeof config;
           return SECRETS.has(k) ? "****" : value;
         });
@@ -1909,7 +1910,9 @@ export function createCommands(yargs: Argv): Argv {
             startDate,
             endDate,
             groupId,
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             sortBy: sortBy as "from" | "to" | "sentAt" | "status" | undefined,
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             sortDirection: sortDirection as "Asc" | "Desc" | undefined,
             limit,
             cursor,
