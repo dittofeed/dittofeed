@@ -406,16 +406,22 @@ export async function getUsers(
         userIdsClause,
         workspaceIdClause,
       } = buildFilterClauses(qbIndex);
+      const workspaceIdClauseWithAlias = workspaceIdClause.replace(
+        /workspace_id/g,
+        "idx.workspace_id",
+      );
 
       const filteredSubquery = `
-        SELECT
-          ${selectUserIdColumns.join(", ")}
-        FROM computed_property_assignments_v2
-        WHERE
-          ${workspaceIdClause}
-          ${userIdsClause}
-        GROUP BY workspace_id, user_id
-        ${havingClause}
+        SELECT user_id FROM (
+          SELECT
+            ${selectUserIdColumns.join(", ")}
+          FROM computed_property_assignments_v2
+          WHERE
+            ${workspaceIdClause}
+            ${userIdsClause}
+          GROUP BY workspace_id, user_id
+          ${havingClause}
+        )
       `;
 
       const sortPropertyParam = qbIndex.addQueryValue(sortPropertyId, "String");
@@ -445,15 +451,15 @@ export async function getUsers(
 
       const indexQuery = `
         SELECT
-          user_id,
-          ${valueColumn} AS sort_value
-        FROM ${indexTable}
+          idx.user_id,
+          idx.${valueColumn} AS sort_value
+        FROM ${indexTable} AS idx
+        INNER JOIN (${filteredSubquery}) AS filtered USING (user_id)
         WHERE
-          ${workspaceIdClause}
-          AND computed_property_id = ${sortPropertyParam}
+          ${workspaceIdClauseWithAlias}
+          AND idx.computed_property_id = ${sortPropertyParam}
           ${indexCursorClause}
-          AND user_id IN (SELECT user_id FROM (${filteredSubquery}))
-        ORDER BY ${valueColumn} ${orderDirection}, user_id ${orderDirection}
+        ORDER BY idx.${valueColumn} ${orderDirection}, idx.user_id ${orderDirection}
         LIMIT ${limit}
       `;
 

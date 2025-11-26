@@ -161,6 +161,7 @@ export function SelectedDeliveriesFilters({
           label={`${key} = ${label}`}
           onDelete={() =>
             setState((draft) => {
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               draft.filters.delete(key as Key);
             })
           }
@@ -493,6 +494,7 @@ export function NewDeliveriesFilterButton({
           />
         )}
         renderOption={(props, option) => {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const propsWithKey = props as HTMLAttributes<HTMLLIElement> & {
             key: string;
           };

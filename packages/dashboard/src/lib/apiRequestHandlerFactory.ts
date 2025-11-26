@@ -53,6 +53,7 @@ export function downloadFileFactory<D>({
       const blob = new Blob([response.data], { type: "text/csv" });
       FileSaver.saveAs(blob, filename);
     } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       const error = e as Error;
 
       setRequest({
@@ -115,6 +116,7 @@ export default function apiRequestHandlerFactory<D, S extends TSchema>({
     try {
       response = await axios(requestConfig);
     } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       const error = e as Error;
 
       setRequest({

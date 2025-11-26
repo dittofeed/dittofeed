@@ -10,9 +10,11 @@ import {
 function getProviderLabel(
   provider: WorkspaceWideEmailProviders | SmsProviderType,
 ) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   if (Object.values(SmsProviderType).includes(provider as SmsProviderType)) {
     return provider;
   }
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return emailProviderLabel(provider as WorkspaceWideEmailProviders);
 }
 
@@ -56,6 +58,7 @@ export default function ChannelProviderAutocomplete({
       disabled={disabled}
       getOptionLabel={getProviderLabel}
       onChange={(_event, p) =>
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         handler(p as WorkspaceWideEmailProviders | SmsProviderType | null)
       }
       renderInput={(params) => (

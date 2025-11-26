@@ -307,6 +307,7 @@ export function DeliveriesTable({
       let response: AxiosResponse;
       try {
         const templateIds = getFilterValues(deliveriesFilterState, "template");
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const channels = getFilterValues(deliveriesFilterState, "channel") as
           | ChannelType[]
           | undefined;
@@ -329,6 +330,7 @@ export function DeliveriesTable({
 
         response = await getDeliveriesRequest({ params, apiBase });
       } catch (e) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const error = e as Error;
 
         updatePaginationRequest({

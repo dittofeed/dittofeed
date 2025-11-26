@@ -30,6 +30,7 @@ export function SelectField({
     </MenuItem>
   ));
   const innerOnChange: SelectProps["onChange"] = (event) => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     onChange(event.target.value as string);
   };
   return (

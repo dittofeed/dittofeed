@@ -156,6 +156,7 @@ export function DeliveriesSortButton({
             sx={greySelectStyles}
             onChange={(e) => {
               handleSortByChange(
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                 e.target.value as SearchDeliveriesRequestSortBy,
               );
             }}

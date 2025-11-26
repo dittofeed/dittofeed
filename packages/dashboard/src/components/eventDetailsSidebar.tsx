@@ -279,6 +279,7 @@ function EventDetailsSidebar({
               <Chip
                 label={selectedEvent.eventType}
                 color={
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                   getEventTypeColor(selectedEvent.eventType) as
                     | "primary"
                     | "secondary"
