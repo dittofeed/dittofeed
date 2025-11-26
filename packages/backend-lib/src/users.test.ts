@@ -411,6 +411,73 @@ describe("users", () => {
         ).toEqual(["Alice", "Bob", "Charlie"]);
       });
 
+      it("sorts by date indexed property", async () => {
+        const signupProperty = unwrap(
+          await insert({
+            table: dbUserProperty,
+            values: {
+              id: randomUUID(),
+              workspaceId: workspace.id,
+              name: "signupDate",
+              updatedAt: new Date(),
+              definition: {
+                type: UserPropertyDefinitionType.Trait,
+                path: "signupDate",
+              },
+            },
+          }),
+        );
+
+        await insertUserPropertyAssignments([
+          {
+            workspaceId: workspace.id,
+            userPropertyId: signupProperty.id,
+            userId: "user-1",
+            value: JSON.stringify("2024-01-02T00:00:00.000Z"),
+          },
+          {
+            workspaceId: workspace.id,
+            userPropertyId: signupProperty.id,
+            userId: "user-2",
+            value: JSON.stringify("2024-01-01T00:00:00.000Z"),
+          },
+          {
+            workspaceId: workspace.id,
+            userPropertyId: signupProperty.id,
+            userId: "user-3",
+            value: JSON.stringify("2024-01-02T00:00:00.000Z"),
+          },
+        ]);
+
+        await upsertUserPropertyIndex({
+          workspaceId: workspace.id,
+          userPropertyId: signupProperty.id,
+          type: "Date",
+        });
+
+        await sleep(250);
+
+        const result = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            sortBy: signupProperty.id,
+          }),
+        );
+
+        expect(result.users.map((u) => u.id)).toEqual([
+          "user-2",
+          "user-1",
+          "user-3",
+        ]);
+        expect(
+          result.users.map((u) => u.properties[signupProperty.id]?.value),
+        ).toEqual([
+          "2024-01-01T00:00:00.000Z",
+          "2024-01-02T00:00:00.000Z",
+          "2024-01-02T00:00:00.000Z",
+        ]);
+      });
+
       it("paginates across indexed and remainder users at the seam", async () => {
         const presenceProperty = unwrap(
           await insert({

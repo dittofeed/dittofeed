@@ -25,7 +25,6 @@ import {
 } from "./db/schema";
 import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
-import { UserPropertyIndexType } from "./userPropertyIndices";
 import {
   CursorDirectionEnum,
   DBResourceTypeEnum,
@@ -39,6 +38,7 @@ import {
   UserProperty,
   UserPropertyDefinition,
 } from "./types";
+import { UserPropertyIndexType } from "./userPropertyIndices";
 
 enum CursorKey {
   UserIdKey = "u",
@@ -215,11 +215,11 @@ export async function getUsers(
     };
   };
 
-  type UserRow = {
+  interface UserRow {
     user_id: string;
     segments: [string, string][];
     user_properties: [string, string][];
-  };
+  }
 
   const fetchUserRowsByIds = async (userIdsForQuery: string[]) => {
     if (userIdsForQuery.length === 0) {
@@ -267,8 +267,7 @@ export async function getUsers(
     return rows;
   };
 
-  const shouldDefaultSort =
-    !sortBy || sortBy === "id" || sortBy === "user_id";
+  const shouldDefaultSort = !sortBy || sortBy === "id" || sortBy === "user_id";
 
   let rows: UserRow[] = [];
   let orderedUserIds: string[] = [];
@@ -289,8 +288,12 @@ export async function getUsers(
 
   if (shouldDefaultSort || !sortIndexRecord) {
     const qb = new ClickHouseQueryBuilder();
-    const { selectUserIdColumns, havingClause, userIdsClause, workspaceIdClause } =
-      buildFilterClauses(qb);
+    const {
+      selectUserIdColumns,
+      havingClause,
+      userIdsClause,
+      workspaceIdClause,
+    } = buildFilterClauses(qb);
 
     const cursorClause = cursor
       ? `and user_id ${
@@ -454,7 +457,7 @@ export async function getUsers(
       paginatedEntries = indexEntries;
     }
 
-    let remainingLimit = limit - paginatedEntries.length;
+    const remainingLimit = limit - paginatedEntries.length;
     if (remainingLimit > 0) {
       const qbRemainder = new ClickHouseQueryBuilder();
       const {
@@ -573,8 +576,8 @@ export async function getUsers(
     userPropertyById.set(property.id, {
       id: property.id,
       name: property.name,
-        definition: definition.value,
-      });
+      definition: definition.value,
+    });
   }
 
   logger().debug(
