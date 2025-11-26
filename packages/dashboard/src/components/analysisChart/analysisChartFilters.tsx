@@ -495,6 +495,7 @@ export function NewAnalysisFilterButton({
           />
         )}
         renderOption={(props, option) => {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const propsWithKey = props as HTMLAttributes<HTMLLIElement> & {
             key: string;
           };

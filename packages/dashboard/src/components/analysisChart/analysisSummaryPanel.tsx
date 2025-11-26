@@ -66,7 +66,8 @@ export function AnalysisSummaryPanel({
   // Check if channel filter is already applied
   const hasChannelFilter = filtersState.filters.has("channels");
   const selectedChannel = hasChannelFilter
-    ? (Array.from(
+    ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      (Array.from(
         filtersState.filters.get("channels")?.value.keys() || [],
       )[0] as ChannelType)
     : undefined;

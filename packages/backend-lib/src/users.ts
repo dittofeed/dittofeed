@@ -128,8 +128,12 @@ export async function getUsers(
       .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
     subscriptionGroups = subscriptionGroupsRows.reduce(
       (acc, subscriptionGroup) => {
+        const subscriptionGroupType =
+          subscriptionGroup.type === SubscriptionGroupType.OptOut
+            ? SubscriptionGroupType.OptOut
+            : SubscriptionGroupType.OptIn;
         acc.set(subscriptionGroup.id, {
-          type: subscriptionGroup.type as SubscriptionGroupType,
+          type: subscriptionGroupType,
           segmentId: subscriptionGroup.segmentId,
         });
         return acc;
@@ -171,7 +175,8 @@ export async function getUsers(
       havingSubClauses.push(`${varName} == True`);
     }
 
-    for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
+    const subscriptionGroupsFilter = subscriptionGroupFilter ?? [];
+    for (const subscriptionGroup of subscriptionGroupsFilter) {
       const sg = subscriptionGroups.get(subscriptionGroup);
       if (!sg) {
         logger().error(
@@ -221,9 +226,11 @@ export async function getUsers(
     user_properties: [string, string][];
   }
 
-  const fetchUserRowsByIds = async (userIdsForQuery: string[]) => {
+  const fetchUserRowsByIds = async (
+    userIdsForQuery: string[],
+  ): Promise<UserRow[]> => {
     if (userIdsForQuery.length === 0) {
-      return [] as UserRow[];
+      return [];
     }
     const qb = new ClickHouseQueryBuilder();
     const workspaceIdClause = buildWorkspaceIdClause(qb);
@@ -271,11 +278,12 @@ export async function getUsers(
 
   let rows: UserRow[] = [];
   let orderedUserIds: string[] = [];
-  let paginatedEntries: Array<{
+  // Tracks the ordered user IDs and phase/value that drive cursor generation.
+  let paginatedEntries: {
     userId: string;
     phase?: "indexed" | "remainder";
     value?: string | number | null;
-  }> = [];
+  }[] = [];
 
   const sortIndexRecord = shouldDefaultSort
     ? null
@@ -357,26 +365,37 @@ export async function getUsers(
     orderedUserIds = rows.map((row) => row.user_id);
     paginatedEntries = orderedUserIds.map((id) => ({ userId: id }));
   } else {
-    const indexType = sortIndexRecord.type as UserPropertyIndexType;
+    // Indexed sort path: page through the index table first, then backfill remaining slots from non-indexed users.
+    let indexType: UserPropertyIndexType;
+    if (sortIndexRecord.type === "Number") {
+      indexType = "Number";
+    } else if (sortIndexRecord.type === "String") {
+      indexType = "String";
+    } else {
+      indexType = "Date";
+    }
     const sortPropertyId = sortIndexRecord.userPropertyId;
-    const indexTable =
-      indexType === "Number"
-        ? "user_property_idx_num"
-        : indexType === "String"
-          ? "user_property_idx_str"
-          : "user_property_idx_date";
-    const valueColumn =
-      indexType === "Number"
-        ? "value_num"
-        : indexType === "String"
-          ? "value_str"
-          : "value_date";
-    const valueDataType =
-      indexType === "Number"
-        ? "Float64"
-        : indexType === "String"
-          ? "String"
-          : "DateTime64(3)";
+    let indexTable: string;
+    let valueColumn: string;
+    let valueDataType: "Float64" | "String" | "DateTime64(3)";
+
+    switch (indexType) {
+      case "Number":
+        indexTable = "user_property_idx_num";
+        valueColumn = "value_num";
+        valueDataType = "Float64";
+        break;
+      case "String":
+        indexTable = "user_property_idx_str";
+        valueColumn = "value_str";
+        valueDataType = "String";
+        break;
+      default:
+        indexTable = "user_property_idx_date";
+        valueColumn = "value_date";
+        valueDataType = "DateTime64(3)";
+        break;
+    }
     const shouldQueryIndex = cursor?.[CursorKey.PhaseKey] !== "remainder";
 
     if (shouldQueryIndex) {
@@ -446,17 +465,15 @@ export async function getUsers(
         user_id: string;
         sort_value: string | number | null;
       }>();
-      let indexEntries = indexRows.map((row) => ({
+      const indexEntries = indexRows.map((row) => ({
         userId: row.user_id,
         value: row.sort_value,
         phase: "indexed" as const,
       }));
-      if (direction === CursorDirectionEnum.Before) {
-        indexEntries = indexEntries.reverse();
-      }
       paginatedEntries = indexEntries;
     }
 
+    // If the index page did not fill the requested limit, fetch the remainder sorted by user_id.
     const remainingLimit = limit - paginatedEntries.length;
     if (remainingLimit > 0) {
       const qbRemainder = new ClickHouseQueryBuilder();
@@ -467,7 +484,7 @@ export async function getUsers(
         workspaceIdClause,
       } = buildFilterClauses(qbRemainder);
       const cursorClause =
-        cursor?.[CursorKey.PhaseKey] === "remainder" && cursor
+        cursor?.[CursorKey.PhaseKey] === "remainder"
           ? `AND user_id ${
               direction === CursorDirectionEnum.After ? ">" : "<="
             } ${qbRemainder.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
@@ -504,13 +521,10 @@ export async function getUsers(
         query_params: qbRemainder.getQueries(),
       });
       const remainderRows = await remainderResults.json<{ user_id: string }>();
-      let remainderEntries = remainderRows.map((row) => ({
+      const remainderEntries = remainderRows.map((row) => ({
         userId: row.user_id,
         phase: "remainder" as const,
       }));
-      if (direction === CursorDirectionEnum.Before) {
-        remainderEntries = remainderEntries.reverse();
-      }
       paginatedEntries = [...paginatedEntries, ...remainderEntries];
     }
 
@@ -587,6 +601,7 @@ export async function getUsers(
     "get users rows",
   );
   const rowById = new Map(rows.map((row) => [row.user_id, row]));
+  // Preserve the order from paginatedEntries so index/remainder interleaving is reflected in the final payload.
   const orderedRows =
     orderedUserIds.length > 0
       ? orderedUserIds
@@ -896,10 +911,18 @@ export async function getUsersCount({
       .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
     const subscriptionGroups = subscriptionGroupsRows.reduce(
       (acc, subscriptionGroup) => {
-        acc.set(subscriptionGroup.id, {
-          type: subscriptionGroup.type as SubscriptionGroupType,
+        const subscriptionGroupType =
+          subscriptionGroup.type === SubscriptionGroupType.OptOut
+            ? SubscriptionGroupType.OptOut
+            : SubscriptionGroupType.OptIn;
+        const entry: {
+          type: SubscriptionGroupType;
+          segmentId: string;
+        } = {
+          type: subscriptionGroupType,
           segmentId: subscriptionGroup.segmentId,
-        });
+        };
+        acc.set(subscriptionGroup.id, entry);
         return acc;
       },
       new Map<
@@ -911,7 +934,7 @@ export async function getUsersCount({
       >(),
     );
 
-    for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
+    for (const subscriptionGroup of subscriptionGroupFilter) {
       const sg = subscriptionGroups.get(subscriptionGroup);
       if (!sg) {
         logger().error(
