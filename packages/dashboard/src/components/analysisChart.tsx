@@ -240,6 +240,7 @@ export function AnalysisChart() {
     const selectedStatuses = getFilterValues(filtersState, "messageStates");
     return {
       templateIds: getFilterValues(filtersState, "templates"),
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       channels: getFilterValues(filtersState, "channels") as
         | ChannelType[]
         | undefined,

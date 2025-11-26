@@ -371,6 +371,7 @@ export default function BroadcastsTable() {
     },
     onError: (error) => {
       console.error("Failed to duplicate broadcast:", error);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       const errorMsg =
         (error as AxiosError<{ message?: string }>).response?.data.message ??
         "API Error";
@@ -609,6 +610,7 @@ export default function BroadcastsTable() {
                               {{
                                 asc: <ArrowUpward fontSize="inherit" />,
                                 desc: <ArrowDownward fontSize="inherit" />,
+                                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                               }[header.column.getIsSorted() as string] ?? (
                                 <UnfoldMore
                                   fontSize="inherit"
