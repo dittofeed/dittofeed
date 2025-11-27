@@ -23,6 +23,7 @@ import {
   streamClickhouseQuery,
 } from "./clickhouse";
 import logger from "./logger";
+import { withSpan } from "./openTelemetry";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import {
   ChannelType,
@@ -304,7 +305,10 @@ export function buildDeliverySearchQueryBody({
             const intParam = qb.addQueryValue(roundedValue, "Int64");
             const numberScalarCheck = `(JSONExtractInt(${targetExpr}, ${keyParam}) = ${intParam})`;
             const arrayIntCheck = `has(JSONExtract(${targetExpr}, ${keyParam}, 'Array(Int64)'), ${intParam})`;
-            const stringParam = qb.addQueryValue(String(roundedValue), "String");
+            const stringParam = qb.addQueryValue(
+              String(roundedValue),
+              "String",
+            );
             const stringScalarCheck = `(JSONExtractString(${targetExpr}, ${keyParam}) = ${stringParam})`;
             const arrayStringCheck = `has(JSONExtract(${targetExpr}, ${keyParam}, 'Array(String)'), ${stringParam})`;
             return `(${numberScalarCheck} OR ${arrayIntCheck} OR ${stringScalarCheck} OR ${arrayStringCheck})`;
@@ -547,10 +551,14 @@ ${messageSendsCteQuery}
     ),
     status_events AS (
 ${queryBody.statusEventsCte}
-    )${queryBody.triggeringEventsCte ? `,
+    )${
+      queryBody.triggeringEventsCte
+        ? `,
     triggering_events AS (
 ${queryBody.triggeringEventsCte}
-    )` : ""}
+    )`
+        : ""
+    }
     SELECT
       if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}') as last_event,
       uev.properties as properties,
@@ -563,8 +571,12 @@ ${queryBody.triggeringEventsCte}
       ms.workspace_id as workspace_id,
       if(uev.anonymous_id != '', 1, 0) as is_anonymous
 ${queryBody.fromClause}
-    ORDER BY ${sortByClause}${outerLimit ? `
-    ${outerLimit}` : ""}
+    ORDER BY ${sortByClause}${
+      outerLimit
+        ? `
+    ${outerLimit}`
+        : ""
+    }
   `;
 
   return {
@@ -594,10 +606,14 @@ ${messageSendsCteQuery}
     ),
     status_events AS (
 ${queryBody.statusEventsCte}
-    )${queryBody.triggeringEventsCte ? `,
+    )${
+      queryBody.triggeringEventsCte
+        ? `,
     triggering_events AS (
 ${queryBody.triggeringEventsCte}
-    )` : ""}
+    )`
+        : ""
+    }
     SELECT count() AS count
 ${queryBody.fromClause}
   `;
@@ -815,7 +831,10 @@ export async function searchDeliveries({
       span.setAttribute("channels", channels);
     }
     if (userId) {
-      span.setAttribute("userIdCount", Array.isArray(userId) ? userId.length : 1);
+      span.setAttribute(
+        "userIdCount",
+        Array.isArray(userId) ? userId.length : 1,
+      );
     }
     if (to) {
       span.setAttribute("toCount", to.length);
@@ -836,10 +855,16 @@ export async function searchDeliveries({
       span.setAttribute("endDate", endDate);
     }
     if (groupId) {
-      span.setAttribute("groupIdCount", Array.isArray(groupId) ? groupId.length : 1);
+      span.setAttribute(
+        "groupIdCount",
+        Array.isArray(groupId) ? groupId.length : 1,
+      );
     }
     if (triggeringPropertiesInput) {
-      span.setAttribute("triggeringPropertiesCount", triggeringPropertiesInput.length);
+      span.setAttribute(
+        "triggeringPropertiesCount",
+        triggeringPropertiesInput.length,
+      );
     }
     if (contextValuesInput) {
       span.setAttribute("contextValuesCount", contextValuesInput.length);
