@@ -23,6 +23,7 @@ import {
   workspace as dbWorkspace,
 } from "./db/schema";
 import logger from "./logger";
+import { withSpan } from "./openTelemetry";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import {
   CursorDirectionEnum,
@@ -73,135 +74,154 @@ export async function getUsers(
     throwOnError?: boolean;
   } = {},
 ): Promise<Result<GetUsersResponse, Error>> {
-  const childWorkspaceIds = (
-    await db()
-      .select({ id: dbWorkspace.id })
-      .from(dbWorkspace)
-      .where(eq(dbWorkspace.parentWorkspaceId, workspaceId))
-  ).map((o) => o.id);
-
-  // TODO implement alternate sorting
-  let cursor: Cursor | null = null;
-  if (unparsedCursor) {
-    try {
-      const decoded = deserializeCursor(unparsedCursor);
-      cursor = unwrap(schemaValidate(decoded, Cursor));
-    } catch (e) {
-      logger().error(
-        {
-          err: e,
-        },
-        "failed to decode user cursor",
+  return withSpan({ name: "get-users" }, async (span) => {
+    span.setAttribute("workspaceId", workspaceId);
+    span.setAttribute("limit", limit);
+    span.setAttribute("allowInternalSegment", allowInternalSegment);
+    span.setAttribute("allowInternalUserProperty", allowInternalUserProperty);
+    span.setAttribute("direction", direction);
+    span.setAttribute("userIdsCount", userIds?.length ?? 0);
+    if (subscriptionGroupFilter) {
+      span.setAttribute("subscriptionGroupFilter", subscriptionGroupFilter);
+    }
+    if (userPropertyFilter) {
+      span.setAttribute(
+        "userPropertyFilter",
+        userPropertyFilter.map((property) => property.id),
       );
     }
-  }
+    if (segmentFilter) {
+      span.setAttribute("segmentFilter", segmentFilter);
+    }
+    const childWorkspaceIds = (
+      await db()
+        .select({ id: dbWorkspace.id })
+        .from(dbWorkspace)
+        .where(eq(dbWorkspace.parentWorkspaceId, workspaceId))
+    ).map((o) => o.id);
 
-  const qb = new ClickHouseQueryBuilder();
-  const cursorClause = cursor
-    ? `and user_id ${
-        direction === CursorDirectionEnum.After ? ">" : "<="
-      } ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
-    : "";
-
-  const computedPropertyIds = [
-    ...(userPropertyFilter?.map((property) => property.id) ?? []),
-    ...(segmentFilter ?? []),
-  ];
-  const selectUserIdColumns = ["user_id"];
-
-  const havingSubClauses: string[] = [];
-  for (const property of userPropertyFilter ?? []) {
-    const varName = qb.getVariableName();
-    selectUserIdColumns.push(
-      `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
-    );
-    havingSubClauses.push(
-      `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
-    );
-  }
-  for (const segment of segmentFilter ?? []) {
-    const varName = qb.getVariableName();
-    selectUserIdColumns.push(
-      `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
-    );
-    havingSubClauses.push(`${varName} == True`);
-  }
-  if (subscriptionGroupFilter) {
-    const subscriptionGroupsRows = await db()
-      .select({
-        id: dbSubscriptionGroup.id,
-        type: dbSubscriptionGroup.type,
-        segmentId: dbSegment.id,
-      })
-      .from(dbSubscriptionGroup)
-      .innerJoin(
-        dbSegment,
-        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
-      )
-      .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
-    const subscriptionGroups = subscriptionGroupsRows.reduce(
-      (acc, subscriptionGroup) => {
-        acc.set(subscriptionGroup.id, {
-          type: subscriptionGroup.type as SubscriptionGroupType,
-          segmentId: subscriptionGroup.segmentId,
-        });
-        return acc;
-      },
-      new Map<
-        string,
-        {
-          type: SubscriptionGroupType;
-          segmentId: string;
-        }
-      >(),
-    );
-
-    for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
-      const sg = subscriptionGroups.get(subscriptionGroup);
-      if (!sg) {
+    // TODO implement alternate sorting
+    let cursor: Cursor | null = null;
+    if (unparsedCursor) {
+      try {
+        const decoded = deserializeCursor(unparsedCursor);
+        cursor = unwrap(schemaValidate(decoded, Cursor));
+      } catch (e) {
         logger().error(
           {
-            subscriptionGroupId: subscriptionGroup,
-            workspaceId,
+            err: e,
           },
-          "subscription group not found",
+          "failed to decode user cursor",
         );
-        if (throwOnError) {
-          throw new Error("subscription group not found");
-        }
-        continue;
-      }
-      const { type, segmentId } = sg;
-
-      computedPropertyIds.push(segmentId);
-
-      const varName = qb.getVariableName();
-      selectUserIdColumns.push(
-        `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
-      );
-      if (type === SubscriptionGroupType.OptOut) {
-        havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
-      } else {
-        havingSubClauses.push(`${varName} == True`);
       }
     }
-  }
 
-  const havingClause =
-    havingSubClauses.length > 0
-      ? `HAVING ${havingSubClauses.join(" AND ")}`
+    const qb = new ClickHouseQueryBuilder();
+    const cursorClause = cursor
+      ? `and user_id ${
+          direction === CursorDirectionEnum.After ? ">" : "<="
+        } ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
       : "";
-  const selectedStr = selectUserIdColumns.join(", ");
-  const userIdsClause = userIds
-    ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
-    : "";
 
-  const workspaceIdClause =
-    childWorkspaceIds.length > 0
-      ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
-      : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
+    const computedPropertyIds = [
+      ...(userPropertyFilter?.map((property) => property.id) ?? []),
+      ...(segmentFilter ?? []),
+    ];
+    const selectUserIdColumns = ["user_id"];
 
-  const query = `
+    const havingSubClauses: string[] = [];
+    for (const property of userPropertyFilter ?? []) {
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
+      );
+      havingSubClauses.push(
+        `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
+      );
+    }
+    for (const segment of segmentFilter ?? []) {
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
+      );
+      havingSubClauses.push(`${varName} == True`);
+    }
+    if (subscriptionGroupFilter) {
+      const subscriptionGroupsRows = await db()
+        .select({
+          id: dbSubscriptionGroup.id,
+          type: dbSubscriptionGroup.type,
+          segmentId: dbSegment.id,
+        })
+        .from(dbSubscriptionGroup)
+        .innerJoin(
+          dbSegment,
+          eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
+        )
+        .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
+      const subscriptionGroups = subscriptionGroupsRows.reduce(
+        (acc, subscriptionGroup) => {
+          acc.set(subscriptionGroup.id, {
+            type: subscriptionGroup.type as SubscriptionGroupType,
+            segmentId: subscriptionGroup.segmentId,
+          });
+          return acc;
+        },
+        new Map<
+          string,
+          {
+            type: SubscriptionGroupType;
+            segmentId: string;
+          }
+        >(),
+      );
+
+      for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
+        const sg = subscriptionGroups.get(subscriptionGroup);
+        if (!sg) {
+          logger().error(
+            {
+              subscriptionGroupId: subscriptionGroup,
+              workspaceId,
+            },
+            "subscription group not found",
+          );
+          if (throwOnError) {
+            throw new Error("subscription group not found");
+          }
+          continue;
+        }
+        const { type, segmentId } = sg;
+
+        computedPropertyIds.push(segmentId);
+
+        const varName = qb.getVariableName();
+        selectUserIdColumns.push(
+          `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+        );
+        if (type === SubscriptionGroupType.OptOut) {
+          havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
+        } else {
+          havingSubClauses.push(`${varName} == True`);
+        }
+      }
+    }
+
+    const havingClause =
+      havingSubClauses.length > 0
+        ? `HAVING ${havingSubClauses.join(" AND ")}`
+        : "";
+    const selectedStr = selectUserIdColumns.join(", ");
+    const userIdsClause = userIds
+      ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
+      : "";
+
+    const workspaceIdClause =
+      childWorkspaceIds.length > 0
+        ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
+        : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
+
+    const query = `
     SELECT
       assignments.user_id,
       groupArrayIf(
@@ -242,199 +262,201 @@ export async function getUsers(
     ORDER BY
       assignments.user_id ASC
   `;
-  const userPropertyCondition: SQL[] = [
-    childWorkspaceIds.length > 0
-      ? inArray(dbUserProperty.workspaceId, childWorkspaceIds)
-      : eq(dbUserProperty.workspaceId, workspaceId),
-  ];
-  if (!allowInternalUserProperty) {
-    userPropertyCondition.push(
-      eq(dbUserProperty.resourceType, DBResourceTypeEnum.Declarative),
-    );
-  }
-
-  const segmentCondition =
-    childWorkspaceIds.length > 0
-      ? inArray(dbSegment.workspaceId, childWorkspaceIds)
-      : eq(dbSegment.workspaceId, workspaceId);
-  const [results, userProperties, segments] = await Promise.all([
-    chQuery({
-      query,
-      query_params: qb.getQueries(),
-      clickhouse_settings: {
-        output_format_json_named_tuples_as_objects: 0,
-      },
-    }),
-    db()
-      .select({
-        name: dbUserProperty.name,
-        id: dbUserProperty.id,
-        definition: dbUserProperty.definition,
-      })
-      .from(dbUserProperty)
-      .where(and(...userPropertyCondition)),
-    db().select().from(dbSegment).where(segmentCondition),
-  ]);
-  const segmentNameById = new Map<string, Segment>();
-  for (const segment of segments) {
-    segmentNameById.set(segment.id, segment);
-  }
-  const userPropertyById = new Map<
-    string,
-    Pick<UserProperty, "id" | "name"> & {
-      definition: UserPropertyDefinition;
-    }
-  >();
-  for (const property of userProperties) {
-    const definition = schemaValidateWithErr(
-      property.definition,
-      UserPropertyDefinition,
-    );
-    if (definition.isErr()) {
-      logger().error(
-        {
-          err: definition.error,
-          id: property.id,
-          workspaceId,
-        },
-        "failed to validate user property definition",
+    const userPropertyCondition: SQL[] = [
+      childWorkspaceIds.length > 0
+        ? inArray(dbUserProperty.workspaceId, childWorkspaceIds)
+        : eq(dbUserProperty.workspaceId, workspaceId),
+    ];
+    if (!allowInternalUserProperty) {
+      userPropertyCondition.push(
+        eq(dbUserProperty.resourceType, DBResourceTypeEnum.Declarative),
       );
-      if (throwOnError) {
-        throw definition.error;
+    }
+
+    const segmentCondition =
+      childWorkspaceIds.length > 0
+        ? inArray(dbSegment.workspaceId, childWorkspaceIds)
+        : eq(dbSegment.workspaceId, workspaceId);
+    const [results, userProperties, segments] = await Promise.all([
+      chQuery({
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: {
+          output_format_json_named_tuples_as_objects: 0,
+        },
+      }),
+      db()
+        .select({
+          name: dbUserProperty.name,
+          id: dbUserProperty.id,
+          definition: dbUserProperty.definition,
+        })
+        .from(dbUserProperty)
+        .where(and(...userPropertyCondition)),
+      db().select().from(dbSegment).where(segmentCondition),
+    ]);
+    const segmentNameById = new Map<string, Segment>();
+    for (const segment of segments) {
+      segmentNameById.set(segment.id, segment);
+    }
+    const userPropertyById = new Map<
+      string,
+      Pick<UserProperty, "id" | "name"> & {
+        definition: UserPropertyDefinition;
       }
-      continue;
-    }
-    userPropertyById.set(property.id, {
-      id: property.id,
-      name: property.name,
-      definition: definition.value,
-    });
-  }
-
-  const rows = await results.json<{
-    user_id: string;
-    segments: [string, string][];
-    user_properties: [string, string][];
-  }>();
-  logger().debug(
-    {
-      rows,
-    },
-    "get users rows",
-  );
-  const users: GetUsersResponseItem[] = rows.map((row) => {
-    const userSegments: GetUsersResponseItem["segments"] = row.segments.flatMap(
-      ([id, value]) => {
-        const segment = segmentNameById.get(id);
-        if (!segment || !value) {
-          logger().error(
-            {
-              id,
-              workspaceId,
-            },
-            "segment not found",
-          );
-          return [];
-        }
-        if (!allowInternalSegment && segment.resourceType === "Internal") {
-          logger().debug(
-            {
-              segment,
-              workspaceId,
-            },
-            "skipping internal segment",
-          );
-          return [];
-        }
-        return {
-          id,
-          name: segment.name,
-        };
-      },
-    );
-    const properties: GetUsersResponseItem["properties"] =
-      row.user_properties.reduce<GetUsersResponseItem["properties"]>(
-        (acc, [id, value]) => {
-          const up = userPropertyById.get(id);
-          if (!up) {
-            logger().error(
-              {
-                id,
-                workspaceId,
-              },
-              "user property not found",
-            );
-            if (throwOnError) {
-              throw new Error("user property not found");
-            }
-            return acc;
-          }
-          const parsedValue = parseUserProperty(up.definition, value);
-          if (parsedValue.isErr()) {
-            logger().error(
-              {
-                err: parsedValue.error,
-                id,
-                workspaceId,
-              },
-              "failed to parse user property value",
-            );
-            if (throwOnError) {
-              throw new Error("failed to parse user property value");
-            }
-            return acc;
-          }
-          acc[id] = {
-            name: up.name,
-            value: parsedValue.value,
-          };
-          return acc;
-        },
-        {},
+    >();
+    for (const property of userProperties) {
+      const definition = schemaValidateWithErr(
+        property.definition,
+        UserPropertyDefinition,
       );
-    const user: GetUsersResponseItem = {
-      id: row.user_id,
-      segments: userSegments,
-      properties,
+      if (definition.isErr()) {
+        logger().error(
+          {
+            err: definition.error,
+            id: property.id,
+            workspaceId,
+          },
+          "failed to validate user property definition",
+        );
+        if (throwOnError) {
+          throw definition.error;
+        }
+        continue;
+      }
+      userPropertyById.set(property.id, {
+        id: property.id,
+        name: property.name,
+        definition: definition.value,
+      });
+    }
+
+    const rows = await results.json<{
+      user_id: string;
+      segments: [string, string][];
+      user_properties: [string, string][];
+    }>();
+    logger().debug(
+      {
+        rows,
+      },
+      "get users rows",
+    );
+    const users: GetUsersResponseItem[] = rows.map((row) => {
+      const userSegments: GetUsersResponseItem["segments"] =
+        row.segments.flatMap(([id, value]) => {
+          const segment = segmentNameById.get(id);
+          if (!segment || !value) {
+            logger().error(
+              {
+                id,
+                workspaceId,
+              },
+              "segment not found",
+            );
+            return [];
+          }
+          if (!allowInternalSegment && segment.resourceType === "Internal") {
+            logger().debug(
+              {
+                segment,
+                workspaceId,
+              },
+              "skipping internal segment",
+            );
+            return [];
+          }
+          return {
+            id,
+            name: segment.name,
+          };
+        });
+      const properties: GetUsersResponseItem["properties"] =
+        row.user_properties.reduce<GetUsersResponseItem["properties"]>(
+          (acc, [id, value]) => {
+            const up = userPropertyById.get(id);
+            if (!up) {
+              logger().error(
+                {
+                  id,
+                  workspaceId,
+                },
+                "user property not found",
+              );
+              if (throwOnError) {
+                throw new Error("user property not found");
+              }
+              return acc;
+            }
+            const parsedValue = parseUserProperty(up.definition, value);
+            if (parsedValue.isErr()) {
+              logger().error(
+                {
+                  err: parsedValue.error,
+                  id,
+                  workspaceId,
+                },
+                "failed to parse user property value",
+              );
+              if (throwOnError) {
+                throw new Error("failed to parse user property value");
+              }
+              return acc;
+            }
+            acc[id] = {
+              name: up.name,
+              value: parsedValue.value,
+            };
+            return acc;
+          },
+          {},
+        );
+      const user: GetUsersResponseItem = {
+        id: row.user_id,
+        segments: userSegments,
+        properties,
+      };
+      return user;
+    });
+
+    span.setAttribute("usersCount", users.length);
+
+    const lastResult = users[users.length - 1];
+    const firstResult = users[0];
+
+    let nextCursor: Cursor | null;
+    let previousCursor: Cursor | null;
+
+    if (lastResult && users.length >= limit) {
+      nextCursor = {
+        [CursorKey.UserIdKey]: lastResult.id,
+      };
+    } else {
+      nextCursor = null;
+    }
+
+    if (firstResult && cursor) {
+      previousCursor = {
+        [CursorKey.UserIdKey]: firstResult.id,
+      };
+    } else {
+      previousCursor = null;
+    }
+
+    const val: GetUsersResponse = {
+      users,
+      userCount: 0,
     };
-    return user;
+
+    if (nextCursor) {
+      val.nextCursor = serializeUserCursor(nextCursor);
+    }
+    if (previousCursor) {
+      val.previousCursor = serializeUserCursor(previousCursor);
+    }
+
+    return ok(val);
   });
-
-  const lastResult = users[users.length - 1];
-  const firstResult = users[0];
-
-  let nextCursor: Cursor | null;
-  let previousCursor: Cursor | null;
-
-  if (lastResult && users.length >= limit) {
-    nextCursor = {
-      [CursorKey.UserIdKey]: lastResult.id,
-    };
-  } else {
-    nextCursor = null;
-  }
-
-  if (firstResult && cursor) {
-    previousCursor = {
-      [CursorKey.UserIdKey]: firstResult.id,
-    };
-  } else {
-    previousCursor = null;
-  }
-
-  const val: GetUsersResponse = {
-    users,
-    userCount: 0,
-  };
-
-  if (nextCursor) {
-    val.nextCursor = serializeUserCursor(nextCursor);
-  }
-  if (previousCursor) {
-    val.previousCursor = serializeUserCursor(previousCursor);
-  }
-
-  return ok(val);
 }
 
 export async function deleteUsers({
