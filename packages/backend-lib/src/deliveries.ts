@@ -800,91 +800,139 @@ export async function searchDeliveries({
 }: SearchDeliveriesRequest & {
   abortSignal?: AbortSignal;
 }): Promise<SearchDeliveriesResponse> {
-  const queryBuilder = new ClickHouseQueryBuilder();
-
-  const { query, queryParams } = buildDeliverySearchQuery({
-    params: {
-      workspaceId,
-      cursor,
-      limit,
-      journeyId,
-      sortBy,
-      sortDirection,
-      channels,
-      userId,
-      to,
-      from,
-      statuses,
-      templateIds,
-      startDate,
-      endDate,
-      groupId,
-      broadcastId,
-      triggeringProperties: triggeringPropertiesInput,
-      contextValues: contextValuesInput,
-    },
-    qb: queryBuilder,
-  });
-
-  const offset = parseCursorOffset(cursor);
-  logger().debug(
-    {
-      query,
-      queryParams,
-    },
-    "searchDeliveries query",
-  );
-
-  const result = await chQuery({
-    query,
-    query_params: queryParams,
-    format: "JSONEachRow",
-    clickhouse_settings: {
-      date_time_output_format: "iso",
-      function_json_value_return_type_allow_complex: 1,
-    },
-    abort_signal: abortSignal,
-  });
-
-  const items: SearchDeliveriesResponseItem[] = [];
-  await streamClickhouseQuery(result, (rows) => {
-    for (const row of rows) {
-      const parseResult = schemaValidateWithErr(row, SearchDeliveryRow);
-      if (parseResult.isErr()) {
-        logger().error(
-          {
-            err: parseResult.error,
-            workspaceId,
-            journeyId,
-            userId,
-            row,
-          },
-          "Failed to parse delivery row",
-        );
-        continue;
-      }
-      const parsedRow = parseResult.value;
-      const parsedItem = parseSearchDeliveryRow(parsedRow);
-      if (!parsedItem) {
-        continue;
-      }
-      items.push(parsedItem);
+  return withSpan({ name: "search-deliveries" }, async (span) => {
+    span.setAttribute("workspaceId", workspaceId);
+    span.setAttribute("limit", limit);
+    span.setAttribute("sortBy", sortBy);
+    span.setAttribute("sortDirection", sortDirection);
+    if (journeyId) {
+      span.setAttribute("journeyId", journeyId);
     }
+    if (broadcastId) {
+      span.setAttribute("broadcastId", broadcastId);
+    }
+    if (channels) {
+      span.setAttribute("channels", channels);
+    }
+    if (userId) {
+      span.setAttribute("userIdCount", Array.isArray(userId) ? userId.length : 1);
+    }
+    if (to) {
+      span.setAttribute("toCount", to.length);
+    }
+    if (from) {
+      span.setAttribute("fromCount", from.length);
+    }
+    if (statuses) {
+      span.setAttribute("statuses", statuses);
+    }
+    if (templateIds) {
+      span.setAttribute("templateIdsCount", templateIds.length);
+    }
+    if (startDate) {
+      span.setAttribute("startDate", startDate);
+    }
+    if (endDate) {
+      span.setAttribute("endDate", endDate);
+    }
+    if (groupId) {
+      span.setAttribute("groupIdCount", Array.isArray(groupId) ? groupId.length : 1);
+    }
+    if (triggeringPropertiesInput) {
+      span.setAttribute("triggeringPropertiesCount", triggeringPropertiesInput.length);
+    }
+    if (contextValuesInput) {
+      span.setAttribute("contextValuesCount", contextValuesInput.length);
+    }
+
+    const queryBuilder = new ClickHouseQueryBuilder();
+
+    const { query, queryParams } = buildDeliverySearchQuery({
+      params: {
+        workspaceId,
+        cursor,
+        limit,
+        journeyId,
+        sortBy,
+        sortDirection,
+        channels,
+        userId,
+        to,
+        from,
+        statuses,
+        templateIds,
+        startDate,
+        endDate,
+        groupId,
+        broadcastId,
+        triggeringProperties: triggeringPropertiesInput,
+        contextValues: contextValuesInput,
+      },
+      qb: queryBuilder,
+    });
+
+    const offset = parseCursorOffset(cursor);
+    logger().debug(
+      {
+        query,
+        queryParams,
+      },
+      "searchDeliveries query",
+    );
+
+    const result = await chQuery({
+      query,
+      query_params: queryParams,
+      format: "JSONEachRow",
+      clickhouse_settings: {
+        date_time_output_format: "iso",
+        function_json_value_return_type_allow_complex: 1,
+      },
+      abort_signal: abortSignal,
+    });
+
+    const items: SearchDeliveriesResponseItem[] = [];
+    await streamClickhouseQuery(result, (rows) => {
+      for (const row of rows) {
+        const parseResult = schemaValidateWithErr(row, SearchDeliveryRow);
+        if (parseResult.isErr()) {
+          logger().error(
+            {
+              err: parseResult.error,
+              workspaceId,
+              journeyId,
+              userId,
+              row,
+            },
+            "Failed to parse delivery row",
+          );
+          continue;
+        }
+        const parsedRow = parseResult.value;
+        const parsedItem = parseSearchDeliveryRow(parsedRow);
+        if (!parsedItem) {
+          continue;
+        }
+        items.push(parsedItem);
+      }
+    });
+
+    span.setAttribute("itemsCount", items.length);
+
+    const responseCursor =
+      items.length >= limit ? serializeCursorOffset(offset + limit) : undefined;
+
+    const previousOffset = Math.max(offset - limit, 0);
+    const responsePreviousCursor =
+      offset > 0 ? serializeCursorOffset(previousOffset) : undefined;
+
+    return {
+      workspaceId,
+      items,
+      cursor: responseCursor,
+      previousCursor: responsePreviousCursor,
+    };
   });
-
-  const responseCursor =
-    items.length >= limit ? serializeCursorOffset(offset + limit) : undefined;
-
-  const previousOffset = Math.max(offset - limit, 0);
-  const responsePreviousCursor =
-    offset > 0 ? serializeCursorOffset(previousOffset) : undefined;
-
-  return {
-    workspaceId,
-    items,
-    cursor: responseCursor,
-    previousCursor: responsePreviousCursor,
-  };
 }
 
 export async function buildDeliveriesFile(
