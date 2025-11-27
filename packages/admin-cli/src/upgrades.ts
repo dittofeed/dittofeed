@@ -32,6 +32,13 @@ import {
   createUserEventsTables,
   GROUP_MATERIALIZED_VIEWS,
   GROUP_TABLES,
+  CREATE_USER_PROPERTY_IDX_DATE_MV_QUERY,
+  CREATE_USER_PROPERTY_IDX_DATE_QUERY,
+  CREATE_USER_PROPERTY_IDX_NUM_MV_QUERY,
+  CREATE_USER_PROPERTY_IDX_NUM_QUERY,
+  CREATE_USER_PROPERTY_IDX_STR_MV_QUERY,
+  CREATE_USER_PROPERTY_IDX_STR_QUERY,
+  CREATE_USER_PROPERTY_INDEX_CONFIG_QUERY,
 } from "backend-lib/src/userEvents/clickhouse";
 import { and, eq, inArray } from "drizzle-orm";
 import { SecretNames } from "isomorphic-lib/src/constants";
@@ -40,6 +47,29 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import { spawnWithEnv, spawnWithEnvSafe } from "./spawn";
+
+export async function createUserSortingIndexTables() {
+  logger().info("Creating user sorting index tables and materialized views.");
+  const queries = [
+    CREATE_USER_PROPERTY_INDEX_CONFIG_QUERY,
+    CREATE_USER_PROPERTY_IDX_NUM_QUERY,
+    CREATE_USER_PROPERTY_IDX_STR_QUERY,
+    CREATE_USER_PROPERTY_IDX_DATE_QUERY,
+    CREATE_USER_PROPERTY_IDX_NUM_MV_QUERY,
+    CREATE_USER_PROPERTY_IDX_STR_MV_QUERY,
+    CREATE_USER_PROPERTY_IDX_DATE_MV_QUERY,
+  ];
+
+  for (const q of queries) {
+    await command({
+      query: q,
+      clickhouse_settings: {
+        wait_end_of_query: 1,
+      },
+    });
+  }
+  logger().info("Finished creating user sorting index tables and views.");
+}
 
 export async function disentangleResendSendgrid() {
   logger().info("Disentangling resend and sendgrid email providers.");

@@ -47,7 +47,12 @@ import { onboardUser } from "backend-lib/src/onboarding";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
 import { transferResources } from "backend-lib/src/transferResources";
-import { NodeEnvEnum, UserEvent, Workspace } from "backend-lib/src/types";
+import {
+  CursorDirectionEnum,
+  NodeEnvEnum,
+  UserEvent,
+  Workspace,
+} from "backend-lib/src/types";
 import { buildUserEventsQuery } from "backend-lib/src/userEvents";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import {
@@ -96,6 +101,7 @@ import { resetWorkspaceData } from "./reset";
 import { spawnWithEnv } from "./spawn";
 import {
   backfillInternalEvents,
+  createUserSortingIndexTables,
   disentangleResendSendgrid,
   refreshNotExistsSegmentDefinitionUpdatedAt,
   transferComputedPropertyStateV2ToV3,
@@ -218,7 +224,10 @@ export function createCommands(yargs: Argv): Argv {
         });
 
         if (queries.length === 0) {
-          console.log("No queries generated (no matching index or default sort).");
+          // eslint-disable-next-line no-console
+          console.log(
+            "No queries generated (no matching index or default sort).",
+          );
           return;
         }
 
@@ -236,10 +245,21 @@ export function createCommands(yargs: Argv): Argv {
             );
 
         queries.forEach((query, idx) => {
+          // eslint-disable-next-line no-console
           console.log(`-- Query ${idx + 1} --`);
+          // eslint-disable-next-line no-console
           console.log(prependProdDb(query.trim()));
+          // eslint-disable-next-line no-console
           console.log();
         });
+      },
+    )
+    .command(
+      "create-user-sorting-index-tables",
+      "Creates user sorting index tables and materialized views in ClickHouse.",
+      (cmd) => cmd,
+      async () => {
+        await createUserSortingIndexTables();
       },
     )
     .command(
@@ -317,6 +337,7 @@ export function createCommands(yargs: Argv): Argv {
             "dittofeed.computed_property_state_v2",
           );
 
+        // eslint-disable-next-line no-console
         console.log(productionQuery.trim());
       },
     )
@@ -387,6 +408,7 @@ export function createCommands(yargs: Argv): Argv {
           },
         );
 
+        // eslint-disable-next-line no-console
         console.log(interpolated.trim());
       },
     )
@@ -1725,7 +1747,7 @@ export function createCommands(yargs: Argv): Argv {
         let cursor: UserEventV2 | null = null;
         let totalCopied = 0;
 
-        // eslint-disable-next-line no-constant-condition
+        // eslint-disable-next-line no-constant-condition, @typescript-eslint/no-unnecessary-condition
         while (true) {
           let queryText: string;
           const queryParams: Record<string, unknown> = {
