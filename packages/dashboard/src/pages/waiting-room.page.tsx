@@ -20,6 +20,7 @@ interface WaitingRoomProps {
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState<WaitingRoomProps>
 > = async (ctx) => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const { profile } = ctx.req as { profile?: OpenIdProfile };
   const rc = await getRequestContext(ctx.req.headers, profile);
   if (rc.isOk()) {

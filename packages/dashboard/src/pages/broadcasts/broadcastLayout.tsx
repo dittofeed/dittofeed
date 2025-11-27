@@ -128,6 +128,7 @@ export function BroadcastLayout({
   const stepIndex = order[activeStep];
   const sortedSteps = sortBy(
     toPairs(steps),
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     ([path]) => order[path as keyof typeof steps],
   );
   const [debouncedName] = useDebounce(editedBroadcast?.name, 1000);

@@ -233,6 +233,7 @@ function GitActionsSelect() {
   const newText = newConfig;
 
   const handleChange = (event: SelectChangeEvent) => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const value = event.target.value as string;
     switch (value) {
       case GitAction.CommitAndPush: {

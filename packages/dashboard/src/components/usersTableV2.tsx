@@ -367,8 +367,8 @@ const userIdCellRenderer = ({
 }: {
   getValue: () => unknown;
   userUriTemplate: string;
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 }) => (
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   <UserIdCell value={getValue() as string} userUriTemplate={userUriTemplate} />
 );
 

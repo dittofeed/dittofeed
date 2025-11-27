@@ -484,20 +484,20 @@ function MessageNodeFields({
       if (props.type === JourneyNodeType.MessageNode) {
         switch (props.channel) {
           case ChannelType.Email:
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             props.providerOverride =
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               (provider as WorkspaceWideEmailProviders | null) ?? undefined;
             break;
           case ChannelType.Sms:
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             props.providerOverride =
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               (provider as SmsProviderType | null) ?? undefined;
             break;
           case ChannelType.Webhook:
             break;
           case ChannelType.MobilePush:
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             props.providerOverride =
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               (provider as MobilePushProviderType | null) ?? undefined;
             break;
         }
