@@ -10,6 +10,7 @@ import { asc, eq } from "drizzle-orm";
 import { floorToNearest } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import * as R from "remeda";
 import { omit } from "remeda";
 
 import {
@@ -45,6 +46,7 @@ import {
   CursorDirectionEnum,
   EventType,
   GetUsersRequest,
+  GetUsersResponseItem,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
@@ -73,12 +75,12 @@ import {
   findAllUserPropertyAssignments,
   toSavedUserPropertyResource,
 } from "../userProperties";
+import { getUsers } from "../users";
 import type { ComputePropertiesArgs } from "./computePropertiesIncremental";
 import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
-import { getUsers } from "../users";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -8869,12 +8871,14 @@ describe("computeProperties", () => {
           await new Promise((resolve) => setTimeout(resolve, step.timeMs));
           break;
         case EventsStepType.Assert: {
-          let usersToVerify: TableUser[] | null = null;
+          let usersToVerify: GetUsersResponseItem[] | null = null;
           if (step.users && step.users.length > 0 && step.verifyUsersSearch) {
-            usersToVerify = await getUsers({
-              ...step.verifyUsersSearch(stepContext),
-              workspaceId,
-            });
+            usersToVerify = unwrap(
+              await getUsers({
+                ...step.verifyUsersSearch(stepContext),
+                workspaceId,
+              }),
+            );
           }
           const usersAssertions =
             step.users?.map(async (userOrFn) => {
@@ -8889,7 +8893,7 @@ describe("computeProperties", () => {
                   ? findAllUserPropertyAssignments({
                       userId: user.id,
                       workspaceId,
-                    }).then((up) =>
+                    }).then((up) => {
                       expect(
                         // only check the user id if it's explicitly asserted
                         // upon, for convenience
@@ -8897,8 +8901,27 @@ describe("computeProperties", () => {
                         `${
                           step.description ? `${step.description}: ` : ""
                         }user properties for: ${user.id}`,
-                      ).toEqual(user.properties),
-                    )
+                      ).toEqual(user.properties);
+                      if (usersToVerify) {
+                        const userToVerify = usersToVerify.find(
+                          (u) => u.id === user.id,
+                        );
+                        if (!userToVerify) {
+                          throw new Error(
+                            `user ${user.id} not found in users to verify`,
+                          );
+                        }
+                        const properties = R.mapValues(
+                          userToVerify.properties,
+                          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+                          (p) => p.value,
+                        );
+                        expect(
+                          properties,
+                          `${step.description ? `${step.description}: ` : ""}user properties for: ${user.id} should match user search result`,
+                        ).toEqual(user.properties);
+                      }
+                    })
                   : null,
                 user.segments
                   ? findAllSegmentAssignments({
