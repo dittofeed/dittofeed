@@ -213,8 +213,8 @@ export async function getUsers(
         selectUserIdColumns.push(
           `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
         );
+        hasStrictFilter = true;
       }
-      hasStrictFilter = true;
     }
 
     // [OPTIMIZATION] Implicit Anchor
@@ -747,8 +747,8 @@ export async function getUsersCount({
         `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
       );
       havingSubClauses.push(`${varName} == True`);
+      hasStrictFilter = true;
     }
-    hasStrictFilter = true;
   }
 
   // [OPTIMIZATION] Implicit Anchor
