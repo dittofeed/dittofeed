@@ -44,6 +44,7 @@ import {
   ComputedPropertyStepEnum,
   CursorDirectionEnum,
   EventType,
+  GetUsersRequest,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
@@ -77,6 +78,7 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
+import { getUsers } from "../users";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -574,6 +576,9 @@ interface AssertStep {
   type: EventsStepType.Assert;
   description?: string;
   users?: (TableUser | ((ctx: StepContext) => TableUser))[];
+  verifyUsersSearch?: (
+    ctx: StepContext,
+  ) => Omit<GetUsersRequest, "workspaceId">;
   userCount?: number;
   userPropertyUserCount?: number;
   states?: (TestState | ((ctx: StepContext) => TestState))[];
@@ -8864,6 +8869,13 @@ describe("computeProperties", () => {
           await new Promise((resolve) => setTimeout(resolve, step.timeMs));
           break;
         case EventsStepType.Assert: {
+          let usersToVerify: TableUser[] | null = null;
+          if (step.users && step.users.length > 0 && step.verifyUsersSearch) {
+            usersToVerify = await getUsers({
+              ...step.verifyUsersSearch(stepContext),
+              workspaceId,
+            });
+          }
           const usersAssertions =
             step.users?.map(async (userOrFn) => {
               let user: TableUser;
