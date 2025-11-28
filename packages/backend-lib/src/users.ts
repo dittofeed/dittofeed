@@ -191,19 +191,15 @@ export async function getUsers(
           }
           continue;
         }
-        const { type, segmentId } = sg;
+        const { segmentId } = sg;
 
         computedPropertyIds.push(segmentId);
 
         const varName = qb.getVariableName();
+        havingSubClauses.push(`${varName} = True`);
         selectUserIdColumns.push(
           `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
         );
-        if (type === SubscriptionGroupType.OptOut) {
-          havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
-        } else {
-          havingSubClauses.push(`${varName} == True`);
-        }
       }
     }
 
@@ -215,6 +211,16 @@ export async function getUsers(
     const userIdsClause = userIds
       ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
       : "";
+
+    // Filter the inner query to only scan rows relevant to the requested filters.
+    // This allows ClickHouse to skip massive amounts of data blocks.
+    const computedPropertyIdsClause =
+      computedPropertyIds.length > 0
+        ? `AND computed_property_id IN (${qb.addQueryValue(
+            computedPropertyIds,
+            "Array(String)",
+          )})`
+        : "";
 
     const workspaceIdClause =
       childWorkspaceIds.length > 0
@@ -250,6 +256,7 @@ export async function getUsers(
             ${workspaceIdClause}
             ${cursorClause}
             ${userIdsClause}
+            ${computedPropertyIdsClause}
           GROUP BY workspace_id, user_id
           ${havingClause}
           ORDER BY
@@ -666,17 +673,13 @@ export async function getUsersCount({
         );
         continue;
       }
-      const { type, segmentId } = sg;
+      const { segmentId } = sg;
       const varName = qb.getVariableName();
       computedPropertyIds.push(segmentId);
       selectUserIdColumns.push(
         `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
       );
-      if (type === SubscriptionGroupType.OptOut) {
-        havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
-      } else {
-        havingSubClauses.push(`${varName} == True`);
-      }
+      havingSubClauses.push(`${varName} == True`);
     }
   }
   const havingClause =
@@ -687,6 +690,16 @@ export async function getUsersCount({
   const userIdsClause = userIds
     ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
     : "";
+
+  // Filter the inner query to only scan rows relevant to the requested filters.
+  // This allows ClickHouse to skip massive amounts of data blocks.
+  const computedPropertyIdsClause =
+    computedPropertyIds.length > 0
+      ? `AND computed_property_id IN (${qb.addQueryValue(
+          computedPropertyIds,
+          "Array(String)",
+        )})`
+      : "";
 
   const workspaceIdClause =
     childWorkspaceIds.length > 0
@@ -704,6 +717,7 @@ export async function getUsersCount({
       WHERE
         ${workspaceIdClause}
         ${userIdsClause}
+        ${computedPropertyIdsClause}
       GROUP BY workspace_id, user_id
       ${havingClause}
     )
