@@ -8878,7 +8878,7 @@ describe("computeProperties", () => {
                 ...step.verifyUsersSearch(stepContext),
                 workspaceId,
               }),
-            );
+            ).users;
           }
           const usersAssertions =
             step.users?.map(async (userOrFn) => {
@@ -8939,6 +8939,26 @@ describe("computeProperties", () => {
                           step.description ? `${step.description}: ` : ""
                         }segments for: ${user.id}`,
                       ).toEqual(user.segments);
+                      if (usersToVerify) {
+                        const userToVerify = usersToVerify.find(
+                          (u) => u.id === user.id,
+                        );
+                        if (!userToVerify) {
+                          throw new Error(
+                            `user ${user.id} not found in users to verify`,
+                          );
+                        }
+                        const segmentsToVerify = userToVerify.segments.reduce<
+                          Record<string, boolean>
+                        >((memo, val) => {
+                          memo[val.name] = true;
+                          return memo;
+                        }, {});
+                        expect(
+                          segmentsToVerify,
+                          `${step.description ? `${step.description}: ` : ""}segments for: ${user.id} should match user search result`,
+                        ).toEqual(user.segments);
+                      }
                     })
                   : null,
                 user.subscriptions
