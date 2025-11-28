@@ -130,6 +130,15 @@ export async function getUsers(
     const selectUserIdColumns = ["user_id"];
 
     const havingSubClauses: string[] = [];
+
+    // Flag to track if we have a strict "Anchor" filter already.
+    // Strict filters are those that require a specific computed_property_id to be present,
+    // allowing ClickHouse to use its index efficiently.
+    let hasStrictFilter = false;
+
+    if (userPropertyFilter && userPropertyFilter.length > 0) {
+      hasStrictFilter = true;
+    }
     for (const property of userPropertyFilter ?? []) {
       const varName = qb.getVariableName();
       selectUserIdColumns.push(
@@ -138,6 +147,10 @@ export async function getUsers(
       havingSubClauses.push(
         `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
       );
+    }
+
+    if (segmentFilter && segmentFilter.length > 0) {
+      hasStrictFilter = true;
     }
     for (const segment of segmentFilter ?? []) {
       const varName = qb.getVariableName();
@@ -201,6 +214,24 @@ export async function getUsers(
           `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
         );
       }
+      hasStrictFilter = true;
+    }
+
+    // [OPTIMIZATION] Implicit Anchor
+    // If we have no filters (or only Opt-Out filters), we must anchor on the 'id' property
+    // to prevent a full table scan. The 'id' User Property serves as a perfect index of all users.
+    let addedIdAnchor = false;
+    if (!hasStrictFilter) {
+      const idProp = await db().query.userProperty.findFirst({
+        where: and(
+          eq(dbUserProperty.workspaceId, workspaceId),
+          eq(dbUserProperty.name, "id"),
+        ),
+      });
+      if (idProp) {
+        computedPropertyIds.push(idProp.id);
+        addedIdAnchor = true;
+      }
     }
 
     const havingClause =
@@ -211,6 +242,28 @@ export async function getUsers(
     const userIdsClause = userIds
       ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
       : "";
+
+    // Calculate Property Types to Scan
+    const propertyTypes: string[] = [];
+    if (
+      (segmentFilter && segmentFilter.length > 0) ||
+      (subscriptionGroupFilter && subscriptionGroupFilter.length > 0)
+    ) {
+      propertyTypes.push("'segment'");
+    }
+
+    // We scan user_properties if requested explicitly, OR if we injected the ID anchor
+    if (
+      (userPropertyFilter && userPropertyFilter.length > 0) ||
+      addedIdAnchor
+    ) {
+      propertyTypes.push("'user_property'");
+    }
+
+    const typeClause =
+      propertyTypes.length > 0
+        ? `AND type IN (${propertyTypes.join(", ")})`
+        : "";
 
     // Filter the inner query to only scan rows relevant to the requested filters.
     // This allows ClickHouse to skip massive amounts of data blocks.
@@ -256,6 +309,7 @@ export async function getUsers(
             ${workspaceIdClause}
             ${cursorClause}
             ${userIdsClause}
+            ${typeClause}
             ${computedPropertyIdsClause}
           GROUP BY workspace_id, user_id
           ${havingClause}
@@ -614,6 +668,15 @@ export async function getUsersCount({
   const selectUserIdColumns = ["user_id"];
 
   const havingSubClauses: string[] = [];
+
+  // Flag to track if we have a strict "Anchor" filter already.
+  // Strict filters are those that require a specific computed_property_id to be present,
+  // allowing ClickHouse to use its index efficiently.
+  let hasStrictFilter = false;
+
+  if (userPropertyFilter && userPropertyFilter.length > 0) {
+    hasStrictFilter = true;
+  }
   for (const property of userPropertyFilter ?? []) {
     const varName = qb.getVariableName();
     selectUserIdColumns.push(
@@ -622,6 +685,10 @@ export async function getUsersCount({
     havingSubClauses.push(
       `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
     );
+  }
+
+  if (segmentFilter && segmentFilter.length > 0) {
+    hasStrictFilter = true;
   }
   for (const segment of segmentFilter ?? []) {
     const varName = qb.getVariableName();
@@ -681,7 +748,26 @@ export async function getUsersCount({
       );
       havingSubClauses.push(`${varName} == True`);
     }
+    hasStrictFilter = true;
   }
+
+  // [OPTIMIZATION] Implicit Anchor
+  // If we have no filters (or only Opt-Out filters), we must anchor on the 'id' property
+  // to prevent a full table scan. The 'id' User Property serves as a perfect index of all users.
+  let addedIdAnchor = false;
+  if (!hasStrictFilter) {
+    const idProp = await db().query.userProperty.findFirst({
+      where: and(
+        eq(dbUserProperty.workspaceId, workspaceId),
+        eq(dbUserProperty.name, "id"),
+      ),
+    });
+    if (idProp) {
+      computedPropertyIds.push(idProp.id);
+      addedIdAnchor = true;
+    }
+  }
+
   const havingClause =
     havingSubClauses.length > 0
       ? `HAVING ${havingSubClauses.join(" AND ")}`
@@ -690,6 +776,23 @@ export async function getUsersCount({
   const userIdsClause = userIds
     ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
     : "";
+
+  // Calculate Property Types to Scan
+  const propertyTypes: string[] = [];
+  if (
+    (segmentFilter && segmentFilter.length > 0) ||
+    (subscriptionGroupFilter && subscriptionGroupFilter.length > 0)
+  ) {
+    propertyTypes.push("'segment'");
+  }
+
+  // We scan user_properties if requested explicitly, OR if we injected the ID anchor
+  if ((userPropertyFilter && userPropertyFilter.length > 0) || addedIdAnchor) {
+    propertyTypes.push("'user_property'");
+  }
+
+  const typeClause =
+    propertyTypes.length > 0 ? `AND type IN (${propertyTypes.join(", ")})` : "";
 
   // Filter the inner query to only scan rows relevant to the requested filters.
   // This allows ClickHouse to skip massive amounts of data blocks.
@@ -717,6 +820,7 @@ export async function getUsersCount({
       WHERE
         ${workspaceIdClause}
         ${userIdsClause}
+        ${typeClause}
         ${computedPropertyIdsClause}
       GROUP BY workspace_id, user_id
       ${havingClause}
