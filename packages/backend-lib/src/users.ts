@@ -216,6 +216,16 @@ export async function getUsers(
       ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
       : "";
 
+    // Filter the inner query to only scan rows relevant to the requested filters.
+    // This allows ClickHouse to skip massive amounts of data blocks.
+    const computedPropertyIdsClause =
+      computedPropertyIds.length > 0
+        ? `AND computed_property_id IN (${qb.addQueryValue(
+            computedPropertyIds,
+            "Array(String)",
+          )})`
+        : "";
+
     const workspaceIdClause =
       childWorkspaceIds.length > 0
         ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
@@ -250,6 +260,7 @@ export async function getUsers(
             ${workspaceIdClause}
             ${cursorClause}
             ${userIdsClause}
+            ${computedPropertyIdsClause}
           GROUP BY workspace_id, user_id
           ${havingClause}
           ORDER BY
@@ -688,6 +699,16 @@ export async function getUsersCount({
     ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
     : "";
 
+  // Filter the inner query to only scan rows relevant to the requested filters.
+  // This allows ClickHouse to skip massive amounts of data blocks.
+  const computedPropertyIdsClause =
+    computedPropertyIds.length > 0
+      ? `AND computed_property_id IN (${qb.addQueryValue(
+          computedPropertyIds,
+          "Array(String)",
+        )})`
+      : "";
+
   const workspaceIdClause =
     childWorkspaceIds.length > 0
       ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
@@ -704,6 +725,7 @@ export async function getUsersCount({
       WHERE
         ${workspaceIdClause}
         ${userIdsClause}
+        ${computedPropertyIdsClause}
       GROUP BY workspace_id, user_id
       ${havingClause}
     )
