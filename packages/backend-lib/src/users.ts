@@ -191,19 +191,15 @@ export async function getUsers(
           }
           continue;
         }
-        const { type, segmentId } = sg;
+        const { segmentId } = sg;
 
         computedPropertyIds.push(segmentId);
 
         const varName = qb.getVariableName();
+        havingSubClauses.push(`${varName} = True`);
         selectUserIdColumns.push(
           `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
         );
-        if (type === SubscriptionGroupType.OptOut) {
-          havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
-        } else {
-          havingSubClauses.push(`${varName} == True`);
-        }
       }
     }
 
@@ -677,17 +673,13 @@ export async function getUsersCount({
         );
         continue;
       }
-      const { type, segmentId } = sg;
+      const { segmentId } = sg;
       const varName = qb.getVariableName();
       computedPropertyIds.push(segmentId);
       selectUserIdColumns.push(
         `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
       );
-      if (type === SubscriptionGroupType.OptOut) {
-        havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
-      } else {
-        havingSubClauses.push(`${varName} == True`);
-      }
+      havingSubClauses.push(`${varName} == True`);
     }
   }
   const havingClause =
