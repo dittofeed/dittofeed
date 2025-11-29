@@ -147,10 +147,142 @@ describe("users", () => {
     describe("when a subscriptionGroupFilter is passed", () => {
       let userId1: string;
 
-      beforeEach(async () => {
+      beforeEach(() => {
         userId1 = randomUUID();
       });
 
+      describe("when the subscription group is opt-out", () => {
+        let subscriptionGroupId: string;
+        let userPropertyId: string;
+        let segmentId: string;
+
+        beforeEach(async () => {
+          subscriptionGroupId = randomUUID();
+          userPropertyId = randomUUID();
+          segmentId = randomUUID();
+          await Promise.all([
+            db().insert(dbSubscriptionGroup).values({
+              id: subscriptionGroupId,
+              workspaceId: workspace.id,
+              name: "subscriptionGroup1",
+              updatedAt: new Date(),
+              type: SubscriptionGroupType.OptOut,
+              channel: ChannelType.Email,
+            }),
+            db()
+              .insert(dbUserProperty)
+              .values({
+                id: userPropertyId,
+                workspaceId: workspace.id,
+                name: "id",
+                updatedAt: new Date(),
+                definition: {
+                  type: UserPropertyDefinitionType.Id,
+                },
+              }),
+          ]);
+
+          await db()
+            .insert(dbSegment)
+            .values({
+              id: segmentId,
+              workspaceId: workspace.id,
+              name: "segment1",
+              updatedAt: new Date(),
+              subscriptionGroupId,
+              definition: {
+                type: SegmentNodeType.SubscriptionGroup,
+                id: "1",
+                subscriptionGroupId,
+                subscriptionGroupType: SubscriptionGroupType.OptOut,
+              } satisfies SubscriptionGroupSegmentNode,
+            });
+        });
+        describe("when a user hasn't opted out", () => {
+          beforeEach(async () => {
+            await insertUserPropertyAssignments([
+              {
+                userPropertyId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                value: JSON.stringify(userId1),
+              },
+            ]);
+          });
+          it("the user is included in the results", async () => {
+            const result = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                subscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(result.users).toHaveLength(1);
+          });
+        });
+        describe("when a user has opted out", () => {
+          beforeEach(async () => {
+            await Promise.all([
+              insertUserPropertyAssignments([
+                {
+                  userPropertyId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  value: JSON.stringify(userId1),
+                },
+              ]),
+              insertSegmentAssignments([
+                {
+                  segmentId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  inSegment: false,
+                },
+              ]),
+            ]);
+          });
+          it("the user is not included in the results", async () => {
+            const result = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                subscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(result.users).toHaveLength(0);
+          });
+        });
+
+        describe("when a user has opted in", () => {
+          beforeEach(async () => {
+            await Promise.all([
+              insertUserPropertyAssignments([
+                {
+                  userPropertyId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  value: JSON.stringify(userId1),
+                },
+              ]),
+              insertSegmentAssignments([
+                {
+                  segmentId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  inSegment: true,
+                },
+              ]),
+            ]);
+          });
+          it("the user is included in the results", async () => {
+            const result = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                subscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(result.users).toHaveLength(1);
+          });
+        });
+      });
       describe("when the subscription group is opt-in", () => {
         let subscriptionGroupId: string;
         let userPropertyId: string;
@@ -506,6 +638,41 @@ describe("users", () => {
             }),
           );
           expect(userCount).toEqual(1);
+        });
+      });
+
+      describe("when the subscription group is opt-out", () => {
+        beforeEach(async () => {
+          await upsertSubscriptionGroup({
+            id: subscriptionGroupId,
+            workspaceId: workspace.id,
+            name: "subscriptionGroup1",
+            type: SubscriptionGroupType.OptOut,
+            channel: ChannelType.Email,
+          });
+        });
+        it("filters users by segment id and subscription group id", async () => {
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              segmentFilter: [segmentId1],
+              subscriptionGroupFilter: [subscriptionGroupId],
+            }),
+          );
+
+          expect(result.users).toHaveLength(2);
+          expect(result.users.map((user) => user.id).sort()).toEqual([
+            userIds[0],
+            userIds[2],
+          ]);
+          const { userCount } = unwrap(
+            await getUsersCount({
+              workspaceId: workspace.id,
+              segmentFilter: [segmentId1],
+              subscriptionGroupFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(userCount).toEqual(2);
         });
       });
     });
