@@ -26,6 +26,11 @@ import logger from "./logger";
 import { withSpan } from "./openTelemetry";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import {
+  getSubscriptionGroupDetails,
+  getSubscriptionGroupsWithAssignments,
+  inSubscriptionGroup,
+} from "./subscriptionGroups";
+import {
   CursorDirectionEnum,
   DBResourceTypeEnum,
   DeleteUsersRequest,
@@ -37,6 +42,7 @@ import {
   SubscriptionGroupType,
   UserProperty,
   UserPropertyDefinition,
+  UserSubscriptionItem,
 } from "./types";
 
 enum CursorKey {
@@ -63,6 +69,7 @@ export async function getUsers(
     direction = CursorDirectionEnum.After,
     limit = 10,
     subscriptionGroupFilter,
+    includeSubscriptions,
   }: GetUsersRequest,
   {
     allowInternalSegment = false,
@@ -479,6 +486,37 @@ export async function getUsers(
       };
       return user;
     });
+
+    // Fetch subscriptions if requested
+    if (includeSubscriptions && users.length > 0) {
+      const userIdsForSubscriptions = users.map((u) => u.id);
+      const subscriptionGroupsWithAssignments =
+        await getSubscriptionGroupsWithAssignments({
+          workspaceId,
+          userIds: userIdsForSubscriptions,
+        });
+
+      // Group subscriptions by userId
+      const subscriptionsByUserId = new Map<string, UserSubscriptionItem[]>();
+      for (const sg of subscriptionGroupsWithAssignments) {
+        const details = getSubscriptionGroupDetails(sg);
+        const subscribed = inSubscriptionGroup(details);
+        const subscriptionItem: UserSubscriptionItem = {
+          id: sg.id,
+          name: sg.name,
+          subscribed,
+        };
+
+        const existing = subscriptionsByUserId.get(sg.userId) ?? [];
+        existing.push(subscriptionItem);
+        subscriptionsByUserId.set(sg.userId, existing);
+      }
+
+      // Attach subscriptions to each user
+      for (const user of users) {
+        user.subscriptions = subscriptionsByUserId.get(user.id) ?? [];
+      }
+    }
 
     span.setAttribute("usersCount", users.length);
 
