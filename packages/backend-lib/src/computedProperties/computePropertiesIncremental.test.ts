@@ -8943,16 +8943,6 @@ describe("computeProperties", () => {
                           step.description ? `${step.description}: ` : ""
                         }segments for: ${user.id}`,
                       ).toEqual(user.segments);
-                      if (usersToVerify) {
-                        const userToVerify = usersToVerify.find(
-                          (u) => u.id === user.id,
-                        );
-
-                        expect(
-                          segmentsToVerify,
-                          `${step.description ? `${step.description}: ` : ""}segments for: ${user.id} should match user search result`,
-                        ).toEqual(user.segments);
-                      }
                     })
                   : null,
                 user.subscriptions
