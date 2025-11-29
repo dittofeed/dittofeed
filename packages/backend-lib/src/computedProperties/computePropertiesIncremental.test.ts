@@ -32,6 +32,7 @@ import { toJourneyResource } from "../journeys";
 import logger from "../logger";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
+  getSubscriptionGroupSegmentName,
   getUserSubscriptions,
   subscriptionGroupToResource,
   upsertSubscriptionGroup,
@@ -7032,18 +7033,26 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description: "user is initially not opted out by default",
-          users: [
-            {
-              id: "user-1",
-              subscriptions: {
-                optOut: true,
-              },
-            },
+          // users: [
+          //   {
+          //     id: "user-1",
+          //     subscriptions: {
+          //       optOut: true,
+          //     },
+          //   },
+          // ],
+          // verifyUsersSearch: (ctx) => ({
+          //   subscriptionGroupFilter: [ctx.subscriptionGroups[0]!.id],
+          //   includeSubscriptions: true,
+          // }),
+          states: [
+            ({ subscriptionGroups }) => ({
+              userId: "user-1",
+              type: "segment",
+              name: getSubscriptionGroupSegmentName(subscriptionGroups[0]!.id),
+              lastValue: "FIXME",
+            }),
           ],
-          verifyUsersSearch: (ctx) => ({
-            subscriptionGroupFilter: [ctx.subscriptionGroups[0]!.id],
-            includeSubscriptions: true,
-          }),
         },
         {
           type: EventsStepType.Sleep,
