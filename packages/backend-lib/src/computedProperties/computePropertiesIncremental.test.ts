@@ -7008,6 +7008,9 @@ describe("computeProperties", () => {
               },
             },
           ],
+          verifyUsersSearch: (ctx) => ({
+            subscriptionGroupFilter: [ctx.subscriptionGroups[0]!.id],
+          }),
         },
         {
           type: EventsStepType.Sleep,
@@ -8873,13 +8876,28 @@ describe("computeProperties", () => {
           break;
         case EventsStepType.Assert: {
           let usersToVerify: GetUsersResponseItem[] | null = null;
+          logger().warn(
+            {
+              verifyUsersSearch: step.verifyUsersSearch?.(stepContext),
+              usersCount: step.users?.length,
+            },
+            "loc3",
+          );
           if (step.users && step.users.length > 0 && step.verifyUsersSearch) {
-            usersToVerify = unwrap(
+            const result = unwrap(
               await getUsers({
                 ...step.verifyUsersSearch(stepContext),
                 workspaceId,
               }),
-            ).users;
+            );
+            usersToVerify = result.users;
+            logger().warn(
+              {
+                usersToVerify,
+                result,
+              },
+              "loc2",
+            );
           }
           const usersAssertions =
             step.users?.map(async (userOrFn) => {
@@ -8925,7 +8943,8 @@ describe("computeProperties", () => {
                     })
                   : null,
                 user.segments
-                  ? findAllSegmentAssignments({
+                  ? // FIXME pass users in by source through two means, through direct lookup of segments and through getUsers
+                    findAllSegmentAssignments({
                       userId: user.id,
                       workspaceId,
                       segmentIds: segments
@@ -8955,6 +8974,13 @@ describe("computeProperties", () => {
                           memo[val.name] = true;
                           return memo;
                         }, {});
+                        logger().warn(
+                          {
+                            segmentsToVerify,
+                            segments: user?.segments,
+                          },
+                          "loc1",
+                        );
                         expect(
                           segmentsToVerify,
                           `${step.description ? `${step.description}: ` : ""}segments for: ${user.id} should match user search result`,

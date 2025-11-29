@@ -157,16 +157,6 @@ export async function getSubscriptionGroupsWithAssignments({
       const assignments = assignmentsByUser[userId] ?? [];
       const assignment = assignments.find((a) => a.segmentId === segmentId);
       const value = assignment?.inSegment ?? null;
-      logger().warn(
-        {
-          subscriptionGroup: sg,
-          value,
-          assignment,
-          userId,
-          segmentId,
-        },
-        "getSubscriptionGroupsWithAssignments loc1",
-      );
       return {
         ...sg,
         userId,
@@ -543,14 +533,6 @@ export async function getUserSubscriptions({
     const details = getSubscriptionGroupDetails(sg);
     const isSubscribed = inSubscriptionGroup(details);
 
-    logger().warn(
-      {
-        isSubscribed,
-        subscriptionGroup: sg,
-        details,
-      },
-      "getUserSubscriptions loc2",
-    );
     return {
       name: sg.name,
       id: sg.id,
