@@ -401,8 +401,11 @@ function toTestState(
 
 interface TableUser {
   id: string;
+  // map from name to value
   properties?: Record<string, JSONValue>;
+  // map from name to value
   segments?: Record<string, boolean | null>;
+  // map from name to value
   subscriptions?: Record<string, boolean>;
 }
 
@@ -7010,6 +7013,7 @@ describe("computeProperties", () => {
           ],
           verifyUsersSearch: (ctx) => ({
             subscriptionGroupFilter: [ctx.subscriptionGroups[0]!.id],
+            includeSubscriptions: true,
           }),
         },
         {
