@@ -10,7 +10,6 @@ import { asc, eq } from "drizzle-orm";
 import { floorToNearest } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import * as R from "remeda";
 import { omit } from "remeda";
 
 import {
@@ -124,7 +123,35 @@ interface DisaggregatedState {
 }
 
 function toTableUser(ctx: StepContext, user: GetUsersResponseItem): TableUser {
-  throw new Error("not implemented");
+  const tableUser: TableUser = {
+    id: user.id,
+  };
+
+  // Convert properties from Record<id, {name, value}> to Record<name, value>
+  if (Object.keys(user.properties).length > 0) {
+    tableUser.properties = {};
+    for (const { name, value } of Object.values(user.properties)) {
+      tableUser.properties[name] = value as JSONValue;
+    }
+  }
+
+  // Convert segments from Array<{id, name}> to Record<name, true>
+  if (user.segments.length > 0) {
+    tableUser.segments = {};
+    for (const segment of user.segments) {
+      tableUser.segments[segment.name] = true;
+    }
+  }
+
+  // Convert subscriptions from Array<{id, name, subscribed}> to Record<name, subscribed>
+  if (user.subscriptions && user.subscriptions.length > 0) {
+    tableUser.subscriptions = {};
+    for (const subscription of user.subscriptions) {
+      tableUser.subscriptions[subscription.name] = subscription.subscribed;
+    }
+  }
+
+  return tableUser;
 }
 async function readDisaggregatedStates({
   workspaceId,
@@ -457,8 +484,7 @@ function sanitizeOptions(
   if (!options) {
     return options;
   }
-  const { clickhouseClient, ...rest } = options;
-  void clickhouseClient;
+  const { clickhouseClient: _, ...rest } = options;
   if (Object.keys(rest).length === 0) {
     return undefined;
   }
@@ -9169,6 +9195,43 @@ describe("computeProperties", () => {
           await resolvedSegmentStatesAssertions;
           await userCountAssertion;
           await Promise.all(usersAssertions);
+
+          // Assert on users returned from getUsers if verifyUsersSearch was provided
+          if (usersToVerify !== null && step.users) {
+            const expectedUsers: TableUser[] = step.users.map((userOrFn) =>
+              typeof userOrFn === "function" ? userOrFn(stepContext) : userOrFn,
+            );
+
+            // Verify each expected user is found in usersToVerify
+            for (const expectedUser of expectedUsers) {
+              const actualUser = usersToVerify.find(
+                (u) => u.id === expectedUser.id,
+              );
+              expect(
+                actualUser,
+                `${step.description ? `${step.description}: ` : ""}expected user ${expectedUser.id} to be returned from getUsers`,
+              ).toBeDefined();
+
+              if (expectedUser.properties) {
+                expect(
+                  actualUser?.properties,
+                  `${step.description ? `${step.description}: ` : ""}properties from getUsers for: ${expectedUser.id}`,
+                ).toEqual(expectedUser.properties);
+              }
+              if (expectedUser.segments) {
+                expect(
+                  actualUser?.segments,
+                  `${step.description ? `${step.description}: ` : ""}segments from getUsers for: ${expectedUser.id}`,
+                ).toEqual(expectedUser.segments);
+              }
+              if (expectedUser.subscriptions) {
+                expect(
+                  actualUser?.subscriptions,
+                  `${step.description ? `${step.description}: ` : ""}subscriptions from getUsers for: ${expectedUser.id}`,
+                ).toEqual(expectedUser.subscriptions);
+              }
+            }
+          }
 
           for (const assertedJourney of step.journeys ?? []) {
             const journey = journeys.find(
