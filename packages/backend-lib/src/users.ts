@@ -164,6 +164,7 @@ export async function getUsers(
       selectUserIdColumns.push(
         `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
       );
+
       havingSubClauses.push(`${varName} == True`);
     }
     if (subscriptionGroupFilter) {
@@ -211,16 +212,20 @@ export async function getUsers(
           }
           continue;
         }
-        const { segmentId } = sg;
+        const { segmentId, type } = sg;
 
         computedPropertyIds.push(segmentId);
 
         const varName = qb.getVariableName();
-        havingSubClauses.push(`${varName} = True`);
         selectUserIdColumns.push(
           `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
         );
-        hasStrictFilter = true;
+        if (type === SubscriptionGroupType.OptOut) {
+          havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
+        } else {
+          havingSubClauses.push(`${varName} == True`);
+          hasStrictFilter = true;
+        }
       }
     }
 
@@ -778,14 +783,18 @@ export async function getUsersCount({
         );
         continue;
       }
-      const { segmentId } = sg;
+      const { segmentId, type } = sg;
       const varName = qb.getVariableName();
       computedPropertyIds.push(segmentId);
       selectUserIdColumns.push(
         `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
       );
-      havingSubClauses.push(`${varName} == True`);
-      hasStrictFilter = true;
+      if (type === SubscriptionGroupType.OptOut) {
+        havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
+      } else {
+        havingSubClauses.push(`${varName} == True`);
+        hasStrictFilter = true;
+      }
     }
   }
 
