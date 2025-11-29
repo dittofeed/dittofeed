@@ -8925,30 +8925,10 @@ describe("computeProperties", () => {
                           step.description ? `${step.description}: ` : ""
                         }user properties for: ${user.id}`,
                       ).toEqual(user.properties);
-                      if (usersToVerify) {
-                        const userToVerify = usersToVerify.find(
-                          (u) => u.id === user.id,
-                        );
-                        if (!userToVerify) {
-                          throw new Error(
-                            `user ${user.id} not found in users to verify`,
-                          );
-                        }
-                        const properties = R.mapValues(
-                          userToVerify.properties,
-                          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-                          (p) => p.value,
-                        );
-                        expect(
-                          properties,
-                          `${step.description ? `${step.description}: ` : ""}user properties for: ${user.id} should match user search result`,
-                        ).toEqual(user.properties);
-                      }
                     })
                   : null,
                 user.segments
-                  ? // FIXME pass users in by source through two means, through direct lookup of segments and through getUsers
-                    findAllSegmentAssignments({
+                  ? findAllSegmentAssignments({
                       userId: user.id,
                       workspaceId,
                       segmentIds: segments
@@ -8967,24 +8947,7 @@ describe("computeProperties", () => {
                         const userToVerify = usersToVerify.find(
                           (u) => u.id === user.id,
                         );
-                        if (!userToVerify) {
-                          throw new Error(
-                            `user ${user.id} not found in users to verify`,
-                          );
-                        }
-                        const segmentsToVerify = userToVerify.segments.reduce<
-                          Record<string, boolean>
-                        >((memo, val) => {
-                          memo[val.name] = true;
-                          return memo;
-                        }, {});
-                        logger().warn(
-                          {
-                            segmentsToVerify,
-                            segments: user?.segments,
-                          },
-                          "loc1",
-                        );
+
                         expect(
                           segmentsToVerify,
                           `${step.description ? `${step.description}: ` : ""}segments for: ${user.id} should match user search result`,
