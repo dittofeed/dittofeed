@@ -6996,7 +6996,6 @@ describe("computeProperties", () => {
     },
     {
       description: "with an opt out subscription group segment",
-      only: true,
       subscriptionGroups: [
         {
           name: "optOut",
@@ -7005,6 +7004,12 @@ describe("computeProperties", () => {
         },
       ],
       userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
         {
           name: "email",
           definition: {
@@ -8910,13 +8915,6 @@ describe("computeProperties", () => {
           break;
         case EventsStepType.Assert: {
           let usersToVerify: TableUser[] | null = null;
-          logger().warn(
-            {
-              verifyUsersSearch: step.verifyUsersSearch?.(stepContext),
-              usersCount: step.users?.length,
-            },
-            "loc3",
-          );
           if (step.users && step.users.length > 0 && step.verifyUsersSearch) {
             const result = unwrap(
               await getUsers({
@@ -8926,13 +8924,6 @@ describe("computeProperties", () => {
             );
             usersToVerify = result.users.map((user) =>
               toTableUser(stepContext, user),
-            );
-            logger().warn(
-              {
-                usersToVerify,
-                result,
-              },
-              "loc2",
             );
           }
           const usersAssertions =
