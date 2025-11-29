@@ -123,6 +123,9 @@ interface DisaggregatedState {
   event_time: string;
 }
 
+function toTableUser(ctx: StepContext, user: GetUsersResponseItem): TableUser {
+  throw new Error("not implemented");
+}
 async function readDisaggregatedStates({
   workspaceId,
 }: {
@@ -8879,7 +8882,7 @@ describe("computeProperties", () => {
           await new Promise((resolve) => setTimeout(resolve, step.timeMs));
           break;
         case EventsStepType.Assert: {
-          let usersToVerify: GetUsersResponseItem[] | null = null;
+          let usersToVerify: TableUser[] | null = null;
           logger().warn(
             {
               verifyUsersSearch: step.verifyUsersSearch?.(stepContext),
@@ -8894,7 +8897,9 @@ describe("computeProperties", () => {
                 workspaceId,
               }),
             );
-            usersToVerify = result.users;
+            usersToVerify = result.users.map((user) =>
+              toTableUser(stepContext, user),
+            );
             logger().warn(
               {
                 usersToVerify,
