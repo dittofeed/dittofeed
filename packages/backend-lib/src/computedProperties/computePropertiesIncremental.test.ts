@@ -8954,11 +8954,7 @@ describe("computeProperties", () => {
                   ? findAllSegmentAssignments({
                       userId: user.id,
                       workspaceId,
-                      segmentIds: segments
-                        .filter((s) =>
-                          test.segments?.some((t) => t.name === s.name),
-                        )
-                        .map((s) => s.id),
+                      segmentIds: segments.map((s) => s.id),
                     }).then((s) => {
                       expect(
                         s,
