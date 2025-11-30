@@ -19,6 +19,7 @@ import {
   ChannelType,
   CursorDirectionEnum,
   EventType,
+  GetUsersResponseItem,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
@@ -26,6 +27,7 @@ import {
   SubscriptionGroupType,
   UserProperty,
   UserPropertyDefinitionType,
+  UserSubscriptionItem,
   Workspace,
   WorkspaceTypeAppEnum,
 } from "./types";
@@ -147,7 +149,7 @@ describe("users", () => {
     describe("when a subscriptionGroupFilter is passed", () => {
       let userId1: string;
 
-      beforeEach(async () => {
+      beforeEach(() => {
         userId1 = randomUUID();
       });
 
@@ -1098,6 +1100,139 @@ describe("users", () => {
           );
           expect(userCount).toEqual(2);
         });
+      });
+    });
+
+    describe("when includeSubscriptions is true", () => {
+      let userId1: string;
+      let userId2: string;
+      let subscriptionGroupId1: string;
+      let subscriptionGroupId2: string;
+      let userPropertyId: string;
+
+      beforeEach(async () => {
+        userId1 = randomUUID();
+        userId2 = randomUUID();
+        subscriptionGroupId1 = randomUUID();
+        subscriptionGroupId2 = randomUUID();
+        userPropertyId = randomUUID();
+
+        // Create user property
+        await db()
+          .insert(dbUserProperty)
+          .values({
+            id: userPropertyId,
+            workspaceId: workspace.id,
+            name: "id",
+            updatedAt: new Date(),
+            definition: {
+              type: UserPropertyDefinitionType.Id,
+            },
+          });
+
+        // Create subscription groups
+        await upsertSubscriptionGroup({
+          id: subscriptionGroupId1,
+          workspaceId: workspace.id,
+          name: "Marketing Emails",
+          type: SubscriptionGroupType.OptOut,
+          channel: ChannelType.Email,
+        });
+        await upsertSubscriptionGroup({
+          id: subscriptionGroupId2,
+          workspaceId: workspace.id,
+          name: "Product Updates",
+          type: SubscriptionGroupType.OptIn,
+          channel: ChannelType.Email,
+        });
+
+        // Create users with property assignments
+        await insertUserPropertyAssignments([
+          {
+            userPropertyId,
+            userId: userId1,
+            workspaceId: workspace.id,
+            value: JSON.stringify(userId1),
+          },
+          {
+            userPropertyId,
+            userId: userId2,
+            workspaceId: workspace.id,
+            value: JSON.stringify(userId2),
+          },
+        ]);
+
+        // user1 opts out of marketing, user2 opts in to product updates
+        await updateUserSubscriptions({
+          workspaceId: workspace.id,
+          userUpdates: [
+            {
+              userId: userId1,
+              changes: {
+                [subscriptionGroupId1]: false, // opt out of marketing
+              },
+            },
+            {
+              userId: userId2,
+              changes: {
+                [subscriptionGroupId2]: true, // opt in to product updates
+              },
+            },
+          ],
+        });
+      });
+
+      it("returns users with subscriptions array", async () => {
+        const result = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            includeSubscriptions: true,
+          }),
+        );
+
+        expect(result.users.length).toBeGreaterThanOrEqual(2);
+
+        const user1: GetUsersResponseItem | undefined = result.users.find(
+          (u) => u.id === userId1,
+        );
+        const user2: GetUsersResponseItem | undefined = result.users.find(
+          (u) => u.id === userId2,
+        );
+
+        expect(user1).toBeDefined();
+        expect(user2).toBeDefined();
+        expect(user1?.subscriptions).toBeDefined();
+        expect(user2?.subscriptions).toBeDefined();
+
+        // user1 opted out of marketing (opt-out subscription), should be unsubscribed
+        const user1MarketingSub: UserSubscriptionItem | undefined =
+          user1?.subscriptions?.find((s) => s.id === subscriptionGroupId1);
+        expect(user1MarketingSub).toEqual({
+          id: subscriptionGroupId1,
+          name: "Marketing Emails",
+          subscribed: false,
+        });
+
+        // user2 opted in to product updates (opt-in subscription)
+        const user2ProductSub: UserSubscriptionItem | undefined =
+          user2?.subscriptions?.find((s) => s.id === subscriptionGroupId2);
+        expect(user2ProductSub).toEqual({
+          id: subscriptionGroupId2,
+          name: "Product Updates",
+          subscribed: true,
+        });
+      });
+
+      it("does not include subscriptions when includeSubscriptions is false or not provided", async () => {
+        const result = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+          }),
+        );
+
+        for (const user of result.users) {
+          expect(user.subscriptions).toBeUndefined();
+        }
       });
     });
   });

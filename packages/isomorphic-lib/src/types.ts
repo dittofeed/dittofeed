@@ -2525,7 +2525,9 @@ export const UserPropertyStatusEnum = {
   Paused: "Paused",
 } as const;
 
-export const UserPropertyStatus = Type.KeyOf(Type.Const(UserPropertyStatusEnum));
+export const UserPropertyStatus = Type.KeyOf(
+  Type.Const(UserPropertyStatusEnum),
+);
 
 export type UserPropertyStatus = Static<typeof UserPropertyStatus>;
 
@@ -2702,10 +2704,19 @@ export const GetUsersRequest = Type.Object({
   subscriptionGroupFilter: Type.Optional(Type.Array(Type.String())),
   userPropertyFilter: Type.Optional(GetUsersUserPropertyFilter),
   workspaceId: Type.String(),
+  includeSubscriptions: Type.Optional(Type.Boolean()),
   sortBy: Type.Optional(Type.String()),
 });
 
 export type GetUsersRequest = Static<typeof GetUsersRequest>;
+
+export const UserSubscriptionItem = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  subscribed: Type.Boolean(),
+});
+
+export type UserSubscriptionItem = Static<typeof UserSubscriptionItem>;
 
 const GetUsersResponseItem = Type.Object({
   id: Type.String(),
@@ -2723,6 +2734,7 @@ const GetUsersResponseItem = Type.Object({
       name: Type.String(),
     }),
   ),
+  subscriptions: Type.Optional(Type.Array(UserSubscriptionItem)),
 });
 
 export type GetUsersResponseItem = Static<typeof GetUsersResponseItem>;
