@@ -32,6 +32,7 @@ import { toJourneyResource } from "../journeys";
 import logger from "../logger";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
+  getSubscriptionGroupSegmentName,
   getUserSubscriptions,
   subscriptionGroupToResource,
   upsertSubscriptionGroup,
@@ -44,6 +45,8 @@ import {
   ComputedPropertyStepEnum,
   CursorDirectionEnum,
   EventType,
+  GetUsersRequest,
+  GetUsersResponseItem,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
@@ -72,6 +75,7 @@ import {
   findAllUserPropertyAssignments,
   toSavedUserPropertyResource,
 } from "../userProperties";
+import { getUsers } from "../users";
 import type { ComputePropertiesArgs } from "./computePropertiesIncremental";
 import {
   segmentNodeStateId,
@@ -119,6 +123,37 @@ interface DisaggregatedState {
   event_time: string;
 }
 
+function toTableUser(ctx: StepContext, user: GetUsersResponseItem): TableUser {
+  const tableUser: TableUser = {
+    id: user.id,
+  };
+
+  // Convert properties from Record<id, {name, value}> to Record<name, value>
+  if (Object.keys(user.properties).length > 0) {
+    tableUser.properties = {};
+    for (const { name, value } of Object.values(user.properties)) {
+      tableUser.properties[name] = value as JSONValue;
+    }
+  }
+
+  // Convert segments from Array<{id, name}> to Record<name, true>
+  if (user.segments.length > 0) {
+    tableUser.segments = {};
+    for (const segment of user.segments) {
+      tableUser.segments[segment.name] = true;
+    }
+  }
+
+  // Convert subscriptions from Array<{id, name, subscribed}> to Record<name, subscribed>
+  if (user.subscriptions && user.subscriptions.length > 0) {
+    tableUser.subscriptions = {};
+    for (const subscription of user.subscriptions) {
+      tableUser.subscriptions[subscription.name] = subscription.subscribed;
+    }
+  }
+
+  return tableUser;
+}
 async function readDisaggregatedStates({
   workspaceId,
 }: {
@@ -397,8 +432,11 @@ function toTestState(
 
 interface TableUser {
   id: string;
+  // map from name to value
   properties?: Record<string, JSONValue>;
+  // map from name to value
   segments?: Record<string, boolean | null>;
+  // map from name to value
   subscriptions?: Record<string, boolean>;
 }
 
@@ -447,8 +485,7 @@ function sanitizeOptions(
   if (!options) {
     return options;
   }
-  const { clickhouseClient, ...rest } = options;
-  void clickhouseClient;
+  const { clickhouseClient: _, ...rest } = options;
   if (Object.keys(rest).length === 0) {
     return undefined;
   }
@@ -574,6 +611,9 @@ interface AssertStep {
   type: EventsStepType.Assert;
   description?: string;
   users?: (TableUser | ((ctx: StepContext) => TableUser))[];
+  verifyUsersSearch?: (
+    ctx: StepContext,
+  ) => Omit<GetUsersRequest, "workspaceId">;
   userCount?: number;
   userPropertyUserCount?: number;
   states?: (TestState | ((ctx: StepContext) => TestState))[];
@@ -6965,6 +7005,12 @@ describe("computeProperties", () => {
       ],
       userProperties: [
         {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+        {
           name: "email",
           definition: {
             type: UserPropertyDefinitionType.Trait,
@@ -7000,6 +7046,10 @@ describe("computeProperties", () => {
               },
             },
           ],
+          verifyUsersSearch: (ctx) => ({
+            subscriptionGroupFilter: [ctx.subscriptionGroups[0]!.id],
+            includeSubscriptions: true,
+          }),
         },
         {
           type: EventsStepType.Sleep,
@@ -8864,6 +8914,18 @@ describe("computeProperties", () => {
           await new Promise((resolve) => setTimeout(resolve, step.timeMs));
           break;
         case EventsStepType.Assert: {
+          let usersToVerify: TableUser[] | null = null;
+          if (step.users && step.users.length > 0 && step.verifyUsersSearch) {
+            const result = unwrap(
+              await getUsers({
+                ...step.verifyUsersSearch(stepContext),
+                workspaceId,
+              }),
+            );
+            usersToVerify = result.users.map((user) =>
+              toTableUser(stepContext, user),
+            );
+          }
           const usersAssertions =
             step.users?.map(async (userOrFn) => {
               let user: TableUser;
@@ -8877,7 +8939,7 @@ describe("computeProperties", () => {
                   ? findAllUserPropertyAssignments({
                       userId: user.id,
                       workspaceId,
-                    }).then((up) =>
+                    }).then((up) => {
                       expect(
                         // only check the user id if it's explicitly asserted
                         // upon, for convenience
@@ -8885,18 +8947,14 @@ describe("computeProperties", () => {
                         `${
                           step.description ? `${step.description}: ` : ""
                         }user properties for: ${user.id}`,
-                      ).toEqual(user.properties),
-                    )
+                      ).toEqual(user.properties);
+                    })
                   : null,
                 user.segments
                   ? findAllSegmentAssignments({
                       userId: user.id,
                       workspaceId,
-                      segmentIds: segments
-                        .filter((s) =>
-                          test.segments?.some((t) => t.name === s.name),
-                        )
-                        .map((s) => s.id),
+                      segmentIds: segments.map((s) => s.id),
                     }).then((s) => {
                       expect(
                         s,
@@ -9125,6 +9183,43 @@ describe("computeProperties", () => {
           await resolvedSegmentStatesAssertions;
           await userCountAssertion;
           await Promise.all(usersAssertions);
+
+          // Assert on users returned from getUsers if verifyUsersSearch was provided
+          if (usersToVerify !== null && step.users) {
+            const expectedUsers: TableUser[] = step.users.map((userOrFn) =>
+              typeof userOrFn === "function" ? userOrFn(stepContext) : userOrFn,
+            );
+
+            // Verify each expected user is found in usersToVerify
+            for (const expectedUser of expectedUsers) {
+              const actualUser = usersToVerify.find(
+                (u) => u.id === expectedUser.id,
+              );
+              expect(
+                actualUser,
+                `${step.description ? `${step.description}: ` : ""}expected user ${expectedUser.id} to be returned from getUsers`,
+              ).toBeDefined();
+
+              if (expectedUser.properties) {
+                expect(
+                  actualUser?.properties,
+                  `${step.description ? `${step.description}: ` : ""}properties from getUsers for: ${expectedUser.id}`,
+                ).toEqual(expectedUser.properties);
+              }
+              if (expectedUser.segments) {
+                expect(
+                  actualUser?.segments,
+                  `${step.description ? `${step.description}: ` : ""}segments from getUsers for: ${expectedUser.id}`,
+                ).toEqual(expectedUser.segments);
+              }
+              if (expectedUser.subscriptions) {
+                expect(
+                  actualUser?.subscriptions,
+                  `${step.description ? `${step.description}: ` : ""}subscriptions from getUsers for: ${expectedUser.id}`,
+                ).toEqual(expectedUser.subscriptions);
+              }
+            }
+          }
 
           for (const assertedJourney of step.journeys ?? []) {
             const journey = journeys.find(
