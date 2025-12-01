@@ -19,7 +19,7 @@ x-backend-app-env: &backend-app-env
   SIGNOUT_URL: "/dashboard/signout"
 services:
   ee:
-    image: dittofeed/dittofeed-ee:v0.22.0-ee.6
+    image: dittofeed/dittofeed-ee:v0.23.0-ee.1
     command: node --max-old-space-size=${MEM_LIMIT:-824} ./packages/ee/dist/scripts/startLite.js
     deploy:
       resources:
@@ -83,7 +83,7 @@ services:
     networks:
       - dittofeed-network-ee
   admin-cli:
-    image: dittofeed/dittofeed-admin-cli-licensed:v0.22.0-ee.6
+    image: dittofeed/dittofeed-admin-cli-licensed:v0.23.0-ee.1
     entrypoint: []
     profiles: ["admin-cli"]
     command: tail -f /dev/null

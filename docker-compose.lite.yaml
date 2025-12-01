@@ -19,7 +19,7 @@ x-backend-app-env: &backend-app-env
   DASHBOARD_API_BASE: ${DASHBOARD_API_BASE:-http://localhost:3000}
 services:
   lite:
-    image: ${IMAGE_REPOSITORY:-dittofeed/dittofeed-lite}:${IMAGE_TAG:-v0.22.0}
+    image: ${IMAGE_REPOSITORY:-dittofeed/dittofeed-lite}:${IMAGE_TAG:-v0.23.0}
     restart: always
     command: node --max-old-space-size=${LITE_MEM_LIMIT:-824} ./packages/lite/dist/scripts/startLite.js --workspace-name=${WORKSPACE_NAME:-Default}
     logging:
@@ -45,7 +45,7 @@ services:
       - dittofeed-network-lite
   # useful for upgrading dittofeed
   admin-cli:
-    image: dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.22.0}
+    image: dittofeed/dittofeed-admin-cli:${IMAGE_TAG:-v0.23.0}
     entrypoint: []
     profiles: ["admin-cli"]
     command: tail -f /dev/null
