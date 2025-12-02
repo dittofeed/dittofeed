@@ -416,6 +416,7 @@ export default function TemplatesTable({
     onError: (error) => {
       console.error("Failed to duplicate template:", error);
       const errorMsg =
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         (error as AxiosError<{ message?: string }>).response?.data.message ??
         "API Error";
       setSnackbarMessage(`Failed to duplicate template: ${errorMsg}`);
@@ -703,6 +704,7 @@ export default function TemplatesTable({
                             {{
                               asc: <ArrowUpward fontSize="inherit" />,
                               desc: <ArrowDownward fontSize="inherit" />,
+                              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                             }[header.column.getIsSorted() as string] ?? (
                               <UnfoldMore
                                 fontSize="inherit"

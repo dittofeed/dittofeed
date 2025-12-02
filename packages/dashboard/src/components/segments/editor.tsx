@@ -919,6 +919,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
     ) => {
       updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const newOperator = e.target.value as SegmentOperatorType;
           const existingProperty = n.hasProperties?.[i];
           if (!existingProperty) {
@@ -1156,6 +1157,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
     ) => {
       updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const newOperator = e.target.value as SegmentOperatorType;
           const existingProperty = n.whereProperties?.[i];
           if (!existingProperty) {
@@ -1330,6 +1332,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   const handleTimesOperatorChange: SelectProps["onChange"] = (e) => {
     updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.Performed) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         n.timesOperator = e.target.value as RelationalOperators;
       }
     });
@@ -1407,6 +1410,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     ) => {
       updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const newOperator = e.target.value as SegmentOperatorType;
           const existingProperty = n.properties?.[i];
           if (!existingProperty) {
@@ -1664,6 +1668,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   const handleTimesOperatorChange: SelectProps["onChange"] = (e) => {
     updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (n.type === SegmentNodeType.KeyedPerformed) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         n.timesOperator = e.target.value as RelationalOperators;
       }
     });
@@ -1734,6 +1739,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
     ) => {
       updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.KeyedPerformed) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const newOperator = e.target
             .value as KeyedPerformedPropertiesOperator["type"];
           const existingProperty = n.properties?.[i];
@@ -2189,6 +2195,7 @@ function AbsoluteTimestampValueSelect({
         node.type === SegmentNodeType.Trait &&
         node.operator.type === SegmentOperatorType.AbsoluteTimestamp
       ) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         node.operator.direction = e.target.value as CursorDirectionEnum;
       }
     });

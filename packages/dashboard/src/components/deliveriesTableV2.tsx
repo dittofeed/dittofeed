@@ -208,6 +208,7 @@ export function DeliveriesTableV2({
   );
 
   const templateIds = getFilterValues(deliveriesFilterState, "template");
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const channels = getFilterValues(deliveriesFilterState, "channel") as
     | ChannelType[]
     | undefined;
@@ -241,6 +242,7 @@ export function DeliveriesTableV2({
       deliveriesFilterState,
       "template",
     );
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const downloadChannels = getFilterValues(
       deliveriesFilterState,
       "channel",
@@ -484,6 +486,7 @@ export function DeliveriesTableV2({
                 sx={greySelectStyles}
                 onChange={(e) => {
                   setState((draft) => {
+                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                     draft.query.sortBy = e.target
                       .value as SearchDeliveriesRequestSortBy;
                     draft.deliveriesBody.cursor = null;
@@ -519,6 +522,7 @@ export function DeliveriesTableV2({
                 sx={greySelectStyles}
                 onChange={(e) => {
                   setState((draft) => {
+                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                     draft.query.sortDirection = e.target.value as SortDirection;
                     draft.deliveriesBody.cursor = null;
                   });

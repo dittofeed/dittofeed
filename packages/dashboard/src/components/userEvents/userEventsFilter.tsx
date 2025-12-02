@@ -266,8 +266,8 @@ export function SelectedUserEventsFilters({
           let label: string;
           if (Array.isArray(value)) {
             // Resolve IDs to names for array values
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             const resolvedValues = value.map((id) =>
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               resolveIdToName(key as Key, id),
             );
             label = resolvedValues.join(" OR ");
