@@ -26,6 +26,7 @@ import authController from "../controllers/singleTenantController";
 import subscriptionGroupsController from "../controllers/subscriptionGroupsController";
 import subscriptionManagementController from "../controllers/subscriptionManagementController";
 import userPropertiesController from "../controllers/userPropertiesController";
+import userPropertyIndexController from "../controllers/userPropertyIndexController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
 import { BuildAppOpts } from "../types";
@@ -61,6 +62,9 @@ export default async function router(
           prefix: "/subscription-groups",
         }),
         f.register(userPropertiesController, { prefix: "/user-properties" }),
+        f.register(userPropertyIndexController, {
+          prefix: "/user-property-indices",
+        }),
         f.register(broadcastsController, {
           prefix: "/broadcasts",
         }),

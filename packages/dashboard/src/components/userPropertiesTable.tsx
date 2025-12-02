@@ -395,6 +395,7 @@ export default function UserPropertiesTable({
     onError: (error) => {
       console.error("Failed to duplicate user property:", error);
       const errorMsg =
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         (error.response?.data as { message?: string }).message ?? "API Error";
       setSnackbarMessage(`Failed to duplicate user property: ${errorMsg}`);
       setSnackbarOpen(true);
@@ -596,6 +597,7 @@ export default function UserPropertiesTable({
                               {{
                                 asc: <ArrowUpward fontSize="inherit" />,
                                 desc: <ArrowDownward fontSize="inherit" />,
+                                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                               }[header.column.getIsSorted() as string] ?? (
                                 <UnfoldMore
                                   fontSize="inherit"

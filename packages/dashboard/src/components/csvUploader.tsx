@@ -52,6 +52,7 @@ export function CsvUploader({
         });
       } catch (error) {
         if (axios.isAxiosError(error)) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const axiosError = error as AxiosError<CsvUploadValidationError>;
           if (axiosError.response?.data && axiosError.response.status === 400) {
             setRowErrors(

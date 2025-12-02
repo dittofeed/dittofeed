@@ -154,6 +154,7 @@ function PermissionDialog({
             <Select
               value={role}
               label="Role"
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               onChange={(e) => setRole(e.target.value as Role)}
             >
               <MenuItem value={RoleEnum.Admin}>Admin</MenuItem>
@@ -563,6 +564,7 @@ export function PermissionsTable() {
                             {{
                               asc: <ArrowUpward fontSize="inherit" />,
                               desc: <ArrowDownward fontSize="inherit" />,
+                              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                             }[header.column.getIsSorted() as string] ?? (
                               <UnfoldMore
                                 fontSize="inherit"

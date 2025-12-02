@@ -232,6 +232,7 @@ function LinkCell({
   column: ColumnDef<Delivery>;
   renderUrl?: RenderUrl;
 }) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const value = column.id ? (row.getValue(column.id) as string) : null;
   const uri = useMemo(() => {
     return renderUrl ? renderUrl(row.original) : null;

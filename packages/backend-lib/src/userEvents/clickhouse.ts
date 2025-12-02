@@ -175,6 +175,107 @@ export const CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY = `
     computed_at;
 `;
 
+// User Property Index Tables and Materialized Views
+export const CREATE_USER_PROPERTY_INDEX_CONFIG_QUERY = `
+  CREATE TABLE IF NOT EXISTS user_property_index_config (
+    workspace_id String,
+    user_property_id String,
+    type Enum('String' = 1, 'Number' = 2, 'Date' = 3)
+  )
+  ENGINE = ReplacingMergeTree()
+  ORDER BY (workspace_id, user_property_id);
+`;
+
+export const CREATE_USER_PROPERTY_IDX_NUM_QUERY = `
+  CREATE TABLE IF NOT EXISTS user_property_idx_num (
+    workspace_id LowCardinality(String),
+    computed_property_id LowCardinality(String),
+    user_id String,
+    value_num Float64,
+    assigned_at DateTime64(3)
+  )
+  ENGINE = ReplacingMergeTree(assigned_at)
+  PARTITION BY (workspace_id, toYear(assigned_at))
+  ORDER BY (workspace_id, computed_property_id, value_num, user_id);
+`;
+
+export const CREATE_USER_PROPERTY_IDX_STR_QUERY = `
+  CREATE TABLE IF NOT EXISTS user_property_idx_str (
+    workspace_id LowCardinality(String),
+    computed_property_id LowCardinality(String),
+    user_id String,
+    value_str String,
+    assigned_at DateTime64(3)
+  )
+  ENGINE = ReplacingMergeTree(assigned_at)
+  PARTITION BY (workspace_id, toYear(assigned_at))
+  ORDER BY (workspace_id, computed_property_id, value_str, user_id);
+`;
+
+export const CREATE_USER_PROPERTY_IDX_DATE_QUERY = `
+  CREATE TABLE IF NOT EXISTS user_property_idx_date (
+    workspace_id LowCardinality(String),
+    computed_property_id LowCardinality(String),
+    user_id String,
+    value_date DateTime64(3),
+    assigned_at DateTime64(3)
+  )
+  ENGINE = ReplacingMergeTree(assigned_at)
+  PARTITION BY (workspace_id, toYear(assigned_at))
+  ORDER BY (workspace_id, computed_property_id, value_date, user_id);
+`;
+
+export const CREATE_USER_PROPERTY_IDX_NUM_MV_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS user_property_idx_num_mv
+  TO user_property_idx_num
+  AS SELECT
+    ue.workspace_id,
+    ue.computed_property_id,
+    ue.user_id,
+    JSONExtractFloat(ue.user_property_value) as value_num,
+    ue.assigned_at
+  FROM computed_property_assignments_v2 as ue
+  WHERE ue.type = 'user_property'
+    AND computed_property_id IN (
+      SELECT user_property_id FROM user_property_index_config WHERE type = 'Number'
+    )
+    AND isNotNull(value_num);
+`;
+
+export const CREATE_USER_PROPERTY_IDX_STR_MV_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS user_property_idx_str_mv
+  TO user_property_idx_str
+  AS SELECT
+    ue.workspace_id,
+    ue.computed_property_id,
+    ue.user_id,
+    trim(BOTH '"' FROM ue.user_property_value) as value_str,
+    ue.assigned_at
+  FROM computed_property_assignments_v2 as ue
+  WHERE ue.type = 'user_property'
+    AND computed_property_id IN (
+      SELECT user_property_id FROM user_property_index_config WHERE type = 'String'
+    )
+    AND length(value_str) > 0;
+`;
+
+export const CREATE_USER_PROPERTY_IDX_DATE_MV_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS user_property_idx_date_mv
+  TO user_property_idx_date
+  AS SELECT
+    ue.workspace_id,
+    ue.computed_property_id,
+    ue.user_id,
+    parseDateTime64BestEffortOrNull(trim(BOTH '"' FROM ue.user_property_value), 3) as value_date,
+    ue.assigned_at
+  FROM computed_property_assignments_v2 as ue
+  WHERE ue.type = 'user_property'
+    AND computed_property_id IN (
+      SELECT user_property_id FROM user_property_index_config WHERE type = 'Date'
+    )
+    AND isNotNull(value_date);
+`;
+
 // TODO route through kafka
 export async function insertProcessedComputedProperties({
   assignments,
@@ -404,6 +505,11 @@ export async function createUserEventsTables() {
     // Only processes DF-prefixed track events which contain templateId, broadcastId, etc.
     CREATE_INTERNAL_EVENTS_TABLE_QUERY,
     ...GROUP_TABLES,
+    // User property index tables for sortable user properties
+    CREATE_USER_PROPERTY_INDEX_CONFIG_QUERY,
+    CREATE_USER_PROPERTY_IDX_NUM_QUERY,
+    CREATE_USER_PROPERTY_IDX_STR_QUERY,
+    CREATE_USER_PROPERTY_IDX_DATE_QUERY,
   ];
 
   // Only create cold storage table if enabled in config
@@ -455,6 +561,10 @@ export async function createUserEventsTables() {
     // Materialized view that populates internal_events table with DF-prefixed track events
     CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
     ...GROUP_MATERIALIZED_VIEWS,
+    // Materialized views for user property indices
+    CREATE_USER_PROPERTY_IDX_NUM_MV_QUERY,
+    CREATE_USER_PROPERTY_IDX_STR_MV_QUERY,
+    CREATE_USER_PROPERTY_IDX_DATE_MV_QUERY,
   ];
 
   await Promise.all(

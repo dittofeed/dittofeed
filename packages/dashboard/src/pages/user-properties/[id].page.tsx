@@ -350,6 +350,7 @@ function TraitUserPropertyDefinitionEditor({
         current.type === UserPropertyDefinitionType.Group &&
         definition.id
       ) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         traitDefinition = current.nodes.find(
           (n) => n.id === definition.id,
         ) as TraitUserPropertyDefinition;
@@ -621,6 +622,7 @@ function PerformedUserPropertyDefinitionEditor({
         current.type === UserPropertyDefinitionType.Group &&
         definition.id
       ) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         d = current.nodes.find(
           (n) => n.id === definition.id,
         ) as PerformedUserPropertyDefinition;

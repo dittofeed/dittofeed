@@ -1027,6 +1027,7 @@ export default function TemplateEditor({
     if (channel === ChannelType.Webhook) {
       if (draftToRender?.type === ChannelType.Webhook) {
         to =
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           (debouncedUserProperties[draftToRender.identifierKey] as
             | string
             | null) ?? null;

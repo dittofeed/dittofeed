@@ -90,6 +90,7 @@ export default async function secretsController(fastify: FastifyInstance) {
         } else {
           newConfig = undefined;
         }
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const configValueToSave = newConfig as
           | Record<string, JSONValue>
           | undefined;

@@ -518,6 +518,7 @@ export function UserEventsTable({
         .andThen((traits) =>
           schemaValidateWithErr(traits, RelatedResourceProperties),
         )
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         .unwrapOr({} as RelatedResourceProperties);
 
       const eventJourneyId = parsedTraits.journeyId ?? "";

@@ -247,6 +247,7 @@ export function DateRangeSelector({
             },
           }}
           sx={greySelectStyles}
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           onChange={(e) => handleTimeOptionChange(e.target.value as string)}
           size="small"
         >

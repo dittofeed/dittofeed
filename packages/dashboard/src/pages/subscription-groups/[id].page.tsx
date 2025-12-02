@@ -70,6 +70,7 @@ export default function SubscriptionGroupConfig() {
     if (editedSubscriptionGroup) {
       updateEditedSubscriptionGroup({
         id: editedSubscriptionGroup.id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         channel: e.target.value as ChannelType,
       });
     }

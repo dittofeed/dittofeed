@@ -8,6 +8,7 @@ export class DiContainer {
    * Create a typed service key
    */
   static createServiceKey<T>(description: string): symbol & { __type?: T } {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return Symbol(description) as symbol & { __type?: T };
   }
 
@@ -28,6 +29,7 @@ export class DiContainer {
       throw new Error(`Service ${key.description} not registered`);
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return service as T;
   }
 

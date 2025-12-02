@@ -59,6 +59,12 @@ module.exports = {
     ],
     "@typescript-eslint/no-unsafe-enum-comparison": "error",
     "@typescript-eslint/no-duplicate-enum-values": "error",
+    "@typescript-eslint/consistent-type-assertions": [
+      "error",
+      {
+        assertionStyle: "never",
+      },
+    ],
   },
   root: true,
 };

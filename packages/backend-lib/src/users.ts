@@ -20,6 +20,7 @@ import {
   subscriptionGroup as dbSubscriptionGroup,
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
+  userPropertyIndex as dbUserPropertyIndex,
   workspace as dbWorkspace,
 } from "./db/schema";
 import logger from "./logger";
@@ -44,19 +45,463 @@ import {
   UserPropertyDefinition,
   UserSubscriptionItem,
 } from "./types";
+import { UserPropertyIndexType } from "./userPropertyIndices";
 
 enum CursorKey {
   UserIdKey = "u",
+  PhaseKey = "p",
+  ValueKey = "v",
 }
 
 const Cursor = Type.Object({
   [CursorKey.UserIdKey]: Type.String(),
+  [CursorKey.PhaseKey]: Type.Optional(
+    Type.Union([Type.Literal("indexed"), Type.Literal("remainder")]),
+  ),
+  [CursorKey.ValueKey]: Type.Optional(
+    Type.Union([Type.String(), Type.Number(), Type.Null()]),
+  ),
 });
 
 type Cursor = Static<typeof Cursor>;
 
 function serializeUserCursor(cursor: Cursor): string {
   return serializeCursor(cursor);
+}
+
+export async function buildGetUsersQueriesForDebug(
+  request: GetUsersRequest,
+): Promise<string[]> {
+  const queries: string[] = [];
+  const {
+    workspaceId,
+    cursor: unparsedCursor,
+    segmentFilter,
+    userIds,
+    userPropertyFilter,
+    direction = CursorDirectionEnum.After,
+    limit = 10,
+    subscriptionGroupFilter,
+    sortBy,
+  } = request;
+
+  const childWorkspaceIds = (
+    await db()
+      .select({ id: dbWorkspace.id })
+      .from(dbWorkspace)
+      .where(eq(dbWorkspace.parentWorkspaceId, workspaceId))
+  ).map((o) => o.id);
+
+  let cursor: Cursor | null = null;
+  if (unparsedCursor) {
+    try {
+      const decoded = deserializeCursor(unparsedCursor);
+      cursor = unwrap(schemaValidate(decoded, Cursor));
+    } catch (e) {
+      logger().error(
+        {
+          err: e,
+        },
+        "failed to decode user cursor",
+      );
+    }
+  }
+
+  let subscriptionGroups = new Map<
+    string,
+    {
+      type: SubscriptionGroupType;
+      segmentId: string;
+    }
+  >();
+  if (subscriptionGroupFilter?.length) {
+    const subscriptionGroupsRows = await db()
+      .select({
+        id: dbSubscriptionGroup.id,
+        type: dbSubscriptionGroup.type,
+        segmentId: dbSegment.id,
+      })
+      .from(dbSubscriptionGroup)
+      .innerJoin(
+        dbSegment,
+        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
+      )
+      .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
+    subscriptionGroups = subscriptionGroupsRows.reduce(
+      (acc, subscriptionGroup) => {
+        const subscriptionGroupType =
+          subscriptionGroup.type === SubscriptionGroupType.OptOut
+            ? SubscriptionGroupType.OptOut
+            : SubscriptionGroupType.OptIn;
+        acc.set(subscriptionGroup.id, {
+          type: subscriptionGroupType,
+          segmentId: subscriptionGroup.segmentId,
+        });
+        return acc;
+      },
+      new Map<
+        string,
+        {
+          type: SubscriptionGroupType;
+          segmentId: string;
+        }
+      >(),
+    );
+  }
+
+  const buildWorkspaceIdClause = (qb: ClickHouseQueryBuilder) =>
+    childWorkspaceIds.length > 0
+      ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
+      : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
+
+  const buildFilterClausesDebug = async (qb: ClickHouseQueryBuilder) => {
+    const computedPropertyIds = [
+      ...(userPropertyFilter?.map((property) => property.id) ?? []),
+      ...(segmentFilter ?? []),
+    ];
+    const selectUserIdColumns = ["user_id"];
+    const havingSubClauses: string[] = [];
+
+    // Flag to track if we have a strict "Anchor" filter already.
+    let hasStrictFilter = false;
+
+    if (userPropertyFilter && userPropertyFilter.length > 0) {
+      hasStrictFilter = true;
+    }
+    for (const property of userPropertyFilter ?? []) {
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
+      );
+      havingSubClauses.push(
+        `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
+      );
+    }
+
+    if (segmentFilter && segmentFilter.length > 0) {
+      hasStrictFilter = true;
+    }
+    for (const segment of segmentFilter ?? []) {
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
+      );
+      havingSubClauses.push(`${varName} == True`);
+    }
+
+    const subscriptionGroupsFilter = subscriptionGroupFilter ?? [];
+    for (const subscriptionGroup of subscriptionGroupsFilter) {
+      const sg = subscriptionGroups.get(subscriptionGroup);
+      if (!sg) {
+        continue;
+      }
+      const { type, segmentId } = sg;
+
+      computedPropertyIds.push(segmentId);
+
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+      );
+      if (type === SubscriptionGroupType.OptOut) {
+        havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
+      } else {
+        havingSubClauses.push(`${varName} == True`);
+        hasStrictFilter = true;
+      }
+    }
+
+    // [OPTIMIZATION] Implicit Anchor
+    let addedIdAnchor = false;
+    if (!hasStrictFilter) {
+      const idProp = await db().query.userProperty.findFirst({
+        where: and(
+          eq(dbUserProperty.workspaceId, workspaceId),
+          eq(dbUserProperty.name, "id"),
+        ),
+      });
+      if (idProp) {
+        computedPropertyIds.push(idProp.id);
+        addedIdAnchor = true;
+      }
+    }
+
+    const havingClause =
+      havingSubClauses.length > 0
+        ? `HAVING ${havingSubClauses.join(" AND ")}`
+        : "";
+    const userIdsClause = userIds
+      ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
+      : "";
+    const workspaceIdClause = buildWorkspaceIdClause(qb);
+
+    // Calculate Property Types to Scan
+    const propertyTypes: string[] = [];
+    if (
+      (segmentFilter && segmentFilter.length > 0) ||
+      (subscriptionGroupFilter && subscriptionGroupFilter.length > 0)
+    ) {
+      propertyTypes.push("'segment'");
+    }
+    if (
+      (userPropertyFilter && userPropertyFilter.length > 0) ||
+      addedIdAnchor
+    ) {
+      propertyTypes.push("'user_property'");
+    }
+
+    const typeClause =
+      propertyTypes.length > 0
+        ? `AND type IN (${propertyTypes.join(", ")})`
+        : "";
+
+    const computedPropertyIdsClause =
+      computedPropertyIds.length > 0
+        ? `AND computed_property_id IN (${qb.addQueryValue(
+            computedPropertyIds,
+            "Array(String)",
+          )})`
+        : "";
+
+    return {
+      selectUserIdColumns,
+      havingClause,
+      userIdsClause,
+      workspaceIdClause,
+      typeClause,
+      computedPropertyIdsClause,
+    };
+  };
+
+  const shouldDefaultSort = !sortBy || sortBy === "id" || sortBy === "user_id";
+
+  const sortIndexRecord = shouldDefaultSort
+    ? null
+    : await db().query.userPropertyIndex.findFirst({
+        where: and(
+          eq(dbUserPropertyIndex.workspaceId, workspaceId),
+          eq(dbUserPropertyIndex.userPropertyId, sortBy),
+        ),
+      });
+
+  if (shouldDefaultSort || !sortIndexRecord) {
+    const qb = new ClickHouseQueryBuilder({ debug: true });
+    const {
+      selectUserIdColumns,
+      havingClause,
+      userIdsClause,
+      workspaceIdClause,
+      typeClause,
+      computedPropertyIdsClause,
+    } = await buildFilterClausesDebug(qb);
+
+    const cursorClause = cursor
+      ? `and user_id ${
+          direction === CursorDirectionEnum.After ? ">" : "<="
+        } ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
+      : "";
+
+    const selectedStr = selectUserIdColumns.join(", ");
+
+    const query = `
+      SELECT
+        assignments.user_id,
+        groupArrayIf(
+          (assignments.computed_property_id, assignments.last_user_property_value),
+          assignments.type = 'user_property'
+        ) AS user_properties,
+        groupArrayIf(
+          (assignments.computed_property_id, assignments.last_segment_value),
+          assignments.type = 'segment'
+        ) AS segments
+      FROM (
+        SELECT
+            cp.user_id,
+            cp.computed_property_id,
+            cp.type,
+            argMax(user_property_value, assigned_at) AS last_user_property_value,
+            argMax(segment_value, assigned_at) AS last_segment_value
+        FROM computed_property_assignments_v2 cp
+        WHERE
+          ${workspaceIdClause}
+          AND cp.user_id IN (SELECT user_id FROM (
+            SELECT
+              ${selectedStr}
+            FROM computed_property_assignments_v2
+            WHERE
+              ${workspaceIdClause}
+              ${cursorClause}
+              ${userIdsClause}
+              ${typeClause}
+              ${computedPropertyIdsClause}
+            GROUP BY workspace_id, user_id
+            ${havingClause}
+            ORDER BY
+              user_id ${
+                direction === CursorDirectionEnum.After ? "ASC" : "DESC"
+              }
+            LIMIT ${limit}
+          ))
+        GROUP BY cp.user_id, cp.computed_property_id, cp.type
+      ) as assignments
+      GROUP BY assignments.user_id
+      ORDER BY
+        assignments.user_id ASC
+    `;
+    queries.push(query.trim());
+    return queries;
+  }
+
+  let indexType: UserPropertyIndexType;
+  if (sortIndexRecord.type === "Number") {
+    indexType = "Number";
+  } else if (sortIndexRecord.type === "String") {
+    indexType = "String";
+  } else {
+    indexType = "Date";
+  }
+  const sortPropertyId = sortIndexRecord.userPropertyId;
+  let indexTable: string;
+  let valueColumn: string;
+
+  switch (indexType) {
+    case "Number":
+      indexTable = "user_property_idx_num";
+      valueColumn = "value_num";
+      break;
+    case "String":
+      indexTable = "user_property_idx_str";
+      valueColumn = "value_str";
+      break;
+    default:
+      indexTable = "user_property_idx_date";
+      valueColumn = "value_date";
+      break;
+  }
+
+  const qbIndex = new ClickHouseQueryBuilder({ debug: true });
+  const {
+    selectUserIdColumns,
+    havingClause,
+    userIdsClause,
+    workspaceIdClause,
+    typeClause: idxTypeClause,
+    computedPropertyIdsClause: idxComputedPropertyIdsClause,
+  } = await buildFilterClausesDebug(qbIndex);
+  const workspaceIdClauseWithAlias = workspaceIdClause.replace(
+    /workspace_id/g,
+    "idx.workspace_id",
+  );
+
+  const filteredSubquery = `
+    SELECT user_id FROM (
+      SELECT
+        ${selectUserIdColumns.join(", ")}
+      FROM computed_property_assignments_v2
+      WHERE
+        ${workspaceIdClause}
+        ${userIdsClause}
+        ${idxTypeClause}
+        ${idxComputedPropertyIdsClause}
+      GROUP BY workspace_id, user_id
+      ${havingClause}
+    )
+  `;
+
+  const sortPropertyParam = qbIndex.addQueryValue(sortPropertyId, "String");
+  const orderDirection =
+    direction === CursorDirectionEnum.After ? "ASC" : "DESC";
+  let indexCursorClause = "";
+  if (cursor) {
+    const cursorUserIdParam = qbIndex.addQueryValue(
+      cursor[CursorKey.UserIdKey],
+      "String",
+    );
+    const cursorValue = cursor[CursorKey.ValueKey];
+    if (cursorValue !== undefined) {
+      let valueDataType: "Float64" | "String" | "DateTime64(3)";
+      if (indexType === "Number") {
+        valueDataType = "Float64";
+      } else if (indexType === "String") {
+        valueDataType = "String";
+      } else {
+        valueDataType = "DateTime64(3)";
+      }
+      const cursorValueParam = qbIndex.addQueryValue(
+        cursorValue,
+        valueDataType,
+      );
+      indexCursorClause = `AND (${valueColumn}, user_id) ${
+        direction === CursorDirectionEnum.After ? ">" : "<="
+      } (${cursorValueParam}, ${cursorUserIdParam})`;
+    } else {
+      indexCursorClause = `AND user_id ${
+        direction === CursorDirectionEnum.After ? ">" : "<="
+      } ${cursorUserIdParam}`;
+    }
+  }
+
+  const indexQuery = `
+    SELECT
+      idx.user_id,
+      idx.${valueColumn} AS sort_value
+    FROM ${indexTable} AS idx
+    INNER JOIN (${filteredSubquery}) AS filtered USING (user_id)
+    WHERE
+      ${workspaceIdClauseWithAlias}
+      AND idx.computed_property_id = ${sortPropertyParam}
+      ${indexCursorClause}
+    ORDER BY idx.${valueColumn} ${orderDirection}, idx.user_id ${orderDirection}
+    LIMIT ${limit}
+  `;
+  queries.push(indexQuery.trim());
+
+  const qbRemainder = new ClickHouseQueryBuilder({ debug: true });
+  const {
+    selectUserIdColumns: remSelectUserIdColumns,
+    havingClause: remHavingClause,
+    userIdsClause: remUserIdsClause,
+    workspaceIdClause: remWorkspaceIdClause,
+    typeClause: remTypeClause,
+    computedPropertyIdsClause: remComputedPropertyIdsClause,
+  } = await buildFilterClausesDebug(qbRemainder);
+  const cursorClause =
+    cursor?.[CursorKey.PhaseKey] === "remainder"
+      ? `AND user_id ${
+          direction === CursorDirectionEnum.After ? ">" : "<="
+        } ${qbRemainder.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
+      : "";
+  const sortPropertyParamRemainder = qbRemainder.addQueryValue(
+    sortPropertyId,
+    "String",
+  );
+  const indexedUsersSubquery = `
+    SELECT user_id FROM ${indexTable}
+    WHERE
+      ${remWorkspaceIdClause}
+      AND computed_property_id = ${sortPropertyParamRemainder}
+  `;
+  const orderDirectionRemainder =
+    direction === CursorDirectionEnum.After ? "ASC" : "DESC";
+  const remainderQuery = `
+    SELECT
+      ${remSelectUserIdColumns.join(", ")}
+    FROM computed_property_assignments_v2
+    WHERE
+      ${remWorkspaceIdClause}
+      ${remUserIdsClause}
+      ${cursorClause}
+      ${remTypeClause}
+      ${remComputedPropertyIdsClause}
+      AND user_id NOT IN (${indexedUsersSubquery})
+    GROUP BY workspace_id, user_id
+    ${remHavingClause}
+    ORDER BY user_id ${orderDirectionRemainder}
+    LIMIT ${limit}
+  `;
+  queries.push(remainderQuery.trim());
+
+  return queries;
 }
 
 export async function getUsers(
@@ -70,6 +515,7 @@ export async function getUsers(
     limit = 10,
     subscriptionGroupFilter,
     includeSubscriptions,
+    sortBy,
   }: GetUsersRequest,
   {
     allowInternalSegment = false,
@@ -100,6 +546,10 @@ export async function getUsers(
     if (segmentFilter) {
       span.setAttribute("segmentFilter", segmentFilter);
     }
+    if (sortBy) {
+      span.setAttribute("sortBy", sortBy);
+    }
+
     const childWorkspaceIds = (
       await db()
         .select({ id: dbWorkspace.id })
@@ -107,7 +557,6 @@ export async function getUsers(
         .where(eq(dbWorkspace.parentWorkspaceId, workspaceId))
     ).map((o) => o.id);
 
-    // TODO implement alternate sorting
     let cursor: Cursor | null = null;
     if (unparsedCursor) {
       try {
@@ -123,51 +572,14 @@ export async function getUsers(
       }
     }
 
-    const qb = new ClickHouseQueryBuilder();
-    const cursorClause = cursor
-      ? `and user_id ${
-          direction === CursorDirectionEnum.After ? ">" : "<="
-        } ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
-      : "";
-
-    const computedPropertyIds = [
-      ...(userPropertyFilter?.map((property) => property.id) ?? []),
-      ...(segmentFilter ?? []),
-    ];
-    const selectUserIdColumns = ["user_id"];
-
-    const havingSubClauses: string[] = [];
-
-    // Flag to track if we have a strict "Anchor" filter already.
-    // Strict filters are those that require a specific computed_property_id to be present,
-    // allowing ClickHouse to use its index efficiently.
-    let hasStrictFilter = false;
-
-    if (userPropertyFilter && userPropertyFilter.length > 0) {
-      hasStrictFilter = true;
-    }
-    for (const property of userPropertyFilter ?? []) {
-      const varName = qb.getVariableName();
-      selectUserIdColumns.push(
-        `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
-      );
-      havingSubClauses.push(
-        `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
-      );
-    }
-
-    if (segmentFilter && segmentFilter.length > 0) {
-      hasStrictFilter = true;
-    }
-    for (const segment of segmentFilter ?? []) {
-      const varName = qb.getVariableName();
-      selectUserIdColumns.push(
-        `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
-      );
-
-      havingSubClauses.push(`${varName} == True`);
-    }
-    if (subscriptionGroupFilter) {
+    let subscriptionGroups = new Map<
+      string,
+      {
+        type: SubscriptionGroupType;
+        segmentId: string;
+      }
+    >();
+    if (subscriptionGroupFilter?.length) {
       const subscriptionGroupsRows = await db()
         .select({
           id: dbSubscriptionGroup.id,
@@ -180,10 +592,14 @@ export async function getUsers(
           eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
         )
         .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
-      const subscriptionGroups = subscriptionGroupsRows.reduce(
+      subscriptionGroups = subscriptionGroupsRows.reduce(
         (acc, subscriptionGroup) => {
+          const subscriptionGroupType =
+            subscriptionGroup.type === SubscriptionGroupType.OptOut
+              ? SubscriptionGroupType.OptOut
+              : SubscriptionGroupType.OptIn;
           acc.set(subscriptionGroup.id, {
-            type: subscriptionGroup.type as SubscriptionGroupType,
+            type: subscriptionGroupType,
             segmentId: subscriptionGroup.segmentId,
           });
           return acc;
@@ -196,8 +612,53 @@ export async function getUsers(
           }
         >(),
       );
+    }
 
-      for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
+    const buildWorkspaceIdClause = (qb: ClickHouseQueryBuilder) =>
+      childWorkspaceIds.length > 0
+        ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
+        : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
+
+    const buildFilterClauses = async (qb: ClickHouseQueryBuilder) => {
+      const computedPropertyIds = [
+        ...(userPropertyFilter?.map((property) => property.id) ?? []),
+        ...(segmentFilter ?? []),
+      ];
+      const selectUserIdColumns = ["user_id"];
+      const havingSubClauses: string[] = [];
+
+      // Flag to track if we have a strict "Anchor" filter already.
+      // Strict filters are those that require a specific computed_property_id to be present,
+      // allowing ClickHouse to use its index efficiently.
+      let hasStrictFilter = false;
+
+      if (userPropertyFilter && userPropertyFilter.length > 0) {
+        hasStrictFilter = true;
+      }
+      for (const property of userPropertyFilter ?? []) {
+        const varName = qb.getVariableName();
+        selectUserIdColumns.push(
+          `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
+        );
+        havingSubClauses.push(
+          `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
+        );
+      }
+
+      if (segmentFilter && segmentFilter.length > 0) {
+        hasStrictFilter = true;
+      }
+      for (const segment of segmentFilter ?? []) {
+        const varName = qb.getVariableName();
+        selectUserIdColumns.push(
+          `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
+        );
+
+        havingSubClauses.push(`${varName} == True`);
+      }
+
+      const subscriptionGroupsFilter = subscriptionGroupFilter ?? [];
+      for (const subscriptionGroup of subscriptionGroupsFilter) {
         const sg = subscriptionGroups.get(subscriptionGroup);
         if (!sg) {
           logger().error(
@@ -212,7 +673,7 @@ export async function getUsers(
           }
           continue;
         }
-        const { segmentId, type } = sg;
+        const { type, segmentId } = sg;
 
         computedPropertyIds.push(segmentId);
 
@@ -227,114 +688,411 @@ export async function getUsers(
           hasStrictFilter = true;
         }
       }
-    }
 
-    // [OPTIMIZATION] Implicit Anchor
-    // If we have no filters (or only Opt-Out filters), we must anchor on the 'id' property
-    // to prevent a full table scan. The 'id' User Property serves as a perfect index of all users.
-    let addedIdAnchor = false;
-    if (!hasStrictFilter) {
-      const idProp = await db().query.userProperty.findFirst({
-        where: and(
-          eq(dbUserProperty.workspaceId, workspaceId),
-          eq(dbUserProperty.name, "id"),
-        ),
-      });
-      if (idProp) {
-        computedPropertyIds.push(idProp.id);
-        addedIdAnchor = true;
+      // [OPTIMIZATION] Implicit Anchor
+      // If we have no filters (or only Opt-Out filters), we must anchor on the 'id' property
+      // to prevent a full table scan. The 'id' User Property serves as a perfect index of all users.
+      let addedIdAnchor = false;
+      if (!hasStrictFilter) {
+        const idProp = await db().query.userProperty.findFirst({
+          where: and(
+            eq(dbUserProperty.workspaceId, workspaceId),
+            eq(dbUserProperty.name, "id"),
+          ),
+        });
+        if (idProp) {
+          computedPropertyIds.push(idProp.id);
+          addedIdAnchor = true;
+        }
       }
+
+      const havingClause =
+        havingSubClauses.length > 0
+          ? `HAVING ${havingSubClauses.join(" AND ")}`
+          : "";
+      const userIdsClause = userIds
+        ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
+        : "";
+      const workspaceIdClause = buildWorkspaceIdClause(qb);
+
+      // Calculate Property Types to Scan
+      const propertyTypes: string[] = [];
+      if (
+        (segmentFilter && segmentFilter.length > 0) ||
+        (subscriptionGroupFilter && subscriptionGroupFilter.length > 0)
+      ) {
+        propertyTypes.push("'segment'");
+      }
+
+      // We scan user_properties if requested explicitly, OR if we injected the ID anchor
+      if (
+        (userPropertyFilter && userPropertyFilter.length > 0) ||
+        addedIdAnchor
+      ) {
+        propertyTypes.push("'user_property'");
+      }
+
+      const typeClause =
+        propertyTypes.length > 0
+          ? `AND type IN (${propertyTypes.join(", ")})`
+          : "";
+
+      // Filter the inner query to only scan rows relevant to the requested filters.
+      // This allows ClickHouse to skip massive amounts of data blocks.
+      const computedPropertyIdsClause =
+        computedPropertyIds.length > 0
+          ? `AND computed_property_id IN (${qb.addQueryValue(
+              computedPropertyIds,
+              "Array(String)",
+            )})`
+          : "";
+
+      return {
+        selectUserIdColumns,
+        havingClause,
+        userIdsClause,
+        workspaceIdClause,
+        typeClause,
+        computedPropertyIdsClause,
+      };
+    };
+
+    interface UserRow {
+      user_id: string;
+      segments: [string, string][];
+      user_properties: [string, string][];
     }
 
-    const havingClause =
-      havingSubClauses.length > 0
-        ? `HAVING ${havingSubClauses.join(" AND ")}`
-        : "";
-    const selectedStr = selectUserIdColumns.join(", ");
-    const userIdsClause = userIds
-      ? `AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")})`
-      : "";
-
-    // Calculate Property Types to Scan
-    const propertyTypes: string[] = [];
-    if (
-      (segmentFilter && segmentFilter.length > 0) ||
-      (subscriptionGroupFilter && subscriptionGroupFilter.length > 0)
-    ) {
-      propertyTypes.push("'segment'");
-    }
-
-    // We scan user_properties if requested explicitly, OR if we injected the ID anchor
-    if (
-      (userPropertyFilter && userPropertyFilter.length > 0) ||
-      addedIdAnchor
-    ) {
-      propertyTypes.push("'user_property'");
-    }
-
-    const typeClause =
-      propertyTypes.length > 0
-        ? `AND type IN (${propertyTypes.join(", ")})`
-        : "";
-
-    // Filter the inner query to only scan rows relevant to the requested filters.
-    // This allows ClickHouse to skip massive amounts of data blocks.
-    const computedPropertyIdsClause =
-      computedPropertyIds.length > 0
-        ? `AND computed_property_id IN (${qb.addQueryValue(
-            computedPropertyIds,
-            "Array(String)",
-          )})`
-        : "";
-
-    const workspaceIdClause =
-      childWorkspaceIds.length > 0
-        ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
-        : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
-
-    const query = `
-    SELECT
-      assignments.user_id,
-      groupArrayIf(
-        (assignments.computed_property_id, assignments.last_user_property_value),
-        assignments.type = 'user_property'
-      ) AS user_properties,
-      groupArrayIf(
-        (assignments.computed_property_id, assignments.last_segment_value),
-        assignments.type = 'segment'
-      ) AS segments
-    FROM (
+    const fetchUserRowsByIds = async (
+      userIdsForQuery: string[],
+    ): Promise<UserRow[]> => {
+      if (userIdsForQuery.length === 0) {
+        return [];
+      }
+      const qb = new ClickHouseQueryBuilder();
+      const workspaceIdClause = buildWorkspaceIdClause(qb);
+      const userIdsParam = qb.addQueryValue(userIdsForQuery, "Array(String)");
+      const userQuery = `
       SELECT
-          cp.user_id,
-          cp.computed_property_id,
-          cp.type,
-          argMax(user_property_value, assigned_at) AS last_user_property_value,
-          argMax(segment_value, assigned_at) AS last_segment_value
-      FROM computed_property_assignments_v2 cp
-      WHERE
-        ${workspaceIdClause}
-        AND cp.user_id IN (SELECT user_id FROM (
+        assignments.user_id,
+        groupArrayIf(
+          (assignments.computed_property_id, assignments.last_user_property_value),
+          assignments.type = 'user_property'
+        ) AS user_properties,
+        groupArrayIf(
+          (assignments.computed_property_id, assignments.last_segment_value),
+          assignments.type = 'segment'
+        ) AS segments
+      FROM (
+        SELECT
+            cp.user_id,
+            cp.computed_property_id,
+            cp.type,
+            argMax(user_property_value, assigned_at) AS last_user_property_value,
+            argMax(segment_value, assigned_at) AS last_segment_value
+        FROM computed_property_assignments_v2 cp
+        WHERE
+          ${workspaceIdClause}
+          AND cp.user_id IN (${userIdsParam})
+        GROUP BY cp.user_id, cp.computed_property_id, cp.type
+      ) as assignments
+      GROUP BY assignments.user_id
+      ORDER BY assignments.user_id ASC
+    `;
+
+      const results = await chQuery({
+        query: userQuery,
+        query_params: qb.getQueries(),
+        clickhouse_settings: {
+          output_format_json_named_tuples_as_objects: 0,
+        },
+      });
+      const rows = await results.json<UserRow>();
+      return rows;
+    };
+
+    const shouldDefaultSort =
+      !sortBy || sortBy === "id" || sortBy === "user_id";
+
+    let rows: UserRow[] = [];
+    let orderedUserIds: string[] = [];
+    // Tracks the ordered user IDs and phase/value that drive cursor generation.
+    let paginatedEntries: {
+      userId: string;
+      phase?: "indexed" | "remainder";
+      value?: string | number | null;
+    }[] = [];
+
+    const sortIndexRecord = shouldDefaultSort
+      ? null
+      : await db().query.userPropertyIndex.findFirst({
+          where: and(
+            eq(dbUserPropertyIndex.workspaceId, workspaceId),
+            eq(dbUserPropertyIndex.userPropertyId, sortBy),
+          ),
+        });
+
+    if (shouldDefaultSort || !sortIndexRecord) {
+      const qb = new ClickHouseQueryBuilder();
+      const {
+        selectUserIdColumns,
+        havingClause,
+        userIdsClause,
+        workspaceIdClause,
+        typeClause,
+        computedPropertyIdsClause,
+      } = await buildFilterClauses(qb);
+
+      const cursorClause = cursor
+        ? `and user_id ${
+            direction === CursorDirectionEnum.After ? ">" : "<="
+          } ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
+        : "";
+
+      const selectedStr = selectUserIdColumns.join(", ");
+
+      const query = `
+      SELECT
+        assignments.user_id,
+        groupArrayIf(
+          (assignments.computed_property_id, assignments.last_user_property_value),
+          assignments.type = 'user_property'
+        ) AS user_properties,
+        groupArrayIf(
+          (assignments.computed_property_id, assignments.last_segment_value),
+          assignments.type = 'segment'
+        ) AS segments
+      FROM (
+        SELECT
+            cp.user_id,
+            cp.computed_property_id,
+            cp.type,
+            argMax(user_property_value, assigned_at) AS last_user_property_value,
+            argMax(segment_value, assigned_at) AS last_segment_value
+        FROM computed_property_assignments_v2 cp
+        WHERE
+          ${workspaceIdClause}
+          AND cp.user_id IN (SELECT user_id FROM (
+            SELECT
+              ${selectedStr}
+            FROM computed_property_assignments_v2
+            WHERE
+              ${workspaceIdClause}
+              ${cursorClause}
+              ${userIdsClause}
+              ${typeClause}
+              ${computedPropertyIdsClause}
+            GROUP BY workspace_id, user_id
+            ${havingClause}
+            ORDER BY
+              user_id ${
+                direction === CursorDirectionEnum.After ? "ASC" : "DESC"
+              }
+            LIMIT ${limit}
+          ))
+        GROUP BY cp.user_id, cp.computed_property_id, cp.type
+      ) as assignments
+      GROUP BY assignments.user_id
+      ORDER BY
+        assignments.user_id ASC
+    `;
+      const results = await chQuery({
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: {
+          output_format_json_named_tuples_as_objects: 0,
+        },
+      });
+      rows = await results.json<UserRow>();
+      orderedUserIds = rows.map((row) => row.user_id);
+      paginatedEntries = orderedUserIds.map((id) => ({ userId: id }));
+    } else {
+      // Indexed sort path: page through the index table first, then backfill remaining slots from non-indexed users.
+      let indexType: UserPropertyIndexType;
+      if (sortIndexRecord.type === "Number") {
+        indexType = "Number";
+      } else if (sortIndexRecord.type === "String") {
+        indexType = "String";
+      } else {
+        indexType = "Date";
+      }
+      const sortPropertyId = sortIndexRecord.userPropertyId;
+      let indexTable: string;
+      let valueColumn: string;
+      let valueDataType: "Float64" | "String" | "DateTime64(3)";
+
+      switch (indexType) {
+        case "Number":
+          indexTable = "user_property_idx_num";
+          valueColumn = "value_num";
+          valueDataType = "Float64";
+          break;
+        case "String":
+          indexTable = "user_property_idx_str";
+          valueColumn = "value_str";
+          valueDataType = "String";
+          break;
+        default:
+          indexTable = "user_property_idx_date";
+          valueColumn = "value_date";
+          valueDataType = "DateTime64(3)";
+          break;
+      }
+      const shouldQueryIndex = cursor?.[CursorKey.PhaseKey] !== "remainder";
+
+      if (shouldQueryIndex) {
+        const qbIndex = new ClickHouseQueryBuilder();
+        const {
+          selectUserIdColumns,
+          havingClause,
+          userIdsClause,
+          workspaceIdClause,
+          typeClause,
+          computedPropertyIdsClause,
+        } = await buildFilterClauses(qbIndex);
+        const workspaceIdClauseWithAlias = workspaceIdClause.replace(
+          /workspace_id/g,
+          "idx.workspace_id",
+        );
+
+        const filteredSubquery = `
+        SELECT user_id FROM (
           SELECT
-            ${selectedStr}
+            ${selectUserIdColumns.join(", ")}
           FROM computed_property_assignments_v2
           WHERE
             ${workspaceIdClause}
-            ${cursorClause}
             ${userIdsClause}
             ${typeClause}
             ${computedPropertyIdsClause}
           GROUP BY workspace_id, user_id
           ${havingClause}
-          ORDER BY
-            user_id ${direction === CursorDirectionEnum.After ? "ASC" : "DESC"}
-          LIMIT ${limit}
-        ))
-      GROUP BY cp.user_id, cp.computed_property_id, cp.type
-    ) as assignments
-    GROUP BY assignments.user_id
-    ORDER BY
-      assignments.user_id ASC
-  `;
+        )
+      `;
+
+        const sortPropertyParam = qbIndex.addQueryValue(
+          sortPropertyId,
+          "String",
+        );
+        const orderDirection =
+          direction === CursorDirectionEnum.After ? "ASC" : "DESC";
+        let indexCursorClause = "";
+        if (cursor) {
+          const cursorUserIdParam = qbIndex.addQueryValue(
+            cursor[CursorKey.UserIdKey],
+            "String",
+          );
+          const cursorValue = cursor[CursorKey.ValueKey];
+          if (cursorValue !== undefined) {
+            const cursorValueParam = qbIndex.addQueryValue(
+              cursorValue,
+              valueDataType,
+            );
+            indexCursorClause = `AND (${valueColumn}, user_id) ${
+              direction === CursorDirectionEnum.After ? ">" : "<="
+            } (${cursorValueParam}, ${cursorUserIdParam})`;
+          } else {
+            indexCursorClause = `AND user_id ${
+              direction === CursorDirectionEnum.After ? ">" : "<="
+            } ${cursorUserIdParam}`;
+          }
+        }
+
+        const indexQuery = `
+        SELECT
+          idx.user_id,
+          idx.${valueColumn} AS sort_value
+        FROM ${indexTable} AS idx
+        INNER JOIN (${filteredSubquery}) AS filtered USING (user_id)
+        WHERE
+          ${workspaceIdClauseWithAlias}
+          AND idx.computed_property_id = ${sortPropertyParam}
+          ${indexCursorClause}
+        ORDER BY idx.${valueColumn} ${orderDirection}, idx.user_id ${orderDirection}
+        LIMIT ${limit}
+      `;
+
+        const indexResults = await chQuery({
+          query: indexQuery,
+          query_params: qbIndex.getQueries(),
+        });
+        const indexRows = await indexResults.json<{
+          user_id: string;
+          sort_value: string | number | null;
+        }>();
+        const indexEntries = indexRows.map((row) => ({
+          userId: row.user_id,
+          value: row.sort_value,
+          phase: "indexed" as const,
+        }));
+        paginatedEntries = indexEntries;
+      }
+
+      // If the index page did not fill the requested limit, fetch the remainder sorted by user_id.
+      const remainingLimit = limit - paginatedEntries.length;
+      if (remainingLimit > 0) {
+        const qbRemainder = new ClickHouseQueryBuilder();
+        const {
+          selectUserIdColumns,
+          havingClause,
+          userIdsClause,
+          workspaceIdClause,
+          typeClause: remTypeClause,
+          computedPropertyIdsClause: remComputedPropertyIdsClause,
+        } = await buildFilterClauses(qbRemainder);
+        const cursorClause =
+          cursor?.[CursorKey.PhaseKey] === "remainder"
+            ? `AND user_id ${
+                direction === CursorDirectionEnum.After ? ">" : "<="
+              } ${qbRemainder.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
+            : "";
+        const sortPropertyParam = qbRemainder.addQueryValue(
+          sortPropertyId,
+          "String",
+        );
+        const indexedUsersSubquery = `
+        SELECT user_id FROM ${indexTable}
+        WHERE
+          ${workspaceIdClause}
+          AND computed_property_id = ${sortPropertyParam}
+      `;
+        const orderDirection =
+          direction === CursorDirectionEnum.After ? "ASC" : "DESC";
+        const remainderQuery = `
+        SELECT
+          ${selectUserIdColumns.join(", ")}
+        FROM computed_property_assignments_v2
+        WHERE
+          ${workspaceIdClause}
+          ${userIdsClause}
+          ${cursorClause}
+          ${remTypeClause}
+          ${remComputedPropertyIdsClause}
+          AND user_id NOT IN (${indexedUsersSubquery})
+        GROUP BY workspace_id, user_id
+        ${havingClause}
+        ORDER BY user_id ${orderDirection}
+        LIMIT ${remainingLimit}
+      `;
+
+        const remainderResults = await chQuery({
+          query: remainderQuery,
+          query_params: qbRemainder.getQueries(),
+        });
+        const remainderRows = await remainderResults.json<{
+          user_id: string;
+        }>();
+        const remainderEntries = remainderRows.map((row) => ({
+          userId: row.user_id,
+          phase: "remainder" as const,
+        }));
+        paginatedEntries = [...paginatedEntries, ...remainderEntries];
+      }
+
+      orderedUserIds = paginatedEntries.map((entry) => entry.userId);
+      rows = await fetchUserRowsByIds(orderedUserIds);
+    }
+
     const userPropertyCondition: SQL[] = [
       childWorkspaceIds.length > 0
         ? inArray(dbUserProperty.workspaceId, childWorkspaceIds)
@@ -350,14 +1108,7 @@ export async function getUsers(
       childWorkspaceIds.length > 0
         ? inArray(dbSegment.workspaceId, childWorkspaceIds)
         : eq(dbSegment.workspaceId, workspaceId);
-    const [results, userProperties, segments] = await Promise.all([
-      chQuery({
-        query,
-        query_params: qb.getQueries(),
-        clickhouse_settings: {
-          output_format_json_named_tuples_as_objects: 0,
-        },
-      }),
+    const [userProperties, segments] = await Promise.all([
       db()
         .select({
           name: dbUserProperty.name,
@@ -404,18 +1155,21 @@ export async function getUsers(
       });
     }
 
-    const rows = await results.json<{
-      user_id: string;
-      segments: [string, string][];
-      user_properties: [string, string][];
-    }>();
     logger().debug(
       {
         rows,
       },
       "get users rows",
     );
-    const users: GetUsersResponseItem[] = rows.map((row) => {
+    const rowById = new Map(rows.map((row) => [row.user_id, row]));
+    // Preserve the order from paginatedEntries so index/remainder interleaving is reflected in the final payload.
+    const orderedRows =
+      orderedUserIds.length > 0
+        ? orderedUserIds
+            .map((id) => rowById.get(id))
+            .filter((row): row is (typeof rows)[number] => !!row)
+        : rows;
+    const users: GetUsersResponseItem[] = orderedRows.map((row) => {
       const userSegments: GetUsersResponseItem["segments"] =
         row.segments.flatMap(([id, value]) => {
           const segment = segmentNameById.get(id);
@@ -525,23 +1279,31 @@ export async function getUsers(
 
     span.setAttribute("usersCount", users.length);
 
-    const lastResult = users[users.length - 1];
-    const firstResult = users[0];
+    const lastEntry = paginatedEntries[paginatedEntries.length - 1];
+    const firstEntry = paginatedEntries[0];
 
     let nextCursor: Cursor | null;
     let previousCursor: Cursor | null;
 
-    if (lastResult && users.length >= limit) {
+    if (lastEntry && paginatedEntries.length >= limit) {
       nextCursor = {
-        [CursorKey.UserIdKey]: lastResult.id,
+        [CursorKey.UserIdKey]: lastEntry.userId,
+        ...(lastEntry.phase && { [CursorKey.PhaseKey]: lastEntry.phase }),
+        ...(lastEntry.phase === "indexed" && {
+          [CursorKey.ValueKey]: lastEntry.value ?? null,
+        }),
       };
     } else {
       nextCursor = null;
     }
 
-    if (firstResult && cursor) {
+    if (firstEntry && cursor) {
       previousCursor = {
-        [CursorKey.UserIdKey]: firstResult.id,
+        [CursorKey.UserIdKey]: firstEntry.userId,
+        ...(firstEntry.phase && { [CursorKey.PhaseKey]: firstEntry.phase }),
+        ...(firstEntry.phase === "indexed" && {
+          [CursorKey.ValueKey]: firstEntry.value ?? null,
+        }),
       };
     } else {
       previousCursor = null;
@@ -756,10 +1518,18 @@ export async function getUsersCount({
       .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
     const subscriptionGroups = subscriptionGroupsRows.reduce(
       (acc, subscriptionGroup) => {
-        acc.set(subscriptionGroup.id, {
-          type: subscriptionGroup.type as SubscriptionGroupType,
+        const subscriptionGroupType =
+          subscriptionGroup.type === SubscriptionGroupType.OptOut
+            ? SubscriptionGroupType.OptOut
+            : SubscriptionGroupType.OptIn;
+        const entry: {
+          type: SubscriptionGroupType;
+          segmentId: string;
+        } = {
+          type: subscriptionGroupType,
           segmentId: subscriptionGroup.segmentId,
-        });
+        };
+        acc.set(subscriptionGroup.id, entry);
         return acc;
       },
       new Map<
@@ -771,7 +1541,7 @@ export async function getUsersCount({
       >(),
     );
 
-    for (const subscriptionGroup of subscriptionGroupFilter ?? []) {
+    for (const subscriptionGroup of subscriptionGroupFilter) {
       const sg = subscriptionGroups.get(subscriptionGroup);
       if (!sg) {
         logger().error(
@@ -783,7 +1553,7 @@ export async function getUsersCount({
         );
         continue;
       }
-      const { segmentId, type } = sg;
+      const { type, segmentId } = sg;
       const varName = qb.getVariableName();
       computedPropertyIds.push(segmentId);
       selectUserIdColumns.push(

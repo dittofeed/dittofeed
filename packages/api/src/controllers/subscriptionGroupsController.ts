@@ -111,6 +111,7 @@ export default async function subscriptionGroupsController(
       const subscriptionGroupId = request.headers[SUBSRIPTION_GROUP_ID_HEADER];
 
       // Parse the CSV stream into a JavaScript object with an array of rows
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       const rows: CsvParseResult = await new Promise<CsvParseResult>(
         (resolve) => {
           const parsingErrors: UserUploadRowErrors[] = [];
@@ -212,6 +213,7 @@ export default async function subscriptionGroupsController(
       for (const row of rows.value) {
         const userIds = missingUserIdsByEmail[row.email];
         const userId =
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           (row.id as string | undefined) ??
           (userIds?.length ? userIds[0] : uuid());
 
@@ -220,6 +222,7 @@ export default async function subscriptionGroupsController(
         }
 
         // Handle action column
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const actionValue = (row as Record<string, string>).action;
         let subscriptionAction = SubscriptionChange.Subscribe; // default to subscribe
 

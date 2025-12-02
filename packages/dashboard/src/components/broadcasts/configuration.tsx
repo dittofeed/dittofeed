@@ -430,6 +430,7 @@ export default function Configuration({
               updateBroadcast({
                 config: {
                   ...broadcast.config,
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                   errorHandling: newValue as BroadcastErrorHandling,
                 },
               });

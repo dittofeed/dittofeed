@@ -29,6 +29,13 @@ import {
   CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
   CREATE_INTERNAL_EVENTS_TABLE_QUERY,
   CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
+  CREATE_USER_PROPERTY_IDX_DATE_MV_QUERY,
+  CREATE_USER_PROPERTY_IDX_DATE_QUERY,
+  CREATE_USER_PROPERTY_IDX_NUM_MV_QUERY,
+  CREATE_USER_PROPERTY_IDX_NUM_QUERY,
+  CREATE_USER_PROPERTY_IDX_STR_MV_QUERY,
+  CREATE_USER_PROPERTY_IDX_STR_QUERY,
+  CREATE_USER_PROPERTY_INDEX_CONFIG_QUERY,
   createUserEventsTables,
   GROUP_MATERIALIZED_VIEWS,
   GROUP_TABLES,
@@ -40,6 +47,29 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import { spawnWithEnv, spawnWithEnvSafe } from "./spawn";
+
+export async function createUserSortingIndexTables() {
+  logger().info("Creating user sorting index tables and materialized views.");
+  const queries = [
+    CREATE_USER_PROPERTY_INDEX_CONFIG_QUERY,
+    CREATE_USER_PROPERTY_IDX_NUM_QUERY,
+    CREATE_USER_PROPERTY_IDX_STR_QUERY,
+    CREATE_USER_PROPERTY_IDX_DATE_QUERY,
+    CREATE_USER_PROPERTY_IDX_NUM_MV_QUERY,
+    CREATE_USER_PROPERTY_IDX_STR_MV_QUERY,
+    CREATE_USER_PROPERTY_IDX_DATE_MV_QUERY,
+  ];
+
+  for (const q of queries) {
+    await command({
+      query: q,
+      clickhouse_settings: {
+        wait_end_of_query: 1,
+      },
+    });
+  }
+  logger().info("Finished creating user sorting index tables and views.");
+}
 
 export async function disentangleResendSendgrid() {
   logger().info("Disentangling resend and sendgrid email providers.");
@@ -327,7 +357,7 @@ export async function refreshNotExistsSegmentDefinitionUpdatedAt() {
             (node) =>
               node.type === SegmentNodeType.Trait &&
               "operator" in node &&
-              node.operator?.type === SegmentOperatorType.NotExists,
+              node.operator.type === SegmentOperatorType.NotExists,
           );
 
           if (hasNotExistsTraitNode) {
@@ -1017,4 +1047,10 @@ export async function upgradeV023Post() {
   await startComputePropertiesWorkflowGlobal();
   await refreshNotExistsSegmentDefinitionUpdatedAt();
   logger().info("Post-upgrade steps for v0.23.0 completed.");
+}
+
+export async function upgradeV024Pre() {
+  logger().info("Performing pre-upgrade steps for v0.24.0");
+  await createUserSortingIndexTables();
+  logger().info("Pre-upgrade steps for v0.24.0 completed.");
 }

@@ -380,6 +380,7 @@ export function EventsTable({
           params,
         });
       } catch (e) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const error = e as Error;
 
         updateEventsPaginationRequest({
@@ -455,6 +456,7 @@ export function EventsTable({
           toolbar: {
             value: searchTerm,
             onChange: (event) =>
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               setSearchTerm((event.target as HTMLInputElement).value),
           },
         }}

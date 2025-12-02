@@ -47,10 +47,19 @@ import { onboardUser } from "backend-lib/src/onboarding";
 import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
 import { transferResources } from "backend-lib/src/transferResources";
-import { NodeEnvEnum, UserEvent, Workspace } from "backend-lib/src/types";
+import {
+  CursorDirectionEnum,
+  NodeEnvEnum,
+  UserEvent,
+  Workspace,
+} from "backend-lib/src/types";
 import { buildUserEventsQuery } from "backend-lib/src/userEvents";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
-import { deleteAllUsers, getUsers } from "backend-lib/src/users";
+import {
+  buildGetUsersQueriesForDebug,
+  deleteAllUsers,
+  getUsers,
+} from "backend-lib/src/users";
 import {
   activateTombstonedWorkspace,
   pauseWorkspace,
@@ -92,6 +101,7 @@ import { resetWorkspaceData } from "./reset";
 import { spawnWithEnv } from "./spawn";
 import {
   backfillInternalEvents,
+  createUserSortingIndexTables,
   disentangleResendSendgrid,
   refreshNotExistsSegmentDefinitionUpdatedAt,
   transferComputedPropertyStateV2ToV3,
@@ -102,6 +112,7 @@ import {
   upgradeV021Pre,
   upgradeV023Post,
   upgradeV023Pre,
+  upgradeV024Pre,
 } from "./upgrades";
 
 function formatSqlParam(value: unknown): string {
@@ -135,6 +146,122 @@ export function createCommands(yargs: Argv): Argv {
       "Initialize the dittofeed application and creates a workspace.",
       boostrapOptions,
       bootstrapHandler,
+    )
+    .command(
+      "print-get-users-query",
+      "Prints the ClickHouse queries used by getUsers without executing them.",
+      (cmd) =>
+        cmd
+          .option("workspace-id", {
+            type: "string",
+            demandOption: true,
+            describe: "Workspace ID to build the query for.",
+          })
+          .option("sort-by", {
+            type: "string",
+            describe: "User property ID to sort by (indexed property).",
+          })
+          .option("direction", {
+            type: "string",
+            choices: [CursorDirectionEnum.After, CursorDirectionEnum.Before],
+            default: CursorDirectionEnum.After,
+            describe: "Cursor direction.",
+          })
+          .option("limit", {
+            type: "number",
+            default: 10,
+            describe: "Page size limit used when building the query.",
+          })
+          .option("cursor", {
+            type: "string",
+            describe: "Cursor string to include in the query.",
+          })
+          .option("segment-filter", {
+            type: "string",
+            array: true,
+            describe: "Segment IDs to filter by.",
+          })
+          .option("subscription-group-filter", {
+            type: "string",
+            array: true,
+            describe: "Subscription group IDs to filter by.",
+          })
+          .option("user-ids", {
+            type: "string",
+            array: true,
+            describe: "Explicit user IDs to include.",
+          }),
+      async ({
+        workspaceId,
+        sortBy,
+        direction,
+        limit,
+        cursor,
+        segmentFilter,
+        subscriptionGroupFilter,
+        userIds,
+      }) => {
+        const queries = await buildGetUsersQueriesForDebug({
+          workspaceId,
+          sortBy: sortBy ?? undefined,
+          direction,
+          limit,
+          cursor: cursor ?? undefined,
+          segmentFilter:
+            Array.isArray(segmentFilter) && segmentFilter.length > 0
+              ? segmentFilter
+              : undefined,
+          subscriptionGroupFilter:
+            Array.isArray(subscriptionGroupFilter) &&
+            subscriptionGroupFilter.length > 0
+              ? subscriptionGroupFilter
+              : undefined,
+          userIds:
+            Array.isArray(userIds) && userIds.length > 0
+              ? userIds.filter(
+                  (id): id is string => typeof id === "string" && id.length > 0,
+                )
+              : undefined,
+        });
+
+        if (queries.length === 0) {
+          // eslint-disable-next-line no-console
+          console.log(
+            "No queries generated (no matching index or default sort).",
+          );
+          return;
+        }
+
+        const prependProdDb = (query: string) =>
+          query
+            .replace(
+              /\bcomputed_property_assignments_v2\b/g,
+              "dittofeed.computed_property_assignments_v2",
+            )
+            .replace(/\buser_property_idx_num\b/g, "dittofeed.user_property_idx_num")
+            .replace(/\buser_property_idx_str\b/g, "dittofeed.user_property_idx_str")
+            .replace(
+              /\buser_property_idx_date\b/g,
+              "dittofeed.user_property_idx_date",
+            );
+
+        queries.forEach((query, idx) => {
+          // eslint-disable-next-line no-console
+          console.log(`-- Query ${idx + 1} --`);
+          // eslint-disable-next-line no-console
+          console.log(prependProdDb(query.trim()));
+          // eslint-disable-next-line no-console
+          console.log();
+        });
+      },
+    )
+    .command(
+      "create-user-sorting-index-tables",
+      "Creates user sorting index tables and materialized views in ClickHouse.",
+      (cmd) => cmd,
+      async () => {
+        await createUserSortingIndexTables();
+      },
     )
     .command(
       "refresh-not-exists-segment-definition-updated-at",
@@ -211,6 +338,7 @@ export function createCommands(yargs: Argv): Argv {
             "dittofeed.computed_property_state_v2",
           );
 
+        // eslint-disable-next-line no-console
         console.log(productionQuery.trim());
       },
     )
@@ -281,6 +409,7 @@ export function createCommands(yargs: Argv): Argv {
           },
         );
 
+        // eslint-disable-next-line no-console
         console.log(interpolated.trim());
       },
     )
@@ -534,6 +663,7 @@ export function createCommands(yargs: Argv): Argv {
         const config = backendConfig();
         const redactedConfig = R.mapValues(config, (value, key) => {
           // Cast key to satisfy type checker with SECRETS set
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const k = key as keyof typeof config;
           return SECRETS.has(k) ? "****" : value;
         });
@@ -871,6 +1001,14 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await upgradeV023Post();
+      },
+    )
+    .command(
+      "upgrade-0-24-0-pre",
+      "Run the pre-upgrade steps for the 0.24.0 prior to updating your Dittofeed application version.",
+      (y) => y,
+      async () => {
+        await upgradeV024Pre();
       },
     )
     .command(
@@ -1618,7 +1756,7 @@ export function createCommands(yargs: Argv): Argv {
         let cursor: UserEventV2 | null = null;
         let totalCopied = 0;
 
-        // eslint-disable-next-line no-constant-condition
+        // eslint-disable-next-line no-constant-condition, @typescript-eslint/no-unnecessary-condition
         while (true) {
           let queryText: string;
           const queryParams: Record<string, unknown> = {
@@ -1892,6 +2030,17 @@ export function createCommands(yargs: Argv): Argv {
         limit,
         cursor,
       }) => {
+        const normalizedChannels =
+          Array.isArray(channels) && channels.length > 0
+            ? channels.filter(
+                (ch): ch is "Email" | "MobilePush" | "Sms" | "Webhook" =>
+                  ch === "Email" ||
+                  ch === "MobilePush" ||
+                  ch === "Sms" ||
+                  ch === "Webhook",
+              )
+            : undefined;
+
         const debugQb = new ClickHouseQueryBuilder({ debug: true });
         const { query } = await buildDeliverySearchQuery({
           params: {
@@ -1899,9 +2048,7 @@ export function createCommands(yargs: Argv): Argv {
             journeyId,
             broadcastId,
             templateIds,
-            channels: channels as
-              | ("Email" | "MobilePush" | "Sms" | "Webhook")[]
-              | undefined,
+            channels: normalizedChannels,
             userId,
             to,
             from,
@@ -1909,7 +2056,9 @@ export function createCommands(yargs: Argv): Argv {
             startDate,
             endDate,
             groupId,
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             sortBy: sortBy as "from" | "to" | "sentAt" | "status" | undefined,
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             sortDirection: sortDirection as "Asc" | "Desc" | undefined,
             limit,
             cursor,

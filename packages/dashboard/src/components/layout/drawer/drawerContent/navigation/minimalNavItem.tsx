@@ -17,6 +17,7 @@ import { MenuItem } from "../../../../menuItems/types";
 // ==============================|| NAVIGATION - LIST ITEM ||============================== //
 
 function MinimalNavItem({ item, level }: { level: number; item: MenuItem }) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const Icon = item.icon as SvgIconComponent;
   const path = useRouter();
   const isSelected = item.url === path.asPath;

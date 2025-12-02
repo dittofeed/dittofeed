@@ -45,6 +45,7 @@ export function useDownloadSegmentsMutation(
     link.href = url;
 
     // Extract filename from content-disposition header if available, otherwise fallback
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const contentDisposition = response.headers["content-disposition"] as
       | string
       | undefined;

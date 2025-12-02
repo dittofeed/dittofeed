@@ -671,7 +671,8 @@ function SegmentIoConfig() {
                     },
                   },
                   ...(isEnabled
-                    ? ([
+                    ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                      ([
                         {
                           id: "shared-secret",
                           type: "text",
@@ -1302,6 +1303,7 @@ function DefaultSmsConfig() {
         name = "Test";
         break;
       default:
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         assertUnreachable(type as never, `Unknown sms provider type ${type}`);
     }
     return {

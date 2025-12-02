@@ -69,6 +69,7 @@ function BranchSelect() {
       setNewBranchIsOpen(true);
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     setBranch(event.target.value as string);
   };
 
@@ -232,6 +233,7 @@ function GitActionsSelect() {
   const newText = newConfig;
 
   const handleChange = (event: SelectChangeEvent) => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const value = event.target.value as string;
     switch (value) {
       case GitAction.CommitAndPush: {

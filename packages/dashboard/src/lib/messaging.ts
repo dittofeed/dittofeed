@@ -112,6 +112,7 @@ export async function serveEmailTemplate({
         id: messageTemplateId,
         definition: defaultEmailDefinition({
           emailContentsType,
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           emailProvider: defaultEmailProvider as
             | DefaultEmailProviderResource
             | undefined,

@@ -326,6 +326,7 @@ export function SubscriptionGroupsTable({
     onError: (error) => {
       console.error("Failed to create subscription group:", error);
       const errorMsg =
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         (error as AxiosError<{ message?: string }>).response?.data.message ??
         "API Error";
       setSnackbarMessage(`Failed to create subscription group: ${errorMsg}`);
@@ -353,6 +354,7 @@ export function SubscriptionGroupsTable({
   };
 
   const handleChannelChange = (event: SelectChangeEvent<ChannelType>) => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     setSelectedChannel(event.target.value as ChannelType);
   };
 
@@ -481,6 +483,7 @@ export function SubscriptionGroupsTable({
                               {{
                                 asc: <ArrowUpward fontSize="inherit" />,
                                 desc: <ArrowDownward fontSize="inherit" />,
+                                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                               }[header.column.getIsSorted() as string] ?? (
                                 <UnfoldMore
                                   fontSize="inherit"

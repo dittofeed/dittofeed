@@ -15,6 +15,7 @@ export const RenderCellValues = Type.Object({
 export type RenderCellValues = Static<typeof RenderCellValues>;
 
 export function monospaceCell(params: unknown) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const coerced = params as Record<string, unknown>;
   const result = schemaValidateWithErr(
     pick(coerced, ["value", "row"]),

@@ -13,7 +13,8 @@ export async function firstPresent<T>(
   for (const item of items) {
     // eslint-disable-next-line no-await-in-loop
     const result = await (typeof item === "function"
-      ? (item as FunctionItem<T>)()
+      ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        (item as FunctionItem<T>)()
       : item);
     if (result !== null) {
       return result;
