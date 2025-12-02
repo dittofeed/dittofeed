@@ -275,7 +275,16 @@ export async function buildGetUsersQueriesForDebug(
 
   const shouldDefaultSort = !sortBy || sortBy === "id" || sortBy === "user_id";
 
-  if (shouldDefaultSort) {
+  const sortIndexRecord = shouldDefaultSort
+    ? null
+    : await db().query.userPropertyIndex.findFirst({
+        where: and(
+          eq(dbUserPropertyIndex.workspaceId, workspaceId),
+          eq(dbUserPropertyIndex.userPropertyId, sortBy),
+        ),
+      });
+
+  if (shouldDefaultSort || !sortIndexRecord) {
     const qb = new ClickHouseQueryBuilder({ debug: true });
     const {
       selectUserIdColumns,
@@ -340,17 +349,6 @@ export async function buildGetUsersQueriesForDebug(
         assignments.user_id ASC
     `;
     queries.push(query.trim());
-    return queries;
-  }
-
-  const sortIndexRecord = await db().query.userPropertyIndex.findFirst({
-    where: and(
-      eq(dbUserPropertyIndex.workspaceId, workspaceId),
-      eq(dbUserPropertyIndex.userPropertyId, sortBy),
-    ),
-  });
-
-  if (!sortIndexRecord) {
     return queries;
   }
 

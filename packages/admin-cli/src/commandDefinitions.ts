@@ -112,6 +112,7 @@ import {
   upgradeV021Pre,
   upgradeV023Post,
   upgradeV023Pre,
+  upgradeV024Pre,
 } from "./upgrades";
 
 function formatSqlParam(value: unknown): string {
@@ -1000,6 +1001,14 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await upgradeV023Post();
+      },
+    )
+    .command(
+      "upgrade-0-24-0-pre",
+      "Run the pre-upgrade steps for the 0.24.0 prior to updating your Dittofeed application version.",
+      (y) => y,
+      async () => {
+        await upgradeV024Pre();
       },
     )
     .command(

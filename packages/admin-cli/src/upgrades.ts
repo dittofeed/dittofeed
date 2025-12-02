@@ -1048,3 +1048,9 @@ export async function upgradeV023Post() {
   await refreshNotExistsSegmentDefinitionUpdatedAt();
   logger().info("Post-upgrade steps for v0.23.0 completed.");
 }
+
+export async function upgradeV024Pre() {
+  logger().info("Performing pre-upgrade steps for v0.24.0");
+  await createUserSortingIndexTables();
+  logger().info("Pre-upgrade steps for v0.24.0 completed.");
+}
