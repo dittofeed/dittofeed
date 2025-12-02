@@ -357,7 +357,7 @@ export async function refreshNotExistsSegmentDefinitionUpdatedAt() {
             (node) =>
               node.type === SegmentNodeType.Trait &&
               "operator" in node &&
-              node.operator?.type === SegmentOperatorType.NotExists,
+              node.operator.type === SegmentOperatorType.NotExists,
           );
 
           if (hasNotExistsTraitNode) {

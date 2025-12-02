@@ -10,5 +10,6 @@ export const CHANNEL_IDENTIFIERS: Record<
 };
 
 export function isChannelType(type: string): type is ChannelType {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return Object.values(ChannelType).includes(type as ChannelType);
 }

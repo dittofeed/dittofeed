@@ -371,8 +371,8 @@ export default function BroadcastsTable() {
     },
     onError: (error) => {
       console.error("Failed to duplicate broadcast:", error);
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       const errorMsg =
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         (error as AxiosError<{ message?: string }>).response?.data.message ??
         "API Error";
       setSnackbarMessage(`Failed to duplicate broadcast: ${errorMsg}`);
