@@ -24,6 +24,7 @@ export const API_TELEMETRY_CONFIG: Parameters<
   },
   "@opentelemetry/instrumentation-fastify": {
     requestHook: (span, info) => {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       const request = info.request as FastifyRequest;
       const workspaceId = getWorkspaceIdFromReq(request).unwrapOr(null);
       span.updateName("api-custom-request-hook");

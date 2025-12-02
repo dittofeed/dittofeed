@@ -30,6 +30,7 @@ export function getRequestContextFastify(request: FastifyRequest) {
     ...request.headers,
     ...requestToSessionValue(request),
   };
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const { user: profile } = request as { user?: OpenIdProfile };
   return getRequestContext(headers, profile);
 }
@@ -99,6 +100,7 @@ export function getOccupantFromRequest(request: FastifyRequest): {
   workspaceOccupantId: string;
   workspaceOccupantType: DBWorkspaceOccupantType;
 } | null {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const { embeddedSession } = request.raw as {
     embeddedSession?: EmbeddedSession;
   };

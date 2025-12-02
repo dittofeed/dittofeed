@@ -158,6 +158,7 @@ export default async function contentController(fastify: FastifyInstance) {
               value: rendered,
             };
           } catch (e) {
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             const err = e as Error;
             value = {
               type: JsonResultType.Err,
@@ -248,6 +249,7 @@ export default async function contentController(fastify: FastifyInstance) {
       switch (request.body.type) {
         case ChannelType.Email: {
           const defaultEmailProvider =
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             (await db().query.defaultEmailProvider.findFirst({
               where: eq(schema.defaultEmailProvider.workspaceId, workspaceId),
             })) as DefaultEmailProviderResource | null;
