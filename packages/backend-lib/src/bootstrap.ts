@@ -323,13 +323,6 @@ export async function bootstrapPostgres({
     }),
     upsertSubscriptionGroup({
       workspaceId,
-      id: uuidv5("mobile-push-subscription-group", workspaceId),
-      name: `${workspaceName} - Mobile Push`,
-      type: SubscriptionGroupType.OptOut,
-      channel: ChannelType.MobilePush,
-    }),
-    upsertSubscriptionGroup({
-      workspaceId,
       id: uuidv5("sms-subscription-group", workspaceId),
       name: `${workspaceName} - SMS`,
       type: SubscriptionGroupType.OptOut,
