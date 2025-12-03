@@ -13,6 +13,7 @@ import {
 import { keepPreviousData } from "@tanstack/react-query";
 import { subMinutes } from "date-fns";
 import {
+  AnalysisChartConfiguration,
   ChannelType,
   ChartDataPoint,
   SearchDeliveriesRequestSortBy,
@@ -226,7 +227,13 @@ function CustomLegend(props: { payload?: readonly LegendPayload[] }) {
   );
 }
 
-export function AnalysisChart() {
+export interface AnalysisChartProps {
+  configuration?: AnalysisChartConfiguration | null;
+}
+
+export function AnalysisChart({
+  configuration: _configuration,
+}: AnalysisChartProps = {}) {
   const initialEndDate = useMemo(() => Date.now(), []);
   const initialStartDate = useMemo(
     () => subMinutes(initialEndDate, defaultTimeOption.minutes).getTime(),

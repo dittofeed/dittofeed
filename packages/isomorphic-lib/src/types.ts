@@ -5297,6 +5297,7 @@ export const ComponentConfigurationEnum = {
   DeliveriesTable: "DeliveriesTable",
   Broadcast: "Broadcast",
   MessageTemplate: "MessageTemplate",
+  AnalysisChart: "AnalysisChart",
 } as const;
 
 export const DeliveriesAllowedColumnEnum = {
@@ -5397,10 +5398,19 @@ export type MessageTemplateConfiguration = Static<
   typeof MessageTemplateConfiguration
 >;
 
+export const AnalysisChartConfiguration = Type.Object({
+  type: Type.Literal(ComponentConfigurationEnum.AnalysisChart),
+});
+
+export type AnalysisChartConfiguration = Static<
+  typeof AnalysisChartConfiguration
+>;
+
 export const ComponentConfigurationDefinition = Type.Union([
   DeliveriesTableConfiguration,
   BroadcastConfiguration,
   MessageTemplateConfiguration,
+  AnalysisChartConfiguration,
 ]);
 
 export type ComponentConfigurationDefinition = Static<
