@@ -74,12 +74,12 @@ export function AnalysisSummaryPanel({
 
   // Build filters object from filter state
   const filters = useMemo(() => {
-    const journeyFilter = filtersState.filters.get("journeys");
+    const journeyFilter = filtersState.filters.get("journeyIds");
     const journeyIds = journeyFilter
       ? Array.from(journeyFilter.value.keys())
       : undefined;
 
-    const broadcastFilter = filtersState.filters.get("broadcasts");
+    const broadcastFilter = filtersState.filters.get("broadcastIds");
     const broadcastIds = broadcastFilter
       ? Array.from(broadcastFilter.value.keys())
       : undefined;
@@ -99,7 +99,7 @@ export function AnalysisSummaryPanel({
       ? Array.from(messageStateFilter.value.keys())
       : undefined;
 
-    const templateFilter = filtersState.filters.get("templates");
+    const templateFilter = filtersState.filters.get("templateIds");
     const templateIds = templateFilter
       ? Array.from(templateFilter.value.keys())
       : undefined;

@@ -5398,8 +5398,20 @@ export type MessageTemplateConfiguration = Static<
   typeof MessageTemplateConfiguration
 >;
 
+export const AnalysisChartFilters = Type.Object({
+  journeyIds: Type.Optional(Type.Array(Type.String())),
+  broadcastIds: Type.Optional(Type.Array(Type.String())),
+  channels: Type.Optional(Type.Array(Type.String())),
+  providers: Type.Optional(Type.Array(Type.String())),
+  messageStates: Type.Optional(Type.Array(Type.String())),
+  templateIds: Type.Optional(Type.Array(Type.String())),
+});
+
+export type AnalysisChartFilters = Static<typeof AnalysisChartFilters>;
+
 export const AnalysisChartConfiguration = Type.Object({
   type: Type.Literal(ComponentConfigurationEnum.AnalysisChart),
+  hardcodedFilters: Type.Optional(AnalysisChartFilters),
 });
 
 export type AnalysisChartConfiguration = Static<
@@ -6293,16 +6305,7 @@ export const GetChartDataRequest = Type.Object({
       Type.Literal("messageState"),
     ]),
   ),
-  filters: Type.Optional(
-    Type.Object({
-      journeyIds: Type.Optional(Type.Array(Type.String())),
-      broadcastIds: Type.Optional(Type.Array(Type.String())),
-      channels: Type.Optional(Type.Array(Type.String())),
-      providers: Type.Optional(Type.Array(Type.String())),
-      messageStates: Type.Optional(Type.Array(Type.String())),
-      templateIds: Type.Optional(Type.Array(Type.String())),
-    }),
-  ),
+  filters: Type.Optional(AnalysisChartFilters),
 });
 
 export type GetChartDataRequest = Static<typeof GetChartDataRequest>;

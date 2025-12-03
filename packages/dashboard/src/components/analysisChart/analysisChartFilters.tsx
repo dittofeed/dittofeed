@@ -15,7 +15,11 @@ import {
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { InternalEventType, Present } from "isomorphic-lib/src/types";
+import {
+  AnalysisChartFilters,
+  InternalEventType,
+  Present,
+} from "isomorphic-lib/src/types";
 import React, { HTMLAttributes, useCallback, useMemo, useRef } from "react";
 import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
@@ -40,12 +44,12 @@ export enum AnalysisFilterCommandType {
 }
 
 export type AnalysisFilterKey =
-  | "journeys"
-  | "broadcasts"
+  | "journeyIds"
+  | "broadcastIds"
   | "channels"
   | "providers"
   | "messageStates"
-  | "templates";
+  | "templateIds";
 
 export type SelectItemCommand = BaseAnalysisFilterCommand & {
   type: AnalysisFilterCommandType.SelectItem;
@@ -99,24 +103,24 @@ export interface AnalysisFiltersState {
 }
 
 const keyCommandLabels: Record<AnalysisFilterKey, string> = {
-  journeys: "Journey",
-  broadcasts: "Broadcast",
+  journeyIds: "Journey",
+  broadcastIds: "Broadcast",
   channels: "Channel",
   providers: "Provider",
   messageStates: "Message Status",
-  templates: "Template",
+  templateIds: "Template",
 };
 
 const keyCommands: readonly AnalysisFilterCommand[] = [
   {
-    label: keyCommandLabels.journeys,
+    label: keyCommandLabels.journeyIds,
     type: AnalysisFilterCommandType.SelectKey,
-    filterKey: "journeys",
+    filterKey: "journeyIds",
   },
   {
-    label: keyCommandLabels.broadcasts,
+    label: keyCommandLabels.broadcastIds,
     type: AnalysisFilterCommandType.SelectKey,
-    filterKey: "broadcasts",
+    filterKey: "broadcastIds",
   },
   {
     label: keyCommandLabels.channels,
@@ -134,9 +138,9 @@ const keyCommands: readonly AnalysisFilterCommand[] = [
     filterKey: "messageStates",
   },
   {
-    label: keyCommandLabels.templates,
+    label: keyCommandLabels.templateIds,
     type: AnalysisFilterCommandType.SelectKey,
-    filterKey: "templates",
+    filterKey: "templateIds",
   },
 ] as const;
 
@@ -169,11 +173,43 @@ export function SelectedAnalysisFilters({
   state,
   setState,
   sx,
+  hardcodedFilters,
 }: {
   sx?: SxProps<Theme>;
   state: AnalysisFiltersState;
   setState: SetAnalysisFiltersState;
+  hardcodedFilters?: AnalysisChartFilters | null;
 }) {
+  const { data: resources } = useResourcesQuery({
+    broadcasts: true,
+    journeys: true,
+    messageTemplates: true,
+  });
+
+  const resolveIdToName = useCallback(
+    (filterKey: AnalysisFilterKey, id: string): string => {
+      switch (filterKey) {
+        case "journeyIds": {
+          const journey = resources?.journeys?.find((j) => j.id === id);
+          return journey ? journey.name : id;
+        }
+        case "broadcastIds": {
+          const broadcast = resources?.broadcasts?.find((b) => b.id === id);
+          return broadcast ? broadcast.name : id;
+        }
+        case "templateIds": {
+          const template = resources?.messageTemplates?.find(
+            (t) => t.id === id,
+          );
+          return template ? template.name : id;
+        }
+        default:
+          return id;
+      }
+    },
+    [resources],
+  );
+
   const filterChips = Array.from(state.filters.entries()).map(
     ([key, filter]) => {
       const label = Array.from(filter.value.values()).join(" OR ");
@@ -198,7 +234,46 @@ export function SelectedAnalysisFilters({
     },
   );
 
-  return <>{filterChips}</>;
+  // Add hardcoded filters as disabled chips
+  const hardcodedChips = hardcodedFilters
+    ? Object.entries(hardcodedFilters)
+        .filter(([, value]) => value !== undefined && value.length > 0)
+        .map(([key, value]) => {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          const filterKey = key as AnalysisFilterKey;
+          const keyLabel = keyCommandLabels[filterKey];
+
+          // Resolve IDs to names
+          const resolvedValues = value.map((id: string) =>
+            resolveIdToName(filterKey, id),
+          );
+          const label = resolvedValues.join(" OR ");
+          const fullLabel = `${keyLabel} = ${label}`;
+
+          return (
+            <Tooltip
+              key={`hardcoded-${key}`}
+              title={fullLabel}
+              placement="bottom-start"
+            >
+              <Chip
+                sx={{
+                  ...sharedFilterChipSx,
+                  ...sx,
+                  opacity: 0.7,
+                  "& .MuiChip-deleteIcon": {
+                    display: "none",
+                  },
+                }}
+                label={fullLabel}
+                disabled
+              />
+            </Tooltip>
+          );
+        })
+    : [];
+
+  return <>{[...hardcodedChips, ...filterChips]}</>;
 }
 
 export function NewAnalysisFilterButton({
@@ -212,9 +287,11 @@ export function NewAnalysisFilterButton({
   setState: SetAnalysisFiltersState;
   greyScale?: boolean;
 }) {
-  const { data: broadcasts } = useResourcesQuery({ broadcasts: true });
-  const { data: journeys } = useResourcesQuery({ journeys: true });
-  const { data: templates } = useResourcesQuery({ messageTemplates: true });
+  const { data: resources } = useResourcesQuery({
+    broadcasts: true,
+    journeys: true,
+    messageTemplates: true,
+  });
   const { stage } = state;
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -261,8 +338,8 @@ export function NewAnalysisFilterButton({
             setState((draft) => {
               draft.inputValue = "";
               switch (value.filterKey) {
-                case "journeys": {
-                  const journeyOptions = journeys?.journeys || [];
+                case "journeyIds": {
+                  const journeyOptions = resources?.journeys ?? [];
                   const children: SelectItemCommand[] = journeyOptions.map(
                     (journey) => ({
                       label: journey.name,
@@ -277,8 +354,8 @@ export function NewAnalysisFilterButton({
                   };
                   break;
                 }
-                case "broadcasts": {
-                  const broadcastOptions = broadcasts?.broadcasts || [];
+                case "broadcastIds": {
+                  const broadcastOptions = resources?.broadcasts ?? [];
                   const children: SelectItemCommand[] = broadcastOptions.map(
                     (broadcast) => ({
                       label: broadcast.name,
@@ -419,8 +496,8 @@ export function NewAnalysisFilterButton({
                   };
                   break;
                 }
-                case "templates": {
-                  const templateOptions = templates?.messageTemplates || [];
+                case "templateIds": {
+                  const templateOptions = resources?.messageTemplates ?? [];
                   const children: SelectItemCommand[] = templateOptions.map(
                     (template) => ({
                       label: template.name,
@@ -443,7 +520,7 @@ export function NewAnalysisFilterButton({
         }
       }
     },
-    [setState, broadcasts, journeys, templates],
+    [setState, resources],
   );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
