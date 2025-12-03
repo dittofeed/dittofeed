@@ -50,7 +50,8 @@ export type AnalysisFilterKey =
   | "channels"
   | "providers"
   | "messageStates"
-  | "templateIds";
+  | "templateIds"
+  | "userIds";
 
 export type SelectItemCommand = BaseAnalysisFilterCommand & {
   type: AnalysisFilterCommandType.SelectItem;
@@ -70,6 +71,7 @@ type CommandHandler = Present<
 
 export enum FilterType {
   MultiSelect = "MultiSelect",
+  Value = "Value",
 }
 
 export interface MultiSelectFilter {
@@ -77,11 +79,17 @@ export interface MultiSelectFilter {
   value: Map<string, string>;
 }
 
-export type Filter = MultiSelectFilter;
+export interface ValueFilter {
+  type: FilterType.Value;
+  value: string;
+}
+
+export type Filter = MultiSelectFilter | ValueFilter;
 
 export enum StageType {
   SelectKey = "SelectKey",
   SelectItem = "SelectItem",
+  SelectValue = "SelectValue",
 }
 
 export interface SelectKeyStage {
@@ -94,7 +102,14 @@ export interface SelectItemStage {
   children: SelectItemCommand[];
 }
 
-export type Stage = SelectKeyStage | SelectItemStage;
+export interface SelectValueStage {
+  type: StageType.SelectValue;
+  label: string;
+  filterKey: AnalysisFilterKey;
+  value: ValueFilter;
+}
+
+export type Stage = SelectKeyStage | SelectItemStage | SelectValueStage;
 
 export interface AnalysisFiltersState {
   open: boolean;
@@ -110,6 +125,7 @@ const keyCommandLabels: Record<AnalysisFilterKey, string> = {
   providers: "Provider",
   messageStates: "Message Status",
   templateIds: "Template",
+  userIds: "User ID",
 };
 
 const keyCommands: readonly AnalysisFilterCommand[] = [
@@ -143,6 +159,11 @@ const keyCommands: readonly AnalysisFilterCommand[] = [
     type: AnalysisFilterCommandType.SelectKey,
     filterKey: "templateIds",
   },
+  {
+    label: keyCommandLabels.userIds,
+    type: AnalysisFilterCommandType.SelectKey,
+    filterKey: "userIds",
+  },
 ] as const;
 
 export function getFilterValues(
@@ -152,6 +173,9 @@ export function getFilterValues(
   const filter = state.filters.get(filterKey);
   if (!filter) {
     return;
+  }
+  if (filter.type === FilterType.Value) {
+    return filter.value ? [filter.value] : undefined;
   }
   return Array.from(filter.value.keys());
 }
@@ -213,7 +237,12 @@ export function SelectedAnalysisFilters({
 
   const filterChips = Array.from(state.filters.entries()).map(
     ([key, filter]) => {
-      const label = Array.from(filter.value.values()).join(" OR ");
+      let label: string;
+      if (filter.type === FilterType.Value) {
+        label = filter.value;
+      } else {
+        label = Array.from(filter.value.values()).join(" OR ");
+      }
       const keyLabel = keyCommandLabels[key];
       const fullLabel = `${keyLabel} = ${label}`;
       return (
@@ -293,6 +322,9 @@ export function NewAnalysisFilterButton({
       case StageType.SelectItem: {
         return stage.children;
       }
+      case StageType.SelectValue: {
+        return [];
+      }
       default:
         assertUnreachable(stage);
     }
@@ -311,10 +343,13 @@ export function NewAnalysisFilterButton({
               draft.inputValue = "";
               draft.open = false;
               const maybeExisting = draft.filters.get(currentStage.filterKey);
-              const existing = maybeExisting ?? {
-                type: FilterType.MultiSelect,
-                value: new Map(),
-              };
+              const existing: MultiSelectFilter =
+                maybeExisting?.type === FilterType.MultiSelect
+                  ? maybeExisting
+                  : {
+                      type: FilterType.MultiSelect,
+                      value: new Map(),
+                    };
 
               existing.value.set(value.id, value.label);
               draft.filters.set(currentStage.filterKey, existing);
@@ -500,6 +535,18 @@ export function NewAnalysisFilterButton({
                   };
                   break;
                 }
+                case "userIds": {
+                  draft.stage = {
+                    type: StageType.SelectValue,
+                    filterKey: value.filterKey,
+                    label: value.label,
+                    value: {
+                      type: FilterType.Value,
+                      value: "",
+                    },
+                  };
+                  break;
+                }
               }
             });
             break;
@@ -526,8 +573,60 @@ export function NewAnalysisFilterButton({
     });
   };
 
-  const popoverBody =
-    commands.length > 0 ? (
+  let popoverBody: React.ReactNode;
+  if (state.stage.type === StageType.SelectValue) {
+    popoverBody = (
+      <TextField
+        autoFocus
+        variant="filled"
+        InputProps={{
+          sx: {
+            borderRadius: 0,
+          },
+        }}
+        sx={{
+          ...(greyScale ? greyTextFieldStyles : {}),
+          width: 300,
+        }}
+        label={state.stage.label}
+        value={state.stage.value.value}
+        onChange={(event) =>
+          setState((draft) => {
+            if (draft.stage.type !== StageType.SelectValue) {
+              return draft;
+            }
+            draft.stage.value.value = event.target.value;
+            return draft;
+          })
+        }
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") {
+            return;
+          }
+          event.preventDefault();
+
+          setState((draft) => {
+            if (draft.stage.type !== StageType.SelectValue) {
+              return draft;
+            }
+            if (draft.stage.value.type !== FilterType.Value) {
+              return draft;
+            }
+            // Set the filter
+            draft.filters.set(draft.stage.filterKey, {
+              type: FilterType.Value,
+              value: draft.stage.value.value,
+            });
+            // Reset and close
+            draft.open = false;
+            draft.stage = { type: StageType.SelectKey };
+            return draft;
+          });
+        }}
+      />
+    );
+  } else if (commands.length > 0) {
+    popoverBody = (
       <Autocomplete<AnalysisFilterCommand>
         disablePortal
         open
@@ -597,7 +696,10 @@ export function NewAnalysisFilterButton({
           height: "100%",
         }}
       />
-    ) : null;
+    );
+  } else {
+    popoverBody = null;
+  }
 
   return (
     <>

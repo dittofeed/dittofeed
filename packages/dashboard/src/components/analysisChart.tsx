@@ -40,6 +40,7 @@ import { useResourcesQuery } from "../lib/useResourcesQuery";
 import {
   FilterType,
   getFilterValues,
+  MultiSelectFilter,
   NewAnalysisFilterButton,
   SelectedAnalysisFilters,
   useAnalysisFiltersState,
@@ -314,6 +315,7 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
     const dynamicProviders = getFilterValues(filtersState, "providers");
     const dynamicMessageStates = getFilterValues(filtersState, "messageStates");
     const dynamicTemplateIds = getFilterValues(filtersState, "templateIds");
+    const dynamicUserIds = getFilterValues(filtersState, "userIds");
 
     // Merge hardcoded and dynamic filters (hardcoded takes precedence)
     const journeyIds = hardcodedFilters?.journeyIds ?? dynamicJourneyIds;
@@ -323,6 +325,7 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
     const messageStates =
       hardcodedFilters?.messageStates ?? dynamicMessageStates;
     const templateIds = hardcodedFilters?.templateIds ?? dynamicTemplateIds;
+    const userIds = hardcodedFilters?.userIds ?? dynamicUserIds;
 
     // Apply cascading logic to message states for chart data
     const expandedMessageStates = messageStates
@@ -336,7 +339,8 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
       !channels &&
       !providers &&
       !expandedMessageStates &&
-      !templateIds
+      !templateIds &&
+      !userIds
     ) {
       return undefined;
     }
@@ -348,6 +352,7 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
       ...(providers && { providers }),
       ...(expandedMessageStates && { messageStates: expandedMessageStates }),
       ...(templateIds && { templateIds }),
+      ...(userIds && { userIds }),
     };
   }, [filtersState, hardcodedFilters]);
 
@@ -396,7 +401,7 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
     (channel: ChannelType) => {
       setFiltersState((draft) => {
         // Add or update channel filter
-        const channelFilter = {
+        const channelFilter: MultiSelectFilter = {
           type: FilterType.MultiSelect,
           value: new Map([[channel, channel]]),
         };
