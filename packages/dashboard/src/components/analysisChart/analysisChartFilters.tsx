@@ -17,6 +17,7 @@ import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   AnalysisChartFilters,
+  AnalysisFilterKey as AnalysisFilterKeySchema,
   InternalEventType,
   Present,
 } from "isomorphic-lib/src/types";
@@ -298,11 +299,13 @@ export function NewAnalysisFilterButton({
   setState,
   buttonProps,
   greyScale,
+  allowedFilters,
 }: {
   buttonProps?: ButtonProps;
   state: AnalysisFiltersState;
   setState: SetAnalysisFiltersState;
   greyScale?: boolean;
+  allowedFilters?: AnalysisFilterKeySchema[];
 }) {
   const { data: resources } = useResourcesQuery({
     broadcasts: true,
@@ -314,10 +317,21 @@ export function NewAnalysisFilterButton({
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorEl = useRef<HTMLElement | null>(null);
 
+  const filteredKeyCommands = useMemo(() => {
+    if (!allowedFilters) {
+      return keyCommands;
+    }
+    return keyCommands.filter(
+      (cmd) =>
+        cmd.type === AnalysisFilterCommandType.SelectKey &&
+        allowedFilters.includes(cmd.filterKey),
+    );
+  }, [allowedFilters]);
+
   const commands: readonly AnalysisFilterCommand[] = useMemo(() => {
     switch (stage.type) {
       case StageType.SelectKey: {
-        return keyCommands;
+        return filteredKeyCommands;
       }
       case StageType.SelectItem: {
         return stage.children;
@@ -328,7 +342,7 @@ export function NewAnalysisFilterButton({
       default:
         assertUnreachable(stage);
     }
-  }, [stage]);
+  }, [stage, filteredKeyCommands]);
 
   const handleCommandSelect = useCallback<CommandHandler>(
     (_event, value) => {

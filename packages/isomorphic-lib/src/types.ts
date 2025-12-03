@@ -5398,6 +5398,28 @@ export type MessageTemplateConfiguration = Static<
   typeof MessageTemplateConfiguration
 >;
 
+export const AnalysisFilterKeyEnum = {
+  journeyIds: "journeyIds",
+  broadcastIds: "broadcastIds",
+  channels: "channels",
+  providers: "providers",
+  messageStates: "messageStates",
+  templateIds: "templateIds",
+  userIds: "userIds",
+} as const;
+
+export const AnalysisFilterKey = Type.Union([
+  Type.Literal(AnalysisFilterKeyEnum.journeyIds),
+  Type.Literal(AnalysisFilterKeyEnum.broadcastIds),
+  Type.Literal(AnalysisFilterKeyEnum.channels),
+  Type.Literal(AnalysisFilterKeyEnum.providers),
+  Type.Literal(AnalysisFilterKeyEnum.messageStates),
+  Type.Literal(AnalysisFilterKeyEnum.templateIds),
+  Type.Literal(AnalysisFilterKeyEnum.userIds),
+]);
+
+export type AnalysisFilterKey = Static<typeof AnalysisFilterKey>;
+
 export const AnalysisChartFilters = Type.Object({
   journeyIds: Type.Optional(Type.Array(Type.String())),
   broadcastIds: Type.Optional(Type.Array(Type.String())),
@@ -5413,6 +5435,7 @@ export type AnalysisChartFilters = Static<typeof AnalysisChartFilters>;
 export const AnalysisChartConfiguration = Type.Object({
   type: Type.Literal(ComponentConfigurationEnum.AnalysisChart),
   hardcodedFilters: Type.Optional(AnalysisChartFilters),
+  allowedFilters: Type.Optional(Type.Array(AnalysisFilterKey)),
 });
 
 export type AnalysisChartConfiguration = Static<

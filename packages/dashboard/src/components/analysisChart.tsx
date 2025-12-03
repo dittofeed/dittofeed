@@ -241,8 +241,9 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
 
   const [filtersState, setFiltersState] = useAnalysisFiltersState();
 
-  // Extract hardcoded filters from configuration
+  // Extract configuration options
   const hardcodedFilters = configuration?.hardcodedFilters;
+  const allowedFilters = configuration?.allowedFilters;
 
   // Translate analysis filters to deliveries filter props, merging with hardcoded filters
   const deliveriesFilters = useMemo(() => {
@@ -654,6 +655,7 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
                   state={filtersState}
                   setState={setFiltersState}
                   greyScale
+                  allowedFilters={allowedFilters}
                 />
                 <SelectedAnalysisFilters
                   state={filtersState}
