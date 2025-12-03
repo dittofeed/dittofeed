@@ -18,6 +18,7 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   AnalysisChartFilters,
   AnalysisFilterKey as AnalysisFilterKeySchema,
+  ChannelType,
   InternalEventType,
   Present,
 } from "isomorphic-lib/src/types";
@@ -300,12 +301,14 @@ export function NewAnalysisFilterButton({
   buttonProps,
   greyScale,
   allowedFilters,
+  allowedChannels,
 }: {
   buttonProps?: ButtonProps;
   state: AnalysisFiltersState;
   setState: SetAnalysisFiltersState;
   greyScale?: boolean;
   allowedFilters?: AnalysisFilterKeySchema[];
+  allowedChannels?: ChannelType[];
 }) {
   const { data: resources } = useResourcesQuery({
     broadcasts: true,
@@ -408,28 +411,35 @@ export function NewAnalysisFilterButton({
                   break;
                 }
                 case "channels": {
-                  const children: SelectItemCommand[] = [
+                  const allChannels: SelectItemCommand[] = [
                     {
                       label: "Email",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "Email",
+                      id: ChannelType.Email,
                     },
                     {
                       label: "SMS",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "Sms",
+                      id: ChannelType.Sms,
                     },
                     {
                       label: "Mobile Push",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "MobilePush",
+                      id: ChannelType.MobilePush,
                     },
                     {
                       label: "Webhook",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "Webhook",
+                      id: ChannelType.Webhook,
                     },
                   ];
+                  // Filter channels based on allowedChannels configuration
+                  const children = allowedChannels
+                    ? allChannels.filter((channel) =>
+                        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                        (allowedChannels as string[]).includes(channel.id),
+                      )
+                    : allChannels;
                   draft.stage = {
                     type: StageType.SelectItem,
                     filterKey: value.filterKey,
@@ -569,7 +579,7 @@ export function NewAnalysisFilterButton({
         }
       }
     },
-    [setState, resources],
+    [setState, resources, allowedChannels],
   );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {

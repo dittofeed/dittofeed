@@ -5454,6 +5454,7 @@ export const AnalysisChartConfiguration = Type.Object({
   hardcodedFilters: Type.Optional(AnalysisChartFilters),
   allowedFilters: Type.Optional(Type.Array(AnalysisFilterKey)),
   allowedGroupBy: Type.Optional(Type.Array(AnalysisGroupByKey)),
+  allowedChannels: Type.Optional(Type.Array(Type.Enum(ChannelType))),
 });
 
 export type AnalysisChartConfiguration = Static<

@@ -14,7 +14,11 @@ import React, { useMemo } from "react";
 
 import { useAnalysisSummaryQuery } from "../../lib/useAnalysisSummaryQuery";
 import { greyButtonStyle } from "../greyButtonStyle";
-import { AnalysisFiltersState } from "./analysisChartFilters";
+import {
+  AnalysisFilterKey,
+  AnalysisFiltersState,
+  FilterType,
+} from "./analysisChartFilters";
 
 interface AnalysisSummaryPanelProps {
   dateRange: {
@@ -24,6 +28,7 @@ interface AnalysisSummaryPanelProps {
   filtersState: AnalysisFiltersState;
   onChannelSelect: (channel: ChannelType) => void;
   displayMode: "absolute" | "percentage";
+  allowedChannels?: ChannelType[];
 }
 
 interface MetricCardProps {
@@ -62,47 +67,47 @@ export function AnalysisSummaryPanel({
   filtersState,
   onChannelSelect,
   displayMode,
+  allowedChannels,
 }: AnalysisSummaryPanelProps) {
+  // Helper to extract keys from a filter (handles both MultiSelect and Value types)
+  const getFilterKeys = (
+    filterKey: AnalysisFilterKey,
+  ): string[] | undefined => {
+    const filter = filtersState.filters.get(filterKey);
+    if (!filter) return undefined;
+    if (filter.type === FilterType.MultiSelect) {
+      return Array.from(filter.value.keys());
+    }
+    // For Value filters, return the value as a single-item array
+    return filter.value ? [filter.value] : undefined;
+  };
+
   // Check if channel filter is already applied
   const hasChannelFilter = filtersState.filters.has("channels");
-  const selectedChannel = hasChannelFilter
-    ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      (Array.from(
-        filtersState.filters.get("channels")?.value.keys() || [],
-      )[0] as ChannelType)
-    : undefined;
+  const channelKeys = getFilterKeys("channels");
+  const selectedChannel =
+    hasChannelFilter && channelKeys?.[0]
+      ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        (channelKeys[0] as ChannelType)
+      : undefined;
 
   // Build filters object from filter state
   const filters = useMemo(() => {
-    const journeyFilter = filtersState.filters.get("journeyIds");
-    const journeyIds = journeyFilter
-      ? Array.from(journeyFilter.value.keys())
-      : undefined;
+    const getKeys = (filterKey: AnalysisFilterKey): string[] | undefined => {
+      const filter = filtersState.filters.get(filterKey);
+      if (!filter) return undefined;
+      if (filter.type === FilterType.MultiSelect) {
+        return Array.from(filter.value.keys());
+      }
+      return filter.value ? [filter.value] : undefined;
+    };
 
-    const broadcastFilter = filtersState.filters.get("broadcastIds");
-    const broadcastIds = broadcastFilter
-      ? Array.from(broadcastFilter.value.keys())
-      : undefined;
-
-    const channelFilter = filtersState.filters.get("channels");
-    const channels = channelFilter
-      ? Array.from(channelFilter.value.keys())
-      : undefined;
-
-    const providerFilter = filtersState.filters.get("providers");
-    const providers = providerFilter
-      ? Array.from(providerFilter.value.keys())
-      : undefined;
-
-    const messageStateFilter = filtersState.filters.get("messageStates");
-    const messageStates = messageStateFilter
-      ? Array.from(messageStateFilter.value.keys())
-      : undefined;
-
-    const templateFilter = filtersState.filters.get("templateIds");
-    const templateIds = templateFilter
-      ? Array.from(templateFilter.value.keys())
-      : undefined;
+    const journeyIds = getKeys("journeyIds");
+    const broadcastIds = getKeys("broadcastIds");
+    const channels = getKeys("channels");
+    const providers = getKeys("providers");
+    const messageStates = getKeys("messageStates");
+    const templateIds = getKeys("templateIds");
 
     // Only return filters object if at least one filter is set
     if (
@@ -187,34 +192,40 @@ export function AnalysisSummaryPanel({
               Select a channel to see a detailed summary.
             </Typography>
             <Stack direction="row" spacing={0.5}>
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<Email />}
-                onClick={() => onChannelSelect(ChannelType.Email)}
-                disableRipple
-                sx={{
-                  ...greyButtonStyle,
-                  textTransform: "none",
-                  fontWeight: "bold",
-                }}
-              >
-                Email
-              </Button>
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<Sms />}
-                onClick={() => onChannelSelect(ChannelType.Sms)}
-                disableRipple
-                sx={{
-                  ...greyButtonStyle,
-                  textTransform: "none",
-                  fontWeight: "bold",
-                }}
-              >
-                SMS
-              </Button>
+              {(!allowedChannels ||
+                allowedChannels.includes(ChannelType.Email)) && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<Email />}
+                  onClick={() => onChannelSelect(ChannelType.Email)}
+                  disableRipple
+                  sx={{
+                    ...greyButtonStyle,
+                    textTransform: "none",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Email
+                </Button>
+              )}
+              {(!allowedChannels ||
+                allowedChannels.includes(ChannelType.Sms)) && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<Sms />}
+                  onClick={() => onChannelSelect(ChannelType.Sms)}
+                  disableRipple
+                  sx={{
+                    ...greyButtonStyle,
+                    textTransform: "none",
+                    fontWeight: "bold",
+                  }}
+                >
+                  SMS
+                </Button>
+              )}
             </Stack>
           </Stack>
         </Stack>

@@ -245,6 +245,7 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
   const hardcodedFilters = configuration?.hardcodedFilters;
   const allowedFilters = configuration?.allowedFilters;
   const allowedGroupBy = configuration?.allowedGroupBy;
+  const allowedChannels = configuration?.allowedChannels;
 
   // Translate analysis filters to deliveries filter props, merging with hardcoded filters
   const deliveriesFilters = useMemo(() => {
@@ -657,6 +658,7 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
                   setState={setFiltersState}
                   greyScale
                   allowedFilters={allowedFilters}
+                  allowedChannels={allowedChannels}
                 />
                 <SelectedAnalysisFilters
                   state={filtersState}
@@ -806,6 +808,7 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
         filtersState={filtersState}
         onChannelSelect={handleChannelSelect}
         displayMode={state.displayMode}
+        allowedChannels={allowedChannels}
       />
 
       {/* Deliveries Table */}
