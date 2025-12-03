@@ -165,6 +165,12 @@ export async function getChartData({
       );
     }
 
+    if (filters.userIds && filters.userIds.length > 0) {
+      sentConditions.push(
+        `user_or_anonymous_id IN ${qb.addQueryValue(filters.userIds, "Array(String)")}`,
+      );
+    }
+
     if (sentConditions.length > 0) {
       sentFilterClauses = `AND ${sentConditions.join(" AND ")}`;
     }

@@ -5405,6 +5405,7 @@ export const AnalysisChartFilters = Type.Object({
   providers: Type.Optional(Type.Array(Type.String())),
   messageStates: Type.Optional(Type.Array(Type.String())),
   templateIds: Type.Optional(Type.Array(Type.String())),
+  userIds: Type.Optional(Type.Array(Type.String())),
 });
 
 export type AnalysisChartFilters = Static<typeof AnalysisChartFilters>;
@@ -6322,6 +6323,7 @@ export const GetSummarizedDataRequest = Type.Object({
       providers: Type.Optional(Type.Array(Type.String())),
       messageStates: Type.Optional(Type.Array(Type.String())),
       templateIds: Type.Optional(Type.Array(Type.String())),
+      userIds: Type.Optional(Type.Array(Type.String())),
     }),
   ),
 });
