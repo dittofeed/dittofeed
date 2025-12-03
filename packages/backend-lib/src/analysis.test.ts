@@ -724,6 +724,92 @@ describe("analysis", () => {
       expect(result).toHaveProperty("data");
       expect(result.data).toHaveLength(0);
     });
+
+    it("returns chart data filtered by userIds and excludes other users' data", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      // First, verify baseline: get unfiltered data to confirm both users have messages
+      const unfilteredResult = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+      });
+      const unfilteredCount = unfilteredResult.data.reduce(
+        (sum, point) => sum + point.count,
+        0,
+      );
+      // Both userId1 and userId2 have messages, so unfiltered count should be 2
+      expect(unfilteredCount).toBe(2);
+
+      // Now filter by userId1 only - should EXCLUDE userId2's messages
+      const filteredResult = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+        filters: {
+          userIds: [userId1],
+        },
+      });
+
+      expect(filteredResult).toHaveProperty("data");
+      expect(Array.isArray(filteredResult.data)).toBe(true);
+
+      const filteredCount = filteredResult.data.reduce(
+        (sum, point) => sum + point.count,
+        0,
+      );
+      // Should only include userId1's message (1), excluding userId2's message
+      expect(filteredCount).toBe(1);
+      // Verify exclusion: filtered count should be less than unfiltered count
+      expect(filteredCount).toBeLessThan(unfilteredCount);
+    });
+
+    it("returns chart data filtered by multiple userIds", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      // Filter by both userId1 and userId2 - should include both users' messages
+      const result = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+        filters: {
+          userIds: [userId1, userId2],
+        },
+      });
+
+      expect(result).toHaveProperty("data");
+      expect(Array.isArray(result.data)).toBe(true);
+
+      const totalCount = result.data.reduce(
+        (sum, point) => sum + point.count,
+        0,
+      );
+      // Both users have 1 sent message each
+      expect(totalCount).toBe(2);
+    });
+
+    it("returns empty data when filtering by non-existent userId", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+        filters: {
+          userIds: [randomUUID()], // Non-existent user
+        },
+      });
+
+      expect(result).toHaveProperty("data");
+      expect(result.data).toHaveLength(0);
+    });
   });
 
   describe("getSummarizedData", () => {
@@ -1245,6 +1331,74 @@ describe("analysis", () => {
       expect(result.summary.opens).toBe(0);
       expect(result.summary.clicks).toBe(0);
       expect(result.summary.bounces).toBe(0);
+    });
+
+    it("returns summarized data filtered by userIds and excludes other users' data", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      // First, verify baseline: get unfiltered data to confirm both users have messages
+      const unfilteredResult = await getSummarizedData({
+        workspaceId,
+        startDate,
+        endDate,
+      });
+      // Both userId1 and userId2 have messages
+      expect(unfilteredResult.summary.sent).toBe(2);
+
+      // Now filter by userId1 only - should EXCLUDE userId2's messages
+      const filteredResult = await getSummarizedData({
+        workspaceId,
+        startDate,
+        endDate,
+        filters: {
+          userIds: [userId1],
+        },
+      });
+
+      expect(filteredResult).toHaveProperty("summary");
+      // Should only include userId1's message (1), excluding userId2's message
+      expect(filteredResult.summary.sent).toBe(1);
+      // Verify exclusion: filtered count should be less than unfiltered count
+      expect(filteredResult.summary.sent).toBeLessThan(
+        unfilteredResult.summary.sent,
+      );
+    });
+
+    it("returns summarized data filtered by multiple userIds", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      // Filter by both userId1 and userId2 - should include both users' messages
+      const result = await getSummarizedData({
+        workspaceId,
+        startDate,
+        endDate,
+        filters: {
+          userIds: [userId1, userId2],
+        },
+      });
+
+      expect(result).toHaveProperty("summary");
+      // Both users have 1 sent message each
+      expect(result.summary.sent).toBe(2);
+    });
+
+    it("returns zero metrics when filtering by non-existent userId", async () => {
+      const startDate = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+      const endDate = new Date().toISOString();
+
+      const result = await getSummarizedData({
+        workspaceId,
+        startDate,
+        endDate,
+        filters: {
+          userIds: [randomUUID()], // Non-existent user
+        },
+      });
+
+      expect(result).toHaveProperty("summary");
+      expect(result.summary.sent).toBe(0);
     });
   });
 

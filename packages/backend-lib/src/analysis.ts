@@ -439,6 +439,12 @@ export async function getSummarizedData({
       );
     }
 
+    if (filters.userIds && filters.userIds.length > 0) {
+      conditions.push(
+        `user_or_anonymous_id IN ${qb.addQueryValue(filters.userIds, "Array(String)")}`,
+      );
+    }
+
     if (conditions.length > 0) {
       sentSummaryFilterClauses = `AND ${conditions.join(" AND ")}`;
     }
