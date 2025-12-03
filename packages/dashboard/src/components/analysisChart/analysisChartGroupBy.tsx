@@ -8,7 +8,14 @@ import {
   Typography,
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
-import React, { HTMLAttributes, useCallback, useRef, useState } from "react";
+import { AnalysisGroupByKey } from "isomorphic-lib/src/types";
+import React, {
+  HTMLAttributes,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { omit } from "remeda";
 
 import { greyTextFieldStyles } from "../greyScaleStyles";
@@ -40,21 +47,40 @@ const groupByCommands: GroupByCommand[] = [
   { label: "Message State", value: "messageState" },
 ];
 
+// Options that are always available regardless of configuration
+const alwaysAvailableOptions: GroupByOption[] = ["channel", "messageState"];
+
 interface AnalysisChartGroupByProps {
   value: GroupByOption;
   onChange: (value: GroupByOption) => void;
   greyScale?: boolean;
+  allowedGroupBy?: AnalysisGroupByKey[];
 }
 
 export function AnalysisChartGroupBy({
   value,
   onChange,
   greyScale = false,
+  allowedGroupBy,
 }: AnalysisChartGroupByProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorEl = useRef<HTMLElement | null>(null);
+
+  // Filter group by commands based on allowedGroupBy configuration
+  // "None", "channel", and "messageState" are always available
+  const filteredGroupByCommands = useMemo(() => {
+    if (!allowedGroupBy) {
+      return groupByCommands;
+    }
+    return groupByCommands.filter(
+      (cmd) =>
+        cmd.value === null ||
+        alwaysAvailableOptions.includes(cmd.value) ||
+        allowedGroupBy.includes(cmd.value as AnalysisGroupByKey),
+    );
+  }, [allowedGroupBy]);
 
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -82,7 +108,7 @@ export function AnalysisChartGroupBy({
   );
 
   const displayValue = value
-    ? groupByCommands.find((cmd) => cmd.value === value)?.label || "None"
+    ? groupByCommands.find((cmd) => cmd.value === value)?.label ?? "None"
     : "None";
 
   const popoverBody = (
@@ -98,7 +124,7 @@ export function AnalysisChartGroupBy({
       value={null}
       inputValue={inputValue}
       onInputChange={(_event, newInputValue) => setInputValue(newInputValue)}
-      options={groupByCommands}
+      options={filteredGroupByCommands}
       getOptionLabel={(option) => option.label}
       onChange={handleCommandSelect}
       renderInput={(params) => (

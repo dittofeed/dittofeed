@@ -244,6 +244,7 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
   // Extract configuration options
   const hardcodedFilters = configuration?.hardcodedFilters;
   const allowedFilters = configuration?.allowedFilters;
+  const allowedGroupBy = configuration?.allowedGroupBy;
 
   // Translate analysis filters to deliveries filter props, merging with hardcoded filters
   const deliveriesFilters = useMemo(() => {
@@ -680,6 +681,7 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
                     })
                   }
                   greyScale
+                  allowedGroupBy={allowedGroupBy}
                 />
               </SharedFilterContainer>
             </Stack>

@@ -5432,10 +5432,28 @@ export const AnalysisChartFilters = Type.Object({
 
 export type AnalysisChartFilters = Static<typeof AnalysisChartFilters>;
 
+// Group by keys that can be configured (channel and messageState are always available)
+export const AnalysisGroupByKeyEnum = {
+  journey: "journey",
+  broadcast: "broadcast",
+  messageTemplate: "messageTemplate",
+  provider: "provider",
+} as const;
+
+export const AnalysisGroupByKey = Type.Union([
+  Type.Literal(AnalysisGroupByKeyEnum.journey),
+  Type.Literal(AnalysisGroupByKeyEnum.broadcast),
+  Type.Literal(AnalysisGroupByKeyEnum.messageTemplate),
+  Type.Literal(AnalysisGroupByKeyEnum.provider),
+]);
+
+export type AnalysisGroupByKey = Static<typeof AnalysisGroupByKey>;
+
 export const AnalysisChartConfiguration = Type.Object({
   type: Type.Literal(ComponentConfigurationEnum.AnalysisChart),
   hardcodedFilters: Type.Optional(AnalysisChartFilters),
   allowedFilters: Type.Optional(Type.Array(AnalysisFilterKey)),
+  allowedGroupBy: Type.Optional(Type.Array(AnalysisGroupByKey)),
 });
 
 export type AnalysisChartConfiguration = Static<
