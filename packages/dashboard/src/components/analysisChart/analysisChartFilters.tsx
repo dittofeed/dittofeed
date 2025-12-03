@@ -27,6 +27,7 @@ import { Updater, useImmer } from "use-immer";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import {
+  HardcodedFilterChip,
   sharedFilterButtonProps,
   sharedFilterChipSx,
 } from "../shared/filterStyles";
@@ -251,24 +252,11 @@ export function SelectedAnalysisFilters({
           const fullLabel = `${keyLabel} = ${label}`;
 
           return (
-            <Tooltip
+            <HardcodedFilterChip
               key={`hardcoded-${key}`}
-              title={fullLabel}
-              placement="bottom-start"
-            >
-              <Chip
-                sx={{
-                  ...sharedFilterChipSx,
-                  ...sx,
-                  opacity: 0.7,
-                  "& .MuiChip-deleteIcon": {
-                    display: "none",
-                  },
-                }}
-                label={fullLabel}
-                disabled
-              />
-            </Tooltip>
+              label={fullLabel}
+              chipProps={{ sx }}
+            />
           );
         })
     : [];
