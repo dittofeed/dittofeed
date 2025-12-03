@@ -2605,6 +2605,14 @@ export type GetUserPropertyIndicesRequest = Static<
   typeof GetUserPropertyIndicesRequest
 >;
 
+export const GetUserPropertyIndicesResponse = Type.Object({
+  indices: Type.Array(UserPropertyIndexResource),
+});
+
+export type GetUserPropertyIndicesResponse = Static<
+  typeof GetUserPropertyIndicesResponse
+>;
+
 export const UpsertUserPropertyIndexRequest = Type.Object({
   workspaceId: Type.String(),
   userPropertyId: Type.String(),

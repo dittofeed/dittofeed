@@ -67,6 +67,7 @@ import { useUsersQuery } from "../lib/useUsersQuery";
 import { GreyButton } from "./greyButtonStyle";
 import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
+import { SortBySelector } from "./usersTable/sortBySelector";
 import {
   useUserFiltersHash,
   useUserFilterState,
@@ -618,8 +619,13 @@ export type OnPaginationChangeProps = Pick<
   "direction" | "cursor"
 >;
 
+export interface OnSortChangeProps {
+  sortBy?: string | null;
+}
+
 export type UsersTableProps = Omit<GetUsersRequest, "workspaceId"> & {
   onPaginationChange?: (args: OnPaginationChangeProps) => void;
+  onSortChange?: (args: OnSortChangeProps) => void;
   autoReloadByDefault?: boolean;
   reloadPeriodMs?: number;
   userUriTemplate?: string;
@@ -634,6 +640,7 @@ interface TableState {
   currentCursor: string | null;
   previousCursor: string | null;
   nextCursor: string | null;
+  sortBy: string | null;
   query: {
     cursor: string | null;
     limit: number;
@@ -646,7 +653,9 @@ export default function UsersTableV2({
   subscriptionGroupFilter: subscriptionGroupIds,
   direction,
   cursor,
+  sortBy: initialSortBy,
   onPaginationChange,
+  onSortChange,
   autoReloadByDefault = false,
   reloadPeriodMs = 10000,
   userUriTemplate = "/users/{userId}",
@@ -717,6 +726,7 @@ export default function UsersTableV2({
     nextCursor: null,
     previousCursor: null,
     usersCount: null,
+    sortBy: initialSortBy ?? null,
   });
 
   useUserFiltersHash(userFilterState);
@@ -776,6 +786,7 @@ export default function UsersTableV2({
       cursor: state.query.cursor ?? undefined,
       direction: state.query.direction ?? undefined,
       limit: state.query.limit,
+      sortBy: state.sortBy ?? undefined,
     },
     {
       refetchInterval: state.autoReload ? reloadPeriodMs : false,
@@ -959,6 +970,23 @@ export default function UsersTableV2({
     });
   }, [setState]);
 
+  const handleSortChange = useCallback(
+    (newSortBy: string | null) => {
+      setState((draft) => {
+        draft.sortBy = newSortBy;
+        // Reset pagination when sort changes
+        draft.query.cursor = null;
+        draft.query.direction = null;
+        draft.currentCursor = null;
+        draft.nextCursor = null;
+        draft.previousCursor = null;
+      });
+      onSortChange?.({ sortBy: newSortBy });
+      onPaginationChange?.({});
+    },
+    [setState, onSortChange, onPaginationChange],
+  );
+
   const isLoading = usersListQuery.isPending || usersListQuery.isFetching;
   let controls: React.ReactNode = null;
   if (!hideControls) {
@@ -970,6 +998,10 @@ export default function UsersTableV2({
         sx={{ width: "100%", height: "48px" }}
       >
         <UsersFilterV2 state={userFilterState} updater={userFilterUpdater} />
+        <SortBySelector
+          sortBy={state.sortBy}
+          onSortByChange={handleSortChange}
+        />
         <Box flex={1} />
         <Tooltip title="Refresh Results" placement="bottom-start">
           <IconButton
