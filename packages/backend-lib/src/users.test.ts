@@ -23,6 +23,7 @@ import {
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
+  SortOrderEnum,
   SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
   UserProperty,
@@ -350,7 +351,7 @@ describe("users", () => {
           ).toEqual([25, 25, 30]);
         });
 
-        it("sorts in reverse when direction is before", async () => {
+        it("paginates correctly with direction before", async () => {
           const scoreProperty = unwrap(
             await insert({
               table: dbUserProperty,
@@ -396,23 +397,36 @@ describe("users", () => {
 
           await sleep(250);
 
+          // First get page 1 (ascending order by default)
+          const page1 = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              sortBy: scoreProperty.id,
+              limit: 2,
+            }),
+          );
+
+          expect(page1.users.map((u) => u.id)).toEqual(["user-a", "user-b"]);
+          expect(page1.nextCursor).toBeDefined();
+
+          // Now paginate backward from page 1's next cursor
+          // The nextCursor points after user-b, so paginating Before should return users before that point
           const result = unwrap(
             await getUsers({
               workspaceId: workspace.id,
               sortBy: scoreProperty.id,
               direction: CursorDirectionEnum.Before,
+              cursor: page1.nextCursor,
               limit: 3,
             }),
           );
 
-          expect(result.users.map((u) => u.id)).toEqual([
-            "user-c",
-            "user-b",
-            "user-a",
-          ]);
+          // Should return user-a (the one before the cursor position) in ascending order
+          // Note: The cursor is exclusive, so it doesn't include user-b
+          expect(result.users.map((u) => u.id)).toEqual(["user-a"]);
           expect(
             result.users.map((u) => u.properties[scoreProperty.id]?.value),
-          ).toEqual([30, 20, 10]);
+          ).toEqual([10]);
         });
 
         it("sorts by string indexed property", async () => {
@@ -707,6 +721,443 @@ describe("users", () => {
             "user-b",
             "user-c",
           ]);
+        });
+
+        it("sorts in descending order when sortOrder is desc", async () => {
+          const rankProperty = unwrap(
+            await insert({
+              table: dbUserProperty,
+              values: {
+                id: randomUUID(),
+                workspaceId: workspace.id,
+                name: "rank",
+                updatedAt: new Date(),
+                definition: {
+                  type: UserPropertyDefinitionType.Trait,
+                  path: "rank",
+                },
+              },
+            }),
+          );
+
+          await insertUserPropertyAssignments([
+            {
+              workspaceId: workspace.id,
+              userPropertyId: rankProperty.id,
+              userId: "user-x",
+              value: JSON.stringify(100),
+            },
+            {
+              workspaceId: workspace.id,
+              userPropertyId: rankProperty.id,
+              userId: "user-y",
+              value: JSON.stringify(200),
+            },
+            {
+              workspaceId: workspace.id,
+              userPropertyId: rankProperty.id,
+              userId: "user-z",
+              value: JSON.stringify(150),
+            },
+          ]);
+
+          await upsertUserPropertyIndex({
+            workspaceId: workspace.id,
+            userPropertyId: rankProperty.id,
+            type: "Number",
+          });
+
+          await sleep(250);
+
+          const resultAsc = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              sortBy: rankProperty.id,
+              sortOrder: SortOrderEnum.Asc,
+            }),
+          );
+
+          expect(resultAsc.users.map((u) => u.id)).toEqual([
+            "user-x",
+            "user-z",
+            "user-y",
+          ]);
+          expect(
+            resultAsc.users.map((u) => u.properties[rankProperty.id]?.value),
+          ).toEqual([100, 150, 200]);
+
+          const resultDesc = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              sortBy: rankProperty.id,
+              sortOrder: SortOrderEnum.Desc,
+            }),
+          );
+
+          expect(resultDesc.users.map((u) => u.id)).toEqual([
+            "user-y",
+            "user-z",
+            "user-x",
+          ]);
+          expect(
+            resultDesc.users.map((u) => u.properties[rankProperty.id]?.value),
+          ).toEqual([200, 150, 100]);
+        });
+
+        it("sorts in descending order by user_id when sortOrder is desc without sortBy", async () => {
+          const tagProperty = unwrap(
+            await insert({
+              table: dbUserProperty,
+              values: {
+                id: randomUUID(),
+                workspaceId: workspace.id,
+                name: "tag",
+                updatedAt: new Date(),
+                definition: {
+                  type: UserPropertyDefinitionType.Trait,
+                  path: "tag",
+                },
+              },
+            }),
+          );
+
+          await insertUserPropertyAssignments([
+            {
+              workspaceId: workspace.id,
+              userPropertyId: tagProperty.id,
+              userId: "user-alpha",
+              value: JSON.stringify("a"),
+            },
+            {
+              workspaceId: workspace.id,
+              userPropertyId: tagProperty.id,
+              userId: "user-beta",
+              value: JSON.stringify("b"),
+            },
+            {
+              workspaceId: workspace.id,
+              userPropertyId: tagProperty.id,
+              userId: "user-gamma",
+              value: JSON.stringify("c"),
+            },
+          ]);
+
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              sortOrder: SortOrderEnum.Desc,
+            }),
+          );
+
+          expect(result.users.map((u) => u.id)).toEqual([
+            "user-gamma",
+            "user-beta",
+            "user-alpha",
+          ]);
+        });
+
+        describe("sortOrder and direction combinations", () => {
+          let levelProperty: UserProperty;
+          const userLevels = [
+            { userId: "user-01", level: 10 },
+            { userId: "user-02", level: 20 },
+            { userId: "user-03", level: 30 },
+            { userId: "user-04", level: 40 },
+            { userId: "user-05", level: 50 },
+          ];
+
+          beforeEach(async () => {
+            levelProperty = unwrap(
+              await insert({
+                table: dbUserProperty,
+                values: {
+                  id: randomUUID(),
+                  workspaceId: workspace.id,
+                  name: "level",
+                  updatedAt: new Date(),
+                  definition: {
+                    type: UserPropertyDefinitionType.Trait,
+                    path: "level",
+                  },
+                },
+              }),
+            );
+
+            await insertUserPropertyAssignments(
+              userLevels.map(({ userId, level }) => ({
+                workspaceId: workspace.id,
+                userPropertyId: levelProperty.id,
+                userId,
+                value: JSON.stringify(level),
+              })),
+            );
+
+            await upsertUserPropertyIndex({
+              workspaceId: workspace.id,
+              userPropertyId: levelProperty.id,
+              type: "Number",
+            });
+
+            await sleep(250);
+          });
+
+          it("sortOrder=Asc + direction=After: paginates forward in ascending order", async () => {
+            // Get first page
+            const page1 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Asc,
+                direction: CursorDirectionEnum.After,
+                limit: 2,
+              }),
+            );
+
+            expect(page1.users.map((u) => u.id)).toEqual([
+              "user-01",
+              "user-02",
+            ]);
+            expect(
+              page1.users.map((u) => u.properties[levelProperty.id]?.value),
+            ).toEqual([10, 20]);
+            expect(page1.nextCursor).toBeDefined();
+
+            // Get second page
+            const page2 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Asc,
+                direction: CursorDirectionEnum.After,
+                cursor: page1.nextCursor,
+                limit: 2,
+              }),
+            );
+
+            expect(page2.users.map((u) => u.id)).toEqual([
+              "user-03",
+              "user-04",
+            ]);
+            expect(
+              page2.users.map((u) => u.properties[levelProperty.id]?.value),
+            ).toEqual([30, 40]);
+
+            // Get third page
+            const page3 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Asc,
+                direction: CursorDirectionEnum.After,
+                cursor: page2.nextCursor,
+                limit: 2,
+              }),
+            );
+
+            expect(page3.users.map((u) => u.id)).toEqual(["user-05"]);
+            expect(
+              page3.users.map((u) => u.properties[levelProperty.id]?.value),
+            ).toEqual([50]);
+          });
+
+          it("sortOrder=Asc + direction=Before: paginates backward in ascending order", async () => {
+            // First get to page 2 to have a cursor to go back from
+            const page1 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Asc,
+                limit: 2,
+              }),
+            );
+            const page2 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Asc,
+                cursor: page1.nextCursor,
+                limit: 2,
+              }),
+            );
+
+            // Now paginate backward from page 2 using previousCursor
+            // previousCursor points to first item of page 2 (user-03)
+            const backPage = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Asc,
+                direction: CursorDirectionEnum.Before,
+                cursor: page2.previousCursor,
+                limit: 2,
+              }),
+            );
+
+            // Should get users before page 2's first item in ascending order
+            expect(backPage.users.map((u) => u.id)).toEqual([
+              "user-01",
+              "user-02",
+            ]);
+            expect(
+              backPage.users.map((u) => u.properties[levelProperty.id]?.value),
+            ).toEqual([10, 20]);
+          });
+
+          it("sortOrder=Desc + direction=After: paginates forward in descending order", async () => {
+            // Get first page (descending: highest values first)
+            const page1 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Desc,
+                direction: CursorDirectionEnum.After,
+                limit: 2,
+              }),
+            );
+
+            expect(page1.users.map((u) => u.id)).toEqual([
+              "user-05",
+              "user-04",
+            ]);
+            expect(
+              page1.users.map((u) => u.properties[levelProperty.id]?.value),
+            ).toEqual([50, 40]);
+            expect(page1.nextCursor).toBeDefined();
+
+            // Get second page
+            const page2 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Desc,
+                direction: CursorDirectionEnum.After,
+                cursor: page1.nextCursor,
+                limit: 2,
+              }),
+            );
+
+            expect(page2.users.map((u) => u.id)).toEqual([
+              "user-03",
+              "user-02",
+            ]);
+            expect(
+              page2.users.map((u) => u.properties[levelProperty.id]?.value),
+            ).toEqual([30, 20]);
+
+            // Get third page
+            const page3 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Desc,
+                direction: CursorDirectionEnum.After,
+                cursor: page2.nextCursor,
+                limit: 2,
+              }),
+            );
+
+            expect(page3.users.map((u) => u.id)).toEqual(["user-01"]);
+            expect(
+              page3.users.map((u) => u.properties[levelProperty.id]?.value),
+            ).toEqual([10]);
+          });
+
+          it("sortOrder=Desc + direction=Before: paginates backward in descending order", async () => {
+            // First get to page 2 in descending order
+            const page1 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Desc,
+                limit: 2,
+              }),
+            );
+            const page2 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Desc,
+                cursor: page1.nextCursor,
+                limit: 2,
+              }),
+            );
+
+            // Now paginate backward from page 2 using previousCursor
+            // previousCursor points to first item of page 2 (user-03)
+            const backPage = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Desc,
+                direction: CursorDirectionEnum.Before,
+                cursor: page2.previousCursor,
+                limit: 2,
+              }),
+            );
+
+            // Should get users before page 2's first item in descending order
+            expect(backPage.users.map((u) => u.id)).toEqual([
+              "user-05",
+              "user-04",
+            ]);
+            expect(
+              backPage.users.map((u) => u.properties[levelProperty.id]?.value),
+            ).toEqual([50, 40]);
+          });
+
+          it("handles full round-trip pagination with sortOrder=Desc", async () => {
+            // Page forward through all results in descending order
+            const page1 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Desc,
+                limit: 3,
+              }),
+            );
+
+            expect(page1.users.map((u) => u.id)).toEqual([
+              "user-05",
+              "user-04",
+              "user-03",
+            ]);
+
+            const page2 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Desc,
+                cursor: page1.nextCursor,
+                limit: 3,
+              }),
+            );
+
+            expect(page2.users.map((u) => u.id)).toEqual([
+              "user-02",
+              "user-01",
+            ]);
+
+            // Now go back to page 1 using previousCursor
+            // previousCursor points to first item of page 2 (user-02)
+            const backToPage1 = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                sortBy: levelProperty.id,
+                sortOrder: SortOrderEnum.Desc,
+                direction: CursorDirectionEnum.Before,
+                cursor: page2.previousCursor,
+                limit: 3,
+              }),
+            );
+
+            // Should see users before page 2's first item (user-02 at level 20)
+            // In desc order, that means user-05, user-04, user-03
+            expect(backToPage1.users.map((u) => u.id)).toEqual([
+              "user-05",
+              "user-04",
+              "user-03",
+            ]);
+          });
         });
       });
       describe("when the subscription group is opt-in", () => {

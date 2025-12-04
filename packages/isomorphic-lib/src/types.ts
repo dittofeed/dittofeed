@@ -2703,6 +2703,15 @@ export type GetUsersUserPropertyFilter = Static<
   typeof GetUsersUserPropertyFilter
 >;
 
+export enum SortOrderEnum {
+  Asc = "asc",
+  Desc = "desc",
+}
+
+export const SortOrder = Type.Enum(SortOrderEnum);
+
+export type SortOrder = Static<typeof SortOrder>;
+
 export const GetUsersRequest = Type.Object({
   cursor: Type.Optional(Type.String()),
   segmentFilter: Type.Optional(Type.Array(Type.String())),
@@ -2714,6 +2723,7 @@ export const GetUsersRequest = Type.Object({
   workspaceId: Type.String(),
   includeSubscriptions: Type.Optional(Type.Boolean()),
   sortBy: Type.Optional(Type.String()),
+  sortOrder: Type.Optional(SortOrder),
 });
 
 export type GetUsersRequest = Static<typeof GetUsersRequest>;

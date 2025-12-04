@@ -40,6 +40,7 @@ import {
   GetUsersResponse,
   GetUsersResponseItem,
   Segment,
+  SortOrderEnum,
   SubscriptionGroupType,
   UserProperty,
   UserPropertyDefinition,
@@ -516,6 +517,7 @@ export async function getUsers(
     subscriptionGroupFilter,
     includeSubscriptions,
     sortBy,
+    sortOrder = SortOrderEnum.Asc,
   }: GetUsersRequest,
   {
     allowInternalSegment = false,
@@ -549,6 +551,18 @@ export async function getUsers(
     if (sortBy) {
       span.setAttribute("sortBy", sortBy);
     }
+    span.setAttribute("sortOrder", sortOrder);
+
+    // Determine the actual ORDER BY direction based on sortOrder and pagination direction
+    // sortOrder controls the primary sort direction (asc/desc)
+    // direction controls whether we're going forward (After) or backward (Before) through pages
+    const baseSortAsc = sortOrder === SortOrderEnum.Asc;
+    // When paginating "Before", we temporarily reverse the sort to get the correct page, then reverse results
+    const effectiveSortAsc =
+      direction === CursorDirectionEnum.Before ? !baseSortAsc : baseSortAsc;
+    const orderDirection = effectiveSortAsc ? "ASC" : "DESC";
+    // Cursor comparison: when going forward in ASC order, use ">"; when going forward in DESC order, use "<"
+    const cursorComparison = effectiveSortAsc ? ">" : "<";
 
     const childWorkspaceIds = (
       await db()
@@ -844,9 +858,7 @@ export async function getUsers(
       } = await buildFilterClauses(qb);
 
       const cursorClause = cursor
-        ? `and user_id ${
-            direction === CursorDirectionEnum.After ? ">" : "<="
-          } ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
+        ? `and user_id ${cursorComparison} ${qb.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
         : "";
 
       const selectedStr = selectUserIdColumns.join(", ");
@@ -884,17 +896,13 @@ export async function getUsers(
               ${computedPropertyIdsClause}
             GROUP BY workspace_id, user_id
             ${havingClause}
-            ORDER BY
-              user_id ${
-                direction === CursorDirectionEnum.After ? "ASC" : "DESC"
-              }
+            ORDER BY user_id ${orderDirection}
             LIMIT ${limit}
           ))
         GROUP BY cp.user_id, cp.computed_property_id, cp.type
       ) as assignments
       GROUP BY assignments.user_id
-      ORDER BY
-        assignments.user_id ASC
+      ORDER BY assignments.user_id ${baseSortAsc ? "ASC" : "DESC"}
     `;
       const results = await chQuery({
         query,
@@ -974,8 +982,6 @@ export async function getUsers(
           sortPropertyId,
           "String",
         );
-        const orderDirection =
-          direction === CursorDirectionEnum.After ? "ASC" : "DESC";
         let indexCursorClause = "";
         if (cursor) {
           const cursorUserIdParam = qbIndex.addQueryValue(
@@ -988,13 +994,9 @@ export async function getUsers(
               cursorValue,
               valueDataType,
             );
-            indexCursorClause = `AND (${valueColumn}, user_id) ${
-              direction === CursorDirectionEnum.After ? ">" : "<="
-            } (${cursorValueParam}, ${cursorUserIdParam})`;
+            indexCursorClause = `AND (${valueColumn}, user_id) ${cursorComparison} (${cursorValueParam}, ${cursorUserIdParam})`;
           } else {
-            indexCursorClause = `AND user_id ${
-              direction === CursorDirectionEnum.After ? ">" : "<="
-            } ${cursorUserIdParam}`;
+            indexCursorClause = `AND user_id ${cursorComparison} ${cursorUserIdParam}`;
           }
         }
 
@@ -1040,11 +1042,9 @@ export async function getUsers(
           typeClause: remTypeClause,
           computedPropertyIdsClause: remComputedPropertyIdsClause,
         } = await buildFilterClauses(qbRemainder);
-        const cursorClause =
+        const remainderCursorClause =
           cursor?.[CursorKey.PhaseKey] === "remainder"
-            ? `AND user_id ${
-                direction === CursorDirectionEnum.After ? ">" : "<="
-              } ${qbRemainder.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
+            ? `AND user_id ${cursorComparison} ${qbRemainder.addQueryValue(cursor[CursorKey.UserIdKey], "String")}`
             : "";
         const sortPropertyParam = qbRemainder.addQueryValue(
           sortPropertyId,
@@ -1056,8 +1056,6 @@ export async function getUsers(
           ${workspaceIdClause}
           AND computed_property_id = ${sortPropertyParam}
       `;
-        const orderDirection =
-          direction === CursorDirectionEnum.After ? "ASC" : "DESC";
         const remainderQuery = `
         SELECT
           ${selectUserIdColumns.join(", ")}
@@ -1065,7 +1063,7 @@ export async function getUsers(
         WHERE
           ${workspaceIdClause}
           ${userIdsClause}
-          ${cursorClause}
+          ${remainderCursorClause}
           ${remTypeClause}
           ${remComputedPropertyIdsClause}
           AND user_id NOT IN (${indexedUsersSubquery})
@@ -1163,12 +1161,18 @@ export async function getUsers(
     );
     const rowById = new Map(rows.map((row) => [row.user_id, row]));
     // Preserve the order from paginatedEntries so index/remainder interleaving is reflected in the final payload.
-    const orderedRows =
+    let orderedRows =
       orderedUserIds.length > 0
         ? orderedUserIds
             .map((id) => rowById.get(id))
             .filter((row): row is (typeof rows)[number] => !!row)
         : rows;
+
+    // When paginating "Before", we query in reverse order, so reverse the results to present in correct order
+    if (direction === CursorDirectionEnum.Before) {
+      orderedRows = [...orderedRows].reverse();
+      paginatedEntries = [...paginatedEntries].reverse();
+    }
     const users: GetUsersResponseItem[] = orderedRows.map((row) => {
       const userSegments: GetUsersResponseItem["segments"] =
         row.segments.flatMap(([id, value]) => {
