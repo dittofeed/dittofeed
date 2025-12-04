@@ -23,12 +23,21 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { UserPropertyIndexType } from "isomorphic-lib/src/types";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  CompletionStatus,
+  GetUserPropertyIndicesResponse,
+  UserPropertyIndexType,
+} from "isomorphic-lib/src/types";
 import React, { useMemo, useState } from "react";
 
+import { useAppStorePick } from "../../lib/appStore";
 import { useDeleteUserPropertyIndexMutation } from "../../lib/useDeleteUserPropertyIndexMutation";
 import { useUpsertUserPropertyIndexMutation } from "../../lib/useUpsertUserPropertyIndexMutation";
-import { useUserPropertyIndicesQuery } from "../../lib/useUserPropertyIndicesQuery";
+import {
+  USER_PROPERTY_INDICES_QUERY_KEY,
+  useUserPropertyIndicesQuery,
+} from "../../lib/useUserPropertyIndicesQuery";
 import { useUserPropertyResourcesQuery } from "../../lib/useUserPropertyResourcesQuery";
 
 type IndexTypeOption = UserPropertyIndexType | "None";
@@ -43,14 +52,18 @@ export function ConfigureSortIndicesDialog({
   onClose,
 }: ConfigureSortIndicesDialogProps) {
   const theme = useTheme();
+  const queryClient = useQueryClient();
+  const { workspace } = useAppStorePick(["workspace"]);
   const userPropertiesQuery = useUserPropertyResourcesQuery();
   const indicesQuery = useUserPropertyIndicesQuery();
   const upsertMutation = useUpsertUserPropertyIndexMutation();
   const deleteMutation = useDeleteUserPropertyIndexMutation();
 
-  const [pendingChanges, setPendingChanges] = useState<
-    Record<string, IndexTypeOption>
-  >({});
+  // Track which properties have mutations in flight (for loading state)
+  const [mutatingIds, setMutatingIds] = useState<Set<string>>(new Set());
+
+  const workspaceId =
+    workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
 
   // Map user property ID to its current index type
   const indexTypeMap = useMemo(() => {
@@ -63,13 +76,6 @@ export function ConfigureSortIndicesDialog({
     return map;
   }, [indicesQuery.data]);
 
-  const removePendingChange = (propertyId: string) => {
-    setPendingChanges((prev) => {
-      const { [propertyId]: _removed, ...rest } = prev;
-      return rest;
-    });
-  };
-
   const handleTypeChange = (
     userPropertyId: string,
     newValue: IndexTypeOption,
@@ -78,33 +84,103 @@ export function ConfigureSortIndicesDialog({
 
     // Don't make a change if it's the same
     if (newValue === currentValue) {
-      removePendingChange(userPropertyId);
       return;
     }
 
-    // Set pending state
-    setPendingChanges((prev) => ({
-      ...prev,
-      [userPropertyId]: newValue,
-    }));
+    if (!workspaceId) return;
 
-    // Execute mutation
+    const queryKey = [USER_PROPERTY_INDICES_QUERY_KEY, { workspaceId }];
+
+    // Optimistically update the cache
+    const optimisticUpdate = () => {
+      const previousData =
+        queryClient.getQueryData<GetUserPropertyIndicesResponse>(queryKey);
+
+      queryClient.setQueryData<GetUserPropertyIndicesResponse>(
+        queryKey,
+        (old) => {
+          if (!old) return { indices: [] };
+
+          if (newValue === "None") {
+            // Remove the index
+            return {
+              indices: old.indices.filter(
+                (idx) => idx.userPropertyId !== userPropertyId,
+              ),
+            };
+          }
+          // Add or update the index
+          const existingIdx = old.indices.findIndex(
+            (idx) => idx.userPropertyId === userPropertyId,
+          );
+          if (existingIdx >= 0) {
+            // Update existing
+            const existing = old.indices[existingIdx];
+            if (!existing) return old;
+            const updated = [...old.indices];
+            updated[existingIdx] = {
+              id: existing.id,
+              workspaceId: existing.workspaceId,
+              userPropertyId: existing.userPropertyId,
+              type: newValue,
+              createdAt: existing.createdAt,
+              updatedAt: Date.now(),
+            };
+            return { indices: updated };
+          }
+          // Add new
+          return {
+            indices: [
+              ...old.indices,
+              {
+                id: `temp-${userPropertyId}`,
+                workspaceId,
+                userPropertyId,
+                type: newValue,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              },
+            ],
+          };
+        },
+      );
+
+      return previousData;
+    };
+
+    // Mark as mutating
+    setMutatingIds((prev) => new Set(prev).add(userPropertyId));
+
+    const onSettled = () => {
+      setMutatingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userPropertyId);
+        return next;
+      });
+    };
+
     if (newValue === "None") {
+      const previousData = optimisticUpdate();
       deleteMutation.mutate(
         { userPropertyId },
         {
-          onSettled: () => {
-            removePendingChange(userPropertyId);
+          onError: () => {
+            // Rollback on error
+            queryClient.setQueryData(queryKey, previousData);
           },
+          onSettled,
         },
       );
     } else {
+      const previousData = optimisticUpdate();
       upsertMutation.mutate(
         { userPropertyId, type: newValue },
         {
-          onSettled: () => {
-            removePendingChange(userPropertyId);
+          onError: () => {
+            // Rollback on error
+            queryClient.setQueryData(queryKey, previousData);
           },
+          onSettled,
         },
       );
     }
@@ -114,11 +190,9 @@ export function ConfigureSortIndicesDialog({
     return userPropertiesQuery.data?.userProperties ?? [];
   }, [userPropertiesQuery.data]);
 
-  const isLoading =
-    userPropertiesQuery.isLoading ||
-    indicesQuery.isLoading ||
-    userPropertiesQuery.isFetching ||
-    indicesQuery.isFetching;
+  // Only show loading on initial load, not during background refetches
+  const isInitialLoading =
+    userPropertiesQuery.isLoading || indicesQuery.isLoading;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -140,18 +214,18 @@ export function ConfigureSortIndicesDialog({
         </Stack>
       </DialogTitle>
       <DialogContent>
-        {isLoading && (
+        {isInitialLoading && (
           <Box display="flex" justifyContent="center" py={4}>
             <CircularProgress />
           </Box>
         )}
-        {!isLoading && userProperties.length === 0 && (
+        {!isInitialLoading && userProperties.length === 0 && (
           <Typography color="text.secondary" py={2}>
             No user properties found. Create user properties first to enable
             sorting.
           </Typography>
         )}
-        {!isLoading && userProperties.length > 0 && (
+        {!isInitialLoading && userProperties.length > 0 && (
           <Box>
             {/* Fixed Header */}
             <Table size="small">
@@ -173,9 +247,7 @@ export function ConfigureSortIndicesDialog({
                   {userProperties.map((property) => {
                     const currentIndexType =
                       indexTypeMap.get(property.id) ?? "None";
-                    const isPending = pendingChanges[property.id] !== undefined;
-                    const selectValue =
-                      pendingChanges[property.id] ?? currentIndexType;
+                    const isMutating = mutatingIds.has(property.id);
 
                     return (
                       <TableRow key={property.id}>
@@ -185,13 +257,13 @@ export function ConfigureSortIndicesDialog({
                         <TableCell align="right" sx={{ width: "40%" }}>
                           <FormControl size="small" sx={{ minWidth: 120 }}>
                             <Select<IndexTypeOption>
-                              value={selectValue}
+                              value={currentIndexType}
                               onChange={(e) => {
                                 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                                 const value = e.target.value as IndexTypeOption;
                                 handleTypeChange(property.id, value);
                               }}
-                              disabled={isPending}
+                              disabled={isMutating}
                               sx={{
                                 bgcolor: theme.palette.grey[100],
                                 "& .MuiSelect-select": {
@@ -204,7 +276,7 @@ export function ConfigureSortIndicesDialog({
                               <MenuItem value="Number">Number</MenuItem>
                               <MenuItem value="Date">Date</MenuItem>
                             </Select>
-                            {isPending && (
+                            {isMutating && (
                               <CircularProgress
                                 size={16}
                                 sx={{
