@@ -1,17 +1,23 @@
 import {
+  ArrowDownward as ArrowDownwardIcon,
+  ArrowUpward as ArrowUpwardIcon,
   Settings as SettingsIcon,
   Sort as SortIcon,
 } from "@mui/icons-material";
 import {
   Box,
   Divider,
+  IconButton,
   ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
+  Stack,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
+import { SortOrderEnum } from "isomorphic-lib/src/types";
 import React, { useMemo, useState } from "react";
 
 import { useUserPropertyIndicesQuery } from "../../lib/useUserPropertyIndicesQuery";
@@ -21,12 +27,16 @@ import { ConfigureSortIndicesDialog } from "./configureSortIndicesDialog";
 
 export interface SortBySelectorProps {
   sortBy: string | null;
+  sortOrder: SortOrderEnum;
   onSortByChange: (sortBy: string | null) => void;
+  onSortOrderChange: (sortOrder: SortOrderEnum) => void;
 }
 
 export function SortBySelector({
   sortBy,
+  sortOrder,
   onSortByChange,
+  onSortOrderChange,
 }: SortBySelectorProps) {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -82,17 +92,47 @@ export function SortBySelector({
     setDialogOpen(true);
   };
 
+  const handleToggleSortOrder = () => {
+    onSortOrderChange(
+      sortOrder === SortOrderEnum.Asc ? SortOrderEnum.Desc : SortOrderEnum.Asc,
+    );
+  };
+
   return (
     <>
-      <GreyButton
-        onClick={handleClick}
-        startIcon={<SortIcon />}
-        aria-controls={open ? "sort-by-menu" : undefined}
-        aria-haspopup="true"
-        aria-expanded={open ? "true" : undefined}
-      >
-        Sort: {currentSelectionLabel}
-      </GreyButton>
+      <Stack direction="row" spacing={0.5} alignItems="center">
+        <GreyButton
+          onClick={handleClick}
+          startIcon={<SortIcon />}
+          aria-controls={open ? "sort-by-menu" : undefined}
+          aria-haspopup="true"
+          aria-expanded={open ? "true" : undefined}
+        >
+          Sort: {currentSelectionLabel}
+        </GreyButton>
+        <Tooltip
+          title={
+            sortOrder === SortOrderEnum.Asc
+              ? "Ascending (click to change)"
+              : "Descending (click to change)"
+          }
+        >
+          <IconButton
+            onClick={handleToggleSortOrder}
+            size="small"
+            sx={{
+              border: "1px solid",
+              borderColor: "grey.400",
+            }}
+          >
+            {sortOrder === SortOrderEnum.Asc ? (
+              <ArrowUpwardIcon fontSize="small" />
+            ) : (
+              <ArrowDownwardIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
+      </Stack>
       <Menu
         id="sort-by-menu"
         anchorEl={anchorEl}
@@ -129,42 +169,40 @@ export function SortBySelector({
           <Typography variant="body2">User ID (Default)</Typography>
         </MenuItem>
 
-        {indexedProperties.length > 0 && (
-          <>
-            <Divider sx={{ my: 0.5 }} />
-            <Box px={2} py={0.5}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                fontWeight={600}
-              >
-                Indexed Properties
+        {indexedProperties.length > 0 && [
+          <Divider key="indexed-divider" sx={{ my: 0.5 }} />,
+          <Box key="indexed-header" px={2} py={0.5}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              fontWeight={600}
+            >
+              Indexed Properties
+            </Typography>
+          </Box>,
+          ...indexedProperties.map((property) => (
+            <MenuItem
+              key={property.id}
+              selected={sortBy === property.id}
+              onClick={() => handleSelect(property.id)}
+              sx={{
+                borderRadius: 0,
+                py: 1.5,
+                color: theme.palette.grey[700],
+                "&:hover": {
+                  backgroundColor: theme.palette.grey[100],
+                },
+              }}
+            >
+              <ListItemText>
+                <Typography variant="body2">{property.name}</Typography>
+              </ListItemText>
+              <Typography variant="caption" color="text.secondary" ml={2}>
+                {property.type}
               </Typography>
-            </Box>
-            {indexedProperties.map((property) => (
-              <MenuItem
-                key={property.id}
-                selected={sortBy === property.id}
-                onClick={() => handleSelect(property.id)}
-                sx={{
-                  borderRadius: 0,
-                  py: 1.5,
-                  color: theme.palette.grey[700],
-                  "&:hover": {
-                    backgroundColor: theme.palette.grey[100],
-                  },
-                }}
-              >
-                <ListItemText>
-                  <Typography variant="body2">{property.name}</Typography>
-                </ListItemText>
-                <Typography variant="caption" color="text.secondary" ml={2}>
-                  {property.type}
-                </Typography>
-              </MenuItem>
-            ))}
-          </>
-        )}
+            </MenuItem>
+          )),
+        ]}
 
         <Divider sx={{ my: 0.5 }} />
         <MenuItem

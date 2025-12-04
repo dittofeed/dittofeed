@@ -54,6 +54,7 @@ import {
   GetUsersRequest,
   GetUsersResponseItem,
   GetUsersUserPropertyFilter,
+  SortOrderEnum,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import { NextRouter, useRouter } from "next/router";
@@ -641,6 +642,7 @@ interface TableState {
   previousCursor: string | null;
   nextCursor: string | null;
   sortBy: string | null;
+  sortOrder: SortOrderEnum;
   query: {
     cursor: string | null;
     limit: number;
@@ -727,6 +729,7 @@ export default function UsersTableV2({
     previousCursor: null,
     usersCount: null,
     sortBy: initialSortBy ?? null,
+    sortOrder: SortOrderEnum.Asc,
   });
 
   useUserFiltersHash(userFilterState);
@@ -787,6 +790,7 @@ export default function UsersTableV2({
       direction: state.query.direction ?? undefined,
       limit: state.query.limit,
       sortBy: state.sortBy ?? undefined,
+      sortOrder: state.sortOrder,
     },
     {
       refetchInterval: state.autoReload ? reloadPeriodMs : false,
@@ -987,6 +991,22 @@ export default function UsersTableV2({
     [setState, onSortChange, onPaginationChange],
   );
 
+  const handleSortOrderChange = useCallback(
+    (newSortOrder: SortOrderEnum) => {
+      setState((draft) => {
+        draft.sortOrder = newSortOrder;
+        // Reset pagination when sort order changes
+        draft.query.cursor = null;
+        draft.query.direction = null;
+        draft.currentCursor = null;
+        draft.nextCursor = null;
+        draft.previousCursor = null;
+      });
+      onPaginationChange?.({});
+    },
+    [setState, onPaginationChange],
+  );
+
   const isLoading = usersListQuery.isPending || usersListQuery.isFetching;
   let controls: React.ReactNode = null;
   if (!hideControls) {
@@ -1000,7 +1020,9 @@ export default function UsersTableV2({
         <UsersFilterV2 state={userFilterState} updater={userFilterUpdater} />
         <SortBySelector
           sortBy={state.sortBy}
+          sortOrder={state.sortOrder}
           onSortByChange={handleSortChange}
+          onSortOrderChange={handleSortOrderChange}
         />
         <Box flex={1} />
         <Tooltip title="Refresh Results" placement="bottom-start">
