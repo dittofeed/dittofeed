@@ -410,7 +410,7 @@ describe("users", () => {
           expect(page1.nextCursor).toBeDefined();
 
           // Now paginate backward from page 1's next cursor
-          // The nextCursor points after user-b, so paginating Before should return users before that point
+          // The nextCursor points to user-b, so paginating Before should return users at or before that point
           const result = unwrap(
             await getUsers({
               workspaceId: workspace.id,
@@ -421,12 +421,11 @@ describe("users", () => {
             }),
           );
 
-          // Should return user-a (the one before the cursor position) in ascending order
-          // Note: The cursor is exclusive, so it doesn't include user-b
-          expect(result.users.map((u) => u.id)).toEqual(["user-a"]);
+          // Should return user-a and user-b (cursor is inclusive for Before direction)
+          expect(result.users.map((u) => u.id)).toEqual(["user-a", "user-b"]);
           expect(
             result.users.map((u) => u.properties[scoreProperty.id]?.value),
-          ).toEqual([10]);
+          ).toEqual([10, 20]);
         });
 
         it("sorts by string indexed property", async () => {
@@ -993,14 +992,15 @@ describe("users", () => {
               }),
             );
 
-            // Should get users before page 2's first item in ascending order
+            // Should get users at or before page 2's first item (cursor is inclusive for Before)
+            // user-03 is at cursor position, user-02 is before it
             expect(backPage.users.map((u) => u.id)).toEqual([
-              "user-01",
               "user-02",
+              "user-03",
             ]);
             expect(
               backPage.users.map((u) => u.properties[levelProperty.id]?.value),
-            ).toEqual([10, 20]);
+            ).toEqual([20, 30]);
           });
 
           it("sortOrder=Desc + direction=After: paginates forward in descending order", async () => {
@@ -1095,14 +1095,15 @@ describe("users", () => {
               }),
             );
 
-            // Should get users before page 2's first item in descending order
+            // Should get users at or before page 2's first item (cursor is inclusive for Before)
+            // In DESC order, user-04 comes before user-03, and user-03 is at cursor
             expect(backPage.users.map((u) => u.id)).toEqual([
-              "user-05",
               "user-04",
+              "user-03",
             ]);
             expect(
               backPage.users.map((u) => u.properties[levelProperty.id]?.value),
-            ).toEqual([50, 40]);
+            ).toEqual([40, 30]);
           });
 
           it("handles full round-trip pagination with sortOrder=Desc", async () => {
@@ -1150,12 +1151,12 @@ describe("users", () => {
               }),
             );
 
-            // Should see users before page 2's first item (user-02 at level 20)
-            // In desc order, that means user-05, user-04, user-03
+            // Should see users at or before page 2's first item (user-02 at level 20)
+            // Cursor is inclusive for Before, so includes user-02, and items before it in DESC order
             expect(backToPage1.users.map((u) => u.id)).toEqual([
-              "user-05",
               "user-04",
               "user-03",
+              "user-02",
             ]);
           });
         });

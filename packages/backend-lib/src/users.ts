@@ -561,8 +561,15 @@ export async function getUsers(
     const effectiveSortAsc =
       direction === CursorDirectionEnum.Before ? !baseSortAsc : baseSortAsc;
     const orderDirection = effectiveSortAsc ? "ASC" : "DESC";
-    // Cursor comparison: when going forward in ASC order, use ">"; when going forward in DESC order, use "<"
-    const cursorComparison = effectiveSortAsc ? ">" : "<";
+    // Cursor comparison:
+    // - After direction: use strict comparison (> or <) to exclude cursor position
+    // - Before direction: use inclusive comparison (<= or >=) to include cursor position
+    let cursorComparison: string;
+    if (effectiveSortAsc) {
+      cursorComparison = direction === CursorDirectionEnum.Before ? ">=" : ">";
+    } else {
+      cursorComparison = direction === CursorDirectionEnum.Before ? "<=" : "<";
+    }
 
     const childWorkspaceIds = (
       await db()
