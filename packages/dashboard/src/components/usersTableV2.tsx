@@ -63,6 +63,7 @@ import { useImmer } from "use-immer";
 
 import { useAppStore } from "../lib/appStore";
 import { useDeleteUserMutation } from "../lib/useDeleteUserMutation";
+import { useUserPropertyResourcesQuery } from "../lib/useUserPropertyResourcesQuery";
 import { useUsersCountQuery } from "../lib/useUsersCountQuery";
 import { useUsersQuery } from "../lib/useUsersQuery";
 import { GreyButton } from "./greyButtonStyle";
@@ -386,6 +387,22 @@ const segmentsCellRenderer = ({
   row: { original: { segments: { id: string; name: string }[] } };
 }) => <SegmentsCell segments={row.original.segments} />;
 
+const sortPropertyCellRenderer = ({
+  getValue,
+}: {
+  getValue: () => unknown;
+}) => {
+  const value = getValue();
+  if (value === null || value === undefined) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        —
+      </Typography>
+    );
+  }
+  return <Typography variant="body2">{String(value)}</Typography>;
+};
+
 // Actions menu item
 function ActionsCell({ userId }: { userId: string }) {
   const theme = useTheme();
@@ -613,6 +630,7 @@ interface Row {
     id: string;
     name: string;
   }[];
+  sortPropertyValue?: string | number | boolean | null;
 }
 
 export type OnPaginationChangeProps = Pick<
@@ -783,6 +801,19 @@ export default function UsersTableV2({
     placeholderData: keepPreviousData,
   });
 
+  // Query to get user property names for column headers
+  const userPropertiesQuery = useUserPropertyResourcesQuery();
+
+  // Get the name of the current sort property
+  const sortPropertyName = useMemo(() => {
+    if (!state.sortBy || state.sortBy === "id") {
+      return null;
+    }
+    const properties = userPropertiesQuery.data?.userProperties ?? [];
+    const found = properties.find((p) => p.id === state.sortBy);
+    return found?.name ?? null;
+  }, [state.sortBy, userPropertiesQuery.data]);
+
   const usersListQuery = useUsersQuery(
     {
       ...commonQueryListParams,
@@ -866,12 +897,18 @@ export default function UsersTableV2({
       }
 
       let email = "";
+      let sortPropertyValue: string | number | boolean | null | undefined;
+
       for (const propId in user.properties) {
         const prop = user.properties[propId];
         if (prop && prop.name.toLowerCase() === "email") {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           email = prop.value as string;
-          break;
+        }
+        // Get the sort property value if this is the sort property
+        if (state.sortBy && propId === state.sortBy && prop) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          sortPropertyValue = prop.value as string | number | boolean | null;
         }
       }
 
@@ -880,23 +917,37 @@ export default function UsersTableV2({
           id: user.id,
           email,
           segments: user.segments,
+          sortPropertyValue,
         },
       ];
     });
-  }, [state.currentPageUserIds, state.users]);
+  }, [state.currentPageUserIds, state.users, state.sortBy]);
 
   const actionsCellRenderer = useMemo(() => {
     return actionsCellRendererFactory();
   }, []);
 
-  const columns = useMemo<ColumnDef<Row>[]>(
-    () => [
+  const columns = useMemo<ColumnDef<Row>[]>(() => {
+    const baseColumns: ColumnDef<Row>[] = [
       {
         id: "id",
         header: "User ID",
         accessorKey: "id",
         cell: (info) => userIdCellRenderer({ ...info, userUriTemplate }),
       },
+    ];
+
+    // Add sort property column second (after User ID) if sorting by a user property
+    if (sortPropertyName && state.sortBy && state.sortBy !== "id") {
+      baseColumns.push({
+        id: "sortProperty",
+        header: sortPropertyName,
+        accessorKey: "sortPropertyValue",
+        cell: sortPropertyCellRenderer,
+      });
+    }
+
+    baseColumns.push(
       {
         id: "email",
         header: "Email",
@@ -915,9 +966,10 @@ export default function UsersTableV2({
         size: 70,
         cell: actionsCellRenderer,
       },
-    ],
-    [userUriTemplate, actionsCellRenderer],
-  );
+    );
+
+    return baseColumns;
+  }, [userUriTemplate, actionsCellRenderer, sortPropertyName, state.sortBy]);
 
   const table = useReactTable({
     columns,
