@@ -297,7 +297,7 @@ const adminAuth = fp(async (fastify: FastifyInstance) => {
         errorMessage,
       );
       return reply.status(401).send({
-        messsage: errorMessage,
+        message: errorMessage,
       });
     }
   });

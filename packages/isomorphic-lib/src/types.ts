@@ -5297,6 +5297,7 @@ export const ComponentConfigurationEnum = {
   DeliveriesTable: "DeliveriesTable",
   Broadcast: "Broadcast",
   MessageTemplate: "MessageTemplate",
+  AnalysisChart: "AnalysisChart",
 } as const;
 
 export const DeliveriesAllowedColumnEnum = {
@@ -5397,10 +5398,77 @@ export type MessageTemplateConfiguration = Static<
   typeof MessageTemplateConfiguration
 >;
 
+export const AnalysisFilterKeyEnum = {
+  journeyIds: "journeyIds",
+  broadcastIds: "broadcastIds",
+  channels: "channels",
+  providers: "providers",
+  messageStates: "messageStates",
+  templateIds: "templateIds",
+  userIds: "userIds",
+} as const;
+
+export const AnalysisFilterKey = Type.Union([
+  Type.Literal(AnalysisFilterKeyEnum.journeyIds),
+  Type.Literal(AnalysisFilterKeyEnum.broadcastIds),
+  Type.Literal(AnalysisFilterKeyEnum.channels),
+  Type.Literal(AnalysisFilterKeyEnum.providers),
+  Type.Literal(AnalysisFilterKeyEnum.messageStates),
+  Type.Literal(AnalysisFilterKeyEnum.templateIds),
+  Type.Literal(AnalysisFilterKeyEnum.userIds),
+]);
+
+export type AnalysisFilterKey = Static<typeof AnalysisFilterKey>;
+
+export const AnalysisChartFilters = Type.Object({
+  journeyIds: Type.Optional(Type.Array(Type.String())),
+  broadcastIds: Type.Optional(Type.Array(Type.String())),
+  channels: Type.Optional(Type.Array(Type.String())),
+  providers: Type.Optional(Type.Array(Type.String())),
+  messageStates: Type.Optional(Type.Array(Type.String())),
+  templateIds: Type.Optional(Type.Array(Type.String())),
+  userIds: Type.Optional(Type.Array(Type.String())),
+});
+
+export type AnalysisChartFilters = Static<typeof AnalysisChartFilters>;
+
+// Group by keys that can be configured (channel and messageState are always available)
+export const AnalysisGroupByKeyEnum = {
+  journey: "journey",
+  broadcast: "broadcast",
+  messageTemplate: "messageTemplate",
+  provider: "provider",
+} as const;
+
+export const AnalysisGroupByKey = Type.Union([
+  Type.Literal(AnalysisGroupByKeyEnum.journey),
+  Type.Literal(AnalysisGroupByKeyEnum.broadcast),
+  Type.Literal(AnalysisGroupByKeyEnum.messageTemplate),
+  Type.Literal(AnalysisGroupByKeyEnum.provider),
+]);
+
+export type AnalysisGroupByKey = Static<typeof AnalysisGroupByKey>;
+
+export const AnalysisChartConfiguration = Type.Object({
+  type: Type.Literal(ComponentConfigurationEnum.AnalysisChart),
+  hardcodedFilters: Type.Optional(AnalysisChartFilters),
+  allowedFilters: Type.Optional(Type.Array(AnalysisFilterKey)),
+  allowedGroupBy: Type.Optional(Type.Array(AnalysisGroupByKey)),
+  allowedChannels: Type.Optional(Type.Array(Type.Enum(ChannelType))),
+  columnAllowList: Type.Optional(Type.Array(DeliveriesAllowedColumn)),
+  templateUriTemplate: Type.Optional(Type.String()),
+  originUriTemplate: Type.Optional(Type.String()),
+});
+
+export type AnalysisChartConfiguration = Static<
+  typeof AnalysisChartConfiguration
+>;
+
 export const ComponentConfigurationDefinition = Type.Union([
   DeliveriesTableConfiguration,
   BroadcastConfiguration,
   MessageTemplateConfiguration,
+  AnalysisChartConfiguration,
 ]);
 
 export type ComponentConfigurationDefinition = Static<
@@ -6283,16 +6351,7 @@ export const GetChartDataRequest = Type.Object({
       Type.Literal("messageState"),
     ]),
   ),
-  filters: Type.Optional(
-    Type.Object({
-      journeyIds: Type.Optional(Type.Array(Type.String())),
-      broadcastIds: Type.Optional(Type.Array(Type.String())),
-      channels: Type.Optional(Type.Array(Type.String())),
-      providers: Type.Optional(Type.Array(Type.String())),
-      messageStates: Type.Optional(Type.Array(Type.String())),
-      templateIds: Type.Optional(Type.Array(Type.String())),
-    }),
-  ),
+  filters: Type.Optional(AnalysisChartFilters),
 });
 
 export type GetChartDataRequest = Static<typeof GetChartDataRequest>;
@@ -6309,6 +6368,7 @@ export const GetSummarizedDataRequest = Type.Object({
       providers: Type.Optional(Type.Array(Type.String())),
       messageStates: Type.Optional(Type.Array(Type.String())),
       templateIds: Type.Optional(Type.Array(Type.String())),
+      userIds: Type.Optional(Type.Array(Type.String())),
     }),
   ),
 });

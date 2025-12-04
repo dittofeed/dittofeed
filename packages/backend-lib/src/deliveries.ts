@@ -594,7 +594,7 @@ export async function searchDeliveriesCount(
   const qb = new ClickHouseQueryBuilder();
 
   const queryBody = buildDeliverySearchQueryBody({
-    params: searchParams as SearchDeliveriesRequest,
+    params: searchParams,
     qb,
   });
 

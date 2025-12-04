@@ -23,7 +23,10 @@ import { Updater, useImmer } from "use-immer";
 import { usePropertiesQuery } from "../../lib/usePropertiesQuery";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
-import { sharedFilterChipSx } from "../shared/filterStyles";
+import {
+  HardcodedFilterChip,
+  sharedFilterChipSx,
+} from "../shared/filterStyles";
 import { SquarePaper } from "../squarePaper";
 
 export interface BaseUserEventsFilterCommand {
@@ -278,24 +281,11 @@ export function SelectedUserEventsFilters({
           }
           const fullLabel = `${key} = ${label}`;
           return (
-            <Tooltip
+            <HardcodedFilterChip
               key={`hardcoded-${key}`}
-              title={fullLabel}
-              placement="bottom-start"
-            >
-              <Chip
-                sx={{
-                  ...sharedFilterChipSx,
-                  ...sx,
-                  opacity: 0.7,
-                  "& .MuiChip-deleteIcon": {
-                    display: "none",
-                  },
-                }}
-                label={fullLabel}
-                disabled
-              />
-            </Tooltip>
+              label={fullLabel}
+              chipProps={{ sx }}
+            />
           );
         })
     : [];

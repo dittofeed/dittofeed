@@ -15,7 +15,13 @@ import {
 } from "@mui/material";
 import Popover from "@mui/material/Popover";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { InternalEventType, Present } from "isomorphic-lib/src/types";
+import {
+  AnalysisChartFilters,
+  AnalysisFilterKey as AnalysisFilterKeySchema,
+  ChannelType,
+  InternalEventType,
+  Present,
+} from "isomorphic-lib/src/types";
 import React, { HTMLAttributes, useCallback, useMemo, useRef } from "react";
 import { omit } from "remeda";
 import { Updater, useImmer } from "use-immer";
@@ -23,6 +29,7 @@ import { Updater, useImmer } from "use-immer";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import {
+  HardcodedFilterChip,
   sharedFilterButtonProps,
   sharedFilterChipSx,
 } from "../shared/filterStyles";
@@ -40,12 +47,13 @@ export enum AnalysisFilterCommandType {
 }
 
 export type AnalysisFilterKey =
-  | "journeys"
-  | "broadcasts"
+  | "journeyIds"
+  | "broadcastIds"
   | "channels"
   | "providers"
   | "messageStates"
-  | "templates";
+  | "templateIds"
+  | "userIds";
 
 export type SelectItemCommand = BaseAnalysisFilterCommand & {
   type: AnalysisFilterCommandType.SelectItem;
@@ -65,6 +73,7 @@ type CommandHandler = Present<
 
 export enum FilterType {
   MultiSelect = "MultiSelect",
+  Value = "Value",
 }
 
 export interface MultiSelectFilter {
@@ -72,11 +81,17 @@ export interface MultiSelectFilter {
   value: Map<string, string>;
 }
 
-export type Filter = MultiSelectFilter;
+export interface ValueFilter {
+  type: FilterType.Value;
+  value: string;
+}
+
+export type Filter = MultiSelectFilter | ValueFilter;
 
 export enum StageType {
   SelectKey = "SelectKey",
   SelectItem = "SelectItem",
+  SelectValue = "SelectValue",
 }
 
 export interface SelectKeyStage {
@@ -89,7 +104,14 @@ export interface SelectItemStage {
   children: SelectItemCommand[];
 }
 
-export type Stage = SelectKeyStage | SelectItemStage;
+export interface SelectValueStage {
+  type: StageType.SelectValue;
+  label: string;
+  filterKey: AnalysisFilterKey;
+  value: ValueFilter;
+}
+
+export type Stage = SelectKeyStage | SelectItemStage | SelectValueStage;
 
 export interface AnalysisFiltersState {
   open: boolean;
@@ -99,24 +121,25 @@ export interface AnalysisFiltersState {
 }
 
 const keyCommandLabels: Record<AnalysisFilterKey, string> = {
-  journeys: "Journey",
-  broadcasts: "Broadcast",
+  journeyIds: "Journey",
+  broadcastIds: "Broadcast",
   channels: "Channel",
   providers: "Provider",
   messageStates: "Message Status",
-  templates: "Template",
+  templateIds: "Template",
+  userIds: "User ID",
 };
 
 const keyCommands: readonly AnalysisFilterCommand[] = [
   {
-    label: keyCommandLabels.journeys,
+    label: keyCommandLabels.journeyIds,
     type: AnalysisFilterCommandType.SelectKey,
-    filterKey: "journeys",
+    filterKey: "journeyIds",
   },
   {
-    label: keyCommandLabels.broadcasts,
+    label: keyCommandLabels.broadcastIds,
     type: AnalysisFilterCommandType.SelectKey,
-    filterKey: "broadcasts",
+    filterKey: "broadcastIds",
   },
   {
     label: keyCommandLabels.channels,
@@ -134,9 +157,14 @@ const keyCommands: readonly AnalysisFilterCommand[] = [
     filterKey: "messageStates",
   },
   {
-    label: keyCommandLabels.templates,
+    label: keyCommandLabels.templateIds,
     type: AnalysisFilterCommandType.SelectKey,
-    filterKey: "templates",
+    filterKey: "templateIds",
+  },
+  {
+    label: keyCommandLabels.userIds,
+    type: AnalysisFilterCommandType.SelectKey,
+    filterKey: "userIds",
   },
 ] as const;
 
@@ -147,6 +175,9 @@ export function getFilterValues(
   const filter = state.filters.get(filterKey);
   if (!filter) {
     return;
+  }
+  if (filter.type === FilterType.Value) {
+    return filter.value ? [filter.value] : undefined;
   }
   return Array.from(filter.value.keys());
 }
@@ -169,14 +200,51 @@ export function SelectedAnalysisFilters({
   state,
   setState,
   sx,
+  hardcodedFilters,
 }: {
   sx?: SxProps<Theme>;
   state: AnalysisFiltersState;
   setState: SetAnalysisFiltersState;
+  hardcodedFilters?: AnalysisChartFilters | null;
 }) {
+  const { data: resources } = useResourcesQuery({
+    broadcasts: true,
+    journeys: true,
+    messageTemplates: true,
+  });
+
+  const resolveIdToName = useCallback(
+    (filterKey: AnalysisFilterKey, id: string): string => {
+      switch (filterKey) {
+        case "journeyIds": {
+          const journey = resources?.journeys?.find((j) => j.id === id);
+          return journey ? journey.name : id;
+        }
+        case "broadcastIds": {
+          const broadcast = resources?.broadcasts?.find((b) => b.id === id);
+          return broadcast ? broadcast.name : id;
+        }
+        case "templateIds": {
+          const template = resources?.messageTemplates?.find(
+            (t) => t.id === id,
+          );
+          return template ? template.name : id;
+        }
+        default:
+          return id;
+      }
+    },
+    [resources],
+  );
+
   const filterChips = Array.from(state.filters.entries()).map(
     ([key, filter]) => {
-      const label = Array.from(filter.value.values()).join(" OR ");
+      let label: string;
+      if (filter.type === FilterType.Value) {
+        label = filter.value;
+      } else {
+        label = Array.from(filter.value.values()).join(" OR ");
+      }
       const keyLabel = keyCommandLabels[key];
       const fullLabel = `${keyLabel} = ${label}`;
       return (
@@ -198,7 +266,33 @@ export function SelectedAnalysisFilters({
     },
   );
 
-  return <>{filterChips}</>;
+  // Add hardcoded filters as disabled chips
+  const hardcodedChips = hardcodedFilters
+    ? Object.entries(hardcodedFilters)
+        .filter(([, value]) => value !== undefined && value.length > 0)
+        .map(([key, value]) => {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          const filterKey = key as AnalysisFilterKey;
+          const keyLabel = keyCommandLabels[filterKey];
+
+          // Resolve IDs to names
+          const resolvedValues = value.map((id: string) =>
+            resolveIdToName(filterKey, id),
+          );
+          const label = resolvedValues.join(" OR ");
+          const fullLabel = `${keyLabel} = ${label}`;
+
+          return (
+            <HardcodedFilterChip
+              key={`hardcoded-${key}`}
+              label={fullLabel}
+              chipProps={{ sx }}
+            />
+          );
+        })
+    : [];
+
+  return <>{[...hardcodedChips, ...filterChips]}</>;
 }
 
 export function NewAnalysisFilterButton({
@@ -206,32 +300,52 @@ export function NewAnalysisFilterButton({
   setState,
   buttonProps,
   greyScale,
+  allowedFilters,
+  allowedChannels,
 }: {
   buttonProps?: ButtonProps;
   state: AnalysisFiltersState;
   setState: SetAnalysisFiltersState;
   greyScale?: boolean;
+  allowedFilters?: AnalysisFilterKeySchema[];
+  allowedChannels?: ChannelType[];
 }) {
-  const { data: broadcasts } = useResourcesQuery({ broadcasts: true });
-  const { data: journeys } = useResourcesQuery({ journeys: true });
-  const { data: templates } = useResourcesQuery({ messageTemplates: true });
+  const { data: resources } = useResourcesQuery({
+    broadcasts: true,
+    journeys: true,
+    messageTemplates: true,
+  });
   const { stage } = state;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorEl = useRef<HTMLElement | null>(null);
 
+  const filteredKeyCommands = useMemo(() => {
+    if (!allowedFilters) {
+      return keyCommands;
+    }
+    return keyCommands.filter(
+      (cmd) =>
+        cmd.type === AnalysisFilterCommandType.SelectKey &&
+        allowedFilters.includes(cmd.filterKey),
+    );
+  }, [allowedFilters]);
+
   const commands: readonly AnalysisFilterCommand[] = useMemo(() => {
     switch (stage.type) {
       case StageType.SelectKey: {
-        return keyCommands;
+        return filteredKeyCommands;
       }
       case StageType.SelectItem: {
         return stage.children;
       }
+      case StageType.SelectValue: {
+        return [];
+      }
       default:
         assertUnreachable(stage);
     }
-  }, [stage]);
+  }, [stage, filteredKeyCommands]);
 
   const handleCommandSelect = useCallback<CommandHandler>(
     (_event, value) => {
@@ -246,10 +360,13 @@ export function NewAnalysisFilterButton({
               draft.inputValue = "";
               draft.open = false;
               const maybeExisting = draft.filters.get(currentStage.filterKey);
-              const existing = maybeExisting ?? {
-                type: FilterType.MultiSelect,
-                value: new Map(),
-              };
+              const existing: MultiSelectFilter =
+                maybeExisting?.type === FilterType.MultiSelect
+                  ? maybeExisting
+                  : {
+                      type: FilterType.MultiSelect,
+                      value: new Map(),
+                    };
 
               existing.value.set(value.id, value.label);
               draft.filters.set(currentStage.filterKey, existing);
@@ -261,8 +378,8 @@ export function NewAnalysisFilterButton({
             setState((draft) => {
               draft.inputValue = "";
               switch (value.filterKey) {
-                case "journeys": {
-                  const journeyOptions = journeys?.journeys || [];
+                case "journeyIds": {
+                  const journeyOptions = resources?.journeys ?? [];
                   const children: SelectItemCommand[] = journeyOptions.map(
                     (journey) => ({
                       label: journey.name,
@@ -277,8 +394,8 @@ export function NewAnalysisFilterButton({
                   };
                   break;
                 }
-                case "broadcasts": {
-                  const broadcastOptions = broadcasts?.broadcasts || [];
+                case "broadcastIds": {
+                  const broadcastOptions = resources?.broadcasts ?? [];
                   const children: SelectItemCommand[] = broadcastOptions.map(
                     (broadcast) => ({
                       label: broadcast.name,
@@ -294,28 +411,35 @@ export function NewAnalysisFilterButton({
                   break;
                 }
                 case "channels": {
-                  const children: SelectItemCommand[] = [
+                  const allChannels: SelectItemCommand[] = [
                     {
                       label: "Email",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "Email",
+                      id: ChannelType.Email,
                     },
                     {
                       label: "SMS",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "Sms",
+                      id: ChannelType.Sms,
                     },
                     {
                       label: "Mobile Push",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "MobilePush",
+                      id: ChannelType.MobilePush,
                     },
                     {
                       label: "Webhook",
                       type: AnalysisFilterCommandType.SelectItem,
-                      id: "Webhook",
+                      id: ChannelType.Webhook,
                     },
                   ];
+                  // Filter channels based on allowedChannels configuration
+                  const children = allowedChannels
+                    ? allChannels.filter((channel) =>
+                        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                        (allowedChannels as string[]).includes(channel.id),
+                      )
+                    : allChannels;
                   draft.stage = {
                     type: StageType.SelectItem,
                     filterKey: value.filterKey,
@@ -419,8 +543,8 @@ export function NewAnalysisFilterButton({
                   };
                   break;
                 }
-                case "templates": {
-                  const templateOptions = templates?.messageTemplates || [];
+                case "templateIds": {
+                  const templateOptions = resources?.messageTemplates ?? [];
                   const children: SelectItemCommand[] = templateOptions.map(
                     (template) => ({
                       label: template.name,
@@ -435,6 +559,18 @@ export function NewAnalysisFilterButton({
                   };
                   break;
                 }
+                case "userIds": {
+                  draft.stage = {
+                    type: StageType.SelectValue,
+                    filterKey: value.filterKey,
+                    label: value.label,
+                    value: {
+                      type: FilterType.Value,
+                      value: "",
+                    },
+                  };
+                  break;
+                }
               }
             });
             break;
@@ -443,7 +579,7 @@ export function NewAnalysisFilterButton({
         }
       }
     },
-    [setState, broadcasts, journeys, templates],
+    [setState, resources, allowedChannels],
   );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -461,8 +597,60 @@ export function NewAnalysisFilterButton({
     });
   };
 
-  const popoverBody =
-    commands.length > 0 ? (
+  let popoverBody: React.ReactNode;
+  if (state.stage.type === StageType.SelectValue) {
+    popoverBody = (
+      <TextField
+        autoFocus
+        variant="filled"
+        InputProps={{
+          sx: {
+            borderRadius: 0,
+          },
+        }}
+        sx={{
+          ...(greyScale ? greyTextFieldStyles : {}),
+          width: 300,
+        }}
+        label={state.stage.label}
+        value={state.stage.value.value}
+        onChange={(event) =>
+          setState((draft) => {
+            if (draft.stage.type !== StageType.SelectValue) {
+              return draft;
+            }
+            draft.stage.value.value = event.target.value;
+            return draft;
+          })
+        }
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") {
+            return;
+          }
+          event.preventDefault();
+
+          setState((draft) => {
+            if (draft.stage.type !== StageType.SelectValue) {
+              return draft;
+            }
+            if (draft.stage.value.type !== FilterType.Value) {
+              return draft;
+            }
+            // Set the filter
+            draft.filters.set(draft.stage.filterKey, {
+              type: FilterType.Value,
+              value: draft.stage.value.value,
+            });
+            // Reset and close
+            draft.open = false;
+            draft.stage = { type: StageType.SelectKey };
+            return draft;
+          });
+        }}
+      />
+    );
+  } else if (commands.length > 0) {
+    popoverBody = (
       <Autocomplete<AnalysisFilterCommand>
         disablePortal
         open
@@ -532,7 +720,10 @@ export function NewAnalysisFilterButton({
           height: "100%",
         }}
       />
-    ) : null;
+    );
+  } else {
+    popoverBody = null;
+  }
 
   return (
     <>

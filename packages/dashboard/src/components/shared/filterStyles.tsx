@@ -1,4 +1,11 @@
-import { Divider, Stack, StackProps } from "@mui/material";
+import {
+  Chip,
+  ChipProps,
+  Divider,
+  Stack,
+  StackProps,
+  Tooltip,
+} from "@mui/material";
 import React from "react";
 
 import { greyButtonStyle } from "../greyButtonStyle";
@@ -23,6 +30,43 @@ export const sharedFilterChipSx = {
     maxWidth: "100%",
   },
 };
+
+// Shared styling for hardcoded (disabled) filter chips
+export const hardcodedFilterChipSx = {
+  ...sharedFilterChipSx,
+  opacity: 0.7,
+  "& .MuiChip-deleteIcon": {
+    display: "none",
+  },
+};
+
+export interface HardcodedFilterChipProps {
+  label: string;
+  chipProps?: Omit<ChipProps, "label" | "disabled">;
+}
+
+/**
+ * A disabled filter chip for displaying hardcoded/immutable filters.
+ * Styled with reduced opacity and no delete icon.
+ */
+export function HardcodedFilterChip({
+  label,
+  chipProps,
+}: HardcodedFilterChipProps) {
+  return (
+    <Tooltip title={label} placement="bottom-start">
+      <Chip
+        sx={{
+          ...hardcodedFilterChipSx,
+          ...chipProps?.sx,
+        }}
+        {...chipProps}
+        label={label}
+        disabled
+      />
+    </Tooltip>
+  );
+}
 
 // Shared container for filters that includes the divider and horizontal layout
 export function SharedFilterContainer({ children, ...props }: StackProps) {

@@ -165,6 +165,12 @@ export async function getChartData({
       );
     }
 
+    if (filters.userIds && filters.userIds.length > 0) {
+      sentConditions.push(
+        `user_or_anonymous_id IN ${qb.addQueryValue(filters.userIds, "Array(String)")}`,
+      );
+    }
+
     if (sentConditions.length > 0) {
       sentFilterClauses = `AND ${sentConditions.join(" AND ")}`;
     }
@@ -430,6 +436,12 @@ export async function getSummarizedData({
     if (filters.templateIds && filters.templateIds.length > 0) {
       conditions.push(
         `template_id IN ${qb.addQueryValue(filters.templateIds, "Array(String)")}`,
+      );
+    }
+
+    if (filters.userIds && filters.userIds.length > 0) {
+      conditions.push(
+        `user_or_anonymous_id IN ${qb.addQueryValue(filters.userIds, "Array(String)")}`,
       );
     }
 

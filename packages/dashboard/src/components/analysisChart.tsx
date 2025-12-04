@@ -13,6 +13,7 @@ import {
 import { keepPreviousData } from "@tanstack/react-query";
 import { subMinutes } from "date-fns";
 import {
+  AnalysisChartConfiguration,
   ChannelType,
   ChartDataPoint,
   SearchDeliveriesRequestSortBy,
@@ -39,6 +40,7 @@ import { useResourcesQuery } from "../lib/useResourcesQuery";
 import {
   FilterType,
   getFilterValues,
+  MultiSelectFilter,
   NewAnalysisFilterButton,
   SelectedAnalysisFilters,
   useAnalysisFiltersState,
@@ -226,7 +228,11 @@ function CustomLegend(props: { payload?: readonly LegendPayload[] }) {
   );
 }
 
-export function AnalysisChart() {
+export interface AnalysisChartProps {
+  configuration?: AnalysisChartConfiguration | null;
+}
+
+export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
   const initialEndDate = useMemo(() => Date.now(), []);
   const initialStartDate = useMemo(
     () => subMinutes(initialEndDate, defaultTimeOption.minutes).getTime(),
@@ -235,23 +241,50 @@ export function AnalysisChart() {
 
   const [filtersState, setFiltersState] = useAnalysisFiltersState();
 
-  // Translate analysis filters to deliveries filter props
+  // Extract configuration options
+  const hardcodedFilters = configuration?.hardcodedFilters;
+  const allowedFilters = configuration?.allowedFilters;
+  const allowedGroupBy = configuration?.allowedGroupBy;
+  const allowedChannels = configuration?.allowedChannels;
+  const columnAllowList = configuration?.columnAllowList;
+  const templateUriTemplate = configuration?.templateUriTemplate;
+  const originUriTemplate = configuration?.originUriTemplate;
+
+  // Translate analysis filters to deliveries filter props, merging with hardcoded filters
   const deliveriesFilters = useMemo(() => {
     const selectedStatuses = getFilterValues(filtersState, "messageStates");
+    const dynamicTemplateIds = getFilterValues(filtersState, "templateIds");
+    const dynamicChannels = getFilterValues(filtersState, "channels");
+    const dynamicJourneyIds = getFilterValues(filtersState, "journeyIds");
+    const dynamicBroadcastIds = getFilterValues(filtersState, "broadcastIds");
+
+    // Merge hardcoded and dynamic filters (hardcoded takes precedence)
+    const templateIds =
+      hardcodedFilters?.templateIds ?? dynamicTemplateIds ?? undefined;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const channels = (hardcodedFilters?.channels ?? dynamicChannels) as
+      | ChannelType[]
+      | undefined;
+    const journeyIds =
+      hardcodedFilters?.journeyIds ?? dynamicJourneyIds ?? undefined;
+    const broadcastIds =
+      hardcodedFilters?.broadcastIds ?? dynamicBroadcastIds ?? undefined;
+
+    // Merge message states
+    const mergedStatuses = hardcodedFilters?.messageStates ?? selectedStatuses;
+    const statuses = mergedStatuses
+      ? expandCascadingMessageFilters(mergedStatuses)
+      : undefined;
+
     return {
-      templateIds: getFilterValues(filtersState, "templates"),
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      channels: getFilterValues(filtersState, "channels") as
-        | ChannelType[]
-        | undefined,
-      statuses: selectedStatuses
-        ? expandCascadingMessageFilters(selectedStatuses)
-        : undefined,
-      journeyIds: getFilterValues(filtersState, "journeys"),
-      broadcastIds: getFilterValues(filtersState, "broadcasts"),
+      templateIds,
+      channels,
+      statuses,
+      journeyIds,
+      broadcastIds,
       // Note: to, from would come from other analysis filters if they exist
     };
-  }, [filtersState]);
+  }, [filtersState, hardcodedFilters]);
 
   const [state, setState] = useImmer<State>({
     selectedTimeOption: defaultTimeOptionId,
@@ -280,14 +313,25 @@ export function AnalysisChart() {
     limit: 5,
   });
 
-  // Build filters object from filter state
+  // Build filters object from filter state, merging with hardcoded filters
   const filters = useMemo(() => {
-    const journeyIds = getFilterValues(filtersState, "journeys");
-    const broadcastIds = getFilterValues(filtersState, "broadcasts");
-    const channels = getFilterValues(filtersState, "channels");
-    const providers = getFilterValues(filtersState, "providers");
-    const messageStates = getFilterValues(filtersState, "messageStates");
-    const templateIds = getFilterValues(filtersState, "templates");
+    const dynamicJourneyIds = getFilterValues(filtersState, "journeyIds");
+    const dynamicBroadcastIds = getFilterValues(filtersState, "broadcastIds");
+    const dynamicChannels = getFilterValues(filtersState, "channels");
+    const dynamicProviders = getFilterValues(filtersState, "providers");
+    const dynamicMessageStates = getFilterValues(filtersState, "messageStates");
+    const dynamicTemplateIds = getFilterValues(filtersState, "templateIds");
+    const dynamicUserIds = getFilterValues(filtersState, "userIds");
+
+    // Merge hardcoded and dynamic filters (hardcoded takes precedence)
+    const journeyIds = hardcodedFilters?.journeyIds ?? dynamicJourneyIds;
+    const broadcastIds = hardcodedFilters?.broadcastIds ?? dynamicBroadcastIds;
+    const channels = hardcodedFilters?.channels ?? dynamicChannels;
+    const providers = hardcodedFilters?.providers ?? dynamicProviders;
+    const messageStates =
+      hardcodedFilters?.messageStates ?? dynamicMessageStates;
+    const templateIds = hardcodedFilters?.templateIds ?? dynamicTemplateIds;
+    const userIds = hardcodedFilters?.userIds ?? dynamicUserIds;
 
     // Apply cascading logic to message states for chart data
     const expandedMessageStates = messageStates
@@ -301,7 +345,8 @@ export function AnalysisChart() {
       !channels &&
       !providers &&
       !expandedMessageStates &&
-      !templateIds
+      !templateIds &&
+      !userIds
     ) {
       return undefined;
     }
@@ -313,8 +358,9 @@ export function AnalysisChart() {
       ...(providers && { providers }),
       ...(expandedMessageStates && { messageStates: expandedMessageStates }),
       ...(templateIds && { templateIds }),
+      ...(userIds && { userIds }),
     };
-  }, [filtersState]);
+  }, [filtersState, hardcodedFilters]);
 
   const chartQuery = useAnalysisChartQuery(
     {
@@ -361,7 +407,7 @@ export function AnalysisChart() {
     (channel: ChannelType) => {
       setFiltersState((draft) => {
         // Add or update channel filter
-        const channelFilter = {
+        const channelFilter: MultiSelectFilter = {
           type: FilterType.MultiSelect,
           value: new Map([[channel, channel]]),
         };
@@ -614,10 +660,13 @@ export function AnalysisChart() {
                   state={filtersState}
                   setState={setFiltersState}
                   greyScale
+                  allowedFilters={allowedFilters}
+                  allowedChannels={allowedChannels}
                 />
                 <SelectedAnalysisFilters
                   state={filtersState}
                   setState={setFiltersState}
+                  hardcodedFilters={hardcodedFilters}
                   sx={{
                     height: "100%",
                   }}
@@ -637,6 +686,7 @@ export function AnalysisChart() {
                     })
                   }
                   greyScale
+                  allowedGroupBy={allowedGroupBy}
                 />
               </SharedFilterContainer>
             </Stack>
@@ -761,6 +811,7 @@ export function AnalysisChart() {
         filtersState={filtersState}
         onChannelSelect={handleChannelSelect}
         displayMode={state.displayMode}
+        allowedChannels={allowedChannels}
       />
 
       {/* Deliveries Table */}
@@ -777,6 +828,9 @@ export function AnalysisChart() {
         limit={5}
         state={deliveriesHookResult.state}
         setState={deliveriesHookResult.setState}
+        columnAllowList={columnAllowList}
+        templateUriTemplate={templateUriTemplate}
+        originUriTemplate={originUriTemplate}
         headerCellSx={{
           paddingTop: "8px",
           paddingBottom: "8px",
