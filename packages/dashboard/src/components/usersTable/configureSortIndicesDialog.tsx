@@ -152,72 +152,78 @@ export function ConfigureSortIndicesDialog({
           </Typography>
         )}
         {!isLoading && userProperties.length > 0 && (
-          <TableContainer>
+          <Box>
+            {/* Fixed Header */}
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>
+                  <TableCell sx={{ width: "60%" }}>
                     <Typography fontWeight={600}>Property</Typography>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell align="right" sx={{ width: "40%" }}>
                     <Typography fontWeight={600}>Index Type</Typography>
                   </TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {userProperties.map((property) => {
-                  const currentIndexType =
-                    indexTypeMap.get(property.id) ?? "None";
-                  const isPending = pendingChanges[property.id] !== undefined;
-                  const selectValue =
-                    pendingChanges[property.id] ?? currentIndexType;
-
-                  return (
-                    <TableRow key={property.id}>
-                      <TableCell>
-                        <Typography>{property.name}</Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <FormControl size="small" sx={{ minWidth: 120 }}>
-                          <Select<IndexTypeOption>
-                            value={selectValue}
-                            onChange={(e) => {
-                              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                              const value = e.target.value as IndexTypeOption;
-                              handleTypeChange(property.id, value);
-                            }}
-                            disabled={isPending}
-                            sx={{
-                              bgcolor: theme.palette.grey[100],
-                              "& .MuiSelect-select": {
-                                py: 1,
-                              },
-                            }}
-                          >
-                            <MenuItem value="None">None</MenuItem>
-                            <MenuItem value="String">String</MenuItem>
-                            <MenuItem value="Number">Number</MenuItem>
-                            <MenuItem value="Date">Date</MenuItem>
-                          </Select>
-                          {isPending && (
-                            <CircularProgress
-                              size={16}
-                              sx={{
-                                position: "absolute",
-                                right: 40,
-                                top: "50%",
-                                marginTop: "-8px",
-                              }}
-                            />
-                          )}
-                        </FormControl>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
             </Table>
-          </TableContainer>
+            {/* Scrollable Body */}
+            <TableContainer sx={{ maxHeight: 350 }}>
+              <Table size="small">
+                <TableBody>
+                  {userProperties.map((property) => {
+                    const currentIndexType =
+                      indexTypeMap.get(property.id) ?? "None";
+                    const isPending = pendingChanges[property.id] !== undefined;
+                    const selectValue =
+                      pendingChanges[property.id] ?? currentIndexType;
+
+                    return (
+                      <TableRow key={property.id}>
+                        <TableCell sx={{ width: "60%" }}>
+                          <Typography>{property.name}</Typography>
+                        </TableCell>
+                        <TableCell align="right" sx={{ width: "40%" }}>
+                          <FormControl size="small" sx={{ minWidth: 120 }}>
+                            <Select<IndexTypeOption>
+                              value={selectValue}
+                              onChange={(e) => {
+                                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                                const value = e.target.value as IndexTypeOption;
+                                handleTypeChange(property.id, value);
+                              }}
+                              disabled={isPending}
+                              sx={{
+                                bgcolor: theme.palette.grey[100],
+                                "& .MuiSelect-select": {
+                                  py: 1,
+                                },
+                              }}
+                            >
+                              <MenuItem value="None">None</MenuItem>
+                              <MenuItem value="String">String</MenuItem>
+                              <MenuItem value="Number">Number</MenuItem>
+                              <MenuItem value="Date">Date</MenuItem>
+                            </Select>
+                            {isPending && (
+                              <CircularProgress
+                                size={16}
+                                sx={{
+                                  position: "absolute",
+                                  right: 40,
+                                  top: "50%",
+                                  marginTop: "-8px",
+                                }}
+                              />
+                            )}
+                          </FormControl>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
         )}
       </DialogContent>
     </Dialog>
