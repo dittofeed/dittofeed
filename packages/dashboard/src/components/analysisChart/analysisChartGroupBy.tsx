@@ -78,6 +78,7 @@ export function AnalysisChartGroupBy({
       (cmd) =>
         cmd.value === null ||
         alwaysAvailableOptions.includes(cmd.value) ||
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         allowedGroupBy.includes(cmd.value as AnalysisGroupByKey),
     );
   }, [allowedGroupBy]);
