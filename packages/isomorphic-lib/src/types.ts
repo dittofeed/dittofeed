@@ -5455,6 +5455,9 @@ export const AnalysisChartConfiguration = Type.Object({
   allowedFilters: Type.Optional(Type.Array(AnalysisFilterKey)),
   allowedGroupBy: Type.Optional(Type.Array(AnalysisGroupByKey)),
   allowedChannels: Type.Optional(Type.Array(Type.Enum(ChannelType))),
+  columnAllowList: Type.Optional(Type.Array(DeliveriesAllowedColumn)),
+  templateUriTemplate: Type.Optional(Type.String()),
+  originUriTemplate: Type.Optional(Type.String()),
 });
 
 export type AnalysisChartConfiguration = Static<

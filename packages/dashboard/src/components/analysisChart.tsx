@@ -246,6 +246,9 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
   const allowedFilters = configuration?.allowedFilters;
   const allowedGroupBy = configuration?.allowedGroupBy;
   const allowedChannels = configuration?.allowedChannels;
+  const columnAllowList = configuration?.columnAllowList;
+  const templateUriTemplate = configuration?.templateUriTemplate;
+  const originUriTemplate = configuration?.originUriTemplate;
 
   // Translate analysis filters to deliveries filter props, merging with hardcoded filters
   const deliveriesFilters = useMemo(() => {
@@ -825,6 +828,9 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
         limit={5}
         state={deliveriesHookResult.state}
         setState={deliveriesHookResult.setState}
+        columnAllowList={columnAllowList}
+        templateUriTemplate={templateUriTemplate}
+        originUriTemplate={originUriTemplate}
         headerCellSx={{
           paddingTop: "8px",
           paddingBottom: "8px",
