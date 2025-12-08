@@ -28,6 +28,7 @@ import { GitBranchIcon } from "../../gitBranchIcon";
 import MobileSection from "./headerContent/mobileSection";
 // project import
 import Profile from "./headerContent/profile";
+import ThemeToggle from "../../ThemeToggle";
 
 function BranchMenuItemContents({
   item,
@@ -316,6 +317,7 @@ function HeaderContent() {
       <Box sx={{ width: "100%", ml: { xs: 0, md: 1 } }} />
       {matchesXs && <Box sx={{ width: "100%", ml: 1 }} />}
       <GitActionsSelect />
+      <ThemeToggle />
       {!features.WhiteLabel ? (
         <IconButton
           component={Link}

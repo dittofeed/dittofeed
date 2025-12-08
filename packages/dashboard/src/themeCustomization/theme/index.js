@@ -1,7 +1,8 @@
-// ==============================|| PRESET THEME - THEME SELECTOR ||============================== //
+// ==============================|| PRESET THEME - THEME SELECTOR (DARK/LIGHT READY) ||============================== //
 
-const Theme = (colors) => {
+const Theme = (colors, mode = "light") => {
   const { blue, red, gold, cyan, green, grey } = colors;
+
   const greyColors = {
     0: grey[0],
     50: grey[1],
@@ -23,17 +24,22 @@ const Theme = (colors) => {
   };
   const contrastText = "#fff";
 
+  // ------------------------ DARK MODE ADJUSTMENTS ------------------------
+  const isDark = mode === "dark";
+
+  const adjust = (lightColor, darkColor) => (isDark ? darkColor : lightColor);
+
   return {
     primary: {
-      lighter: blue[0],
-      100: blue[1],
-      200: blue[2],
-      light: blue[3],
-      400: blue[4],
-      main: blue[5],
-      dark: blue[6],
-      700: blue[7],
-      darker: blue[8],
+      lighter: adjust(blue[0], blue[3]),
+      100: adjust(blue[1], blue[4]),
+      200: adjust(blue[2], blue[5]),
+      light: adjust(blue[3], blue[6]),
+      400: adjust(blue[4], blue[7]),
+      main: adjust(blue[5], blue[8]),
+      dark: adjust(blue[6], blue[9]),
+      700: adjust(blue[7], blue[9]),
+      darker: adjust(blue[8], blue[9]),
       900: blue[9],
       contrastText,
     },
@@ -44,53 +50,59 @@ const Theme = (colors) => {
       300: "#49BBD4",
     },
     secondary: {
-      lighter: greyColors[100],
-      100: greyColors[100],
-      200: greyColors[200],
-      light: greyColors[300],
-      400: greyColors[400],
-      main: greyColors[500],
-      600: greyColors[600],
-      dark: greyColors[700],
+      lighter: adjust(greyColors[100], greyColors[800]),
+      100: adjust(greyColors[100], greyColors[700]),
+      200: adjust(greyColors[200], greyColors[600]),
+      light: adjust(greyColors[300], greyColors[500]),
+      400: adjust(greyColors[400], greyColors[400]),
+      main: adjust(greyColors[500], greyColors[300]),
+      600: adjust(greyColors[600], greyColors[200]),
+      dark: adjust(greyColors[700], greyColors[100]),
       800: greyColors[800],
       darker: greyColors[900],
+
       A100: greyColors[0],
       A200: greyColors.A400,
       A300: greyColors.A700,
-      contrastText: greyColors[0],
+      contrastText: adjust(greyColors[0], "#ffffff"),
     },
+
     error: {
-      lighter: red[0],
-      light: red[2],
-      main: red[4],
-      dark: red[7],
+      lighter: adjust(red[0], red[2]),
+      light: adjust(red[2], red[3]),
+      main: adjust(red[4], red[5]),
+      dark: adjust(red[7], red[7]),
       darker: red[9],
       contrastText,
     },
 
     warning: {
-      postIt: "#FFFAE5",
-      postItContrastText: "#8B6F03",
-      lighter: gold[0],
-      light: gold[3],
-      main: gold[5],
-      dark: gold[7],
+      postIt: adjust("#FFFAE5", "#5A4A00"),
+      postItContrastText: adjust("#8B6F03", "#F7E48A"),
+
+      lighter: adjust(gold[0], gold[2]),
+      light: adjust(gold[3], gold[4]),
+      main: adjust(gold[5], gold[6]),
+      dark: adjust(gold[7], gold[8]),
       darker: gold[9],
-      contrastText: greyColors[100],
+
+      contrastText: adjust(greyColors[100], greyColors[900]),
     },
+
     info: {
-      lighter: cyan[0],
-      light: cyan[3],
-      main: cyan[5],
-      dark: cyan[7],
+      lighter: adjust(cyan[0], cyan[2]),
+      light: adjust(cyan[3], cyan[4]),
+      main: adjust(cyan[5], cyan[6]),
+      dark: adjust(cyan[7], cyan[8]),
       darker: cyan[9],
       contrastText,
     },
+
     success: {
-      lighter: green[0],
-      light: green[3],
-      main: green[5],
-      dark: green[7],
+      lighter: adjust(green[0], green[2]),
+      light: adjust(green[3], green[4]),
+      main: adjust(green[5], green[6]),
+      dark: adjust(green[7], green[8]),
       darker: green[9],
       contrastText,
     },
