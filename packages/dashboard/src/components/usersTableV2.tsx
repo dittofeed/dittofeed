@@ -55,10 +55,16 @@ import {
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import { NextRouter, useRouter } from "next/router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { useAppStore } from "../lib/appStore";
-import { createStoreContext } from "../lib/createStoreContext";
 import { useDeleteUserMutation } from "../lib/useDeleteUserMutation";
 import { useUserPropertyResourcesQuery } from "../lib/useUserPropertyResourcesQuery";
 import { useUsersCountQuery } from "../lib/useUsersCountQuery";
@@ -79,8 +85,32 @@ import {
 // Store Context Setup
 // ============================================================================
 
-const [_UsersTableStoreProvider, useUsersTableStore, useUsersTableStoreApi] =
-  createStoreContext<UsersTableStore>(() => createUsersTableStore());
+// Context to hold the store instance
+const UsersTableStoreContext = createContext<ReturnType<
+  typeof createUsersTableStore
+> | null>(null);
+
+// Hook to access the store
+function useUsersTableStore(): UsersTableStore {
+  const store = useContext(UsersTableStoreContext);
+  if (!store) {
+    throw new Error(
+      "useUsersTableStore must be used within a UsersTableStoreProvider",
+    );
+  }
+  return store();
+}
+
+// Hook to get the store API for advanced use
+function useUsersTableStoreApi(): ReturnType<typeof createUsersTableStore> {
+  const store = useContext(UsersTableStoreContext);
+  if (!store) {
+    throw new Error(
+      "useUsersTableStoreApi must be used within a UsersTableStoreProvider",
+    );
+  }
+  return store;
+}
 
 // ============================================================================
 // Cell Components (unchanged from original)
@@ -1181,8 +1211,8 @@ export default function UsersTableV2({
   autoReloadByDefault,
   ...innerProps
 }: UsersTableProps) {
-  // Create a stable store factory that captures initial props
-  const [StoreProvider] = useState(() => {
+  // Create a stable store instance that captures initial props
+  const [store] = useState(() => {
     const initialState: UsersTableStoreInitialState = {
       staticSegmentIds: segmentFilter,
       staticSubscriptionGroupIds: subscriptionGroupFilter,
@@ -1192,19 +1222,16 @@ export default function UsersTableV2({
       limit: limit ?? 10,
       autoReloadByDefault: autoReloadByDefault ?? false,
     };
-    const [Provider] = createStoreContext<UsersTableStore>(() =>
-      createUsersTableStore(initialState),
-    );
-    return Provider;
+    return createUsersTableStore(initialState);
   });
 
   return (
-    <StoreProvider>
+    <UsersTableStoreContext.Provider value={store}>
       <UsersTableInner
         segmentFilter={segmentFilter}
         subscriptionGroupFilter={subscriptionGroupFilter}
         {...innerProps}
       />
-    </StoreProvider>
+    </UsersTableStoreContext.Provider>
   );
 }
