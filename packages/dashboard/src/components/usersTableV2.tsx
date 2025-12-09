@@ -669,6 +669,16 @@ export type UsersTableProps = Omit<GetUsersRequest, "workspaceId"> & {
 // Inner Table Component (uses the store)
 // ============================================================================
 
+// Props used only for initial store state, not needed by the inner component
+type InitialStoreProps =
+  | "autoReloadByDefault"
+  | "cursor"
+  | "direction"
+  | "limit"
+  | "sortBy";
+
+type UsersTableInnerProps = Omit<UsersTableProps, InitialStoreProps>;
+
 function UsersTableInner({
   segmentFilter: segmentIds,
   subscriptionGroupFilter: subscriptionGroupIds,
@@ -677,13 +687,7 @@ function UsersTableInner({
   reloadPeriodMs = 10000,
   userUriTemplate = "/users/{userId}",
   hideControls = false,
-  // These props are used for initial store state only, not here
-  autoReloadByDefault: _autoReloadByDefault,
-  cursor: _cursor,
-  direction: _direction,
-  limit: _limit,
-  sortBy: _sortBy,
-}: UsersTableProps) {
+}: UsersTableInnerProps) {
   useAppStore();
 
   // Get store state and actions
@@ -1175,7 +1179,7 @@ export default function UsersTableV2({
   sortBy,
   limit,
   autoReloadByDefault,
-  ...restProps
+  ...innerProps
 }: UsersTableProps) {
   // Create a stable store factory that captures initial props
   const [StoreProvider] = useState(() => {
@@ -1194,20 +1198,13 @@ export default function UsersTableV2({
     return Provider;
   });
 
-  const allProps: UsersTableProps = {
-    segmentFilter,
-    subscriptionGroupFilter,
-    cursor,
-    direction,
-    sortBy,
-    limit,
-    autoReloadByDefault,
-    ...restProps,
-  };
-
   return (
     <StoreProvider>
-      <UsersTableInner {...allProps} />
+      <UsersTableInner
+        segmentFilter={segmentFilter}
+        subscriptionGroupFilter={subscriptionGroupFilter}
+        {...innerProps}
+      />
     </StoreProvider>
   );
 }
