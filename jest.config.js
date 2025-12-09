@@ -38,6 +38,7 @@ const config = {
       globalSetup: "<rootDir>/packages/backend-lib/test/globalSetup.ts",
       setupFilesAfterEnv: [
         "<rootDir>/packages/backend-lib/test/setup.ts",
+        "<rootDir>/packages/dashboard/test/setup.ts",
         "jest-expect-message",
       ],
       moduleNameMapper: {

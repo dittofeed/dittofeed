@@ -329,6 +329,7 @@ describe("usersTableStore", () => {
         segmentFilter: ["segment-1"],
         subscriptionGroupFilter: ["sg-1"],
         userPropertyFilter: undefined,
+        exclusiveCursor: true,
       });
     });
 
@@ -341,6 +342,7 @@ describe("usersTableStore", () => {
       expect(params.sortBy).toBeUndefined();
       expect(params.segmentFilter).toBeUndefined();
       expect(params.subscriptionGroupFilter).toBeUndefined();
+      expect(params.exclusiveCursor).toBe(true);
     });
   });
 
@@ -483,6 +485,7 @@ describe("usersTableStore", () => {
           limit,
           cursor: store.getState().cursor ?? undefined,
           direction: store.getState().direction ?? undefined,
+          exclusiveCursor: true,
         }),
       );
       store.getState().handleUsersResponse(page2Response);
@@ -499,6 +502,7 @@ describe("usersTableStore", () => {
           limit,
           cursor: store.getState().cursor ?? undefined,
           direction: store.getState().direction ?? undefined,
+          exclusiveCursor: true,
         }),
       );
       store.getState().handleUsersResponse(backToPage1Response);
@@ -531,6 +535,7 @@ describe("usersTableStore", () => {
           limit,
           cursor: store.getState().cursor ?? undefined,
           direction: store.getState().direction ?? undefined,
+          exclusiveCursor: true, // Required for correct back-navigation
         }),
       );
       store.getState().handleUsersResponse(page2Response);
@@ -548,6 +553,7 @@ describe("usersTableStore", () => {
           limit,
           cursor: store.getState().cursor ?? undefined,
           direction: store.getState().direction ?? undefined,
+          exclusiveCursor: true, // Required for correct back-navigation
         }),
       );
       store.getState().handleUsersResponse(backToPage1Response);

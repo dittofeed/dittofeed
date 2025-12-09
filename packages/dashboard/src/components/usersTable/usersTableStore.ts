@@ -1,4 +1,3 @@
-import { enableMapSet } from "immer";
 import {
   CursorDirectionEnum,
   GetUsersRequest,
@@ -11,9 +10,6 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { createStoreContext } from "../../lib/createStoreContext";
-
-// Enable Immer's MapSet plugin for Set and Map support
-enableMapSet();
 
 // ============================================================================
 // Types
@@ -39,8 +35,6 @@ export interface PaginationState {
   direction: CursorDirectionEnum | null;
   /** Number of items per page */
   limit: number;
-  /** History of cursors for pages we've visited (for proper back navigation) */
-  cursorHistory: (string | null)[];
 }
 
 export interface SortState {
@@ -445,13 +439,14 @@ export function createUsersTableStore(
           limit,
           sortBy: sortBy ?? undefined,
           sortOrder,
-          segmentFilter:
-            segments.size > 0 ? Array.from(segments) : undefined,
+          segmentFilter: segments.size > 0 ? Array.from(segments) : undefined,
           subscriptionGroupFilter:
             subscriptionGroups.size > 0
               ? Array.from(subscriptionGroups)
               : undefined,
           userPropertyFilter,
+          // Always use exclusive cursor for correct back-navigation behavior
+          exclusiveCursor: true,
         };
       },
 
@@ -467,8 +462,7 @@ export function createUsersTableStore(
             : undefined;
 
         return {
-          segmentFilter:
-            segments.size > 0 ? Array.from(segments) : undefined,
+          segmentFilter: segments.size > 0 ? Array.from(segments) : undefined,
           subscriptionGroupFilter:
             subscriptionGroups.size > 0
               ? Array.from(subscriptionGroups)
@@ -508,4 +502,3 @@ const [UsersTableStoreProvider, useUsersTableStore, useUsersTableStoreApi] =
   createStoreContext(createUsersTableStore);
 
 export { UsersTableStoreProvider, useUsersTableStore, useUsersTableStoreApi };
-

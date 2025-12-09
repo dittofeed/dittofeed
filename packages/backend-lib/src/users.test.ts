@@ -147,11 +147,11 @@ describe("users", () => {
         expect(result4.previousCursor).not.toBeUndefined();
       });
 
-      it("returns EXACTLY the same first page after navigating forward then back using previousCursor", async () => {
-        // This test verifies the round-trip pagination scenario:
+      it("returns EXACTLY the same first page after navigating forward then back using previousCursor with exclusiveCursor (limit=1)", async () => {
+        // This test verifies the round-trip pagination scenario with exclusiveCursor=true:
         // 1. Load page 1 (no cursor)
         // 2. Load page 2 (using nextCursor from page 1)
-        // 3. Go back to page 1 (using previousCursor from page 2)
+        // 3. Go back to page 1 (using previousCursor from page 2 with exclusiveCursor=true)
         // 4. Expect to see the SAME users as step 1
 
         // Step 1: Load initial page 1
@@ -176,12 +176,13 @@ describe("users", () => {
         expect(page2.users[0]?.id).toBe(userIds[1]);
         expect(page2.previousCursor).toBeDefined();
 
-        // Step 3: Go back to page 1 using previousCursor
+        // Step 3: Go back to page 1 using previousCursor with exclusiveCursor=true
         const backToPage1 = unwrap(
           await getUsers({
             workspaceId: workspace.id,
             cursor: page2.previousCursor,
             direction: CursorDirectionEnum.Before,
+            exclusiveCursor: true, // This makes the cursor comparison exclusive
             limit: 1,
           }),
         );
@@ -191,6 +192,60 @@ describe("users", () => {
           backToPage1.users[0]?.id,
           `Expected to return to first user "${initialFirstUserId}" but got "${backToPage1.users[0]?.id}"`,
         ).toBe(initialFirstUserId);
+      });
+
+      it("returns EXACTLY the same first page after navigating forward then back using previousCursor with exclusiveCursor (limit=2)", async () => {
+        // This test verifies the round-trip pagination with limit=2 (multiple items per page)
+        // Need 4 users for this test
+        const fourUserIds = ["user-a", "user-b", "user-c", "user-d"];
+        await insertUserPropertyAssignments(
+          fourUserIds.map((userId, index) => ({
+            userPropertyId: firstNameProperty.id,
+            workspaceId: workspace.id,
+            userId,
+            value: JSON.stringify(`name-${index}`),
+          })),
+        );
+
+        // Step 1: Load initial page 1
+        const page1 = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            limit: 2,
+          }),
+        );
+        const page1UserIds = page1.users.map((u) => u.id);
+        expect(page1UserIds).toHaveLength(2);
+        expect(page1.nextCursor).toBeDefined();
+
+        // Step 2: Load page 2
+        const page2 = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            cursor: page1.nextCursor,
+            direction: CursorDirectionEnum.After,
+            limit: 2,
+          }),
+        );
+        expect(page2.users).toHaveLength(2);
+        expect(page2.previousCursor).toBeDefined();
+
+        // Step 3: Go back to page 1 using previousCursor with exclusiveCursor=true
+        const backToPage1 = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            cursor: page2.previousCursor,
+            direction: CursorDirectionEnum.Before,
+            exclusiveCursor: true,
+            limit: 2,
+          }),
+        );
+
+        // Step 4: Verify we get the SAME first page
+        expect(
+          backToPage1.users.map((u) => u.id),
+          `Expected to return to first page ${page1UserIds} but got ${backToPage1.users.map((u) => u.id)}`,
+        ).toEqual(page1UserIds);
       });
     });
     describe("when a subscriptionGroupFilter is passed", () => {

@@ -518,6 +518,7 @@ export async function getUsers(
     includeSubscriptions,
     sortBy,
     sortOrder = SortOrderEnum.Asc,
+    exclusiveCursor = false,
   }: GetUsersRequest,
   {
     allowInternalSegment = false,
@@ -562,13 +563,16 @@ export async function getUsers(
       direction === CursorDirectionEnum.Before ? !baseSortAsc : baseSortAsc;
     const orderDirection = effectiveSortAsc ? "ASC" : "DESC";
     // Cursor comparison:
-    // - After direction: use strict comparison (> or <) to exclude cursor position
-    // - Before direction: use inclusive comparison (<= or >=) to include cursor position
+    // - After direction: always use strict comparison (> or <) to exclude cursor position
+    // - Before direction: use inclusive comparison (<= or >=) by default, or strict if exclusiveCursor is true
+    // exclusiveCursor=true gives correct back-navigation (previous page doesn't include current page's first item)
     let cursorComparison: string;
+    const useStrictComparison =
+      direction === CursorDirectionEnum.After || exclusiveCursor;
     if (effectiveSortAsc) {
-      cursorComparison = direction === CursorDirectionEnum.Before ? ">=" : ">";
+      cursorComparison = useStrictComparison ? ">" : ">=";
     } else {
-      cursorComparison = direction === CursorDirectionEnum.Before ? "<=" : "<";
+      cursorComparison = useStrictComparison ? "<" : "<=";
     }
 
     const childWorkspaceIds = (
@@ -909,7 +913,7 @@ export async function getUsers(
         GROUP BY cp.user_id, cp.computed_property_id, cp.type
       ) as assignments
       GROUP BY assignments.user_id
-      ORDER BY assignments.user_id ${baseSortAsc ? "ASC" : "DESC"}
+      ORDER BY assignments.user_id ${orderDirection}
     `;
       const results = await chQuery({
         query,
