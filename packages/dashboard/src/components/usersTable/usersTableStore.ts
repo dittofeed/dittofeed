@@ -1,3 +1,4 @@
+import { enableMapSet } from "immer";
 import {
   CursorDirectionEnum,
   GetUsersRequest,
@@ -10,6 +11,9 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { createStoreContext } from "../../lib/createStoreContext";
+
+// Enable Immer's MapSet plugin for Set and Map support
+enableMapSet();
 
 // ============================================================================
 // Types
@@ -348,7 +352,8 @@ export function createUsersTableStore(
 
         set((state) => {
           // Handle edge case: navigating before with fewer results than limit
-          // This means we've reached the beginning, so reset to first page
+          // This means we've reached the beginning, so reset pagination state
+          // but still show the results we received
           if (
             response.users.length < limit &&
             direction === CursorDirectionEnum.Before
@@ -357,8 +362,15 @@ export function createUsersTableStore(
             state.direction = null;
             state.nextCursor = null;
             state.previousCursor = null;
-            state.currentPageUserIds = [];
-            state.users = {};
+            // Still update users with the data we received
+            if (response.users.length > 0) {
+              const newUsersMap: Record<string, GetUsersResponseItem> = {};
+              for (const user of response.users) {
+                newUsersMap[user.id] = user;
+              }
+              state.users = newUsersMap;
+              state.currentPageUserIds = response.users.map((u) => u.id);
+            }
             return;
           }
 

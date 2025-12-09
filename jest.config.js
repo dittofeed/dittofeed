@@ -34,6 +34,12 @@ const config = {
       ...BASE_CONFIG,
       displayName: "dashboard",
       roots: ["<rootDir>/packages/dashboard/src"],
+      globalTeardown: "<rootDir>/packages/backend-lib/test/globalTeardown.ts",
+      globalSetup: "<rootDir>/packages/backend-lib/test/globalSetup.ts",
+      setupFilesAfterEnv: [
+        "<rootDir>/packages/backend-lib/test/setup.ts",
+        "jest-expect-message",
+      ],
       moduleNameMapper: {
         "\\.css$": "<rootDir>/packages/dashboard/test/__mocks__/styleMock.ts",
       },
