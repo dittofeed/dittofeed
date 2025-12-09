@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { insert } from "backend-lib/src/db";
 import {
   userProperty as dbUserProperty,
@@ -7,6 +6,7 @@ import {
 import { Workspace } from "backend-lib/src/types";
 import { insertUserPropertyAssignments } from "backend-lib/src/userProperties";
 import { getUsers, getUsersCount } from "backend-lib/src/users";
+import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   CursorDirectionEnum,
@@ -507,9 +507,64 @@ describe("usersTableStore", () => {
       const backToPage1Users = store.getState().currentPageUserIds;
       expect(backToPage1Users).toHaveLength(2);
       // The users should match page 1 (or overlap with it)
+      expect(backToPage1Users.some((id) => page1Users.includes(id))).toBe(true);
+    });
+
+    it("returns EXACTLY the same first page after navigating forward then back", async () => {
+      const limit = 2;
+
+      // Step 1: Load initial results (page 1) and observe the first user id
+      const page1Response = unwrap(
+        await getUsers({ workspaceId: workspace.id, limit }),
+      );
+      store.getState().handleUsersResponse(page1Response);
+
+      const initialFirstUserId = store.getState().currentPageUserIds[0];
+      const initialPage1UserIds = [...store.getState().currentPageUserIds];
+      expect(initialPage1UserIds).toHaveLength(2);
+
+      // Step 2: Load the next page (page 2)
+      store.getState().goToNextPage();
+      const page2Response = unwrap(
+        await getUsers({
+          workspaceId: workspace.id,
+          limit,
+          cursor: store.getState().cursor ?? undefined,
+          direction: store.getState().direction ?? undefined,
+        }),
+      );
+      store.getState().handleUsersResponse(page2Response);
+
+      const page2UserIds = store.getState().currentPageUserIds;
+      expect(page2UserIds).toHaveLength(2);
+      // Page 2 should have different users than page 1
+      expect(page2UserIds).not.toEqual(initialPage1UserIds);
+
+      // Step 3: Revert back to the first page by loading the first page
+      store.getState().goToPreviousPage();
+      const backToPage1Response = unwrap(
+        await getUsers({
+          workspaceId: workspace.id,
+          limit,
+          cursor: store.getState().cursor ?? undefined,
+          direction: store.getState().direction ?? undefined,
+        }),
+      );
+      store.getState().handleUsersResponse(backToPage1Response);
+
+      // Step 4: The first id should be the SAME first id observed in step 1
+      const returnedFirstUserId = store.getState().currentPageUserIds[0];
+      const returnedPage1UserIds = store.getState().currentPageUserIds;
+
       expect(
-        backToPage1Users.some((id) => page1Users.includes(id)),
-      ).toBe(true);
+        returnedFirstUserId,
+        `Expected first user ID to be "${initialFirstUserId}" but got "${returnedFirstUserId}"`,
+      ).toBe(initialFirstUserId);
+
+      expect(
+        returnedPage1UserIds,
+        `Expected to return to exact same page 1 users: ${initialPage1UserIds.join(", ")} but got: ${returnedPage1UserIds.join(", ")}`,
+      ).toEqual(initialPage1UserIds);
     });
   });
 
@@ -557,4 +612,3 @@ describe("usersTableStore", () => {
     });
   });
 });
-

@@ -146,6 +146,52 @@ describe("users", () => {
         expect(result4.users[0]?.id).toEqual(userIds[1]);
         expect(result4.previousCursor).not.toBeUndefined();
       });
+
+      it("returns EXACTLY the same first page after navigating forward then back using previousCursor", async () => {
+        // This test verifies the round-trip pagination scenario:
+        // 1. Load page 1 (no cursor)
+        // 2. Load page 2 (using nextCursor from page 1)
+        // 3. Go back to page 1 (using previousCursor from page 2)
+        // 4. Expect to see the SAME users as step 1
+
+        // Step 1: Load initial page 1
+        const page1 = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            limit: 1,
+          }),
+        );
+        const initialFirstUserId = page1.users[0]?.id;
+        expect(initialFirstUserId).toBe(userIds[0]);
+        expect(page1.nextCursor).toBeDefined();
+
+        // Step 2: Load page 2
+        const page2 = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            cursor: page1.nextCursor,
+            limit: 1,
+          }),
+        );
+        expect(page2.users[0]?.id).toBe(userIds[1]);
+        expect(page2.previousCursor).toBeDefined();
+
+        // Step 3: Go back to page 1 using previousCursor
+        const backToPage1 = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            cursor: page2.previousCursor,
+            direction: CursorDirectionEnum.Before,
+            limit: 1,
+          }),
+        );
+
+        // Step 4: Verify we get the SAME first user as step 1
+        expect(
+          backToPage1.users[0]?.id,
+          `Expected to return to first user "${initialFirstUserId}" but got "${backToPage1.users[0]?.id}"`,
+        ).toBe(initialFirstUserId);
+      });
     });
     describe("when a subscriptionGroupFilter is passed", () => {
       let userId1: string;

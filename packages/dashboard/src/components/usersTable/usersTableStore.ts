@@ -39,6 +39,8 @@ export interface PaginationState {
   direction: CursorDirectionEnum | null;
   /** Number of items per page */
   limit: number;
+  /** History of cursors for pages we've visited (for proper back navigation) */
+  cursorHistory: (string | null)[];
 }
 
 export interface SortState {
