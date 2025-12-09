@@ -4,22 +4,38 @@ import React from "react";
 import { useSegmentsQuery } from "../../lib/useSegmentResourcesQuery";
 import { useSubscriptionGroupsResourcesQuery } from "../../lib/useSubscriptionGroupsResourcesQuery";
 import { useUserPropertyResourcesQuery } from "../../lib/useUserPropertyResourcesQuery";
-import {
-  removeSegment,
-  removeSubscriptionGroup,
-  removeUserProperty,
-  UserFilterState,
-  UserFilterUpdater,
-} from "./userFiltersState";
 import { UsersFilterSelectorV2 } from "./usersFilterSelectorV2";
 
+export interface UsersFilterV2Props {
+  // State (read-only)
+  userProperties: Map<string, Set<string>>;
+  segments: Set<string>;
+  staticSegments: Set<string>;
+  subscriptionGroups: Set<string>;
+  staticSubscriptionGroups: Set<string>;
+
+  // Actions
+  onRemoveSegment: (id: string) => void;
+  onRemoveSubscriptionGroup: (id: string) => void;
+  onRemoveUserProperty: (id: string) => void;
+  onAddSegment: (id: string) => void;
+  onAddSubscriptionGroup: (id: string) => void;
+  onAddUserProperty: (propertyId: string, value: string) => void;
+}
+
 export function UsersFilterV2({
-  state,
-  updater,
-}: {
-  state: UserFilterState;
-  updater: UserFilterUpdater;
-}) {
+  userProperties,
+  segments,
+  staticSegments,
+  subscriptionGroups,
+  staticSubscriptionGroups,
+  onRemoveSegment,
+  onRemoveSubscriptionGroup,
+  onRemoveUserProperty,
+  onAddSegment,
+  onAddSubscriptionGroup,
+  onAddUserProperty,
+}: UsersFilterV2Props) {
   const userPropertiesQuery = useUserPropertyResourcesQuery();
   const segmentsQuery = useSegmentsQuery();
   const subscriptionGroupsQuery = useSubscriptionGroupsResourcesQuery();
@@ -32,8 +48,8 @@ export function UsersFilterV2({
       return [];
     }
 
-    const segments = segmentsQuery.data.segments || [];
-    const segmentNames = segments.reduce(
+    const segmentsList = segmentsQuery.data.segments || [];
+    const segmentNames = segmentsList.reduce(
       (acc: Map<string, string>, segment) => {
         acc.set(segment.id, segment.name);
         return acc;
@@ -41,14 +57,14 @@ export function UsersFilterV2({
       new Map<string, string>(),
     );
 
-    return Array.from(state.segments).flatMap((id) => {
+    return Array.from(segments).flatMap((id) => {
       const name = segmentNames.get(id);
       if (!name) {
         return [];
       }
       return { id, name };
     });
-  }, [state.segments, segmentsQuery]);
+  }, [segments, segmentsQuery]);
 
   const joinedUserPropertyFilters: {
     id: string;
@@ -59,8 +75,8 @@ export function UsersFilterV2({
       return [];
     }
 
-    const userProperties = userPropertiesQuery.data.userProperties || [];
-    const userPropertyNames = userProperties.reduce(
+    const userPropertiesList = userPropertiesQuery.data.userProperties || [];
+    const userPropertyNames = userPropertiesList.reduce(
       (acc: Map<string, string>, up) => {
         acc.set(up.id, up.name);
         return acc;
@@ -68,14 +84,14 @@ export function UsersFilterV2({
       new Map<string, string>(),
     );
 
-    return Array.from(state.userProperties).flatMap(([id, values]) => {
+    return Array.from(userProperties).flatMap(([id, values]) => {
       const name = userPropertyNames.get(id);
       if (!name) {
         return [];
       }
       return { id, name, values: Array.from(values) };
     });
-  }, [state.userProperties, userPropertiesQuery]);
+  }, [userProperties, userPropertiesQuery]);
 
   const joinedSubscriptionGroups: {
     id: string;
@@ -85,9 +101,9 @@ export function UsersFilterV2({
       return [];
     }
 
-    const subscriptionGroups =
+    const subscriptionGroupsList =
       subscriptionGroupsQuery.data.subscriptionGroups || [];
-    const subscriptionGroupNames = subscriptionGroups.reduce(
+    const subscriptionGroupNames = subscriptionGroupsList.reduce(
       (acc: Map<string, string>, sg) => {
         acc.set(sg.id, sg.name);
         return acc;
@@ -95,14 +111,14 @@ export function UsersFilterV2({
       new Map<string, string>(),
     );
 
-    return Array.from(state.subscriptionGroups).flatMap((id) => {
+    return Array.from(subscriptionGroups).flatMap((id) => {
       const name = subscriptionGroupNames.get(id);
       if (!name) {
         return [];
       }
       return { id, name };
     });
-  }, [state.subscriptionGroups, subscriptionGroupsQuery]);
+  }, [subscriptionGroups, subscriptionGroupsQuery]);
 
   const theme = useTheme();
 
@@ -133,28 +149,32 @@ export function UsersFilterV2({
           label={`${property.name} = ${property.values
             .map((value) => `"${value}"`)
             .join(" OR ")}`}
-          onDelete={() => removeUserProperty(updater, property.id)}
+          onDelete={() => onRemoveUserProperty(property.id)}
         />
       ))}
       {joinedFilterSegments.map((segment) => (
         <Chip
           key={segment.id}
           sx={chipSx}
-          disabled={state.staticSegments.has(segment.id)}
+          disabled={staticSegments.has(segment.id)}
           label={`User in ${segment.name}`}
-          onDelete={() => removeSegment(updater, segment.id)}
+          onDelete={() => onRemoveSegment(segment.id)}
         />
       ))}
       {joinedSubscriptionGroups.map((sg) => (
         <Chip
           key={sg.id}
           sx={chipSx}
-          disabled={state.staticSubscriptionGroups.has(sg.id)}
+          disabled={staticSubscriptionGroups.has(sg.id)}
           label={`User subscribed to ${sg.name}`}
-          onDelete={() => removeSubscriptionGroup(updater, sg.id)}
+          onDelete={() => onRemoveSubscriptionGroup(sg.id)}
         />
       ))}
-      <UsersFilterSelectorV2 state={state} updater={updater} />
+      <UsersFilterSelectorV2
+        onAddSegment={onAddSegment}
+        onAddSubscriptionGroup={onAddSubscriptionGroup}
+        onAddUserProperty={onAddUserProperty}
+      />
     </Stack>
   );
 }

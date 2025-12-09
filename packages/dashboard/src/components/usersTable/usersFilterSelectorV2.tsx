@@ -20,17 +20,67 @@ import { useSubscriptionGroupsResourcesQuery } from "../../lib/useSubscriptionGr
 import { useUserPropertyResourcesQuery } from "../../lib/useUserPropertyResourcesQuery";
 import { greyTextFieldStyles } from "../greyScaleStyles";
 import { SquarePaper } from "../squarePaper";
-import {
-  addSegment,
-  addSubscriptionGroup,
-  addUserProperty,
-  FilterStageType,
-  FilterStageWithBack,
-  FilterUserPropertyValueStage,
-  setStage,
-  UserFilterState,
-  UserFilterUpdater,
-} from "./userFiltersState";
+
+// ============================================================================
+// Filter Stage Types (local UI state)
+// ============================================================================
+
+export enum FilterStageType {
+  ComputedPropertyType = "ComputedPropertyType",
+  UserProperty = "UserProperty",
+  UserPropertyValue = "UserPropertyValue",
+  Segment = "Segment",
+  SubscriptionGroup = "SubscriptionGroup",
+}
+
+interface FilterComputedPropertyTypeStage {
+  type: FilterStageType.ComputedPropertyType;
+}
+
+interface FilterUserPropertyStage {
+  type: FilterStageType.UserProperty;
+}
+
+interface FilterUserPropertyValueStage {
+  type: FilterStageType.UserPropertyValue;
+  id: string;
+  value: string;
+}
+
+interface FilterSegmentStage {
+  type: FilterStageType.Segment;
+}
+
+interface FilterSubscriptionGroupStage {
+  type: FilterStageType.SubscriptionGroup;
+}
+
+type FilterStageWithBack =
+  | FilterUserPropertyStage
+  | FilterSegmentStage
+  | FilterUserPropertyValueStage
+  | FilterSubscriptionGroupStage;
+
+type FilterStage =
+  | FilterUserPropertyStage
+  | FilterUserPropertyValueStage
+  | FilterSegmentStage
+  | FilterSubscriptionGroupStage
+  | FilterComputedPropertyTypeStage;
+
+// ============================================================================
+// Props
+// ============================================================================
+
+export interface UsersFilterSelectorV2Props {
+  onAddSegment: (id: string) => void;
+  onAddSubscriptionGroup: (id: string) => void;
+  onAddUserProperty: (propertyId: string, value: string) => void;
+}
+
+// ============================================================================
+// Helper Components
+// ============================================================================
 
 interface Option {
   id: string;
@@ -112,10 +162,10 @@ function ComputedPropertyAutocomplete({
 }
 
 function SegmentSelector({
-  updater,
+  onAddSegment,
   closeDropdown,
 }: {
-  updater: UserFilterUpdater;
+  onAddSegment: (id: string) => void;
   closeDropdown: () => void;
 }) {
   const segmentsQuery = useSegmentsQuery();
@@ -135,7 +185,7 @@ function SegmentSelector({
     <ComputedPropertyAutocomplete
       options={options}
       onChange={(id) => {
-        addSegment(updater, id);
+        onAddSegment(id);
         closeDropdown();
       }}
       label="Segment"
@@ -144,10 +194,10 @@ function SegmentSelector({
 }
 
 function SubscriptionGroupSelector({
-  updater,
+  onAddSubscriptionGroup,
   closeDropdown,
 }: {
-  updater: UserFilterUpdater;
+  onAddSubscriptionGroup: (id: string) => void;
   closeDropdown: () => void;
 }) {
   const subscriptionGroupsQuery = useSubscriptionGroupsResourcesQuery();
@@ -168,7 +218,7 @@ function SubscriptionGroupSelector({
     <ComputedPropertyAutocomplete
       options={options}
       onChange={(id) => {
-        addSubscriptionGroup(updater, id);
+        onAddSubscriptionGroup(id);
         closeDropdown();
       }}
       label="Subscription Group"
@@ -176,7 +226,11 @@ function SubscriptionGroupSelector({
   );
 }
 
-function UserPropertySelector({ updater }: { updater: UserFilterUpdater }) {
+function UserPropertySelector({
+  setStage,
+}: {
+  setStage: (stage: FilterStage | null) => void;
+}) {
   const userPropertiesQuery = useUserPropertyResourcesQuery();
 
   const options: Option[] = React.useMemo(() => {
@@ -194,7 +248,7 @@ function UserPropertySelector({ updater }: { updater: UserFilterUpdater }) {
     <ComputedPropertyAutocomplete
       options={options}
       onChange={(id) => {
-        setStage(updater, {
+        setStage({
           type: FilterStageType.UserPropertyValue,
           id,
           value: "",
@@ -207,14 +261,23 @@ function UserPropertySelector({ updater }: { updater: UserFilterUpdater }) {
 
 function UserPropertyValueSelector({
   stage,
-  updater,
+  setStage,
+  onAddUserProperty,
   closeDropdown,
 }: {
   stage: FilterUserPropertyValueStage;
-  updater: UserFilterUpdater;
+  setStage: (stage: FilterStage | null) => void;
+  onAddUserProperty: (propertyId: string, value: string) => void;
   closeDropdown: () => void;
 }) {
   const theme = useTheme();
+
+  const handleSubmit = () => {
+    if (stage.value.trim()) {
+      onAddUserProperty(stage.id, stage.value);
+      closeDropdown();
+    }
+  };
 
   return (
     <TextField
@@ -233,13 +296,12 @@ function UserPropertyValueSelector({
       }}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
-          addUserProperty(updater);
-          closeDropdown();
+          handleSubmit();
         }
       }}
       onChange={(e) => {
         const { value } = e.target;
-        setStage(updater, {
+        setStage({
           type: FilterStageType.UserPropertyValue,
           id: stage.id,
           value,
@@ -250,9 +312,9 @@ function UserPropertyValueSelector({
 }
 
 function ComputedPropertyTypeSelector({
-  updater,
+  setStage,
 }: {
-  updater: UserFilterUpdater;
+  setStage: (stage: FilterStage | null) => void;
 }) {
   const theme = useTheme();
 
@@ -282,7 +344,7 @@ function ComputedPropertyTypeSelector({
         <MenuItem
           key={option.title}
           onClick={() =>
-            setStage(updater, {
+            setStage({
               type: option.type,
             })
           }
@@ -304,37 +366,48 @@ function ComputedPropertyTypeSelector({
 
 function SelectorFooter({
   stage,
-  updater,
+  setStage,
+  onAddUserProperty,
 }: {
   stage: FilterStageWithBack;
-  updater: UserFilterUpdater;
+  setStage: (stage: FilterStage | null) => void;
+  onAddUserProperty: (propertyId: string, value: string) => void;
 }) {
   const theme = useTheme();
 
   const handlePrevious = () => {
     switch (stage.type) {
       case FilterStageType.UserPropertyValue:
-        setStage(updater, {
+        setStage({
           type: FilterStageType.UserProperty,
         });
         break;
       case FilterStageType.UserProperty:
-        setStage(updater, {
+        setStage({
           type: FilterStageType.ComputedPropertyType,
         });
         break;
       case FilterStageType.Segment:
-        setStage(updater, {
+        setStage({
           type: FilterStageType.ComputedPropertyType,
         });
         break;
       case FilterStageType.SubscriptionGroup:
-        setStage(updater, {
+        setStage({
           type: FilterStageType.ComputedPropertyType,
         });
         break;
       default:
         assertUnreachable(stage);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (
+      stage.type === FilterStageType.UserPropertyValue &&
+      stage.value.trim()
+    ) {
+      onAddUserProperty(stage.id, stage.value);
     }
   };
 
@@ -361,7 +434,7 @@ function SelectorFooter({
             fontWeight: 500,
             pr: 1,
           }}
-          onClick={() => addUserProperty(updater)}
+          onClick={handleSubmit}
         >
           Submit
         </Typography>
@@ -370,23 +443,26 @@ function SelectorFooter({
   );
 }
 
+// ============================================================================
+// Main Component
+// ============================================================================
+
 export function UsersFilterSelectorV2({
-  state,
-  updater,
-}: {
-  state: UserFilterState;
-  updater: UserFilterUpdater;
-}) {
+  onAddSegment,
+  onAddSubscriptionGroup,
+  onAddUserProperty,
+}: UsersFilterSelectorV2Props) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [stage, setStage] = React.useState<FilterStage | null>(null);
   const open = Boolean(anchorEl);
   const theme = useTheme();
 
   const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (state.stage !== null) {
+    if (stage !== null) {
       return;
     }
     setAnchorEl(event.currentTarget);
-    setStage(updater, {
+    setStage({
       type: FilterStageType.ComputedPropertyType,
     });
   };
@@ -394,29 +470,33 @@ export function UsersFilterSelectorV2({
   const handleClose = () => {
     setAnchorEl(null);
     setTimeout(() => {
-      setStage(updater, null);
+      setStage(null);
     }, 300);
   };
 
   let stageEl: React.ReactNode = null;
-  if (state.stage) {
-    switch (state.stage.type) {
+  if (stage) {
+    switch (stage.type) {
       case FilterStageType.ComputedPropertyType:
-        stageEl = <ComputedPropertyTypeSelector updater={updater} />;
+        stageEl = <ComputedPropertyTypeSelector setStage={setStage} />;
         break;
       case FilterStageType.Segment:
         stageEl = (
-          <SegmentSelector updater={updater} closeDropdown={handleClose} />
+          <SegmentSelector
+            onAddSegment={onAddSegment}
+            closeDropdown={handleClose}
+          />
         );
         break;
       case FilterStageType.UserProperty:
-        stageEl = <UserPropertySelector updater={updater} />;
+        stageEl = <UserPropertySelector setStage={setStage} />;
         break;
       case FilterStageType.UserPropertyValue:
         stageEl = (
           <UserPropertyValueSelector
-            stage={state.stage}
-            updater={updater}
+            stage={stage}
+            setStage={setStage}
+            onAddUserProperty={onAddUserProperty}
             closeDropdown={handleClose}
           />
         );
@@ -424,13 +504,13 @@ export function UsersFilterSelectorV2({
       case FilterStageType.SubscriptionGroup:
         stageEl = (
           <SubscriptionGroupSelector
-            updater={updater}
+            onAddSubscriptionGroup={onAddSubscriptionGroup}
             closeDropdown={handleClose}
           />
         );
         break;
       default:
-        assertUnreachable(state.stage);
+        assertUnreachable(stage);
     }
   }
 
@@ -480,10 +560,13 @@ export function UsersFilterSelectorV2({
         }}
         onClose={handleClose}
       >
-        {state.stage &&
-          state.stage.type !== FilterStageType.ComputedPropertyType && (
-            <SelectorFooter stage={state.stage} updater={updater} />
-          )}
+        {stage && stage.type !== FilterStageType.ComputedPropertyType && (
+          <SelectorFooter
+            stage={stage}
+            setStage={setStage}
+            onAddUserProperty={onAddUserProperty}
+          />
+        )}
         {stageEl}
       </Popover>
     </>

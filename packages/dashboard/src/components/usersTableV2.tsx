@@ -73,7 +73,6 @@ import { GreyButton } from "./greyButtonStyle";
 import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
 import { SortBySelector } from "./usersTable/sortBySelector";
-import { UserFilterState } from "./usersTable/userFiltersState";
 import { UsersFilterV2 } from "./usersTable/usersFilterV2";
 import {
   createUsersTableStore,
@@ -99,17 +98,6 @@ function useUsersTableStore(): UsersTableStore {
     );
   }
   return store();
-}
-
-// Hook to get the store API for advanced use
-function useUsersTableStoreApi(): ReturnType<typeof createUsersTableStore> {
-  const store = useContext(UsersTableStoreContext);
-  if (!store) {
-    throw new Error(
-      "useUsersTableStoreApi must be used within a UsersTableStoreProvider",
-    );
-  }
-  return store;
 }
 
 // ============================================================================
@@ -746,6 +734,12 @@ function UsersTableInner({
     setSortOrder,
     setStaticSegments,
     setStaticSubscriptionGroups,
+    addSegment,
+    removeSegment,
+    addSubscriptionGroup,
+    removeSubscriptionGroup,
+    addUserPropertyFilter,
+    removeUserPropertyFilter,
     handleUsersResponse,
     setUsersCount,
     toggleAutoReload,
@@ -766,78 +760,6 @@ function UsersTableInner({
       setStaticSubscriptionGroups(subscriptionGroupIds);
     }
   }, [subscriptionGroupIds, setStaticSubscriptionGroups]);
-
-  // Create filter state for UsersFilterV2 component (compatibility layer)
-  const userFilterState: UserFilterState = useMemo(
-    () => ({
-      userProperties,
-      segments,
-      staticSegments,
-      subscriptionGroups,
-      staticSubscriptionGroups,
-      stage: null,
-    }),
-    [
-      userProperties,
-      segments,
-      staticSegments,
-      subscriptionGroups,
-      staticSubscriptionGroups,
-    ],
-  );
-
-  // Filter state updater for UsersFilterV2 (compatibility layer)
-  // This bridges the use-immer Updater type with our zustand store
-  const storeApi = useUsersTableStoreApi();
-  const userFilterUpdater: (
-    arg: UserFilterState | ((draft: UserFilterState) => void),
-  ) => void = useCallback(
-    (updaterOrState) => {
-      // Handle direct state assignment
-      if (typeof updaterOrState !== "function") {
-        storeApi.setState({
-          userProperties: updaterOrState.userProperties,
-          segments: updaterOrState.segments,
-          subscriptionGroups: updaterOrState.subscriptionGroups,
-        });
-        return;
-      }
-
-      // Get current state
-      const currentState = storeApi.getState();
-      const currentFilterState: UserFilterState = {
-        userProperties: currentState.userProperties,
-        segments: currentState.segments,
-        staticSegments: currentState.staticSegments,
-        subscriptionGroups: currentState.subscriptionGroups,
-        staticSubscriptionGroups: currentState.staticSubscriptionGroups,
-        stage: null,
-      };
-
-      // Create a mutable copy for the updater
-      const draft = {
-        userProperties: new Map(currentFilterState.userProperties),
-        segments: new Set(currentFilterState.segments),
-        staticSegments: new Set(currentFilterState.staticSegments),
-        subscriptionGroups: new Set(currentFilterState.subscriptionGroups),
-        staticSubscriptionGroups: new Set(
-          currentFilterState.staticSubscriptionGroups,
-        ),
-        stage: currentFilterState.stage,
-      };
-
-      // Apply the update
-      updaterOrState(draft);
-
-      // Apply changes back to the store
-      storeApi.setState({
-        userProperties: draft.userProperties,
-        segments: draft.segments,
-        subscriptionGroups: draft.subscriptionGroups,
-      });
-    },
-    [storeApi],
-  );
 
   // Query for users list
   const queryParams = getQueryParams();
@@ -1024,7 +946,19 @@ function UsersTableInner({
         spacing={1}
         sx={{ width: "100%", height: "48px" }}
       >
-        <UsersFilterV2 state={userFilterState} updater={userFilterUpdater} />
+        <UsersFilterV2
+          userProperties={userProperties}
+          segments={segments}
+          staticSegments={staticSegments}
+          subscriptionGroups={subscriptionGroups}
+          staticSubscriptionGroups={staticSubscriptionGroups}
+          onRemoveSegment={removeSegment}
+          onRemoveSubscriptionGroup={removeSubscriptionGroup}
+          onRemoveUserProperty={removeUserPropertyFilter}
+          onAddSegment={addSegment}
+          onAddSubscriptionGroup={addSubscriptionGroup}
+          onAddUserProperty={addUserPropertyFilter}
+        />
         <SortBySelector
           sortBy={sortBy}
           sortOrder={sortOrder}
