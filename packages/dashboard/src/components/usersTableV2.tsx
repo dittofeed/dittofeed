@@ -48,18 +48,21 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import axios from "axios";
-import deepEqual from "fast-deep-equal";
 import {
   CursorDirectionEnum,
   GetUsersRequest,
-  GetUsersResponseItem,
-  GetUsersUserPropertyFilter,
   SortOrderEnum,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import { NextRouter, useRouter } from "next/router";
-import React, { useCallback, useEffect, useMemo } from "react";
-import { useImmer } from "use-immer";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { useAppStore } from "../lib/appStore";
 import { useDeleteUserMutation } from "../lib/useDeleteUserMutation";
@@ -70,13 +73,37 @@ import { GreyButton } from "./greyButtonStyle";
 import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
 import { SortBySelector } from "./usersTable/sortBySelector";
-import {
-  useUserFiltersHash,
-  useUserFilterState,
-} from "./usersTable/userFiltersState";
 import { UsersFilterV2 } from "./usersTable/usersFilterV2";
+import {
+  createUsersTableStore,
+  UsersTableStore,
+  UsersTableStoreInitialState,
+} from "./usersTable/usersTableStore";
 
-// Cell components defined outside the main component
+// ============================================================================
+// Store Context Setup
+// ============================================================================
+
+// Context to hold the store instance
+const UsersTableStoreContext = createContext<ReturnType<
+  typeof createUsersTableStore
+> | null>(null);
+
+// Hook to access the store
+function useUsersTableStore(): UsersTableStore {
+  const store = useContext(UsersTableStoreContext);
+  if (!store) {
+    throw new Error(
+      "useUsersTableStore must be used within a UsersTableStoreProvider",
+    );
+  }
+  return store();
+}
+
+// ============================================================================
+// Cell Components (unchanged from original)
+// ============================================================================
+
 function UserIdCell({
   value,
   userUriTemplate,
@@ -199,7 +226,6 @@ function SegmentsPopover({
     label: segment.name,
   }));
 
-  // Focus the input when the component is rendered
   React.useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
@@ -585,6 +611,10 @@ const actionsCellRendererFactory = () => {
   };
 };
 
+// ============================================================================
+// Exports for URL handling
+// ============================================================================
+
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
   "direction",
@@ -602,8 +632,6 @@ export function usersTablePaginationHandler(router: NextRouter) {
       cursor: existingCursor,
       ...remainingParams
     } = router.query;
-    // existingDirection and existingCursor are intentionally not used here.
-    // We only care about the remainingParams to construct the new query.
 
     const newQuery: Record<string, string | string[] | undefined> = {
       ...remainingParams,
@@ -622,6 +650,10 @@ export function usersTablePaginationHandler(router: NextRouter) {
   };
   return onUsersTablePaginate;
 }
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface Row {
   id: string;
@@ -651,247 +683,129 @@ export type UsersTableProps = Omit<GetUsersRequest, "workspaceId"> & {
   hideControls?: boolean;
 };
 
-interface TableState {
-  autoReload: boolean;
-  users: Record<string, GetUsersResponseItem>;
-  usersCount: number | null;
-  currentPageUserIds: string[];
-  currentCursor: string | null;
-  previousCursor: string | null;
-  nextCursor: string | null;
-  sortBy: string | null;
-  sortOrder: SortOrderEnum;
-  query: {
-    cursor: string | null;
-    limit: number;
-    direction: CursorDirectionEnum | null;
-  };
-}
+// ============================================================================
+// Inner Table Component (uses the store)
+// ============================================================================
 
-export default function UsersTableV2({
+// Props used only for initial store state, not needed by the inner component
+type InitialStoreProps =
+  | "autoReloadByDefault"
+  | "cursor"
+  | "direction"
+  | "limit"
+  | "sortBy";
+
+type UsersTableInnerProps = Omit<UsersTableProps, InitialStoreProps>;
+
+function UsersTableInner({
   segmentFilter: segmentIds,
   subscriptionGroupFilter: subscriptionGroupIds,
-  direction,
-  cursor,
-  sortBy: initialSortBy,
   onPaginationChange,
   onSortChange,
-  autoReloadByDefault = false,
   reloadPeriodMs = 10000,
   userUriTemplate = "/users/{userId}",
-  limit,
   hideControls = false,
-}: UsersTableProps) {
+}: UsersTableInnerProps) {
   useAppStore();
-  const [userFilterState, userFilterUpdater] = useUserFilterState({
-    segments: segmentIds ? new Set(segmentIds) : undefined,
-    staticSegments: segmentIds ? new Set(segmentIds) : undefined,
-    subscriptionGroups: subscriptionGroupIds
-      ? new Set(subscriptionGroupIds)
-      : undefined,
-    staticSubscriptionGroups: subscriptionGroupIds
-      ? new Set(subscriptionGroupIds)
-      : undefined,
-  });
 
+  // Get store state and actions
+  const store = useUsersTableStore();
+  const {
+    autoReload,
+    users,
+    currentPageUserIds,
+    nextCursor,
+    previousCursor,
+    sortBy,
+    sortOrder,
+    usersCount,
+    segments,
+    subscriptionGroups,
+    userProperties,
+    staticSegments,
+    staticSubscriptionGroups,
+  } = store;
+
+  const {
+    goToNextPage,
+    goToPreviousPage,
+    goToFirstPage,
+    setSortBy,
+    setSortOrder,
+    setStaticSegments,
+    setStaticSubscriptionGroups,
+    addSegment,
+    removeSegment,
+    addSubscriptionGroup,
+    removeSubscriptionGroup,
+    addUserPropertyFilter,
+    removeUserPropertyFilter,
+    handleUsersResponse,
+    setUsersCount,
+    toggleAutoReload,
+    getQueryParams,
+    getFilterParams,
+  } = store;
+
+  // Sync static segments from props
   useEffect(() => {
-    userFilterUpdater((draft) => {
-      const oldStaticSegments = draft.staticSegments;
-      const newStaticSegments = new Set(segmentIds);
-      if (
-        deepEqual(Array.from(oldStaticSegments), Array.from(newStaticSegments))
-      ) {
-        return draft;
-      }
-
-      for (const segmentId of oldStaticSegments) {
-        draft.segments.delete(segmentId);
-        draft.staticSegments.delete(segmentId);
-      }
-
-      for (const segmentId of newStaticSegments) {
-        draft.segments.add(segmentId);
-        draft.staticSegments.add(segmentId);
-      }
-      return draft;
-    });
-  }, [segmentIds, userFilterUpdater]);
-
-  useEffect(() => {
-    userFilterUpdater((draft) => {
-      const oldStaticSubscriptionGroups = draft.staticSubscriptionGroups;
-      for (const subscriptionGroupId of oldStaticSubscriptionGroups) {
-        draft.subscriptionGroups.delete(subscriptionGroupId);
-        draft.staticSubscriptionGroups.delete(subscriptionGroupId);
-      }
-
-      const newStaticSubscriptionGroups = new Set(subscriptionGroupIds);
-      for (const subscriptionGroupId of newStaticSubscriptionGroups) {
-        draft.subscriptionGroups.add(subscriptionGroupId);
-        draft.staticSubscriptionGroups.add(subscriptionGroupId);
-      }
-    });
-  }, [subscriptionGroupIds, userFilterUpdater]);
-
-  const [state, setState] = useImmer<TableState>({
-    autoReload: autoReloadByDefault,
-    query: {
-      cursor: cursor ?? null,
-      direction: direction ?? null,
-      limit: limit ?? 10,
-    },
-    users: {},
-    currentPageUserIds: [],
-    currentCursor: cursor ?? null,
-    nextCursor: null,
-    previousCursor: null,
-    usersCount: null,
-    sortBy: initialSortBy ?? null,
-    sortOrder: SortOrderEnum.Asc,
-  });
-
-  useUserFiltersHash(userFilterState);
-
-  const getCommonQueryParams = useCallback((): Omit<
-    GetUsersRequest,
-    "workspaceId" | "limit" | "cursor" | "direction"
-  > => {
-    const requestUserPropertyFilter: GetUsersUserPropertyFilter | undefined =
-      userFilterState.userProperties.size > 0
-        ? Array.from(userFilterState.userProperties).map((up) => ({
-            id: up[0],
-            values: Array.from(up[1]),
-          }))
-        : undefined;
-
-    const allFilterSegments = new Set<string>(userFilterState.segments);
     if (segmentIds) {
-      for (const segmentId of segmentIds) {
-        allFilterSegments.add(segmentId);
-      }
+      setStaticSegments(segmentIds);
     }
+  }, [segmentIds, setStaticSegments]);
 
-    const allFilterSubscriptionGroups = new Set<string>(
-      userFilterState.subscriptionGroups,
-    );
+  // Sync static subscription groups from props
+  useEffect(() => {
     if (subscriptionGroupIds) {
-      for (const subscriptionGroupId of subscriptionGroupIds) {
-        allFilterSubscriptionGroups.add(subscriptionGroupId);
-      }
+      setStaticSubscriptionGroups(subscriptionGroupIds);
     }
+  }, [subscriptionGroupIds, setStaticSubscriptionGroups]);
 
-    return {
-      segmentFilter:
-        allFilterSegments.size > 0 ? Array.from(allFilterSegments) : undefined,
-      subscriptionGroupFilter:
-        allFilterSubscriptionGroups.size > 0
-          ? Array.from(allFilterSubscriptionGroups)
-          : undefined,
-      userPropertyFilter: requestUserPropertyFilter,
-    };
-  }, [userFilterState, segmentIds, subscriptionGroupIds]);
-
-  const commonQueryListParams = useMemo(
-    () => getCommonQueryParams(),
-    [getCommonQueryParams],
-  );
-
-  const countQuery = useUsersCountQuery(commonQueryListParams, {
-    refetchInterval: state.autoReload ? reloadPeriodMs : false,
+  // Query for users list
+  const queryParams = getQueryParams();
+  const usersListQuery = useUsersQuery(queryParams, {
+    refetchInterval: autoReload ? reloadPeriodMs : false,
     placeholderData: keepPreviousData,
   });
 
-  // Query to get user property names for column headers
+  // Query for users count
+  const filterParams = getFilterParams();
+  const countQuery = useUsersCountQuery(filterParams, {
+    refetchInterval: autoReload ? reloadPeriodMs : false,
+    placeholderData: keepPreviousData,
+  });
+
+  // Query for user property names
   const userPropertiesQuery = useUserPropertyResourcesQuery();
+
+  // Handle users list response
+  useEffect(() => {
+    if (usersListQuery.data) {
+      handleUsersResponse(usersListQuery.data);
+    }
+  }, [usersListQuery.data, handleUsersResponse]);
+
+  // Handle users count response
+  useEffect(() => {
+    if (countQuery.data !== undefined) {
+      setUsersCount(countQuery.data);
+    }
+  }, [countQuery.data, setUsersCount]);
 
   // Get the name of the current sort property
   const sortPropertyName = useMemo(() => {
-    if (!state.sortBy || state.sortBy === "id") {
+    if (!sortBy || sortBy === "id") {
       return null;
     }
     const properties = userPropertiesQuery.data?.userProperties ?? [];
-    const found = properties.find((p) => p.id === state.sortBy);
+    const found = properties.find((p) => p.id === sortBy);
     return found?.name ?? null;
-  }, [state.sortBy, userPropertiesQuery.data]);
+  }, [sortBy, userPropertiesQuery.data]);
 
-  const usersListQuery = useUsersQuery(
-    {
-      ...commonQueryListParams,
-      cursor: state.query.cursor ?? undefined,
-      direction: state.query.direction ?? undefined,
-      limit: state.query.limit,
-      sortBy: state.sortBy ?? undefined,
-      sortOrder: state.sortOrder,
-    },
-    {
-      refetchInterval: state.autoReload ? reloadPeriodMs : false,
-      placeholderData: keepPreviousData,
-    },
-  );
-
-  useEffect(() => {
-    if (usersListQuery.data) {
-      const result = usersListQuery.data;
-      if (
-        result.users.length < state.query.limit &&
-        state.query.direction === CursorDirectionEnum.Before
-      ) {
-        setState((draft) => {
-          draft.nextCursor = null;
-          draft.previousCursor = null;
-          draft.query.cursor = null;
-          draft.query.direction = null;
-          draft.currentCursor = null;
-        });
-        onPaginationChange?.({});
-      } else if (
-        result.users.length === 0 &&
-        state.query.direction === CursorDirectionEnum.After
-      ) {
-        // Rollback to the last cursor if the next page is empty.
-        setState((draft) => {
-          draft.query.cursor = state.currentCursor;
-        });
-        onPaginationChange?.({
-          cursor: state.currentCursor ?? undefined,
-        });
-      } else {
-        setState((draft) => {
-          const newUsersMap: Record<string, GetUsersResponseItem> = {};
-          result.users.forEach((user: GetUsersResponseItem) => {
-            newUsersMap[user.id] = user;
-          });
-          draft.users = newUsersMap;
-          draft.currentPageUserIds = result.users.map(
-            (u: GetUsersResponseItem) => u.id,
-          );
-          draft.nextCursor = result.nextCursor ?? null;
-          draft.previousCursor = result.previousCursor ?? null;
-          draft.currentCursor = state.query.cursor ?? null;
-        });
-      }
-    }
-  }, [
-    usersListQuery.data,
-    setState,
-    onPaginationChange,
-    cursor,
-    state.query.direction,
-    state.query.cursor,
-    state.currentCursor,
-  ]);
-
-  useEffect(() => {
-    if (countQuery.data !== undefined) {
-      setState((draft) => {
-        draft.usersCount = countQuery.data;
-      });
-    }
-  }, [countQuery.data, setState]);
-
+  // Transform store data to table rows
   const usersData = useMemo<Row[]>(() => {
-    return state.currentPageUserIds.flatMap((id) => {
-      const user = state.users[id];
+    return currentPageUserIds.flatMap((id) => {
+      const user = users[id];
       if (!user) {
         return [];
       }
@@ -905,8 +819,7 @@ export default function UsersTableV2({
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           email = prop.value as string;
         }
-        // Get the sort property value if this is the sort property
-        if (state.sortBy && propId === state.sortBy && prop) {
+        if (sortBy && propId === sortBy && prop) {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           sortPropertyValue = prop.value as string | number | boolean | null;
         }
@@ -921,7 +834,7 @@ export default function UsersTableV2({
         },
       ];
     });
-  }, [state.currentPageUserIds, state.users, state.sortBy]);
+  }, [currentPageUserIds, users, sortBy]);
 
   const actionsCellRenderer = useMemo(() => {
     return actionsCellRendererFactory();
@@ -938,7 +851,7 @@ export default function UsersTableV2({
     ];
 
     // Add sort property column second (after User ID) if sorting by a user property
-    if (sortPropertyName && state.sortBy && state.sortBy !== "id") {
+    if (sortPropertyName && sortBy && sortBy !== "id") {
       baseColumns.push({
         id: "sortProperty",
         header: sortPropertyName,
@@ -969,7 +882,7 @@ export default function UsersTableV2({
     );
 
     return baseColumns;
-  }, [userUriTemplate, actionsCellRenderer, sortPropertyName, state.sortBy]);
+  }, [userUriTemplate, actionsCellRenderer, sortPropertyName, sortBy]);
 
   const table = useReactTable({
     columns,
@@ -978,88 +891,52 @@ export default function UsersTableV2({
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const onNextPage = useCallback(() => {
-    if (state.nextCursor) {
-      onPaginationChange?.({
-        cursor: state.nextCursor,
-        direction: CursorDirectionEnum.After,
-      });
-      setState((draft) => {
-        draft.query.cursor = state.nextCursor;
-        draft.query.direction = CursorDirectionEnum.After;
-      });
-    }
-  }, [state.nextCursor, onPaginationChange, setState]);
-
-  const onPreviousPage = useCallback(() => {
-    if (state.previousCursor) {
-      setState((draft) => {
-        if (draft.query.direction === CursorDirectionEnum.Before) {
-          draft.query.cursor = state.previousCursor;
-        } else if (draft.query.direction === CursorDirectionEnum.After) {
-          draft.query.direction = CursorDirectionEnum.Before;
-        }
-        onPaginationChange?.({
-          cursor: draft.query.cursor ?? undefined,
-          direction: draft.query.direction ?? undefined,
-        });
-      });
-    }
-  }, [state.previousCursor, onPaginationChange, setState]);
-
-  const onFirstPage = useCallback(() => {
-    onPaginationChange?.({});
-    setState((draft) => {
-      draft.query.cursor = null;
-      draft.query.direction = null;
+  // Pagination handlers that also notify parent
+  const handleNextPage = useCallback(() => {
+    goToNextPage();
+    onPaginationChange?.({
+      cursor: nextCursor ?? undefined,
+      direction: CursorDirectionEnum.After,
     });
-  }, [onPaginationChange, setState]);
+  }, [goToNextPage, nextCursor, onPaginationChange]);
+
+  const handlePreviousPage = useCallback(() => {
+    goToPreviousPage();
+    onPaginationChange?.({
+      cursor: previousCursor ?? undefined,
+      direction: CursorDirectionEnum.Before,
+    });
+  }, [goToPreviousPage, previousCursor, onPaginationChange]);
+
+  const handleFirstPage = useCallback(() => {
+    goToFirstPage();
+    onPaginationChange?.({});
+  }, [goToFirstPage, onPaginationChange]);
 
   const handleRefresh = useCallback(() => {
     usersListQuery.refetch();
     countQuery.refetch();
   }, [usersListQuery, countQuery]);
 
-  const toggleAutoRefresh = useCallback(() => {
-    setState((draft) => {
-      draft.autoReload = !draft.autoReload;
-    });
-  }, [setState]);
-
   const handleSortChange = useCallback(
     (newSortBy: string | null) => {
-      setState((draft) => {
-        draft.sortBy = newSortBy;
-        // Reset pagination when sort changes
-        draft.query.cursor = null;
-        draft.query.direction = null;
-        draft.currentCursor = null;
-        draft.nextCursor = null;
-        draft.previousCursor = null;
-      });
+      setSortBy(newSortBy);
       onSortChange?.({ sortBy: newSortBy });
       onPaginationChange?.({});
     },
-    [setState, onSortChange, onPaginationChange],
+    [setSortBy, onSortChange, onPaginationChange],
   );
 
   const handleSortOrderChange = useCallback(
     (newSortOrder: SortOrderEnum) => {
-      setState((draft) => {
-        draft.sortOrder = newSortOrder;
-        // Reset pagination when sort order changes
-        draft.query.cursor = null;
-        draft.query.direction = null;
-        draft.currentCursor = null;
-        draft.nextCursor = null;
-        draft.previousCursor = null;
-      });
+      setSortOrder(newSortOrder);
       onPaginationChange?.({});
     },
-    [setState, onPaginationChange],
+    [setSortOrder, onPaginationChange],
   );
 
   const isLoading = usersListQuery.isPending || usersListQuery.isFetching;
+
   let controls: React.ReactNode = null;
   if (!hideControls) {
     controls = (
@@ -1069,10 +946,22 @@ export default function UsersTableV2({
         spacing={1}
         sx={{ width: "100%", height: "48px" }}
       >
-        <UsersFilterV2 state={userFilterState} updater={userFilterUpdater} />
+        <UsersFilterV2
+          userProperties={userProperties}
+          segments={segments}
+          staticSegments={staticSegments}
+          subscriptionGroups={subscriptionGroups}
+          staticSubscriptionGroups={staticSubscriptionGroups}
+          onRemoveSegment={removeSegment}
+          onRemoveSubscriptionGroup={removeSubscriptionGroup}
+          onRemoveUserProperty={removeUserPropertyFilter}
+          onAddSegment={addSegment}
+          onAddSubscriptionGroup={addSubscriptionGroup}
+          onAddUserProperty={addUserPropertyFilter}
+        />
         <SortBySelector
-          sortBy={state.sortBy}
-          sortOrder={state.sortOrder}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
           onSortByChange={handleSortChange}
           onSortOrderChange={handleSortOrderChange}
         />
@@ -1093,14 +982,14 @@ export default function UsersTableV2({
           placement="bottom-start"
         >
           <IconButton
-            onClick={toggleAutoRefresh}
+            onClick={toggleAutoReload}
             sx={{
               border: "1px solid",
               borderColor: "grey.400",
-              bgcolor: state.autoReload ? "grey.600" : "inherit",
-              color: state.autoReload ? "white" : "inherit",
+              bgcolor: autoReload ? "grey.600" : "inherit",
+              color: autoReload ? "white" : "inherit",
               "&:hover": {
-                bgcolor: state.autoReload ? "grey.700" : undefined,
+                bgcolor: autoReload ? "grey.700" : undefined,
               },
             }}
           >
@@ -1184,22 +1073,22 @@ export default function UsersTableV2({
                 >
                   <Stack direction="row" alignItems="center" spacing={2}>
                     <GreyButton
-                      onClick={onFirstPage}
-                      disabled={!state.previousCursor}
+                      onClick={handleFirstPage}
+                      disabled={!previousCursor}
                       startIcon={<KeyboardDoubleArrowLeft />}
                     >
                       First
                     </GreyButton>
                     <GreyButton
-                      onClick={onPreviousPage}
-                      disabled={!state.previousCursor}
+                      onClick={handlePreviousPage}
+                      disabled={!previousCursor}
                       startIcon={<KeyboardArrowLeft />}
                     >
                       Previous
                     </GreyButton>
                     <GreyButton
-                      onClick={onNextPage}
-                      disabled={!state.nextCursor}
+                      onClick={handleNextPage}
+                      disabled={!nextCursor}
                       endIcon={<KeyboardArrowRight />}
                     >
                       Next
@@ -1227,8 +1116,7 @@ export default function UsersTableV2({
                             height: "100%",
                           }}
                         >
-                          Total users:{" "}
-                          {countQuery.data ?? state.usersCount ?? 0}
+                          Total users: {countQuery.data ?? usersCount ?? 0}
                         </Typography>
                       </Stack>
                     )}
@@ -1240,5 +1128,44 @@ export default function UsersTableV2({
         </Table>
       </TableContainer>
     </Stack>
+  );
+}
+
+// ============================================================================
+// Main Component (wraps inner with store provider)
+// ============================================================================
+
+export default function UsersTableV2({
+  segmentFilter,
+  subscriptionGroupFilter,
+  cursor,
+  direction,
+  sortBy,
+  limit,
+  autoReloadByDefault,
+  ...innerProps
+}: UsersTableProps) {
+  // Create a stable store instance that captures initial props
+  const [store] = useState(() => {
+    const initialState: UsersTableStoreInitialState = {
+      staticSegmentIds: segmentFilter,
+      staticSubscriptionGroupIds: subscriptionGroupFilter,
+      cursor: cursor ?? undefined,
+      direction: direction ?? undefined,
+      sortBy: sortBy ?? undefined,
+      limit: limit ?? 10,
+      autoReloadByDefault: autoReloadByDefault ?? false,
+    };
+    return createUsersTableStore(initialState);
+  });
+
+  return (
+    <UsersTableStoreContext.Provider value={store}>
+      <UsersTableInner
+        segmentFilter={segmentFilter}
+        subscriptionGroupFilter={subscriptionGroupFilter}
+        {...innerProps}
+      />
+    </UsersTableStoreContext.Provider>
   );
 }

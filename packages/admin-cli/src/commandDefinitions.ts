@@ -2369,5 +2369,101 @@ export function createCommands(yargs: Argv): Argv {
             throw new Error(`Unknown scenario: ${scenario}`);
         }
       },
+    )
+    .command(
+      "seed-users",
+      "Seed users with identify events for testing.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": { type: "string", alias: "w", demandOption: false },
+          count: {
+            type: "number",
+            alias: "c",
+            default: 10,
+            describe: "Number of users to create",
+          },
+        }),
+      async ({ workspaceId: inputWorkspaceId, count }) => {
+        // Resolve workspace ID
+        let workspaceId = inputWorkspaceId;
+        if (!workspaceId) {
+          if (backendConfig().nodeEnv !== NodeEnvEnum.Development) {
+            throw new Error(
+              "workspace-id is required in non-development environments",
+            );
+          }
+
+          const defaultWorkspace = await db().query.workspace.findFirst({
+            where: eq(schema.workspace.name, "Default"),
+          });
+
+          if (!defaultWorkspace) {
+            throw new Error(
+              "No workspace with name 'Default' found in development environment",
+            );
+          }
+
+          workspaceId = defaultWorkspace.id;
+          logger().info(
+            { workspaceId },
+            "Using Default workspace for development",
+          );
+        }
+
+        const emailProviders = [
+          "gmail.com",
+          "yahoo.com",
+          "hotmail.com",
+          "outlook.com",
+          "icloud.com",
+          "aol.com",
+          "protonmail.com",
+          "mail.com",
+        ];
+
+        const getRandomProvider = () =>
+          emailProviders[Math.floor(Math.random() * emailProviders.length)];
+
+        logger().info(
+          {
+            workspaceId,
+            count,
+          },
+          "Seeding users with identify events",
+        );
+
+        const events: BatchItem[] = [];
+
+        for (let i = 0; i < count; i++) {
+          const userId = randomUUID();
+          const emailLocalPart = randomUUID();
+          const provider = getRandomProvider();
+
+          events.push({
+            type: EventType.Identify,
+            messageId: randomUUID(),
+            userId,
+            traits: {
+              email: `${emailLocalPart}@${provider}`,
+              firstName: randomUUID(),
+              lastName: randomUUID(),
+            },
+          });
+        }
+
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: events,
+          },
+        });
+
+        logger().info(
+          {
+            count: events.length,
+          },
+          "Successfully seeded users",
+        );
+      },
     );
 }

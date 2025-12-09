@@ -2724,6 +2724,12 @@ export const GetUsersRequest = Type.Object({
   includeSubscriptions: Type.Optional(Type.Boolean()),
   sortBy: Type.Optional(Type.String()),
   sortOrder: Type.Optional(SortOrder),
+  /**
+   * When true, cursor comparison is exclusive (< or >) for both directions.
+   * When false (default), Before direction uses inclusive comparison (<= or >=).
+   * Set to true for correct back-navigation behavior.
+   */
+  exclusiveCursor: Type.Optional(Type.Boolean()),
 });
 
 export type GetUsersRequest = Static<typeof GetUsersRequest>;
