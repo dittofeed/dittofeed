@@ -1,5 +1,5 @@
+import { createContext, type ReactNode, useContext, useState } from "react";
 import type { StoreApi, UseBoundStore } from "zustand";
-import { createContext, useContext, useState, type ReactNode } from "react";
 
 /**
  * Higher-order function to create a context provider and a custom hook for a given Zustand store.
@@ -55,15 +55,13 @@ export function createStoreContext<TState>(
    * React component that provides the Zustand store to its children components.
    * It uses the `createStore` function to create a store instance and provides it via `StoreContext`.
    */
-  const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  function StoreProvider({ children }: { children: ReactNode }) {
     // Using useState with initializer function ensures the store is only created once
     const [useStore] = useState(createStore);
     return (
-      <StoreContext.Provider value={useStore}>
-        {children}
-      </StoreContext.Provider>
+      <StoreContext.Provider value={useStore}>{children}</StoreContext.Provider>
     );
-  };
+  }
 
   /**
    * Custom hook that provides access to the Zustand store within components.
@@ -97,4 +95,3 @@ export function createStoreContext<TState>(
 
   return [StoreProvider, useStore, useStoreApi] as const;
 }
-
