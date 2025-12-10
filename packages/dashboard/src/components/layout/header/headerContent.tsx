@@ -29,6 +29,7 @@ import MobileSection from "./headerContent/mobileSection";
 // project import
 import Profile from "./headerContent/profile";
 import ThemeToggle from "../../ThemeToggle";
+import { useThemeMode } from "../../../themeCustomization/ThemeContext";
 
 function BranchMenuItemContents({
   item,
@@ -306,6 +307,8 @@ function GitActionsSelect() {
 }
 
 function HeaderContent() {
+
+  const { envTheme } = useThemeMode();
   const matchesXs = useMediaQuery<Theme>((theme) =>
     theme.breakpoints.down("md"),
   );
@@ -326,7 +329,7 @@ function HeaderContent() {
           disableRipple
           color="secondary"
           title="Github Repository"
-          sx={{ color: "text.primary", bgcolor: "grey.100" }}
+          sx={envTheme=="light" ? { color: "text.primary", bgcolor: "grey.100", "&:hover": { bgcolor: "secondary.lighter" } } : {"&:hover": { bgcolor: "secondary.lighter" }}}
         >
           <GitHub />
         </IconButton>
