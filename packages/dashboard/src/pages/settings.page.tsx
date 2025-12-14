@@ -999,6 +999,23 @@ function PostMarkConfig() {
                     ),
                   },
                 },
+                {
+                  id: "postmark-message-stream",
+                  type: "secret",
+                  fieldProps: {
+                    name: SecretNames.Postmark,
+                    secretKey: "messageStream",
+                    label: "Message Stream",
+                    helperText:
+                      "Message stream to use for sending emails. Usually 'broadcast'.",
+                    type: EmailProviderType.PostMark,
+                    saved: isSecretSaved(
+                      SecretNames.Postmark,
+                      "messageStream",
+                      secretAvailability,
+                    ),
+                  },
+                },
               ],
             },
           ],
