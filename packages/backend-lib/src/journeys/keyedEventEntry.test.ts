@@ -1693,7 +1693,7 @@ describe("keyedEventEntry journeys", () => {
       ]);
     });
 
-    it.only("should only send a message when the keyed performed segment property filter is satisfied", async () => {
+    it("should only send a message when the keyed performed segment property filter is satisfied with numeric keys", async () => {
       const userId1 = 1;
       const userId2 = 2;
       const orderId1 = 100;
