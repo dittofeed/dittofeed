@@ -1525,6 +1525,7 @@ export async function sendEmail({
               }))
             : undefined,
         Metadata: metadata,
+        MessageStream: emailProvider.messageStream,
       };
 
       if (!emailProvider.apiKey) {

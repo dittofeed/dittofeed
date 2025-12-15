@@ -4672,6 +4672,7 @@ export const PostMarkSecret = Type.Object({
   type: Type.Literal(EmailProviderType.PostMark),
   apiKey: Type.Optional(Type.String()),
   webhookKey: Type.Optional(Type.String()),
+  messageStream: Type.Optional(Type.String()),
 });
 
 export type PostMarkSecret = Static<typeof PostMarkSecret>;
