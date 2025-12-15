@@ -851,7 +851,9 @@ function UsersTableInner({
     ];
 
     // Add sort property column second (after User ID) if sorting by a user property
-    if (sortPropertyName && sortBy && sortBy !== "id") {
+    // Skip if sorting by email since we already have an email column
+    const isEmailSort = sortPropertyName?.toLowerCase() === "email";
+    if (sortPropertyName && sortBy && sortBy !== "id" && !isEmailSort) {
       baseColumns.push({
         id: "sortProperty",
         header: sortPropertyName,

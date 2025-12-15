@@ -42,6 +42,9 @@ import { useUserPropertyResourcesQuery } from "../../lib/useUserPropertyResource
 
 type IndexTypeOption = UserPropertyIndexType | "None";
 
+// Properties that cannot have sort indices created
+const EXCLUDED_PROPERTY_NAMES = ["id", "anonymousId"];
+
 interface ConfigureSortIndicesDialogProps {
   open: boolean;
   onClose: () => void;
@@ -187,7 +190,11 @@ export function ConfigureSortIndicesDialog({
   };
 
   const userProperties = useMemo(() => {
-    return userPropertiesQuery.data?.userProperties ?? [];
+    const properties = userPropertiesQuery.data?.userProperties ?? [];
+    // Filter out id and anonymousId properties
+    return properties.filter(
+      (prop) => !EXCLUDED_PROPERTY_NAMES.includes(prop.name),
+    );
   }, [userPropertiesQuery.data]);
 
   // Only show loading on initial load, not during background refetches
