@@ -42,6 +42,7 @@
     "axios": "^1.4.0",
     "change-case": "^4.1.2",
     "cross-spawn": "^7.0.3",
+    "csv-parser": "^3.2.0",
     "date-fns": "^2.29.3",
     "date-fns-tz": "^2.0.0",
     "dotenv": "^16.0.3",

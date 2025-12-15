@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { DEBUG_USER_ID1, SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { Readable } from "stream";
 
 import { bootstrapPostgres } from "./bootstrap";
 import { db } from "./db";
@@ -10,10 +11,13 @@ import {
   generateSubscriptionChangeUrl,
   getUserSubscriptions,
   inSubscriptionGroup,
+  parseSubscriptionGroupCsv,
+  processSubscriptionGroupCsv,
   upsertSubscriptionGroup,
 } from "./subscriptionGroups";
 import {
   ChannelType,
+  ProcessSubscriptionGroupCsvErrorType,
   SubscriptionChange,
   SubscriptionGroup,
   SubscriptionGroupType,
@@ -182,4 +186,106 @@ describe("subscriptionGroups", () => {
       expect(optInSubscription?.isSubscribed).toBe(false);
     });
   });
+
+  describe("parseSubscriptionGroupCsv", () => {
+    it("should parse CSV with id column only (no email column)", async () => {
+      const csvContent = `id,action
+58,unsubscribe
+130,unsubscribe
+429,unsubscribe`;
+
+      const stream = Readable.from([csvContent]);
+      const result = await parseSubscriptionGroupCsv(stream);
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value).toHaveLength(3);
+        expect(result.value[0]).toEqual({ id: "58", action: "unsubscribe" });
+        expect(result.value[1]).toEqual({ id: "130", action: "unsubscribe" });
+        expect(result.value[2]).toEqual({ id: "429", action: "unsubscribe" });
+      }
+    });
+
+    it("should parse CSV with email column only (no id column)", async () => {
+      const csvContent = `email,action
+test@example.com,subscribe
+user@domain.com,unsubscribe`;
+
+      const stream = Readable.from([csvContent]);
+      const result = await parseSubscriptionGroupCsv(stream);
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value).toHaveLength(2);
+        expect(result.value[0]).toEqual({
+          email: "test@example.com",
+          action: "subscribe",
+        });
+        expect(result.value[1]).toEqual({
+          email: "user@domain.com",
+          action: "unsubscribe",
+        });
+      }
+    });
+
+    it("should parse CSV with both id and email columns", async () => {
+      const csvContent = `id,email,action
+123,test@example.com,subscribe`;
+
+      const stream = Readable.from([csvContent]);
+      const result = await parseSubscriptionGroupCsv(stream);
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value).toHaveLength(1);
+        expect(result.value[0]).toEqual({
+          id: "123",
+          email: "test@example.com",
+          action: "subscribe",
+        });
+      }
+    });
+
+    it("should return error when CSV has neither id nor email headers", async () => {
+      const csvContent = `name,action
+John,subscribe`;
+
+      const stream = Readable.from([csvContent]);
+      const result = await parseSubscriptionGroupCsv(stream);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.type).toBe(
+          ProcessSubscriptionGroupCsvErrorType.MissingHeaders,
+        );
+        expect(result.error.message).toBe(
+          'csv must have "id" or "email" headers',
+        );
+      }
+    });
+
+    it("should return error for rows with empty id and no email", async () => {
+      const csvContent = `id,action
+,unsubscribe
+123,subscribe`;
+
+      const stream = Readable.from([csvContent]);
+      const result = await parseSubscriptionGroupCsv(stream);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.type).toBe(
+          ProcessSubscriptionGroupCsvErrorType.RowValidationErrors,
+        );
+        if (
+          result.error.type ===
+          ProcessSubscriptionGroupCsvErrorType.RowValidationErrors
+        ) {
+          expect(result.error.rowErrors).toHaveLength(1);
+          expect(result.error.rowErrors[0]?.row).toBe(0);
+        }
+      }
+    });
+  });
+
 });
