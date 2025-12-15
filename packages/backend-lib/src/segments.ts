@@ -863,7 +863,7 @@ function filterEvent(
       path: rest.propertyPath,
     });
     const propertyMatches = propertyMatchResult
-      .map((v) => v === rest.propertyValue)
+      .map((v) => String(v) === rest.propertyValue)
       .unwrapOr(false);
     if (!propertyMatches) {
       logger().debug(
