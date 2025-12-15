@@ -29,6 +29,7 @@ import {
   JourneyNodeType,
   KeyedPerformedSegmentNode,
   LocalTimeDelayVariant,
+  RelationalOperators,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
@@ -1568,4 +1569,249 @@ describe("keyedEventEntry journeys", () => {
     });
   });
   // FIXME run a test that starts a worker with the previous workflow and activity definitions and then signals the workflow with the new args
+
+  describe("when a keyed performed segment filters on event properties", () => {
+    let journey: Journey;
+    let journeyDefinition: JourneyDefinition;
+    let segmentId: string;
+    let templateId: string;
+    let idUserPropertyId: string;
+    let emailUserPropertyId: string;
+
+    beforeEach(async () => {
+      segmentId = randomUUID();
+      templateId = randomUUID();
+      idUserPropertyId = randomUUID();
+      emailUserPropertyId = randomUUID();
+
+      const segmentDefinition: SegmentDefinition = {
+        entryNode: {
+          type: SegmentNodeType.KeyedPerformed,
+          id: "entry",
+          event: "late_delivery",
+          key: "order_id",
+          timesOperator: RelationalOperators.GreaterThanOrEqual,
+          properties: [
+            {
+              path: "late_delivery_in_mins",
+              operator: {
+                type: SegmentOperatorType.GreaterThanOrEqual,
+                value: 15,
+              },
+            },
+          ],
+        } satisfies KeyedPerformedSegmentNode,
+        nodes: [],
+      };
+
+      journeyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.EventEntryNode,
+          event: "late_delivery",
+          key: "order_id",
+          child: "check-late-delivery",
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            type: JourneyNodeType.SegmentSplitNode,
+            id: "check-late-delivery",
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: segmentId,
+              trueChild: "send-message",
+              falseChild: JourneyNodeType.ExitNode,
+            },
+          } satisfies SegmentSplitNode,
+          {
+            type: JourneyNodeType.MessageNode,
+            id: "send-message",
+            variant: {
+              type: ChannelType.Email,
+              templateId,
+            },
+            child: JourneyNodeType.ExitNode,
+          },
+        ],
+      };
+
+      [journey] = await Promise.all([
+        insert({
+          table: dbJourney,
+          values: {
+            id: randomUUID(),
+            name: "late-delivery-journey",
+            definition: journeyDefinition,
+            workspaceId: workspace.id,
+            status: "Running",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        }).then(unwrap),
+        insert({
+          table: dbSegment,
+          values: {
+            id: segmentId,
+            name: "late-delivery-segment",
+            definition: segmentDefinition,
+            workspaceId: workspace.id,
+            updatedAt: new Date(),
+          },
+        }).then(unwrap),
+      ]);
+
+      await Promise.all([
+        upsertUserProperty(
+          {
+            id: idUserPropertyId,
+            workspaceId: workspace.id,
+            definition: {
+              type: UserPropertyDefinitionType.Id,
+            },
+            name: "id",
+          },
+          {
+            skipProtectedCheck: true,
+          },
+        ),
+        upsertUserProperty(
+          {
+            id: emailUserPropertyId,
+            workspaceId: workspace.id,
+            definition: {
+              type: UserPropertyDefinitionType.Trait,
+              path: "email",
+            },
+            name: "email",
+          },
+          {
+            skipProtectedCheck: true,
+          },
+        ),
+      ]);
+    });
+
+    it("should only send a message when the keyed performed segment property filter is satisfied", async () => {
+      const userId1 = randomUUID();
+      const userId2 = randomUUID();
+      const orderId1 = randomUUID();
+      const orderId2 = randomUUID();
+
+      await Promise.all([
+        insertUserPropertyAssignments([
+          {
+            workspaceId: workspace.id,
+            userId: userId1,
+            userPropertyId: idUserPropertyId,
+            value: userId1,
+          },
+          {
+            workspaceId: workspace.id,
+            userId: userId1,
+            userPropertyId: emailUserPropertyId,
+            value: "user1@test.com",
+          },
+        ]),
+        insertUserPropertyAssignments([
+          {
+            workspaceId: workspace.id,
+            userId: userId2,
+            userPropertyId: idUserPropertyId,
+            value: userId2,
+          },
+          {
+            workspaceId: workspace.id,
+            userId: userId2,
+            userPropertyId: emailUserPropertyId,
+            value: "user2@test.com",
+          },
+        ]),
+      ]);
+
+      await worker.runUntil(async () => {
+        const messageId1 = randomUUID();
+        const messageId2 = randomUUID();
+
+        // User 1: late_delivery_in_mins = 20 (>= 15, should satisfy segment)
+        const event1: BatchItem = {
+          type: EventType.Track,
+          event: "late_delivery",
+          userId: userId1,
+          messageId: messageId1,
+          properties: {
+            order_id: orderId1,
+            late_delivery_in_mins: 20,
+          },
+          timestamp: new Date().toISOString(),
+        };
+
+        // User 2: late_delivery_in_mins = 10 (< 15, should NOT satisfy segment)
+        const event2: BatchItem = {
+          type: EventType.Track,
+          event: "late_delivery",
+          userId: userId2,
+          messageId: messageId2,
+          properties: {
+            order_id: orderId2,
+            late_delivery_in_mins: 10,
+          },
+          timestamp: new Date().toISOString(),
+        };
+
+        await submitBatch({
+          workspaceId: workspace.id,
+          data: {
+            batch: [event1, event2],
+          },
+        });
+
+        const handle1 = await testEnv.client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: `workflow-user1-${orderId1}`,
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId: userId1,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V3,
+                eventKey: orderId1,
+                messageId: messageId1,
+              },
+            ],
+          },
+        );
+
+        const handle2 = await testEnv.client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: `workflow-user2-${orderId2}`,
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId: userId2,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V3,
+                eventKey: orderId2,
+                messageId: messageId2,
+              },
+            ],
+          },
+        );
+
+        await Promise.all([handle1.result(), handle2.result()]);
+
+        expect(
+          senderMock,
+          "should have sent exactly 1 message (only for the user with late_delivery_in_mins >= 15)",
+        ).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
 });
