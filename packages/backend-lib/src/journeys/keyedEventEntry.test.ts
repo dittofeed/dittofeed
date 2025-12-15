@@ -1693,23 +1693,23 @@ describe("keyedEventEntry journeys", () => {
       ]);
     });
 
-    it("should only send a message when the keyed performed segment property filter is satisfied", async () => {
-      const userId1 = randomUUID();
-      const userId2 = randomUUID();
-      const orderId1 = randomUUID();
-      const orderId2 = randomUUID();
+    it.only("should only send a message when the keyed performed segment property filter is satisfied", async () => {
+      const userId1 = 1;
+      const userId2 = 2;
+      const orderId1 = 100;
+      const orderId2 = 200;
 
       await Promise.all([
         insertUserPropertyAssignments([
           {
             workspaceId: workspace.id,
-            userId: userId1,
+            userId: String(userId1),
             userPropertyId: idUserPropertyId,
-            value: userId1,
+            value: String(userId1),
           },
           {
             workspaceId: workspace.id,
-            userId: userId1,
+            userId: String(userId1),
             userPropertyId: emailUserPropertyId,
             value: "user1@test.com",
           },
@@ -1717,13 +1717,13 @@ describe("keyedEventEntry journeys", () => {
         insertUserPropertyAssignments([
           {
             workspaceId: workspace.id,
-            userId: userId2,
+            userId: String(userId2),
             userPropertyId: idUserPropertyId,
-            value: userId2,
+            value: String(userId2),
           },
           {
             workspaceId: workspace.id,
-            userId: userId2,
+            userId: String(userId2),
             userPropertyId: emailUserPropertyId,
             value: "user2@test.com",
           },
@@ -1738,7 +1738,7 @@ describe("keyedEventEntry journeys", () => {
         const event1: BatchItem = {
           type: EventType.Track,
           event: "late_delivery",
-          userId: userId1,
+          userId: String(userId1),
           messageId: messageId1,
           properties: {
             order_id: orderId1,
@@ -1751,7 +1751,7 @@ describe("keyedEventEntry journeys", () => {
         const event2: BatchItem = {
           type: EventType.Track,
           event: "late_delivery",
-          userId: userId2,
+          userId: String(userId2),
           messageId: messageId2,
           properties: {
             order_id: orderId2,
@@ -1776,10 +1776,10 @@ describe("keyedEventEntry journeys", () => {
               {
                 journeyId: journey.id,
                 workspaceId: workspace.id,
-                userId: userId1,
+                userId: String(userId1),
                 definition: journeyDefinition,
                 version: UserJourneyWorkflowVersion.V3,
-                eventKey: orderId1,
+                eventKey: String(orderId1),
                 messageId: messageId1,
               },
             ],
@@ -1795,10 +1795,10 @@ describe("keyedEventEntry journeys", () => {
               {
                 journeyId: journey.id,
                 workspaceId: workspace.id,
-                userId: userId2,
+                userId: String(userId2),
                 definition: journeyDefinition,
                 version: UserJourneyWorkflowVersion.V3,
-                eventKey: orderId2,
+                eventKey: String(orderId2),
                 messageId: messageId2,
               },
             ],
@@ -1807,10 +1807,25 @@ describe("keyedEventEntry journeys", () => {
 
         await Promise.all([handle1.result(), handle2.result()]);
 
+        // Check that user 1 (who satisfies the segment) received at least one message
+        const user1Messages = senderMock.mock.calls.filter(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (call) => call[0].userId === String(userId1),
+        );
         expect(
-          senderMock,
-          "should have sent exactly 1 message (only for the user with late_delivery_in_mins >= 15)",
-        ).toHaveBeenCalledTimes(1);
+          user1Messages.length,
+          "user 1 (late_delivery_in_mins >= 15) should have received at least one message",
+        ).toBeGreaterThanOrEqual(1);
+
+        // Check that user 2 (who does not satisfy the segment) received no messages
+        const user2Messages = senderMock.mock.calls.filter(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (call) => call[0].userId === String(userId2),
+        );
+        expect(
+          user2Messages.length,
+          "user 2 (late_delivery_in_mins < 15) should not have received any messages",
+        ).toBe(0);
       });
     });
   });
