@@ -12772,7 +12772,7 @@ __metadata:
     analytics-node: "npm:^6.2.0"
     backend-lib: "npm:0.0.3"
     change-case: "npm:^4.1.2"
-    csv-parser: "npm:^3.0.0"
+    csv-parser: "npm:^3.2.0"
     date-fns: "npm:^2.29.3"
     dotenv: "npm:^16.0.3"
     drizzle-orm: "npm:^0.38.3"
@@ -14615,17 +14615,6 @@ __metadata:
   version: 3.1.3
   resolution: "csstype@npm:3.1.3"
   checksum: 10/f593cce41ff5ade23f44e77521e3a1bcc2c64107041e1bf6c3c32adc5187d0d60983292fda326154d20b01079e24931aa5b08e4467cc488b60bb1e7f6d478ade
-  languageName: node
-  linkType: hard
-
-"csv-parser@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "csv-parser@npm:3.0.0"
-  dependencies:
-    minimist: "npm:^1.2.0"
-  bin:
-    csv-parser: bin/csv-parser
-  checksum: 10/2f003d15d8361a94359d6715a8f05feac1252ab4d1d4e2908ea1baa0454c7e00fb99c53cdc86336635c5fd04f17b510291338df93da1e54944695f0c3b4a6bc1
   languageName: node
   linkType: hard
 
