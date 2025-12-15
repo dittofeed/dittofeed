@@ -39,6 +39,8 @@ import {
   EventType,
   GetUserSubscriptionsRequest,
   InternalEventType,
+  ProcessSubscriptionGroupCsvError,
+  ProcessSubscriptionGroupCsvErrorType,
   SavedSubscriptionGroupResource,
   Segment,
   SegmentDefinition,
@@ -58,7 +60,11 @@ import {
   UserUploadRow,
   UserUploadRowErrors,
 } from "./types";
-import { InsertUserEvent, insertUserEvents } from "./userEvents";
+import {
+  findUserIdsByUserProperty,
+  InsertUserEvent,
+  insertUserEvents,
+} from "./userEvents";
 import { findUserIdsByUserPropertyValue } from "./userProperties";
 
 export type SubscriptionGroupWithAssignment = Pick<
@@ -722,7 +728,7 @@ export async function upsertSubscriptionSecret({
 
 export type SubscriptionGroupCsvParseResult = Result<
   UserUploadRow[],
-  Error | UserUploadRowErrors[] | string
+  ProcessSubscriptionGroupCsvError
 >;
 
 export async function parseSubscriptionGroupCsv(
@@ -737,7 +743,12 @@ export async function parseSubscriptionGroupCsv(
       .pipe(csvParser())
       .on("headers", (headers: string[]) => {
         if (!headers.includes("id") && !headers.includes("email")) {
-          resolve(err('csv must have "id" or "email" headers'));
+          resolve(
+            err({
+              type: ProcessSubscriptionGroupCsvErrorType.MissingHeaders,
+              message: 'csv must have "id" or "email" headers',
+            }),
+          );
           csvStream.destroy();
         }
       })
@@ -773,13 +784,119 @@ export async function parseSubscriptionGroupCsv(
       .on("end", () => {
         logger().debug(`Parsed ${uploadedRows.length} rows`);
         if (parsingErrors.length) {
-          resolve(err(parsingErrors));
+          resolve(
+            err({
+              type: ProcessSubscriptionGroupCsvErrorType.RowValidationErrors,
+              message: "csv rows contained errors",
+              rowErrors: parsingErrors,
+            }),
+          );
         } else {
           resolve(ok(uploadedRows));
         }
       })
       .on("error", (error) => {
-        resolve(err(error));
+        resolve(
+          err({
+            type: ProcessSubscriptionGroupCsvErrorType.ParseError,
+            message: `misformatted file: ${error.message}`,
+          }),
+        );
       });
   });
+}
+
+export interface ProcessSubscriptionGroupCsvRequest {
+  csvStream: Readable;
+  workspaceId: string;
+  subscriptionGroupId: string;
+}
+
+export async function processSubscriptionGroupCsv({
+  csvStream,
+  workspaceId,
+  subscriptionGroupId,
+}: ProcessSubscriptionGroupCsvRequest): Promise<
+  Result<void, ProcessSubscriptionGroupCsvError>
+> {
+  const rows = await parseSubscriptionGroupCsv(csvStream);
+  if (rows.isErr()) {
+    return err(rows.error);
+  }
+
+  const emailsWithoutIds: Set<string> = new Set<string>();
+
+  for (const row of rows.value) {
+    if (row.email && !row.id) {
+      emailsWithoutIds.add(row.email);
+    }
+  }
+
+  const missingUserIdsByEmail = await findUserIdsByUserProperty({
+    userPropertyName: "email",
+    workspaceId,
+    valueSet: emailsWithoutIds,
+  });
+
+  const userEvents: InsertUserEvent[] = [];
+  const currentTime = new Date();
+  const timestamp = currentTime.toISOString();
+
+  for (const row of rows.value) {
+    const userIds = missingUserIdsByEmail[row.email];
+    const userId =
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      (row.id as string | undefined) ??
+      (userIds?.length ? userIds[0] : uuid());
+
+    if (!userId) {
+      continue;
+    }
+
+    // Handle action column
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const actionValue = (row as Record<string, string>).action;
+    let subscriptionAction = SubscriptionChange.Subscribe; // default to subscribe
+
+    if (actionValue !== undefined && actionValue !== "") {
+      if (actionValue === "subscribe") {
+        subscriptionAction = SubscriptionChange.Subscribe;
+      } else if (actionValue === "unsubscribe") {
+        subscriptionAction = SubscriptionChange.Unsubscribe;
+      } else {
+        return err({
+          type: ProcessSubscriptionGroupCsvErrorType.InvalidActionValue,
+          message: `Invalid action value: "${actionValue}". Must be "subscribe" or "unsubscribe".`,
+          actionValue,
+        });
+      }
+    }
+
+    const identifyEvent: InsertUserEvent = {
+      messageId: uuid(),
+      messageRaw: JSON.stringify({
+        userId,
+        timestamp,
+        type: "identify",
+        traits: R.omit(row, ["id", "action"]),
+      }),
+    };
+
+    const trackEvent = buildSubscriptionChangeEvent({
+      userId,
+      currentTime,
+      subscriptionGroupId,
+      action: subscriptionAction,
+    });
+
+    userEvents.push(trackEvent);
+    userEvents.push(identifyEvent);
+  }
+
+  await insertUserEvents({
+    workspaceId,
+    userEvents,
+  });
+
+  return ok(undefined);
 }

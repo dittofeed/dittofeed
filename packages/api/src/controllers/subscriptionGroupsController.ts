@@ -3,8 +3,7 @@ import { Type } from "@sinclair/typebox";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import {
-  buildSubscriptionChangeEvent,
-  parseSubscriptionGroupCsv,
+  processSubscriptionGroupCsv,
   subscriptionGroupToResource,
   updateUserSubscriptions,
   upsertSubscriptionGroup,
@@ -13,26 +12,19 @@ import {
   CsvUploadValidationError,
   DeleteSubscriptionGroupRequest,
   EmptyResponse,
+  ProcessSubscriptionGroupCsvErrorType,
   SavedSubscriptionGroupResource,
-  SubscriptionChange,
   SubscriptionGroupUpsertValidationError,
   UpsertSubscriptionGroupAssignmentsRequest,
   UpsertSubscriptionGroupResource,
   WorkspaceId,
 } from "backend-lib/src/types";
-import {
-  findUserIdsByUserProperty,
-  InsertUserEvent,
-  insertUserEvents,
-} from "backend-lib/src/userEvents";
 import { eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import {
   SUBSRIPTION_GROUP_ID_HEADER,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
-import { omit } from "remeda";
-import { v4 as uuid } from "uuid";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function subscriptionGroupsController(
@@ -99,108 +91,34 @@ export default async function subscriptionGroupsController(
           message: "missing file",
         });
       }
-      const csvStream = requestFile.file;
-      const workspaceId = request.headers[WORKSPACE_ID_HEADER];
-      const subscriptionGroupId = request.headers[SUBSRIPTION_GROUP_ID_HEADER];
 
-      const rows = await parseSubscriptionGroupCsv(csvStream);
-      if (rows.isErr()) {
-        if (rows.error instanceof Error) {
-          const errorResponse: CsvUploadValidationError = {
-            message: `misformatted file: ${rows.error.message}`,
-          };
-          return reply.status(400).send(errorResponse);
+      const result = await processSubscriptionGroupCsv({
+        csvStream: requestFile.file,
+        workspaceId: request.headers[WORKSPACE_ID_HEADER],
+        subscriptionGroupId: request.headers[SUBSRIPTION_GROUP_ID_HEADER],
+      });
+
+      if (result.isErr()) {
+        const { error } = result;
+        let errorResponse: CsvUploadValidationError;
+
+        switch (error.type) {
+          case ProcessSubscriptionGroupCsvErrorType.MissingHeaders:
+          case ProcessSubscriptionGroupCsvErrorType.ParseError:
+          case ProcessSubscriptionGroupCsvErrorType.InvalidActionValue:
+            errorResponse = { message: error.message };
+            break;
+          case ProcessSubscriptionGroupCsvErrorType.RowValidationErrors:
+            errorResponse = {
+              message: error.message,
+              rowErrors: error.rowErrors,
+            };
+            break;
         }
-
-        if (rows.error instanceof Array) {
-          const errorResponse: CsvUploadValidationError = {
-            message: "csv rows contained errors",
-            rowErrors: rows.error,
-          };
-          return reply.status(400).send(errorResponse);
-        }
-
-        const errorResponse: CsvUploadValidationError = {
-          message: rows.error,
-        };
         return reply.status(400).send(errorResponse);
       }
 
-      const emailsWithoutIds: Set<string> = new Set<string>();
-
-      for (const row of rows.value) {
-        if (row.email && !row.id) {
-          emailsWithoutIds.add(row.email);
-        }
-      }
-
-      const missingUserIdsByEmail = await findUserIdsByUserProperty({
-        userPropertyName: "email",
-        workspaceId,
-        valueSet: emailsWithoutIds,
-      });
-
-      const userEvents: InsertUserEvent[] = [];
-      const currentTime = new Date();
-      const timestamp = currentTime.toISOString();
-
-      for (const row of rows.value) {
-        const userIds = missingUserIdsByEmail[row.email];
-        const userId =
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          (row.id as string | undefined) ??
-          (userIds?.length ? userIds[0] : uuid());
-
-        if (!userId) {
-          continue;
-        }
-
-        // Handle action column
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const actionValue = (row as Record<string, string>).action;
-        let subscriptionAction = SubscriptionChange.Subscribe; // default to subscribe
-
-        if (actionValue !== undefined && actionValue !== "") {
-          if (actionValue === "subscribe") {
-            subscriptionAction = SubscriptionChange.Subscribe;
-          } else if (actionValue === "unsubscribe") {
-            subscriptionAction = SubscriptionChange.Unsubscribe;
-          } else {
-            // Invalid action value
-            const errorResponse: CsvUploadValidationError = {
-              message: `Invalid action value: "${actionValue}". Must be "subscribe" or "unsubscribe".`,
-            };
-            return reply.status(400).send(errorResponse);
-          }
-        }
-
-        const identifyEvent: InsertUserEvent = {
-          messageId: uuid(),
-          messageRaw: JSON.stringify({
-            userId,
-            timestamp,
-            type: "identify",
-            traits: omit(row, ["id", "action"]),
-          }),
-        };
-
-        const trackEvent = buildSubscriptionChangeEvent({
-          userId,
-          currentTime,
-          subscriptionGroupId,
-          action: subscriptionAction,
-        });
-
-        userEvents.push(trackEvent);
-        userEvents.push(identifyEvent);
-      }
-      await insertUserEvents({
-        workspaceId,
-        userEvents,
-      });
-
-      const response = await reply.status(200).send();
-      return response;
+      return reply.status(200).send();
     },
   );
 
