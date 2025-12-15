@@ -14,6 +14,7 @@ import { Readable } from "stream";
 import { URL } from "url";
 import { v4 as uuid, validate as validateUuid } from "uuid";
 
+import { submitBatch } from "./apps/batch";
 import config from "./config";
 import { generateSecureHash, generateSecureKey } from "./crypto";
 import {
@@ -36,6 +37,7 @@ import {
   SegmentBulkUpsertItem,
 } from "./segments";
 import {
+  BatchItem,
   EventType,
   GetUserSubscriptionsRequest,
   InternalEventType,
@@ -838,7 +840,7 @@ export async function processSubscriptionGroupCsv({
     valueSet: emailsWithoutIds,
   });
 
-  const userEvents: InsertUserEvent[] = [];
+  const batch: BatchItem[] = [];
   const currentTime = new Date();
   const timestamp = currentTime.toISOString();
 
@@ -846,8 +848,7 @@ export async function processSubscriptionGroupCsv({
     const userIds = missingUserIdsByEmail[row.email];
     const userId =
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      (row.id as string | undefined) ??
-      (userIds?.length ? userIds[0] : uuid());
+      (row.id as string | undefined) ?? (userIds?.length ? userIds[0] : uuid());
 
     if (!userId) {
       continue;
@@ -872,30 +873,33 @@ export async function processSubscriptionGroupCsv({
       }
     }
 
-    const identifyEvent: InsertUserEvent = {
+    const identifyEvent: BatchItem = {
+      type: EventType.Identify,
+      userId,
       messageId: uuid(),
-      messageRaw: JSON.stringify({
-        userId,
-        timestamp,
-        type: "identify",
-        traits: R.omit(row, ["id", "action"]),
-      }),
+      timestamp,
+      traits: R.omit(row, ["id", "action"]),
     };
 
-    const trackEvent = buildSubscriptionChangeEvent({
+    const trackEvent: BatchItem = {
+      type: EventType.Track,
       userId,
-      currentTime,
-      subscriptionGroupId,
-      action: subscriptionAction,
-    });
+      messageId: uuid(),
+      timestamp,
+      event: InternalEventType.SubscriptionChange,
+      properties: {
+        subscriptionId: subscriptionGroupId,
+        action: subscriptionAction,
+      },
+    };
 
-    userEvents.push(trackEvent);
-    userEvents.push(identifyEvent);
+    batch.push(trackEvent);
+    batch.push(identifyEvent);
   }
 
-  await insertUserEvents({
+  await submitBatch({
     workspaceId,
-    userEvents,
+    data: { batch },
   });
 
   return ok(undefined);

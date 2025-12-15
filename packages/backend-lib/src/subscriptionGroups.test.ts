@@ -288,49 +288,4 @@ John,subscribe`;
     });
   });
 
-  describe("processSubscriptionGroupCsv", () => {
-    let workspaceId: string;
-    let subscriptionGroupId: string;
-
-    beforeEach(async () => {
-      const workspaceName = randomUUID();
-
-      const bootstrapResult = unwrap(
-        await bootstrapPostgres({
-          workspaceName,
-          workspaceType: WorkspaceTypeAppEnum.Root,
-        }),
-      );
-      workspaceId = bootstrapResult.id;
-
-      const subscriptionGroup = unwrap(
-        await upsertSubscriptionGroup({
-          workspaceId,
-          name: "Test Subscription Group",
-          type: SubscriptionGroupType.OptOut,
-          channel: ChannelType.Email,
-        }),
-      );
-      subscriptionGroupId = subscriptionGroup.id;
-    });
-
-    it("should fail when processing a large CSV with 20k rows", async () => {
-      // Generate 20k rows with id, email, and action columns
-      const rows: string[] = ["id,email,action"];
-      for (let i = 0; i < 20000; i++) {
-        rows.push(`user-${i},user-${i}@example.com,unsubscribe`);
-      }
-      const csvContent = rows.join("\n");
-
-      const stream = Readable.from([csvContent]);
-      const result = await processSubscriptionGroupCsv({
-        csvStream: stream,
-        workspaceId,
-        subscriptionGroupId,
-      });
-
-      // This should fail with Clickhouse "Field value too long" error
-      expect(result.isErr()).toBe(true);
-    });
-  });
 });
