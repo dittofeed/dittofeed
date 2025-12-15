@@ -13254,6 +13254,7 @@ __metadata:
     axios: "npm:^1.4.0"
     change-case: "npm:^4.1.2"
     cross-spawn: "npm:^7.0.3"
+    csv-parser: "npm:^3.2.0"
     date-fns: "npm:^2.29.3"
     date-fns-tz: "npm:^2.0.0"
     deepmerge: "npm:^4.2.2"
@@ -14625,6 +14626,15 @@ __metadata:
   bin:
     csv-parser: bin/csv-parser
   checksum: 10/2f003d15d8361a94359d6715a8f05feac1252ab4d1d4e2908ea1baa0454c7e00fb99c53cdc86336635c5fd04f17b510291338df93da1e54944695f0c3b4a6bc1
+  languageName: node
+  linkType: hard
+
+"csv-parser@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "csv-parser@npm:3.2.0"
+  bin:
+    csv-parser: bin/csv-parser
+  checksum: 10/09a63fa8b6e9c0b75cf5a12cc53abecbe696b8b6ebfdf7ddb0a1e3a97e8f3f19a77d2ffa434810958fd4841682ea8d1a9c08f6fb84f1c0ec393cecdb72131735
   languageName: node
   linkType: hard
 

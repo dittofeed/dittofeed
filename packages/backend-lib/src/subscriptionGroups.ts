@@ -1,13 +1,16 @@
+import csvParser from "csv-parser";
 import { and, eq, inArray, SQL } from "drizzle-orm";
 import {
   SecretNames,
   SUBSCRIPTION_MANAGEMENT_PAGE,
 } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import path from "path";
 import { PostgresError } from "pg-error-enum";
 import * as R from "remeda";
+import { Readable } from "stream";
 import { URL } from "url";
 import { v4 as uuid, validate as validateUuid } from "uuid";
 
@@ -52,6 +55,8 @@ import {
   UserSubscriptionLookup,
   UserSubscriptionResource,
   UserSubscriptionsUpdate,
+  UserUploadRow,
+  UserUploadRowErrors,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 import { findUserIdsByUserPropertyValue } from "./userProperties";
@@ -713,4 +718,68 @@ export async function upsertSubscriptionSecret({
       value: generateSecureKey(8),
     },
   }).then(unwrap);
+}
+
+export type SubscriptionGroupCsvParseResult = Result<
+  UserUploadRow[],
+  Error | UserUploadRowErrors[] | string
+>;
+
+export async function parseSubscriptionGroupCsv(
+  csvStream: Readable,
+): Promise<SubscriptionGroupCsvParseResult> {
+  return new Promise<SubscriptionGroupCsvParseResult>((resolve) => {
+    const parsingErrors: UserUploadRowErrors[] = [];
+    const uploadedRows: UserUploadRow[] = [];
+
+    let i = 0;
+    csvStream
+      .pipe(csvParser())
+      .on("headers", (headers: string[]) => {
+        if (!headers.includes("id") && !headers.includes("email")) {
+          resolve(err('csv must have "id" or "email" headers'));
+          csvStream.destroy();
+        }
+      })
+      .on("data", (row: unknown) => {
+        if (row instanceof Object && Object.keys(row).length === 0) {
+          return;
+        }
+        const parsed = schemaValidate(row, UserUploadRow);
+        const rowNumber = i;
+        i += 1;
+
+        if (parsed.isErr()) {
+          const errors = {
+            row: rowNumber,
+            error: 'row must have a non-empty "email" or "id" field',
+          };
+          parsingErrors.push(errors);
+          return;
+        }
+
+        const { value } = parsed;
+        if ((value.email?.length ?? 0) === 0 && (value.id?.length ?? 0) === 0) {
+          const errors = {
+            row: rowNumber,
+            error: 'row must have a non-empty "email" or "id" field',
+          };
+          parsingErrors.push(errors);
+          return;
+        }
+
+        uploadedRows.push(parsed.value);
+      })
+      .on("end", () => {
+        logger().debug(`Parsed ${uploadedRows.length} rows`);
+        if (parsingErrors.length) {
+          resolve(err(parsingErrors));
+        } else {
+          resolve(ok(uploadedRows));
+        }
+      })
+      .on("error", (error) => {
+        resolve(err(error));
+      });
+  });
 }
