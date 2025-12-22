@@ -633,62 +633,145 @@ yarn jest packages/backend-lib/src/messaging.test.ts --testNamePattern="multiple
 
 #### 6.1 Analysis - No Implementation Changes Needed
 
-Provider webhooks (SendGrid, Amazon SES, Twilio, etc.) **already work correctly** with third-party messaging because:
+Provider webhooks **already work correctly** with third-party messaging. All handlers use `userId` from tags/metadata, not the recipient email:
 
-1. When sending, we include `userId` in message tags/metadata (e.g., SendGrid's `custom_args`)
-2. Providers echo this `userId` back in webhook payloads
-3. Webhook handlers use `userId` directly from the payload, **not** the recipient email address
+| Provider | File | How userId is retrieved |
+|----------|------|-------------------------|
+| SendGrid | `destinations/sendgrid.ts:91` | `sendgridEvent.userId` (custom_args) |
+| Amazon SES | `destinations/amazonses.ts:199` | `tags.userId` (message tags) |
+| Twilio | `destinations/twilio.ts:146,158` | `userId` from callback URL query params |
+| Postmark | `destinations/postmark.ts:73` | `unwrapTag("userId", Metadata)` |
+| Resend | `destinations/resend.ts:77` | `resendEvent.data.tags.userId` |
 
-See `packages/backend-lib/src/destinations/sendgrid.ts:91-94, 175-186`:
+No changes needed. The `identifierKey` is not used by provider webhooks.
+
+---
+
+### Step 7: Verify Journeys/Broadcasts Pass All User Properties
+
+#### 7.1 Analysis - No Implementation Changes Needed
+
+Journeys and broadcasts **already pass all user properties** (including custom ones like `managerEmail`) to `sendMessage`:
+
+- **Journeys** (`journeys/userWorkflow/activities.ts:220`): `sendMessageInner` calls `findAllUserPropertyAssignments()` which returns ALL user properties
+- **Broadcasts** (`broadcasts/activities.ts:296-302`): Builds `userPropertyAssignments` from `user.properties` via `getUsers()` which returns all user properties
+
+The `identifierKey` resolution happens inside `sendEmail()`/`sendSms()` (tested in `messaging.test.ts`). No workflow changes needed.
+
+#### 7.2 Optional Verification Test for Broadcasts
+
+**File:** `packages/backend-lib/src/broadcasts/broadcastWorkflowV2.test.ts`
+
+Add a test to verify custom user properties are passed through to the sender:
+
 ```typescript
-const { userId } = sendgridEvent;  // Uses userId from custom_args
-if (!userId) {
-  return err(new Error("Missing userId or anonymousId."));
-}
-```
+describe("when template has custom identifierKey", () => {
+  let userId: string;
+  let managerEmailProperty: UserProperty;
 
-#### 6.2 Write Verification Test
+  beforeEach(async () => {
+    userId = randomUUID();
 
-**File:** `packages/backend-lib/src/destinations/sendgrid.test.ts` (or create if needed)
+    // Create managerEmail user property
+    managerEmailProperty = await insert({
+      table: schema.userProperty,
+      values: {
+        name: "managerEmail",
+        workspaceId: workspace.id,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "managerEmail",
+        } satisfies TraitUserPropertyDefinition,
+      },
+    }).then(unwrap);
 
-Add a test to verify webhook handling works when email was sent to a third party:
+    // Create template with custom identifierKey
+    messageTemplate = await insert({
+      table: schema.messageTemplate,
+      values: {
+        workspaceId: workspace.id,
+        name: `template-${randomUUID()}`,
+        definition: {
+          type: ChannelType.Email,
+          from: "support@company.com",
+          subject: "Hello Manager",
+          body: "{% unsubscribe_link here %}.",
+          identifierKey: "managerEmail", // Custom identifier key
+        } satisfies EmailTemplateResource,
+      },
+    }).then(unwrap);
 
-```typescript
-describe("sendgridEventToDF", () => {
-  it("should use userId from custom_args regardless of recipient email", () => {
-    // Simulate a webhook event where email was sent to a third party
-    // but userId in custom_args is the original user
-    const sendgridEvent: RelevantSendgridFields = {
-      email: "manager@company.com",  // Third-party recipient
-      event: "delivered",
-      timestamp: Date.now() / 1000,
-      userId: "original-user-123",   // Original user from custom_args
-      workspaceId: "workspace-123",
-      sg_message_id: "sg-msg-123",
-      // ... other fields
-    };
+    await createTestEnvAndWorker();
+    await createBroadcast({
+      config: {
+        type: "V2",
+        message: { type: ChannelType.Email },
+      },
+    });
 
-    const result = sendgridEventToDF({ sendgridEvent });
+    // Set up user with both email and managerEmail
+    await insertUserPropertyAssignments([
+      {
+        workspaceId: workspace.id,
+        userId,
+        userPropertyId: idUserProperty.id,
+        value: userId,
+      },
+      {
+        workspaceId: workspace.id,
+        userId,
+        userPropertyId: emailUserProperty.id,
+        value: "user@example.com",
+      },
+      {
+        workspaceId: workspace.id,
+        userId,
+        userPropertyId: managerEmailProperty.id,
+        value: "manager@company.com",
+      },
+    ]);
 
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      expect(result.value.userId).toBe("original-user-123");
-      // Verify the email is in properties, not used as userId
-      expect(result.value.properties?.email).toBe("manager@company.com");
-    }
+    await updateUserSubscriptions({
+      workspaceId: workspace.id,
+      userUpdates: [{ userId, changes: { [subscriptionGroupId]: true } }],
+    });
+  });
+
+  it("should pass custom user properties to sendMessage", async () => {
+    await worker.runUntil(async () => {
+      await testEnv.client.workflow.execute(broadcastWorkflowV2, {
+        workflowId: generateBroadcastWorkflowV2Id({
+          workspaceId: workspace.id,
+          broadcastId: broadcast.id,
+        }),
+        taskQueue: "default",
+        args: [{ workspaceId: workspace.id, broadcastId: broadcast.id }],
+      });
+    });
+
+    expect(senderMock).toHaveBeenCalledTimes(1);
+    expect(senderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId,
+        userPropertyAssignments: expect.objectContaining({
+          email: "user@example.com",
+          managerEmail: "manager@company.com", // Verify custom property is passed
+        }),
+      }),
+    );
   });
 });
 ```
 
-#### 6.3 Confirm
+#### 7.3 Confirm
 
 ```bash
-yarn jest packages/backend-lib/src/destinations/sendgrid.test.ts --testNamePattern="custom_args"
+yarn jest packages/backend-lib/src/broadcasts/broadcastWorkflowV2.test.ts --testNamePattern="custom identifierKey"
 ```
 
 ---
 
-### Step 7: Update the Dashboard UI
+### Step 8: Update the Dashboard UI
 
 **Files:**
 - `packages/dashboard/src/components/messages/emailEditor.tsx`
@@ -703,7 +786,7 @@ Add a UI control for selecting a custom identifier key:
 
 ---
 
-### Step 8: Update Template Validation
+### Step 9: Update Template Validation
 
 **File:** `packages/backend-lib/src/messaging.ts` or relevant validation code
 
@@ -713,7 +796,7 @@ Add validation:
 
 ---
 
-### Step 9: Update Message Preview/Test Send
+### Step 10: Update Message Preview/Test Send
 
 **Files:**
 - `packages/backend-lib/src/messaging.ts` - `sendEmail()`, `sendSms()`
@@ -723,7 +806,7 @@ Ensure message previews correctly resolve the custom `identifierKey` and display
 
 ---
 
-### Step 10: Documentation
+### Step 11: Documentation
 
 Update user-facing documentation to explain:
 - How to configure templates to message third parties
