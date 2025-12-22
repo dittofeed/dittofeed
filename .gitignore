@@ -149,3 +149,8 @@ mnt/*
 !.tmp/.gitkeep
 
 .editorconfig
+
+# Playwright
+.playwright-mcp/
+playwright-report/
+test-results/
