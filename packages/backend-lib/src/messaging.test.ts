@@ -260,6 +260,82 @@ describe("messaging", () => {
         expect(unwrapped.variant.body).toMatch(/href="([^"]+)"/);
       });
     });
+
+    describe("when template has custom identifierKey", () => {
+      let template: MessageTemplate;
+      let subscriptionGroup: SubscriptionGroup;
+
+      beforeEach(async () => {
+        template = await insert({
+          table: dbMessageTemplate,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: `template-${randomUUID()}`,
+            definition: {
+              type: ChannelType.Email,
+              from: "support@company.com",
+              subject: "Hello Manager",
+              body: "<html><body>Test body.</body></html>",
+              identifierKey: "managerEmail",
+            } satisfies EmailTemplateResource,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          },
+        }).then(unwrap);
+
+        subscriptionGroup = await upsertSubscriptionGroup({
+          workspaceId: workspace.id,
+          name: `group-${randomUUID()}`,
+          type: SubscriptionGroupType.OptOut,
+          channel: ChannelType.Email,
+        }).then(unwrap);
+
+        await Promise.all([
+          upsertEmailProvider({
+            workspaceId: workspace.id,
+            config: { type: EmailProviderType.Test },
+          }),
+          upsertSubscriptionSecret({
+            workspaceId: workspace.id,
+          }),
+        ]);
+      });
+
+      it("should send to the custom identifier key address", async () => {
+        const payload = await sendEmail({
+          workspaceId: workspace.id,
+          templateId: template.id,
+          messageTags: {
+            workspaceId: workspace.id,
+            templateId: template.id,
+            runId: "run-id-1",
+            nodeId: "node-id-1",
+            messageId: "message-id-1",
+          } satisfies MessageTags,
+          userPropertyAssignments: {
+            id: "user-123",
+            email: "user@example.com",
+            managerEmail: "manager@company.com",
+          },
+          userId: "user-123",
+          useDraft: false,
+          subscriptionGroupDetails: {
+            id: subscriptionGroup.id,
+            name: subscriptionGroup.name,
+            type: SubscriptionGroupType.OptOut,
+            action: null,
+          },
+          providerOverride: EmailProviderType.Test,
+        });
+
+        const result = unwrap(payload);
+        expect(result.type).toBe(InternalEventType.MessageSent);
+        if (result.type === InternalEventType.MessageSent) {
+          expect(result.variant.to).toBe("manager@company.com");
+        }
+      });
+    });
   });
 
   describe("sendSms", () => {

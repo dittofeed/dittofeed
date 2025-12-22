@@ -1645,6 +1645,12 @@ export const BaseEmailContents = Type.Object({
         "Names of user properties to attach to the email as attachments.",
     }),
   ),
+  identifierKey: Type.Optional(
+    Type.String({
+      description:
+        "Name of user property to use as recipient address. Defaults to 'email' if not specified.",
+    }),
+  ),
 });
 
 export type BaseEmailContents = Static<typeof BaseEmailContents>;
@@ -1740,6 +1746,12 @@ export type MobilePushTemplateResource = Static<
 
 const SmsContents = Type.Object({
   body: Type.String(),
+  identifierKey: Type.Optional(
+    Type.String({
+      description:
+        "Name of user property to use as recipient phone number. Defaults to 'phone' if not specified.",
+    }),
+  ),
 });
 
 export const SmsTemplateResource = Type.Composite(

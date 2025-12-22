@@ -29,6 +29,10 @@ We follow TDD for this feature. For each step:
 - **Integration tests preferred** - Tests that span multiple backend methods are highly desirable
 - **Avoid UI tests** - Testing that crosses the UX vs API/backend barrier is undesirable due to non-determinacy and slowness
 
+### Assistance
+
+If you get stuck, attempting the same task multiple times but failing (getting type errors to resolve, getting tests to pass), take a step back, and ask for assistance from the user.
+
 ## Steps
 
 ### Step 1: Update Template Type Definitions
