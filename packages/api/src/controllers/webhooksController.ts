@@ -473,7 +473,7 @@ export default async function webhookController(fastify: FastifyInstance) {
           {
             workspaceId,
           },
-          "Missing sendgrid webhook secret.",
+          "Missing mandrill webhook secret.",
         );
         return reply.status(400).send({
           error: "Missing secret.",
