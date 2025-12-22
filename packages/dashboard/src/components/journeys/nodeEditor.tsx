@@ -21,7 +21,10 @@ import {
 import { SelectInputProps } from "@mui/material/Select/SelectInput";
 import { MultiSectionDigitalClock } from "@mui/x-date-pickers/MultiSectionDigitalClock";
 import { Node } from "@xyflow/react";
-import { DAY_INDICES } from "isomorphic-lib/src/constants";
+import {
+  DAY_INDICES,
+  DEFAULT_USER_PROPERTY_DELAY_OFFSET_DIRECTION,
+} from "isomorphic-lib/src/constants";
 import { getDefaultSubscriptionGroup } from "isomorphic-lib/src/subscriptionGroups";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -1110,6 +1113,7 @@ function DelayNodeFields({
               case DelayVariantType.UserProperty:
                 props.variant = {
                   type: DelayVariantType.UserProperty,
+                  offsetDirection: DEFAULT_USER_PROPERTY_DELAY_OFFSET_DIRECTION,
                 };
                 break;
               default:

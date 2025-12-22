@@ -1,6 +1,7 @@
 import { add, getUnixTime } from "date-fns";
 import { getTimezoneOffset, zonedTimeToUtc } from "date-fns-tz";
 import { find as findTz } from "geo-tz";
+import { DEFAULT_USER_PROPERTY_DELAY_OFFSET_DIRECTION } from "isomorphic-lib/src/constants";
 
 import logger from "./logger";
 import { LocalTimeDelayVariantFields, UserWorkflowTrackEvent } from "./types";
@@ -172,7 +173,7 @@ export async function getUserPropertyDelay({
   userProperty,
   now,
   offsetSeconds = 0,
-  offsetDirection = "after",
+  offsetDirection = DEFAULT_USER_PROPERTY_DELAY_OFFSET_DIRECTION,
   ...rest
 }: GetUserPropertyDelayParams): Promise<number | null> {
   let events: UserWorkflowTrackEvent[] | undefined;

@@ -1,5 +1,6 @@
 import {
   ChannelType,
+  CursorDirectionEnum,
   EmailProviderType,
   InternalEventType,
   JourneyNodeType,
@@ -116,3 +117,6 @@ export const DEFAULT_SEGMENT_DEFINITION: SegmentDefinition = {
 };
 
 export const OAUTH_COOKIE_NAME = "oauth_csrf_token";
+
+export const DEFAULT_USER_PROPERTY_DELAY_OFFSET_DIRECTION =
+  CursorDirectionEnum.After;
