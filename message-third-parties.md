@@ -33,6 +33,21 @@ We follow TDD for this feature. For each step:
 
 If you get stuck, attempting the same task multiple times but failing (getting type errors to resolve, getting tests to pass), take a step back, and ask for assistance from the user.
 
+## Callsite Analysis
+
+The following callsites invoke `sendMessage` (or its variants):
+
+1. **Journeys** (`packages/backend-lib/src/journeys/userWorkflow/activities.ts:248`):
+   - `sendMessageInner` → fetches user properties via `findAllUserPropertyAssignments()` → calls `sender()`
+
+2. **Broadcasts** (`packages/backend-lib/src/broadcasts/activities.ts:360`):
+   - `sendMessagesFactory` → builds `userPropertyAssignments` from user data → calls `sender()`
+
+3. **Transactional API** (`packages/backend-lib/src/messaging.ts:2617` via `batchMessageUsers`):
+   - Fetches user properties, merges with request → calls `sendMessage()`
+
+**No changes needed to callsites.** All callsites already pass the full `userPropertyAssignments` containing all user properties (including custom ones like `managerEmail`). The template is loaded inside `sendEmail()`/`sendSms()` where we read the `identifierKey` and resolve the recipient from the existing `userPropertyAssignments`.
+
 ## Steps
 
 ### Step 1: Update Template Type Definitions
@@ -614,32 +629,62 @@ yarn jest packages/backend-lib/src/messaging.test.ts --testNamePattern="multiple
 
 ---
 
-### Step 6: Track Third-Party Recipients for Provider Webhooks
+### Step 6: Verify Provider Webhooks Work with Third-Party Messaging
 
-**Challenge:** Email providers (SendGrid, Amazon SES, etc.) send delivery webhooks (bounces, complaints, opens, clicks) with the **recipient email address**. If we send to a third party, we need to map that back to the original user.
+#### 6.1 Analysis - No Implementation Changes Needed
 
-**Option A - Store in message metadata:**
+Provider webhooks (SendGrid, Amazon SES, Twilio, etc.) **already work correctly** with third-party messaging because:
 
-When sending a message to a third party, include the original user ID in provider-specific metadata/tags:
-- SendGrid: custom_args
-- Amazon SES: message tags
-- Resend: tags
-- PostMark: metadata
+1. When sending, we include `userId` in message tags/metadata (e.g., SendGrid's `custom_args`)
+2. Providers echo this `userId` back in webhook payloads
+3. Webhook handlers use `userId` directly from the payload, **not** the recipient email address
 
-Then, when processing webhooks, extract the original user ID from metadata.
+See `packages/backend-lib/src/destinations/sendgrid.ts:91-94, 175-186`:
+```typescript
+const { userId } = sendgridEvent;  // Uses userId from custom_args
+if (!userId) {
+  return err(new Error("Missing userId or anonymousId."));
+}
+```
 
-**File:** `packages/backend-lib/src/messaging.ts` - Update provider-specific send functions to include user metadata.
+#### 6.2 Write Verification Test
 
-**File:** `packages/api/src/controllers/webhooksController.ts` - Update webhook handlers to extract user ID from metadata when available.
+**File:** `packages/backend-lib/src/destinations/sendgrid.test.ts` (or create if needed)
 
-**Option B - Store recipient mapping in database:**
+Add a test to verify webhook handling works when email was sent to a third party:
 
-Create a new table or extend `sentMessage` tracking to store:
-- `messageId`
-- `originalUserId`
-- `recipientAddress` (the third-party email/phone)
+```typescript
+describe("sendgridEventToDF", () => {
+  it("should use userId from custom_args regardless of recipient email", () => {
+    // Simulate a webhook event where email was sent to a third party
+    // but userId in custom_args is the original user
+    const sendgridEvent: RelevantSendgridFields = {
+      email: "manager@company.com",  // Third-party recipient
+      event: "delivered",
+      timestamp: Date.now() / 1000,
+      userId: "original-user-123",   // Original user from custom_args
+      workspaceId: "workspace-123",
+      sg_message_id: "sg-msg-123",
+      // ... other fields
+    };
 
-This allows looking up the original user when a webhook arrives for a third-party recipient.
+    const result = sendgridEventToDF({ sendgridEvent });
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect(result.value.userId).toBe("original-user-123");
+      // Verify the email is in properties, not used as userId
+      expect(result.value.properties?.email).toBe("manager@company.com");
+    }
+  });
+});
+```
+
+#### 6.3 Confirm
+
+```bash
+yarn jest packages/backend-lib/src/destinations/sendgrid.test.ts --testNamePattern="custom_args"
+```
 
 ---
 

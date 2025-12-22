@@ -38,6 +38,7 @@ import {
   EmailProviderType,
   EmailTemplateResource,
   InternalEventType,
+  MessageSkippedType,
   MessageTags,
   MessageTemplate,
   SmsProviderType,
@@ -333,6 +334,120 @@ describe("messaging", () => {
         expect(result.type).toBe(InternalEventType.MessageSent);
         if (result.type === InternalEventType.MessageSent) {
           expect(result.variant.to).toBe("manager@company.com");
+        }
+      });
+
+      it("should skip message when custom identifierKey property is missing", async () => {
+        const payload = await sendEmail({
+          workspaceId: workspace.id,
+          templateId: template.id,
+          messageTags: {
+            workspaceId: workspace.id,
+            templateId: template.id,
+            runId: "run-id-1",
+            nodeId: "node-id-1",
+            messageId: "message-id-1",
+          } satisfies MessageTags,
+          userPropertyAssignments: {
+            id: "user-123",
+            email: "user@example.com",
+            // managerEmail is intentionally missing
+          },
+          userId: "user-123",
+          useDraft: false,
+          subscriptionGroupDetails: {
+            id: subscriptionGroup.id,
+            name: subscriptionGroup.name,
+            type: SubscriptionGroupType.OptOut,
+            action: null,
+          },
+          providerOverride: EmailProviderType.Test,
+        });
+
+        expect(payload.isErr()).toBe(true);
+        if (payload.isErr()) {
+          expect(payload.error.type).toBe(InternalEventType.MessageSkipped);
+          if (payload.error.type === InternalEventType.MessageSkipped) {
+            expect(payload.error.variant.type).toBe(
+              MessageSkippedType.MissingIdentifier,
+            );
+          }
+        }
+      });
+    });
+
+    describe("when template does not have custom identifierKey", () => {
+      let defaultTemplate: MessageTemplate;
+      let subscriptionGroup: SubscriptionGroup;
+
+      beforeEach(async () => {
+        defaultTemplate = await insert({
+          table: dbMessageTemplate,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: `template-${randomUUID()}`,
+            definition: {
+              type: ChannelType.Email,
+              from: "support@company.com",
+              subject: "Hello User",
+              body: "<html><body>Test body.</body></html>",
+              // no identifierKey - should fall back to "email"
+            } satisfies EmailTemplateResource,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          },
+        }).then(unwrap);
+
+        subscriptionGroup = await upsertSubscriptionGroup({
+          workspaceId: workspace.id,
+          name: `group-${randomUUID()}`,
+          type: SubscriptionGroupType.OptOut,
+          channel: ChannelType.Email,
+        }).then(unwrap);
+
+        await Promise.all([
+          upsertEmailProvider({
+            workspaceId: workspace.id,
+            config: { type: EmailProviderType.Test },
+          }),
+          upsertSubscriptionSecret({
+            workspaceId: workspace.id,
+          }),
+        ]);
+      });
+
+      it("should fall back to default email identifier", async () => {
+        const payload = await sendEmail({
+          workspaceId: workspace.id,
+          templateId: defaultTemplate.id,
+          messageTags: {
+            workspaceId: workspace.id,
+            templateId: defaultTemplate.id,
+            runId: "run-id-1",
+            nodeId: "node-id-1",
+            messageId: "message-id-1",
+          } satisfies MessageTags,
+          userPropertyAssignments: {
+            id: "user-123",
+            email: "user@example.com",
+            managerEmail: "manager@company.com",
+          },
+          userId: "user-123",
+          useDraft: false,
+          subscriptionGroupDetails: {
+            id: subscriptionGroup.id,
+            name: subscriptionGroup.name,
+            type: SubscriptionGroupType.OptOut,
+            action: null,
+          },
+          providerOverride: EmailProviderType.Test,
+        });
+
+        const result = unwrap(payload);
+        expect(result.type).toBe(InternalEventType.MessageSent);
+        if (result.type === InternalEventType.MessageSent) {
+          expect(result.variant.to).toBe("user@example.com"); // Falls back to email
         }
       });
     });

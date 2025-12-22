@@ -850,7 +850,9 @@ export async function sendEmail({
       },
     });
   }
-  const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.Email];
+  const identifierKey =
+    messageTemplateDefinition.identifierKey ??
+    CHANNEL_IDENTIFIERS[ChannelType.Email];
   let emailBody: string;
   if (
     messageTemplateDefinition.emailContentsType === EmailContentsType.LowCode
@@ -1780,7 +1782,9 @@ export async function sendSms(
       },
     });
   }
-  const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.Sms];
+  const identifierKey =
+    messageTemplateDefinition.identifierKey ??
+    CHANNEL_IDENTIFIERS[ChannelType.Sms];
 
   const renderedValuesResult = renderValues({
     userProperties: userPropertyAssignments,
