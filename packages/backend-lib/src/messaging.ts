@@ -234,10 +234,13 @@ export async function upsertMessageTemplate(
     });
   }
 
-  // Validate identifierKey if specified - check both definition and draft
+  // Validate identifierKey if specified for Email/SMS templates only
+  // Webhook templates already had identifierKey support and use built-in properties like "id"
   const definitionToValidate = data.definition ?? data.draft;
   if (
     definitionToValidate &&
+    (definitionToValidate.type === ChannelType.Email ||
+      definitionToValidate.type === ChannelType.Sms) &&
     "identifierKey" in definitionToValidate &&
     definitionToValidate.identifierKey
   ) {
