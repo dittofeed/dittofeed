@@ -18,6 +18,7 @@ LOG_LEVEL=debug yarn jest packages/backend-lib/src/resources.test.ts
 yarn workspace backend-lib check
 ```
 
-## Key Files
+## Key Files and Directories
 
 - packages/backend-lib/src/config.ts: Where the majority of our applications' environment variables and configuration values are resolved.
+- .tmp/: this directory can be used output disposable files for debugging purposes

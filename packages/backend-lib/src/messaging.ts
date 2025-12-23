@@ -990,6 +990,7 @@ export async function sendEmail({
           to,
           from,
           userId,
+          identifierKey,
           subscriptionGroupSecret,
           subscriptionGroupName: subscriptionGroupDetails.name,
           workspaceId,

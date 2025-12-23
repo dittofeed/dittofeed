@@ -277,7 +277,7 @@ describe("messaging", () => {
               type: ChannelType.Email,
               from: "support@company.com",
               subject: "Hello Manager",
-              body: "<html><body>Test body.</body></html>",
+              body: "{% unsubscribe_link here %}.",
               identifierKey: "managerEmail",
             } satisfies EmailTemplateResource,
             updatedAt: new Date(),
@@ -373,6 +373,69 @@ describe("messaging", () => {
             );
           }
         }
+      });
+
+      it("should generate unsubscribe link with custom identifierKey", async () => {
+        const payload = await sendEmail({
+          workspaceId: workspace.id,
+          templateId: template.id,
+          messageTags: {
+            workspaceId: workspace.id,
+            templateId: template.id,
+            runId: "run-id-1",
+            nodeId: "node-id-1",
+            messageId: "message-id-1",
+          } satisfies MessageTags,
+          userPropertyAssignments: {
+            id: "user-123",
+            email: "user@example.com",
+            managerEmail: "manager@company.com",
+          },
+          userId: "user-123",
+          useDraft: false,
+          subscriptionGroupDetails: {
+            id: subscriptionGroup.id,
+            name: subscriptionGroup.name,
+            type: SubscriptionGroupType.OptOut,
+            action: null,
+          },
+          providerOverride: EmailProviderType.Test,
+        });
+
+        const result = unwrap(payload);
+        if (
+          result.type !== InternalEventType.MessageSent ||
+          result.variant.type !== ChannelType.Email
+        ) {
+          throw new Error("Expected email message sent");
+        }
+
+        // Extract unsubscribe URL from body
+        const unsubscribeMatch = result.variant.body.match(/href="([^"]+)"/);
+        expect(unsubscribeMatch).toBeDefined();
+        expect(unsubscribeMatch?.[1]).toBeDefined();
+
+        const bodyUnsubscribeUrl = new URL(unsubscribeMatch![1]!);
+        expect(bodyUnsubscribeUrl.searchParams.get("ik")).toEqual(
+          "managerEmail",
+        );
+        expect(bodyUnsubscribeUrl.searchParams.get("i")).toEqual(
+          "manager@company.com",
+        );
+
+        // Verify List-Unsubscribe header also uses custom identifierKey
+        const listUnsubscribeHeader = result.variant.headers?.["List-Unsubscribe"];
+        expect(listUnsubscribeHeader).toBeDefined();
+        // Extract URL from header format: <url>
+        const headerUrlMatch = listUnsubscribeHeader?.match(/<([^>]+)>/);
+        expect(headerUrlMatch?.[1]).toBeDefined();
+        const headerUnsubscribeUrl = new URL(headerUrlMatch![1]!);
+        expect(headerUnsubscribeUrl.searchParams.get("ik")).toEqual(
+          "managerEmail",
+        );
+        expect(headerUnsubscribeUrl.searchParams.get("i")).toEqual(
+          "manager@company.com",
+        );
       });
     });
 
