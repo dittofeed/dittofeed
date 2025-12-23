@@ -271,22 +271,6 @@ describe("subscriptionManagementEndToEnd", () => {
         workspaceId: workspace.id,
       });
 
-      // Create template with custom identifierKey to send to manager
-      const template = unwrap(
-        await upsertMessageTemplate({
-          workspaceId: workspace.id,
-          name: "notify-manager-template",
-          definition: {
-            type: ChannelType.Email,
-            from: "support@company.com",
-            subject: "User Activity",
-            body: "{% unsubscribe_link here %}.",
-            identifierKey: "managerEmail",
-          } satisfies EmailTemplateResource,
-        }),
-      );
-      templateId = template.id;
-
       const testEmailProvider = emailProviders.find(
         (provider) => provider.type === EmailProviderType.Test,
       );
@@ -314,7 +298,7 @@ describe("subscriptionManagementEndToEnd", () => {
         }),
       );
 
-      // Create managerEmail user property
+      // Create managerEmail user property (must be created before template that references it)
       managerEmailUserProperty = unwrap(
         await upsertUserProperty({
           workspaceId: workspace.id,
@@ -325,6 +309,23 @@ describe("subscriptionManagementEndToEnd", () => {
           },
         }),
       );
+
+      // Create template with custom identifierKey to send to manager
+      // Note: User properties must exist before creating template with identifierKey
+      const template = unwrap(
+        await upsertMessageTemplate({
+          workspaceId: workspace.id,
+          name: "notify-manager-template",
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "User Activity",
+            body: "{% unsubscribe_link here %}.",
+            identifierKey: "managerEmail",
+          } satisfies EmailTemplateResource,
+        }),
+      );
+      templateId = template.id;
 
       subscriptionGroup = unwrap(
         await upsertSubscriptionGroup({
