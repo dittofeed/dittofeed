@@ -560,7 +560,7 @@ export default function EmailEditor({
       renderPreviewHeader={({ rendered, userProperties: up, draft }) => {
         const identifierKey =
           draft.type === ChannelType.Email
-            ? (draft.identifierKey ?? "email")
+            ? draft.identifierKey ?? "email"
             : "email";
         return (
           <EmailPreviewHeader
