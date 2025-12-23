@@ -35,6 +35,7 @@ import {
   secret as dbSecret,
   smsProvider as dbSmsProvider,
   subscriptionGroup as dbSubscriptionGroup,
+  userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
 import {
@@ -232,6 +233,30 @@ export async function upsertMessageTemplate(
       message: "Invalid message template id, must be a valid v4 UUID",
     });
   }
+
+  // Validate identifierKey if specified - check both definition and draft
+  const definitionToValidate = data.definition ?? data.draft;
+  if (
+    definitionToValidate &&
+    "identifierKey" in definitionToValidate &&
+    definitionToValidate.identifierKey
+  ) {
+    const { identifierKey } = definitionToValidate;
+    const userPropertyExists = await db().query.userProperty.findFirst({
+      where: and(
+        eq(dbUserProperty.workspaceId, data.workspaceId),
+        eq(dbUserProperty.name, identifierKey),
+      ),
+    });
+    if (!userPropertyExists) {
+      return err({
+        type: UpsertMessageTemplateValidationErrorType.InvalidIdentifierKey,
+        message: `User property "${identifierKey}" does not exist in the workspace`,
+        identifierKey,
+      });
+    }
+  }
+
   const txResult: Result<MessageTemplate, TxQueryError> =
     await db().transaction(async (tx) => {
       const findFirstConditions: SQL[] = [

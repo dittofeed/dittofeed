@@ -1880,6 +1880,7 @@ export type UpsertMessageTemplateResource = Static<
 export enum UpsertMessageTemplateValidationErrorType {
   IdError = "IdError",
   UniqueConstraintViolation = "UniqueConstraintViolation",
+  InvalidIdentifierKey = "InvalidIdentifierKey",
 }
 
 export const UniqueConstraintViolationError = Type.Object({
@@ -1898,9 +1899,20 @@ export const IdErrorMessageTemplateViolation = Type.Object({
   message: Type.String(),
 });
 
+export const InvalidIdentifierKeyError = Type.Object({
+  type: Type.Literal(
+    UpsertMessageTemplateValidationErrorType.InvalidIdentifierKey,
+  ),
+  message: Type.String(),
+  identifierKey: Type.String(),
+});
+
+export type InvalidIdentifierKeyError = Static<typeof InvalidIdentifierKeyError>;
+
 export const UpsertMessageTemplateValidationError = Type.Union([
   UniqueConstraintViolationError,
   IdErrorMessageTemplateViolation,
+  InvalidIdentifierKeyError,
 ]);
 
 export type UpsertMessageTemplateValidationError = Static<

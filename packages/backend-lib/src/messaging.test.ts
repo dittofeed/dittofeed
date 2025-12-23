@@ -16,6 +16,7 @@ import {
   messageTemplate as dbMessageTemplate,
   secret as dbSecret,
   subscriptionGroup as dbSubscriptionGroup,
+  userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
 import {
@@ -46,6 +47,7 @@ import {
   SubscriptionGroup,
   SubscriptionGroupType,
   UpsertMessageTemplateValidationErrorType,
+  UserPropertyDefinitionType,
   Workspace,
 } from "./types";
 
@@ -906,6 +908,73 @@ describe("messaging", () => {
           );
           expect(typeChangeResult.value.definition.subject).toBe("Hello Code");
         }
+      });
+    });
+
+    describe("when template has identifierKey referencing non-existent user property", () => {
+      it("should return an InvalidIdentifierKey error", async () => {
+        const result = await upsertMessageTemplate({
+          name: randomUUID(),
+          workspaceId: workspace.id,
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "Hello",
+            body: "Test body",
+            identifierKey: "nonExistentProperty",
+          } satisfies EmailTemplateResource,
+        });
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.type).toEqual(
+            UpsertMessageTemplateValidationErrorType.InvalidIdentifierKey,
+          );
+        }
+      });
+
+      it("should succeed when identifierKey references a valid user property", async () => {
+        // First create a user property
+        await insert({
+          table: dbUserProperty,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: "managerEmail",
+            definition: {
+              type: UserPropertyDefinitionType.Trait,
+              path: "managerEmail",
+            },
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          },
+        });
+
+        const result = await upsertMessageTemplate({
+          name: randomUUID(),
+          workspaceId: workspace.id,
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "Hello",
+            body: "Test body",
+            identifierKey: "managerEmail",
+          } satisfies EmailTemplateResource,
+        });
+        expect(result.isOk()).toBe(true);
+      });
+
+      it("should succeed when identifierKey is not specified (uses default)", async () => {
+        const result = await upsertMessageTemplate({
+          name: randomUUID(),
+          workspaceId: workspace.id,
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "Hello",
+            body: "Test body",
+          } satisfies EmailTemplateResource,
+        });
+        expect(result.isOk()).toBe(true);
       });
     });
   });
