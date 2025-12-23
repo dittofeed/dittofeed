@@ -812,4 +812,107 @@ describe("broadcastWorkflowV2", () => {
       expect(updatedBroadcast?.status).toBe("Failed");
     });
   });
+
+  describe("when template has custom identifierKey", () => {
+    let userId: string;
+    let managerEmailProperty: UserProperty;
+
+    beforeEach(async () => {
+      userId = randomUUID();
+
+      // Create managerEmail user property
+      managerEmailProperty = await insert({
+        table: schema.userProperty,
+        values: {
+          name: "managerEmail",
+          workspaceId: workspace.id,
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "managerEmail",
+          } satisfies TraitUserPropertyDefinition,
+        },
+      }).then(unwrap);
+
+      // Update message template with custom identifierKey
+      messageTemplate = await insert({
+        table: schema.messageTemplate,
+        values: {
+          workspaceId: workspace.id,
+          name: `template-${randomUUID()}`,
+          definition: {
+            type: ChannelType.Email,
+            from: "support@company.com",
+            subject: "Hello Manager",
+            body: "{% unsubscribe_link here %}.",
+            identifierKey: "managerEmail",
+          } satisfies EmailTemplateResource,
+        },
+      }).then(unwrap);
+
+      await createTestEnvAndWorker();
+      await createBroadcast({
+        config: {
+          type: "V2",
+          message: { type: ChannelType.Email },
+        },
+      });
+
+      // Set up user with both email and managerEmail
+      await insertUserPropertyAssignments([
+        {
+          workspaceId: workspace.id,
+          userId,
+          userPropertyId: idUserProperty.id,
+          value: userId,
+        },
+        {
+          workspaceId: workspace.id,
+          userId,
+          userPropertyId: emailUserProperty.id,
+          value: "user@example.com",
+        },
+        {
+          workspaceId: workspace.id,
+          userId,
+          userPropertyId: managerEmailProperty.id,
+          value: "manager@company.com",
+        },
+      ]);
+
+      await updateUserSubscriptions({
+        workspaceId: workspace.id,
+        userUpdates: [{ userId, changes: { [subscriptionGroupId]: true } }],
+      });
+    });
+
+    it("should pass custom user properties to sendMessage", async () => {
+      await worker.runUntil(async () => {
+        await testEnv.client.workflow.execute(broadcastWorkflowV2, {
+          workflowId: generateBroadcastWorkflowV2Id({
+            workspaceId: workspace.id,
+            broadcastId: broadcast.id,
+          }),
+          taskQueue: "default",
+          args: [
+            {
+              workspaceId: workspace.id,
+              broadcastId: broadcast.id,
+            } satisfies BroadcastWorkflowV2Params,
+          ],
+        });
+      });
+
+      expect(senderMock).toHaveBeenCalledTimes(1);
+      expect(senderMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          userPropertyAssignments: expect.objectContaining({
+            email: "user@example.com",
+            managerEmail: "manager@company.com",
+          }),
+        }),
+      );
+    });
+  });
 });

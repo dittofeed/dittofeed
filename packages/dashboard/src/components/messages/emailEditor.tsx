@@ -40,7 +40,12 @@ import TemplateEditor, {
 } from "../templateEditor";
 import CodeEmailBodyEditor from "./codeEmailBodyEditor";
 
-const USER_TO = "{{user.email}}";
+const DEFAULT_EMAIL_IDENTIFIER = "email";
+
+function getToDisplay(identifierKey?: string): string {
+  const key = identifierKey ?? DEFAULT_EMAIL_IDENTIFIER;
+  return `{{user.${key}}}`;
+}
 
 function fieldToReadable(field: string) {
   switch (field) {
@@ -89,12 +94,24 @@ function PreviewIframe({ body }: { body?: string }) {
 function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
   const [open, setOpen] = React.useState(false);
   const { userProperties } = useAppStorePick(["userProperties"]);
-  const options = useMemo(() => {
+
+  // Options for attachment user properties (File type)
+  const attachmentOptions = useMemo(() => {
     if (userProperties.type !== CompletionStatus.Successful) {
       return [];
     }
     return userProperties.value
       .filter((up) => up.definition.type === UserPropertyDefinitionType.File)
+      .map((up) => up.name);
+  }, [userProperties]);
+
+  // Options for recipient user properties (Trait type that could contain email addresses)
+  const recipientOptions = useMemo(() => {
+    if (userProperties.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    return userProperties.value
+      .filter((up) => up.definition.type === UserPropertyDefinitionType.Trait)
       .map((up) => up.name);
   }, [userProperties]);
 
@@ -229,6 +246,28 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
               sx={{ mb: 2 }}
             />
             <Autocomplete
+              value={draft.identifierKey ?? null}
+              onChange={(_event, value) => {
+                setDraft((defn) => {
+                  if (defn.type !== ChannelType.Email) {
+                    return defn;
+                  }
+                  return { ...defn, identifierKey: value ?? undefined };
+                });
+              }}
+              options={recipientOptions}
+              disabled={disabled}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Recipient User Property"
+                  variant="outlined"
+                  helperText="Override the default 'email' user property for the recipient address"
+                />
+              )}
+              sx={{ mb: 2 }}
+            />
+            <Autocomplete
               filterSelectedOptions
               value={draft.attachmentUserProperties ?? []}
               renderTags={(value: readonly string[], getTagProps) =>
@@ -263,7 +302,7 @@ function EmailOptions({ draft, setDraft, disabled }: RenderEditorParams) {
                   return { ...defn, attachmentUserProperties: value };
                 });
               }}
-              options={options}
+              options={attachmentOptions}
               disabled={disabled}
               multiple
               renderInput={(params) => (
@@ -434,7 +473,7 @@ export default function EmailEditor({
               required
               label="To"
               variant="filled"
-              value={USER_TO}
+              value={getToDisplay(draft.identifierKey)}
               sx={disabledStyles}
               InputProps={{
                 sx: {
@@ -518,13 +557,19 @@ export default function EmailEditor({
           />
         );
       }}
-      renderPreviewHeader={({ rendered, userProperties: up }) => (
-        <EmailPreviewHeader
-          email={up.email}
-          from={rendered.from}
-          subject={rendered.subject}
-        />
-      )}
+      renderPreviewHeader={({ rendered, userProperties: up, draft }) => {
+        const identifierKey =
+          draft.type === ChannelType.Email
+            ? draft.identifierKey ?? "email"
+            : "email";
+        return (
+          <EmailPreviewHeader
+            email={up[identifierKey]}
+            from={rendered.from}
+            subject={rendered.subject}
+          />
+        );
+      }}
       renderPreviewBody={({ rendered }) => (
         <PreviewIframe body={rendered.body} />
       )}

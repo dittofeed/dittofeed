@@ -1,5 +1,4 @@
 import { and, eq } from "drizzle-orm";
-import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -36,6 +35,7 @@ export function constructUnsubscribeHeaders({
   to,
   from,
   userId,
+  identifierKey,
   subscriptionGroupSecret,
   subscriptionGroupName,
   workspaceId,
@@ -44,6 +44,7 @@ export function constructUnsubscribeHeaders({
   to: string;
   from: string;
   userId: string;
+  identifierKey: string;
   subscriptionGroupSecret: string;
   subscriptionGroupName: string;
   workspaceId: string;
@@ -60,7 +61,7 @@ export function constructUnsubscribeHeaders({
   const url = generateSubscriptionChangeUrl({
     workspaceId,
     identifier: to,
-    identifierKey: CHANNEL_IDENTIFIERS.Email,
+    identifierKey,
     subscriptionSecret: subscriptionGroupSecret,
     userId,
     changedSubscription: subscriptionGroupId,

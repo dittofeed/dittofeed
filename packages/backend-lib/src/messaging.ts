@@ -35,6 +35,7 @@ import {
   secret as dbSecret,
   smsProvider as dbSmsProvider,
   subscriptionGroup as dbSubscriptionGroup,
+  userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
 import {
@@ -232,6 +233,33 @@ export async function upsertMessageTemplate(
       message: "Invalid message template id, must be a valid v4 UUID",
     });
   }
+
+  // Validate identifierKey if specified for Email/SMS templates only
+  // Webhook templates already had identifierKey support and use built-in properties like "id"
+  const definitionToValidate = data.definition ?? data.draft;
+  if (
+    definitionToValidate &&
+    (definitionToValidate.type === ChannelType.Email ||
+      definitionToValidate.type === ChannelType.Sms) &&
+    "identifierKey" in definitionToValidate &&
+    definitionToValidate.identifierKey
+  ) {
+    const { identifierKey } = definitionToValidate;
+    const userPropertyExists = await db().query.userProperty.findFirst({
+      where: and(
+        eq(dbUserProperty.workspaceId, data.workspaceId),
+        eq(dbUserProperty.name, identifierKey),
+      ),
+    });
+    if (!userPropertyExists) {
+      return err({
+        type: UpsertMessageTemplateValidationErrorType.InvalidIdentifierKey,
+        message: `User property "${identifierKey}" does not exist in the workspace`,
+        identifierKey,
+      });
+    }
+  }
+
   const txResult: Result<MessageTemplate, TxQueryError> =
     await db().transaction(async (tx) => {
       const findFirstConditions: SQL[] = [
@@ -850,7 +878,9 @@ export async function sendEmail({
       },
     });
   }
-  const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.Email];
+  const identifierKey =
+    messageTemplateDefinition.identifierKey ??
+    CHANNEL_IDENTIFIERS[ChannelType.Email];
   let emailBody: string;
   if (
     messageTemplateDefinition.emailContentsType === EmailContentsType.LowCode
@@ -988,6 +1018,7 @@ export async function sendEmail({
           to,
           from,
           userId,
+          identifierKey,
           subscriptionGroupSecret,
           subscriptionGroupName: subscriptionGroupDetails.name,
           workspaceId,
@@ -1780,7 +1811,9 @@ export async function sendSms(
       },
     });
   }
-  const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.Sms];
+  const identifierKey =
+    messageTemplateDefinition.identifierKey ??
+    CHANNEL_IDENTIFIERS[ChannelType.Sms];
 
   const renderedValuesResult = renderValues({
     userProperties: userPropertyAssignments,

@@ -1033,8 +1033,16 @@ export default function TemplateEditor({
             | null) ?? null;
       }
     } else {
-      const identiferKey = CHANNEL_IDENTIFIERS[channel];
-      to = debouncedUserProperties[identiferKey] ?? null;
+      // Use custom identifierKey from template if specified, otherwise use channel default
+      let identifierKey = CHANNEL_IDENTIFIERS[channel];
+      if (
+        draftToRender &&
+        "identifierKey" in draftToRender &&
+        draftToRender.identifierKey
+      ) {
+        identifierKey = draftToRender.identifierKey;
+      }
+      to = debouncedUserProperties[identifierKey] ?? null;
     }
     let providerAutocomplete: React.ReactNode;
     switch (state.channel) {

@@ -192,6 +192,7 @@
               "guide/roadmap",
               "guide/faq",
               "guide/creating-journeys",
+              "guide/custom-recipient-properties",
               {
                 "group": "Sample Journeys",
                 "pages": [
