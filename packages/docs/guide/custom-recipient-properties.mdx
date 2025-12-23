@@ -1,0 +1,74 @@
+---
+title: "Custom Recipient Properties"
+description: "Send messages to alternative contact methods or third parties."
+---
+
+## Overview
+
+By default, Dittofeed sends emails to the user's `email` property and SMS messages to their `phone` property. You can configure templates to send to a different user property instead. This is useful for two scenarios:
+
+1. **Alternative contact methods**: A user has multiple emails (personal, work) and you want to choose which one to use
+2. **Third-party notifications**: Send messages to someone other than the user (e.g., their manager)
+
+## Configuration
+
+### 1. Create a User Property for the Recipient
+
+Create a user property to store the recipient's contact information (e.g., `managerEmail` or `workPhone`).
+
+### 2. Submit the Recipient's Contact Information
+
+Include the recipient property in your identify events:
+
+```json
+{
+  "type": "identify",
+  "userId": "user-123",
+  "traits": {
+    "email": "john@example.com",
+    "managerEmail": "manager@company.com"
+  }
+}
+```
+
+### 3. Configure the Template
+
+1. Open your email or SMS template in the dashboard
+2. Click the "Options" button
+3. Select the desired user property from the "Recipient User Property" dropdown
+4. Save the template
+
+## Use Case 1: Alternative Contact Methods
+
+Users may have multiple contact methods. For example:
+- `email` (personal) and `workEmail` (work)
+- `phone` (personal) and `workPhone` (work)
+
+You can create templates that send to the alternative property. Unsubscribe links work normally - the user controls their own subscription.
+
+## Use Case 2: Third-Party Notifications
+
+You can send messages to someone other than the user who triggered the journey:
+- **Manager Notifications**: Notify a user's manager when they complete onboarding
+- **Support Agent Alerts**: Alert an agent when a user submits a ticket
+- **Parent/Guardian Updates**: Send updates to a parent about their child's activity
+
+<Warning>
+**Important: Unsubscribe links in third-party templates**
+
+Unsubscribe links are tied to the original user's subscription. If a third party (e.g., manager) clicks an unsubscribe link, **the original user would be unsubscribed** - not the third party.
+
+For third-party notifications, consider omitting the unsubscribe link or clearly explaining its behavior in the message.
+</Warning>
+
+## Subscription Groups
+
+Subscription group membership is always based on the **original user**, not the recipient. The message is only sent if the original user is subscribed to the relevant subscription group.
+
+## Delivery Tracking
+
+Delivery events (sent, delivered, bounced, opened, clicked) are tracked against the **original user**, regardless of who received the message.
+
+## Validation
+
+When saving a template with a custom recipient property, Dittofeed validates that the specified user property exists in your workspace. If the property doesn't exist, you'll receive an error prompting you to create it first.

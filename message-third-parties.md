@@ -1,5 +1,29 @@
 # Message Third Parties
 
+## Commit Message
+
+```
+feat: add custom recipient property support for messaging third parties
+
+Allow message templates to be configured with a custom "identifierKey" that
+overrides the default recipient address (email/phone). This enables sending
+messages to third parties (e.g., a user's manager) instead of the user directly.
+
+Changes:
+- Add optional `identifierKey` field to Email and SMS template types
+- Update sendEmail/sendSms to resolve recipient from custom identifierKey
+- Update unsubscribe header generation to include custom identifierKey
+- Add template validation to verify identifierKey references valid user property
+- Add "Recipient User Property" dropdown in Email/SMS template Options dialog
+- Update preview "To" field and test send modal to reflect custom recipient
+- Add user-facing documentation for custom recipient properties
+
+The unsubscribe flow correctly identifies the original user even when messages
+are sent to third parties, by including the identifierKey in the signed URL.
+```
+
+---
+
 Currently our codebase assumes that when journeys and broadcasts message users, we message them directly. EX: in the case of emails we send the message to their "email" user property, and send an sms to their "phone" user property. We want to open up these options so that we allow users to message third parties e.g. we might want to respond to user performing an action by messaging their manager.
 
 The way we intend to solve this is by allow message templates to be configured with a custom "to" value, which would be a reference to a particular user property. This value would be optional, but if provided, it would override the recipient address with the resolved value.
