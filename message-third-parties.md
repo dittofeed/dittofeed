@@ -808,7 +808,153 @@ Ensure message previews correctly resolve the custom `identifierKey` and display
 
 ### Step 11: Documentation
 
-Update user-facing documentation to explain:
-- How to configure templates to message third parties
-- The implications for subscription management (original user can unsubscribe)
-- How delivery tracking works when messaging third parties
+Update user-facing documentation in `packages/docs` (Mintlify).
+
+#### Existing Pages to Update
+
+**1. `resources/user-properties.mdx`**
+
+Update the default user properties to mention custom recipient properties:
+
+```markdown
+- `email`: The user's email address. Used by default to identify recipients when sending emails. See [Custom Recipient Properties](/guide/custom-recipient-properties) to send to a different property.
+- `phone`: The user's phone number. Used by default to identify recipients when sending SMS. See [Custom Recipient Properties](/guide/custom-recipient-properties) to send to a different property.
+```
+
+**2. `resources/templates/email-editor.mdx`**
+
+Add a new section about the recipient user property:
+
+```markdown
+## Custom Recipient Property
+
+By default, emails are sent to the user's `email` property. You can override this by selecting a different user property in the template's "Recipient User Property" setting.
+
+<Frame>
+  ![Email Template Recipient User Property](/images/email-template-recipient-user-property.png)
+</Frame>
+
+This is useful for:
+- **Alternative contact methods**: Send to a user's work email instead of personal email
+- **Third-party notifications**: Send to a user's manager, support agent, or parent
+
+See [Custom Recipient Properties](/guide/custom-recipient-properties) for details and important notes about unsubscribe links.
+```
+
+**3. `resources/templates/sms-editor.mdx`** (create if doesn't exist)
+
+Add similar content about the recipient user property for SMS.
+
+#### New Page to Create
+
+**`guide/custom-recipient-properties.mdx`**
+
+Create a new guide page:
+
+```markdown
+---
+title: "Custom Recipient Properties"
+description: "Send messages to alternative contact methods or third parties."
+---
+
+## Overview
+
+By default, Dittofeed sends emails to the user's `email` property and SMS messages to their `phone` property. You can configure templates to send to a different user property instead. This is useful for two scenarios:
+
+1. **Alternative contact methods**: A user has multiple emails (personal, work) and you want to choose which one to use
+2. **Third-party notifications**: Send messages to someone other than the user (e.g., their manager)
+
+## Use Case 1: Alternative Contact Methods
+
+Users may have multiple contact methods. For example:
+- `email` (personal) and `workEmail` (work)
+- `phone` (personal) and `workPhone` (work)
+
+You can create templates that send to the alternative property.
+
+### Example: Send to Work Email
+
+1. Create a `workEmail` user property
+2. Submit the user's work email via identify event
+3. Configure the template to use `workEmail` as the recipient property
+4. Unsubscribe links work normally—the user controls their own subscription
+
+## Use Case 2: Third-Party Notifications
+
+You can also send messages to someone other than the user who triggered the journey:
+- **Manager Notifications**: Notify a user's manager when they complete onboarding
+- **Support Agent Alerts**: Alert an agent when a user submits a ticket
+- **Parent/Guardian Updates**: Send updates to a parent about their child's activity
+
+### Configuration
+
+#### 1. Create a User Property for the Third Party
+
+Create a user property to store the third party's contact information (e.g., `managerEmail`):
+
+<Frame>
+  ![Manager Email User Property](/images/manager-email-user-property.png)
+</Frame>
+
+#### 2. Submit the Third Party's Contact Information
+
+```json
+{
+  "type": "identify",
+  "userId": "user-123",
+  "traits": {
+    "email": "john@example.com",
+    "managerEmail": "manager@company.com"
+  }
+}
+```
+
+#### 3. Configure the Template
+
+Select the custom recipient property in the template editor:
+
+<Frame>
+  ![Email Template Recipient User Property](/images/email-template-recipient-user-property.png)
+</Frame>
+
+<Warning>
+**Do not include unsubscribe links in third-party templates.**
+
+Unsubscribe links are tied to the original user's subscription. If a third party (e.g., manager) clicks an unsubscribe link, **the original user would be unsubscribed**—not the third party.
+
+For third-party notifications, omit the `{% unsubscribe_link %}` tag from your template.
+</Warning>
+
+## Subscription Groups
+
+Subscription group membership is always based on the **original user**, not the recipient. The message is only sent if the original user is in the subscription group.
+
+## Delivery Tracking
+
+Delivery events (sent, delivered, bounced, opened, clicked) are tracked against the **original user**, regardless of who received the message.
+```
+
+#### Update `docs.json` Navigation
+
+Add the new page to the navigation in `docs.json`:
+
+```json
+{
+  "group": "User Guides",
+  "pages": [
+    "guide/submitting-user-events",
+    "guide/internal-events",
+    "guide/roadmap",
+    "guide/faq",
+    "guide/creating-journeys",
+    "guide/custom-recipient-properties",  // NEW
+    ...
+  ]
+}
+```
+
+#### Screenshots Needed
+
+Create the following screenshots for the docs:
+- `email-template-recipient-user-property.png` - The email template editor showing the recipient user property dropdown
+- `manager-email-user-property.png` - Creating a managerEmail user property in the dashboard
