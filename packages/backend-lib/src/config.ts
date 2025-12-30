@@ -25,6 +25,7 @@ const BaseRawConfigProps = {
   databasePort: Type.Optional(Type.String()),
   databaseParams: Type.Optional(Type.String()),
   databaseName: Type.Optional(Type.String()),
+  databaseNameSuffix: Type.Optional(Type.String()),
   writeMode: Type.Optional(WriteMode),
   temporalAddress: Type.Optional(Type.String()),
   temporalConnectionTimeout: Type.Optional(
@@ -398,9 +399,14 @@ function parseDatabaseUrl(
     rawConfig.databasePassword ?? DEFAULT_BACKEND_CONFIG.databasePassword;
   const databaseHost = rawConfig.databaseHost ?? "localhost";
   const databasePort = rawConfig.databasePort ?? "5432";
+  const suffix = rawConfig.databaseNameSuffix
+    ? `_${rawConfig.databaseNameSuffix}`
+    : "";
   const database =
     rawConfig.databaseName ??
-    (rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
+    (rawConfig.nodeEnv === NodeEnvEnum.Test
+      ? `dittofeed_test${suffix}`
+      : `dittofeed${suffix}`);
   const url = new URL(
     `postgresql://${databaseUser}:${databasePassword}@${databaseHost}:${databasePort}/${database}`,
   );
@@ -473,9 +479,14 @@ function buildDashboardUrl({
 }
 
 function parseRawConfig(rawConfig: RawConfig): Config {
+  const suffix = rawConfig.databaseNameSuffix
+    ? `_${rawConfig.databaseNameSuffix}`
+    : "";
   const clickhouseDatabase =
     rawConfig.clickhouseDatabase ??
-    (rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
+    (rawConfig.nodeEnv === NodeEnvEnum.Test
+      ? `dittofeed_test${suffix}`
+      : `dittofeed${suffix}`);
 
   const {
     databaseUrl,
