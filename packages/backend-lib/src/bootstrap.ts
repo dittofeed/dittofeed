@@ -6,6 +6,7 @@ import {
 } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { jsonParseSafeWithSchema } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import Long from "long";
 import { err, ok } from "neverthrow";
 import { PostgresError } from "pg-error-enum";
 import { v5 as uuidv5 } from "uuid";
@@ -39,6 +40,7 @@ import {
   upsertSubscriptionGroup,
   upsertSubscriptionSecret,
 } from "./subscriptionGroups";
+import connect from "./temporal/connection";
 import {
   ChannelType,
   CreateWorkspaceErrorType,
@@ -551,11 +553,109 @@ export async function bootstrapBlobStorage() {
   });
 }
 
+const DEFAULT_NAMESPACE = "default";
+const DEFAULT_RETENTION_DAYS = 3;
+const NAMESPACE_POLL_MAX_ATTEMPTS = 30;
+const NAMESPACE_POLL_DELAY_MS = 500;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function waitForNamespaceAvailable(
+  connection: Awaited<ReturnType<typeof connect>>,
+  namespace: string,
+  attempt = 1,
+): Promise<void> {
+  try {
+    await connection.workflowService.describeNamespace({ namespace });
+    logger().info(
+      { namespace, attempt },
+      "Temporal namespace is now available.",
+    );
+  } catch {
+    if (attempt >= NAMESPACE_POLL_MAX_ATTEMPTS) {
+      throw new Error(
+        `Temporal namespace ${namespace} not available after ${NAMESPACE_POLL_MAX_ATTEMPTS} attempts`,
+      );
+    }
+    await sleep(NAMESPACE_POLL_DELAY_MS);
+    return waitForNamespaceAvailable(connection, namespace, attempt + 1);
+  }
+}
+
+export async function bootstrapTemporalNamespace(): Promise<void> {
+  const { temporalNamespace } = config();
+
+  // Skip if using the default namespace (it always exists)
+  if (temporalNamespace === DEFAULT_NAMESPACE) {
+    logger().debug(
+      { namespace: temporalNamespace },
+      "Using default Temporal namespace, skipping namespace bootstrap.",
+    );
+    return;
+  }
+
+  logger().info(
+    { namespace: temporalNamespace },
+    "Checking if Temporal namespace exists.",
+  );
+
+  const connection = await connect();
+
+  // Check if namespace already exists
+  try {
+    await connection.workflowService.describeNamespace({
+      namespace: temporalNamespace,
+    });
+    logger().info(
+      { namespace: temporalNamespace },
+      "Temporal namespace already exists.",
+    );
+    return;
+  } catch (error) {
+    // If we get an error that's not a "namespace not found" error, rethrow
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (!errorMessage.includes("not found")) {
+      throw error;
+    }
+    logger().info(
+      { namespace: temporalNamespace },
+      "Temporal namespace does not exist, creating it.",
+    );
+  }
+
+  // Create the namespace
+  const retentionSeconds = DEFAULT_RETENTION_DAYS * 24 * 60 * 60;
+  const retentionPeriod = {
+    seconds: Long.fromNumber(retentionSeconds),
+    nanos: 0,
+  };
+
+  await connection.workflowService.registerNamespace({
+    namespace: temporalNamespace,
+    workflowExecutionRetentionPeriod: retentionPeriod,
+  });
+
+  logger().info(
+    { namespace: temporalNamespace, retentionDays: DEFAULT_RETENTION_DAYS },
+    "Created Temporal namespace.",
+  );
+
+  // Wait for namespace to be available (can take up to 15 seconds)
+  await waitForNamespaceAvailable(connection, temporalNamespace);
+}
+
 export async function bootstrapDependencies(): Promise<void> {
   const promises = [
     drizzleMigrate(),
     bootstrapClickhouse().catch(
       handleErrorFactory("failed to bootstrap clickhouse"),
+    ),
+    bootstrapTemporalNamespace().catch(
+      handleErrorFactory("failed to bootstrap temporal namespace"),
     ),
   ];
   if (config().enableBlobStorage) {
