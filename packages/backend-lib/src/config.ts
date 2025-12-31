@@ -400,7 +400,7 @@ function parseDatabaseUrl(
   const databaseHost = rawConfig.databaseHost ?? "localhost";
   const databasePort = rawConfig.databasePort ?? "5432";
   const suffix = rawConfig.databaseNameSuffix
-    ? `_${rawConfig.databaseNameSuffix}`
+    ? `_${rawConfig.databaseNameSuffix.replace(/-/g, "_")}`
     : "";
   const database =
     rawConfig.databaseName ??
@@ -480,7 +480,7 @@ function buildDashboardUrl({
 
 function parseRawConfig(rawConfig: RawConfig): Config {
   const suffix = rawConfig.databaseNameSuffix
-    ? `_${rawConfig.databaseNameSuffix}`
+    ? `_${rawConfig.databaseNameSuffix.replace(/-/g, "_")}`
     : "";
   const clickhouseDatabase =
     rawConfig.clickhouseDatabase ??
