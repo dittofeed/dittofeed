@@ -262,7 +262,7 @@ export async function command(
       "clickhouse-command",
     );
     try {
-      return client.command({ query_id: queryId, ...params });
+      return await client.command({ query_id: queryId, ...params });
     } catch (error) {
       logger().error(
         { err: error, queryId },
@@ -293,7 +293,7 @@ export async function query(
       "clickhouse-query",
     );
     try {
-      return client.query<"JSONEachRow">({
+      return await client.query<"JSONEachRow">({
         query_id: queryId,
         ...params,
         format: "JSONEachRow",
