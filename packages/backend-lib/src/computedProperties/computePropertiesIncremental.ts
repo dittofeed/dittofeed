@@ -4279,7 +4279,11 @@ function leafUserPropertyToPruned({
         return [];
       }
       const varName = qb.getVariableName();
-      const expression = `coalesce(any(nullIf(event_type == 'identify' and JSON_EXISTS(properties, ${path}), 0)), 0) as ${varName}`;
+      const conditions: string[] = ["event_type == 'identify'"];
+      if (!config().skipPruneJsonExists) {
+        conditions.push(`JSON_EXISTS(properties, ${path})`);
+      }
+      const expression = `coalesce(any(nullIf(${conditions.join(" and ")}, 0)), 0) as ${varName}`;
       return [
         {
           type: PrunedType.ComputedPropertyQuery,
@@ -4299,10 +4303,10 @@ function leafUserPropertyToPruned({
       if (!path) {
         return [];
       }
-      const conditions: string[] = [
-        "event_type == 'track'",
-        `JSON_EXISTS(properties, ${path})`,
-      ];
+      const conditions: string[] = ["event_type == 'track'"];
+      if (!config().skipPruneJsonExists) {
+        conditions.push(`JSON_EXISTS(properties, ${path})`);
+      }
       const prefixCondition = getPrefixCondition({
         column: "event",
         value: node.event,
@@ -4468,11 +4472,16 @@ function segmentNodeToPruned({
         case SegmentOperatorType.GreaterThanOrEqual:
         case SegmentOperatorType.LessThan: {
           const varName = qb.getVariableName();
+          const conditions: string[] = ["event_type == 'identify'"];
+          if (!config().skipPruneJsonExists) {
+            conditions.push(`JSON_EXISTS(properties, ${path})`);
+          }
+          const expression = `coalesce(any(nullIf(${conditions.join(" and ")}, 0)), 0) as ${varName}`;
           return [
             {
               type: PrunedType.ComputedPropertyQuery,
               computedPropertyId: segment.id,
-              expression: `coalesce(any(nullIf(event_type == 'identify' and JSON_EXISTS(properties, ${path}), 0)), 0) as ${varName}`,
+              expression,
               stateId,
               varName,
             },
