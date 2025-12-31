@@ -178,6 +178,10 @@ const BaseRawConfigProps = {
     Type.String({ format: "naturalNumber" }),
   ),
   batchChunkSize: Type.Optional(Type.String({ format: "naturalNumber" })),
+  // Skip JSON_EXISTS checks in pruning queries to improve performance for
+  // workspaces with large event volumes. This makes pruning less precise but
+  // avoids expensive JSON parsing during the pruning phase.
+  skipPruneJsonExists: Type.Optional(BoolStr),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -314,6 +318,7 @@ export type Config = Overwrite<
     waitForComputePropertiesMaxAttempts: number;
     metricsExportIntervalMs: number;
     batchChunkSize: number;
+    skipPruneJsonExists: boolean;
     // Cold storage timeouts (ms)
     clickhouseColdStorageRequestTimeout?: number;
     clickhouseColdStorageMaxExecutionTime?: number;
@@ -723,6 +728,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     batchChunkSize: rawConfig.batchChunkSize
       ? parseInt(rawConfig.batchChunkSize)
       : 100,
+    skipPruneJsonExists: rawConfig.skipPruneJsonExists === "true",
   };
 
   return parsedConfig;
