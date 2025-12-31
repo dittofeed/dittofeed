@@ -13287,6 +13287,7 @@ __metadata:
     jsonpath: "npm:^1.1.1"
     kafkajs: "npm:^2.2.2"
     liquidjs: "npm:^10.7.1"
+    long: "npm:^5.2.3"
     markdown-it: "npm:^13.0.1"
     minimist: "npm:^1.2.7"
     mjml: "npm:^4.14.1"
