@@ -277,4 +277,48 @@ describe("renderWithUserProperties", () => {
       it("can render the file inline", () => {});
     });
   });
+
+  describe("view_in_browser_url tag", () => {
+    it("returns empty string when secret is missing", () => {
+      const rendered = renderLiquid({
+        template: `{% view_in_browser_url %}`,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
+        messageId: "msg-123",
+        userProperties: {},
+        secrets: {},
+      });
+      expect(rendered.trim()).toEqual("");
+    });
+
+    it("returns empty string when messageId is missing", () => {
+      const rendered = renderLiquid({
+        template: `{% view_in_browser_url %}`,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
+        userProperties: {},
+        secrets: {
+          [SecretNames.ViewInBrowser]: "test-secret",
+        },
+      });
+      expect(rendered.trim()).toEqual("");
+    });
+
+    it("generates a valid view in browser URL", () => {
+      const workspaceId = "024f3d0a-8eee-11ed-a1eb-0242ac120002";
+      const messageId = "msg-123";
+      const rendered = renderLiquid({
+        template: `{% view_in_browser_url %}`,
+        workspaceId,
+        messageId,
+        userProperties: {},
+        secrets: {
+          [SecretNames.ViewInBrowser]: "test-secret",
+        },
+      });
+      // URL should contain workspace, message, and hash params
+      expect(rendered).toContain("/api/public/view-in-browser");
+      expect(rendered).toContain(`w=${workspaceId}`);
+      expect(rendered).toContain(`m=${messageId}`);
+      expect(rendered).toContain("h=");
+    });
+  });
 });
