@@ -77,7 +77,15 @@ export async function createBucket(
   const command = new CreateBucketCommand({
     Bucket: bucketName,
   });
-  await client.send(command);
+  try {
+    await client.send(command);
+  } catch (e) {
+    // Ignore if bucket already exists and is owned by us
+    if (e instanceof Error && e.name === "BucketAlreadyOwnedByYou") {
+      return;
+    }
+    throw e;
+  }
 }
 
 export async function deleteObjectsWithPrefix(

@@ -8,6 +8,7 @@ import { db } from "./db";
 import { secret as dbSecret } from "./db/schema";
 import {
   generateViewInBrowserHash,
+  getEmailForViewInBrowser,
   getStoredEmailForViewInBrowser,
   getViewInBrowserKey,
   storeEmailForViewInBrowser,
@@ -188,6 +189,156 @@ describe("viewInBrowser", () => {
 
       expect(secret2?.id).toBe(secret1?.id);
       expect(secret2?.value).toBe(secret1?.value);
+    });
+  });
+
+  describe("getEmailForViewInBrowser", () => {
+    it("returns SecretNotFound when no secret exists", async () => {
+      // Use a valid UUID that doesn't have a secret associated with it
+      const result = await getEmailForViewInBrowser({
+        workspaceId: randomUUID(),
+        messageId: "msg-123",
+        hash: "some-hash",
+      });
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBe("SecretNotFound");
+      }
+    });
+
+    it("returns InvalidHash when hash doesn't match", async () => {
+      const workspace = unwrap(
+        await createWorkspace({
+          id: randomUUID(),
+          name: `test-${randomUUID()}`,
+          updatedAt: new Date(),
+        }),
+      );
+
+      // Create the secret
+      await upsertViewInBrowserSecret({ workspaceId: workspace.id });
+
+      const result = await getEmailForViewInBrowser({
+        workspaceId: workspace.id,
+        messageId: "msg-123",
+        hash: "wrong-hash",
+      });
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBe("InvalidHash");
+      }
+    });
+
+    it("returns email content when hash is valid", async () => {
+      // Skip if blob storage is not enabled
+      if (!config().enableBlobStorage) {
+        return;
+      }
+
+      const workspace = unwrap(
+        await createWorkspace({
+          id: randomUUID(),
+          name: `test-${randomUUID()}`,
+          updatedAt: new Date(),
+        }),
+      );
+
+      const messageId = `msg-${randomUUID()}`;
+      const emailBody = "<html><body>Test email for view in browser</body></html>";
+
+      // Create the secret
+      await upsertViewInBrowserSecret({ workspaceId: workspace.id });
+
+      // Get the secret to generate the hash
+      const secretRecord = await db().query.secret.findFirst({
+        where: and(
+          eq(dbSecret.workspaceId, workspace.id),
+          eq(dbSecret.name, SecretNames.ViewInBrowser),
+        ),
+      });
+
+      // Store the email
+      await storeEmailForViewInBrowser({
+        workspaceId: workspace.id,
+        messageId,
+        body: emailBody,
+      });
+
+      if (!secretRecord?.value) {
+        throw new Error("Secret not found");
+      }
+
+      // Generate the correct hash
+      const hash = generateViewInBrowserHash({
+        workspaceId: workspace.id,
+        messageId,
+        secret: secretRecord.value,
+      });
+
+      // Retrieve the email
+      const result = await getEmailForViewInBrowser({
+        workspaceId: workspace.id,
+        messageId,
+        hash,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value).toBe(emailBody);
+      }
+    });
+
+    it("returns EmailNotFound when email doesn't exist in blob storage", async () => {
+      // Skip if blob storage is not enabled
+      if (!config().enableBlobStorage) {
+        return;
+      }
+
+      const workspace = unwrap(
+        await createWorkspace({
+          id: randomUUID(),
+          name: `test-${randomUUID()}`,
+          updatedAt: new Date(),
+        }),
+      );
+
+      const messageId = `msg-${randomUUID()}`;
+
+      // Create the secret
+      await upsertViewInBrowserSecret({ workspaceId: workspace.id });
+
+      // Get the secret to generate the hash
+      const secretRecord = await db().query.secret.findFirst({
+        where: and(
+          eq(dbSecret.workspaceId, workspace.id),
+          eq(dbSecret.name, SecretNames.ViewInBrowser),
+        ),
+      });
+
+      if (!secretRecord?.value) {
+        throw new Error("Secret not found");
+      }
+
+      // Generate the correct hash (but don't store the email)
+      const hash = generateViewInBrowserHash({
+        workspaceId: workspace.id,
+        messageId,
+        secret: secretRecord.value,
+      });
+
+      // Try to retrieve the email
+      const result = await getEmailForViewInBrowser({
+        workspaceId: workspace.id,
+        messageId,
+        hash,
+      });
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBe("EmailNotFound");
+      }
     });
   });
 });

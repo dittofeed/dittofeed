@@ -6,7 +6,7 @@ import { err, ok, Result } from "neverthrow";
 import { getObject, putObject, storage } from "./blobStorage";
 import config from "./config";
 import { generateSecureHash, generateSecureKey } from "./crypto";
-import { insert } from "./db";
+import { db, insert } from "./db";
 import { secret as dbSecret } from "./db/schema";
 
 export function generateViewInBrowserHash({
@@ -108,4 +108,58 @@ export async function upsertViewInBrowserSecret({
       value: generateSecureKey(8),
     },
   }).then(unwrap);
+}
+
+export type GetEmailForViewInBrowserError =
+  | "SecretNotFound"
+  | "InvalidHash"
+  | "EmailNotFound"
+  | "BlobStorageDisabled";
+
+export async function getEmailForViewInBrowser({
+  workspaceId,
+  messageId,
+  hash,
+}: {
+  workspaceId: string;
+  messageId: string;
+  hash: string;
+}): Promise<Result<string, GetEmailForViewInBrowserError>> {
+  // Fetch the secret
+  const secretRecord = await db().query.secret.findFirst({
+    where: and(
+      eq(dbSecret.workspaceId, workspaceId),
+      eq(dbSecret.name, SecretNames.ViewInBrowser),
+    ),
+  });
+
+  if (!secretRecord?.value) {
+    return err("SecretNotFound");
+  }
+
+  // Verify the hash
+  const expectedHash = generateViewInBrowserHash({
+    workspaceId,
+    messageId,
+    secret: secretRecord.value,
+  });
+
+  if (hash !== expectedHash) {
+    return err("InvalidHash");
+  }
+
+  // Retrieve the email
+  const emailResult = await getStoredEmailForViewInBrowser({
+    workspaceId,
+    messageId,
+  });
+
+  if (emailResult.isErr()) {
+    if (emailResult.error.message === "Blob storage is not enabled") {
+      return err("BlobStorageDisabled");
+    }
+    return err("EmailNotFound");
+  }
+
+  return ok(emailResult.value);
 }
