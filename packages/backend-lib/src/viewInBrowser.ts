@@ -1,3 +1,7 @@
+import { err, ok, Result } from "neverthrow";
+
+import { putObject, storage } from "./blobStorage";
+import config from "./config";
 import { generateSecureHash } from "./crypto";
 
 export function generateViewInBrowserHash({
@@ -16,4 +20,41 @@ export function generateViewInBrowserHash({
       m: messageId,
     },
   });
+}
+
+export function getViewInBrowserKey({
+  workspaceId,
+  messageId,
+}: {
+  workspaceId: string;
+  messageId: string;
+}): string {
+  return `emails/${workspaceId}/${messageId}/body.html`;
+}
+
+export async function storeEmailForViewInBrowser({
+  workspaceId,
+  messageId,
+  body,
+}: {
+  workspaceId: string;
+  messageId: string;
+  body: string;
+}): Promise<Result<void, Error>> {
+  if (!config().enableBlobStorage) {
+    return err(new Error("Blob storage is not enabled"));
+  }
+
+  try {
+    const s3 = storage();
+    const key = getViewInBrowserKey({ workspaceId, messageId });
+    await putObject(s3, {
+      text: body,
+      key,
+      contentType: "text/html",
+    });
+    return ok(undefined);
+  } catch (e) {
+    return err(e instanceof Error ? e : new Error(String(e)));
+  }
 }
