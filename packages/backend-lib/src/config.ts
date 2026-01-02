@@ -728,7 +728,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     batchChunkSize: rawConfig.batchChunkSize
       ? parseInt(rawConfig.batchChunkSize)
       : 100,
-    skipPruneJsonExists: rawConfig.skipPruneJsonExists === "true",
+    skipPruneJsonExists: rawConfig.skipPruneJsonExists !== "false",
   };
 
   return parsedConfig;
