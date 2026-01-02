@@ -64,7 +64,9 @@ import {
   sendGmailEmail,
   SendGmailEmailParams,
 } from "./gmail";
+import config from "./config";
 import { renderLiquid } from "./liquid";
+import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import logger from "./logger";
 import {
   constructUnsubscribeHeaders,
@@ -848,26 +850,34 @@ export async function sendEmail({
   SendMessageParametersEmail,
   "channel"
 >): Promise<BackendMessageSendResult> {
-  const [getSendModelsResult, emailProviderResult] = await Promise.all([
-    getSendMessageModels({
-      workspaceId,
-      templateId,
-      channel: ChannelType.Email,
-      useDraft,
-      subscriptionGroupDetails,
-    }),
-    getEmailProvider({
-      workspaceId,
-      providerOverride,
-      workspaceOccupantId: messageTags?.workspaceOccupantId,
-      workspaceOccupantType: messageTags?.workspaceOccupantType,
-    }),
-  ]);
+  const [getSendModelsResult, emailProviderResult, viewInBrowserSecretRecord] =
+    await Promise.all([
+      getSendMessageModels({
+        workspaceId,
+        templateId,
+        channel: ChannelType.Email,
+        useDraft,
+        subscriptionGroupDetails,
+      }),
+      getEmailProvider({
+        workspaceId,
+        providerOverride,
+        workspaceOccupantId: messageTags?.workspaceOccupantId,
+        workspaceOccupantType: messageTags?.workspaceOccupantType,
+      }),
+      db().query.secret.findFirst({
+        where: and(
+          eq(dbSecret.workspaceId, workspaceId),
+          eq(dbSecret.name, SecretNames.ViewInBrowser),
+        ),
+      }),
+    ]);
   if (getSendModelsResult.isErr()) {
     return err(getSendModelsResult.error);
   }
   const { messageTemplateDefinition, subscriptionGroupSecret } =
     getSendModelsResult.value;
+  const viewInBrowserSecret = viewInBrowserSecretRecord?.value;
 
   if (messageTemplateDefinition.type !== ChannelType.Email) {
     return err({
@@ -893,6 +903,14 @@ export async function sendEmail({
   } else {
     emailBody = messageTemplateDefinition.body;
   }
+  const secrets: Record<string, string> = {};
+  if (subscriptionGroupSecret) {
+    secrets[SecretNames.Subscription] = subscriptionGroupSecret;
+  }
+  if (viewInBrowserSecret) {
+    secrets[SecretNames.ViewInBrowser] = viewInBrowserSecret;
+  }
+
   const renderedValuesResult = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
@@ -900,6 +918,7 @@ export async function sendEmail({
     workspaceId,
     tags: messageTags,
     isPreview,
+    messageId: messageTags?.messageId,
     templates: {
       from: {
         contents: messageTemplateDefinition.from,
@@ -924,11 +943,7 @@ export async function sendEmail({
         contents: messageTemplateDefinition.bcc,
       },
     },
-    secrets: subscriptionGroupSecret
-      ? {
-          [SecretNames.Subscription]: subscriptionGroupSecret,
-        }
-      : undefined,
+    secrets: Object.keys(secrets).length > 0 ? secrets : undefined,
   });
 
   if (renderedValuesResult.isErr()) {
@@ -972,6 +987,25 @@ export async function sendEmail({
     return trimmed.length ? trimmed : [];
   });
   const to = identifier;
+
+  // Store email for view-in-browser feature if enabled and messageId is available
+  if (config().enableBlobStorage && messageTags?.messageId) {
+    const storeResult = await storeEmailForViewInBrowser({
+      workspaceId,
+      messageId: messageTags.messageId,
+      body,
+    });
+    if (storeResult.isErr()) {
+      logger().warn(
+        {
+          workspaceId,
+          messageId: messageTags.messageId,
+          err: storeResult.error,
+        },
+        "Failed to store email for view-in-browser",
+      );
+    }
+  }
 
   let customHeaders: Record<string, string> | undefined;
   if (messageTemplateDefinition.headers) {
