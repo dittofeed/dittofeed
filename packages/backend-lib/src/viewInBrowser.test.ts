@@ -1,6 +1,7 @@
 import config from "./config";
 import {
   generateViewInBrowserHash,
+  getStoredEmailForViewInBrowser,
   getViewInBrowserKey,
   storeEmailForViewInBrowser,
 } from "./viewInBrowser";
@@ -84,6 +85,61 @@ describe("viewInBrowser", () => {
       });
 
       expect(result.isOk()).toBe(true);
+    });
+  });
+
+  describe("getStoredEmailForViewInBrowser", () => {
+    it("returns error when blob storage is not enabled", async () => {
+      // Skip if blob storage is enabled
+      if (config().enableBlobStorage) {
+        return;
+      }
+
+      const result = await getStoredEmailForViewInBrowser({
+        workspaceId: "ws-123",
+        messageId: "msg-456",
+      });
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toBe("Blob storage is not enabled");
+      }
+    });
+
+    it("returns error when email is not found", async () => {
+      // Skip if blob storage is not enabled
+      if (!config().enableBlobStorage) {
+        return;
+      }
+
+      const result = await getStoredEmailForViewInBrowser({
+        workspaceId: "non-existent-ws",
+        messageId: "non-existent-msg",
+      });
+
+      expect(result.isErr()).toBe(true);
+    });
+
+    it("retrieves stored email HTML", async () => {
+      // Skip if blob storage is not enabled
+      if (!config().enableBlobStorage) {
+        return;
+      }
+
+      const testBody = "<html><body>Retrieved test content</body></html>";
+      const workspaceId = "ws-retrieve-test";
+      const messageId = "msg-retrieve-test";
+
+      // First store
+      await storeEmailForViewInBrowser({ workspaceId, messageId, body: testBody });
+
+      // Then retrieve
+      const result = await getStoredEmailForViewInBrowser({ workspaceId, messageId });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value).toBe(testBody);
+      }
     });
   });
 });

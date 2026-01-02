@@ -1,6 +1,6 @@
 import { err, ok, Result } from "neverthrow";
 
-import { putObject, storage } from "./blobStorage";
+import { getObject, putObject, storage } from "./blobStorage";
 import config from "./config";
 import { generateSecureHash } from "./crypto";
 
@@ -54,6 +54,32 @@ export async function storeEmailForViewInBrowser({
       contentType: "text/html",
     });
     return ok(undefined);
+  } catch (e) {
+    return err(e instanceof Error ? e : new Error(String(e)));
+  }
+}
+
+export async function getStoredEmailForViewInBrowser({
+  workspaceId,
+  messageId,
+}: {
+  workspaceId: string;
+  messageId: string;
+}): Promise<Result<string, Error>> {
+  if (!config().enableBlobStorage) {
+    return err(new Error("Blob storage is not enabled"));
+  }
+
+  try {
+    const s3 = storage();
+    const key = getViewInBrowserKey({ workspaceId, messageId });
+    const result = await getObject(s3, { key });
+
+    if (!result) {
+      return err(new Error("Email not found"));
+    }
+
+    return ok(result.text);
   } catch (e) {
     return err(e instanceof Error ? e : new Error(String(e)));
   }
