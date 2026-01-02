@@ -131,6 +131,8 @@ function getClientConfig({
     clickhouseDatabase: configDatabase,
     clickhouseUser: configUser,
     clickhousePassword: configPassword,
+    clickhouseMaxExecutionTime,
+    clickhouseMaxMemoryUsage,
   } = config();
 
   const url = paramsHost ?? configHost;
@@ -156,6 +158,8 @@ function getClientConfig({
         maxBytesRatioBeforeExternalGroupBy,
       max_bytes_before_external_group_by: maxBytesBeforeExternalGroupBy,
       date_time_input_format: "best_effort",
+      max_execution_time: clickhouseMaxExecutionTime,
+      max_memory_usage: clickhouseMaxMemoryUsage,
     },
   };
   logger().debug({ clientConfig }, "ClickHouse client config");
