@@ -1,8 +1,13 @@
+import { eq, and } from "drizzle-orm";
+import { SecretNames } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok, Result } from "neverthrow";
 
 import { getObject, putObject, storage } from "./blobStorage";
 import config from "./config";
-import { generateSecureHash } from "./crypto";
+import { generateSecureHash, generateSecureKey } from "./crypto";
+import { insert } from "./db";
+import { secret as dbSecret } from "./db/schema";
 
 export function generateViewInBrowserHash({
   workspaceId,
@@ -83,4 +88,24 @@ export async function getStoredEmailForViewInBrowser({
   } catch (e) {
     return err(e instanceof Error ? e : new Error(String(e)));
   }
+}
+
+export async function upsertViewInBrowserSecret({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  return insert({
+    table: dbSecret,
+    doNothingOnConflict: true,
+    lookupExisting: and(
+      eq(dbSecret.workspaceId, workspaceId),
+      eq(dbSecret.name, SecretNames.ViewInBrowser),
+    )!,
+    values: {
+      workspaceId,
+      name: SecretNames.ViewInBrowser,
+      value: generateSecureKey(8),
+    },
+  }).then(unwrap);
 }

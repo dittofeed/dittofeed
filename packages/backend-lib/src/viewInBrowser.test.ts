@@ -1,10 +1,19 @@
+import { randomUUID } from "crypto";
+import { eq, and } from "drizzle-orm";
+import { SecretNames } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+
 import config from "./config";
+import { db } from "./db";
+import { secret as dbSecret } from "./db/schema";
 import {
   generateViewInBrowserHash,
   getStoredEmailForViewInBrowser,
   getViewInBrowserKey,
   storeEmailForViewInBrowser,
+  upsertViewInBrowserSecret,
 } from "./viewInBrowser";
+import { createWorkspace } from "./workspaces";
 
 describe("viewInBrowser", () => {
   describe("generateViewInBrowserHash", () => {
@@ -140,6 +149,45 @@ describe("viewInBrowser", () => {
       if (result.isOk()) {
         expect(result.value).toBe(testBody);
       }
+    });
+  });
+
+  describe("upsertViewInBrowserSecret", () => {
+    it("creates a secret and is idempotent", async () => {
+      const workspace = unwrap(
+        await createWorkspace({
+          id: randomUUID(),
+          name: `test-${randomUUID()}`,
+          updatedAt: new Date(),
+        }),
+      );
+
+      // First call should create the secret
+      await upsertViewInBrowserSecret({ workspaceId: workspace.id });
+
+      // Verify the secret was created
+      const secret1 = await db().query.secret.findFirst({
+        where: and(
+          eq(dbSecret.workspaceId, workspace.id),
+          eq(dbSecret.name, SecretNames.ViewInBrowser),
+        ),
+      });
+
+      expect(secret1).toBeDefined();
+      expect(secret1?.value).toBeTruthy();
+
+      // Second call should be idempotent (not throw, return same secret)
+      await upsertViewInBrowserSecret({ workspaceId: workspace.id });
+
+      const secret2 = await db().query.secret.findFirst({
+        where: and(
+          eq(dbSecret.workspaceId, workspace.id),
+          eq(dbSecret.name, SecretNames.ViewInBrowser),
+        ),
+      });
+
+      expect(secret2?.id).toBe(secret1?.id);
+      expect(secret2?.value).toBe(secret1?.value);
     });
   });
 });
