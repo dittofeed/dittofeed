@@ -1032,14 +1032,6 @@ describe("computeProperties", () => {
           type: EventsStepType.SubmitEvents,
           events: [
             {
-              type: EventType.Identify,
-              offsetMs: -100,
-              userId: "user-1",
-              traits: {
-                unrelatedTrait: "unrelated",
-              },
-            },
-            {
               type: EventType.Track,
               offsetMs: -100,
               userId: "user-1",
@@ -1056,7 +1048,7 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description:
-            "does not recompute a trait user property when the received events don't match the user property path or event type",
+            "does not recompute a trait user property when the received events don't match the event type",
           clickhouseCounts: {
             commands: 2,
           },
@@ -1084,7 +1076,7 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description:
-            "recomputes a trait user property when the received events match the user property path or event type",
+            "recomputes a trait user property when the received events match the event type",
           clickhouseCounts: {
             commands: 4,
           },
@@ -1191,14 +1183,6 @@ describe("computeProperties", () => {
           type: EventsStepType.SubmitEvents,
           events: [
             {
-              type: EventType.Identify,
-              offsetMs: -100,
-              userId: "user-1",
-              traits: {
-                unrelatedTrait: "unrelated",
-              },
-            },
-            {
               type: EventType.Track,
               offsetMs: -100,
               userId: "user-1",
@@ -1215,7 +1199,7 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description:
-            "does not recompute an anyof trait user property when the received events don't match the user property path or event type",
+            "does not recompute an anyof trait user property when the received events don't match the event type",
           clickhouseCounts: {
             commands: 3,
           },
@@ -1243,9 +1227,9 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description:
-            "recomputes an anyof trait user property when the received events match the user property path or event type",
+            "recomputes an anyof trait user property when the received events match the event type",
           clickhouseCounts: {
-            commands: 5,
+            commands: 6,
           },
           users: [
             {
@@ -1356,14 +1340,6 @@ describe("computeProperties", () => {
           type: EventsStepType.SubmitEvents,
           events: [
             {
-              type: EventType.Identify,
-              offsetMs: -100,
-              userId: "user-1",
-              traits: {
-                unrelatedTrait: "unrelated",
-              },
-            },
-            {
               type: EventType.Track,
               offsetMs: -100,
               userId: "user-1",
@@ -1380,7 +1356,7 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description:
-            "does not recompute a grouped trait segment when the received events don't match the user property path or event type",
+            "does not recompute a grouped trait segment when the received events don't match the event type",
           clickhouseCounts: {
             commands: 5,
           },
@@ -1408,9 +1384,9 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description:
-            "recomputes grouped trait segment when the received events match the user property path or event type",
+            "recomputes grouped trait segment when the received events match the event type",
           clickhouseCounts: {
-            commands: 8,
+            commands: 10,
           },
           users: [
             {
