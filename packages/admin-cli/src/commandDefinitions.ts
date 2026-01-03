@@ -103,6 +103,7 @@ import {
   backfillInternalEvents,
   createUserSortingIndexTables,
   disentangleResendSendgrid,
+  migrateMessageIdIndexToBloomFilter,
   refreshNotExistsSegmentDefinitionUpdatedAt,
   transferComputedPropertyStateV2ToV3,
   transferComputedPropertyStateV2ToV3Query,
@@ -113,6 +114,7 @@ import {
   upgradeV023Post,
   upgradeV023Pre,
   upgradeV024Pre,
+  upgradeV025Pre,
 } from "./upgrades";
 
 function formatSqlParam(value: unknown): string {
@@ -1009,6 +1011,22 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await upgradeV024Pre();
+      },
+    )
+    .command(
+      "upgrade-0-25-0-pre",
+      "Run the pre-upgrade steps for the 0.25.0 prior to updating your Dittofeed application version.",
+      (y) => y,
+      async () => {
+        await upgradeV025Pre();
+      },
+    )
+    .command(
+      "migrate-message-id-index-to-bloom-filter",
+      "Migrate message_id index from minmax to bloom_filter on user_events_v2 for improved query performance.",
+      (y) => y,
+      async () => {
+        await migrateMessageIdIndexToBloomFilter();
       },
     )
     .command(
