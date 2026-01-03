@@ -43,20 +43,6 @@ const nextConfig = {
       },
     ];
   },
-  async rewrites() {
-    // Proxy /api/public/* requests to the API server
-    // In production, this is typically the same host; in dev, API runs on port 3001
-    const apiDestination = process.env.API_ORIGIN || "http://localhost:3001";
-    return {
-      beforeFiles: [
-        {
-          source: "/api/:path*",
-          destination: `${apiDestination}/api/:path*`,
-          basePath: false,
-        },
-      ],
-    };
-  },
   experimental: {
     newNextLinkBehavior: true,
     instrumentationHook: true,
