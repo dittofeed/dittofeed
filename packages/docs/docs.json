@@ -202,6 +202,7 @@
               "guide/accessing-admin-api",
               "guide/submitting-broadcasts-api",
               "guide/mailing-list",
+              "guide/view-in-browser",
               "guide/git-workflows",
               "guide/license"
             ]
