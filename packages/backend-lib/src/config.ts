@@ -5,6 +5,7 @@ import queryString from "querystring";
 import { URL } from "url";
 import { Overwrite } from "utility-types";
 
+import { resolveApiBase } from "./apiBase";
 import { loadConfig, setConfigOnEnv } from "./config/loader";
 import {
   AuthMode,
@@ -82,6 +83,12 @@ const BaseRawConfigProps = {
     }),
   ),
   dashboardUrlName: Type.Optional(Type.String()),
+  dashboardApiBase: Type.Optional(Type.String()),
+  dashboardApiName: Type.Optional(Type.String()),
+  dashboardApiDomain: Type.Optional(Type.String()),
+  dashboardApiSubdomain: Type.Optional(Type.String()),
+  dashboardApiProtocol: Type.Optional(Type.String()),
+  dashboardApiPort: Type.Optional(Type.String()),
   enableMobilePush: Type.Optional(BoolStr),
   hubspotClientId: Type.Optional(Type.String()),
   hubspotClientSecret: Type.Optional(Type.String()),
@@ -334,6 +341,7 @@ export type Config = Overwrite<
 > & {
   defaultUserEventsTableVersion: string;
   database: string;
+  apiBase: string;
 };
 
 export const SECRETS = new Set<keyof Config>([
@@ -538,6 +546,22 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     dashboardUrl: rawConfig.dashboardUrl,
     dashboardUrlName: rawConfig.dashboardUrlName,
   });
+  // Resolve the named env var for dashboardApiName if provided
+  const resolvedDashboardApiName =
+    rawConfig.dashboardApiName && process.env[rawConfig.dashboardApiName]
+      ? process.env[rawConfig.dashboardApiName]
+      : undefined;
+  const apiBase = resolveApiBase({
+    dashboardApiBase: rawConfig.dashboardApiBase,
+    dashboardApiName: resolvedDashboardApiName,
+    dashboardApiDomain: rawConfig.dashboardApiDomain,
+    dashboardApiSubdomain: rawConfig.dashboardApiSubdomain,
+    dashboardApiProtocol: rawConfig.dashboardApiProtocol,
+    dashboardApiPort: rawConfig.dashboardApiPort,
+    authMode,
+    dashboardUrl,
+    nodeEnv,
+  });
   const computedPropertiesTaskQueue =
     rawConfig.computedPropertiesTaskQueue ?? "default";
   const computedPropertiesActivityTaskQueue =
@@ -622,6 +646,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     enableSourceControl: rawConfig.enableSourceControl === "true",
     authMode,
     dashboardUrl,
+    apiBase,
     trackDashboard: rawConfig.trackDashboard === "true",
     enableMobilePush: rawConfig.enableMobilePush === "true",
     readQueryPageSize: rawConfig.readQueryPageSize

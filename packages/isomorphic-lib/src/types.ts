@@ -6546,3 +6546,11 @@ export const GetJourneyEditorStatsResponse = Type.Object({
 export type GetJourneyEditorStatsResponse = Static<
   typeof GetJourneyEditorStatsResponse
 >;
+
+export const ViewInBrowserRequest = Type.Object({
+  w: Type.String({ description: "Workspace ID" }),
+  m: Type.String({ description: "Message ID" }),
+  h: Type.String({ description: "Hash" }),
+});
+
+export type ViewInBrowserRequest = Static<typeof ViewInBrowserRequest>;

@@ -11,7 +11,9 @@ import {
   WorkspaceTypeAppEnum,
 } from "isomorphic-lib/src/types";
 
+import config from "./config";
 import { insert } from "./db";
+import { getStoredEmailForViewInBrowser } from "./viewInBrowser";
 import {
   messageTemplate as dbMessageTemplate,
   secret as dbSecret,
@@ -1174,6 +1176,87 @@ describe("messaging", () => {
             });
           }
         }
+      }
+    });
+  });
+
+  describe("view-in-browser storage", () => {
+    it("stores email body when blob storage is enabled", async () => {
+      // Skip if blob storage is not enabled
+      if (!config().enableBlobStorage) {
+        return;
+      }
+
+      const template = unwrap(
+        await insert({
+          table: dbMessageTemplate,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: `template-${randomUUID()}`,
+            definition: {
+              type: ChannelType.Email,
+              from: "support@company.com",
+              subject: "Hello",
+              body: "<p>View in browser: {% view_in_browser_url %}</p>",
+            } satisfies EmailTemplateResource,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          },
+        }),
+      );
+
+      // Create ViewInBrowser secret
+      await insert({
+        table: dbSecret,
+        values: {
+          workspaceId: workspace.id,
+          name: SecretNames.ViewInBrowser,
+          value: "test-view-in-browser-secret",
+        },
+        doNothingOnConflict: true,
+      });
+
+      await upsertEmailProvider({
+        workspaceId: workspace.id,
+        config: { type: EmailProviderType.Test },
+      });
+
+      const messageId = randomUUID();
+      const email = "test@email.com";
+      const userId = randomUUID();
+
+      const result = await sendEmail({
+        workspaceId: workspace.id,
+        templateId: template.id,
+        messageTags: {
+          workspaceId: workspace.id,
+          templateId: template.id,
+          runId: randomUUID(),
+          nodeId: randomUUID(),
+          messageId,
+        },
+        userPropertyAssignments: {
+          id: userId,
+          email,
+        },
+        userId,
+        useDraft: false,
+        providerOverride: EmailProviderType.Test,
+      });
+
+      expect(result.isOk()).toBe(true);
+
+      // Verify email was stored in blob storage
+      const storedEmail = await getStoredEmailForViewInBrowser({
+        workspaceId: workspace.id,
+        messageId,
+      });
+
+      expect(storedEmail.isOk()).toBe(true);
+      if (storedEmail.isOk()) {
+        expect(storedEmail.value).toContain("View in browser:");
+        expect(storedEmail.value).toContain("/api/public/view-in-browser");
       }
     });
   });

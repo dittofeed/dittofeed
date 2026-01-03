@@ -87,3 +87,31 @@ If you need to customize the subscription management link, you can use the `subs
 ```
 
 This tag follows the same channel display behavior as `subscription_management_link` - always showing subscription groups for all channels.
+
+### `view_in_browser_url`
+
+The `view_in_browser_url` tag outputs a URL that allows recipients to view the email in their web browser. This is useful for users whose email clients may not render the email correctly.
+
+```html
+{% view_in_browser_url %}
+```
+
+This renders a URL that can be used in a link:
+
+```html
+<a href="{% view_in_browser_url %}" target="_blank">View in browser</a>
+```
+
+<Note>
+This feature requires [blob storage](/deployment/self-hosted/blob-storage) to be enabled. The rendered email HTML is stored in blob storage when the message is sent, and the URL provides secure access to view it.
+</Note>
+
+Example usage in an email header:
+
+```html
+<mj-text align="center" color="#888888" font-size="12px">
+  Having trouble viewing this email? <a href="{% view_in_browser_url %}" target="_blank">View in browser</a>
+</mj-text>
+```
+
+For more details, see the [View in Browser guide](/guide/view-in-browser).

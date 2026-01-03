@@ -1,0 +1,63 @@
+---
+title: "View in Browser"
+description: "Allow recipients to view emails in their web browser"
+---
+
+The "View in Browser" feature allows email recipients to view your messages in their web browser. This is useful when:
+
+- Email clients don't render the email correctly
+- Users want to see the full email without downloading images
+- Users are viewing emails on devices with limited rendering capabilities
+
+## Prerequisites
+
+This feature requires [blob storage](/deployment/self-hosted/blob-storage) to be enabled. When an email is sent, the rendered HTML is stored in blob storage and can be accessed via a secure URL.
+
+## Usage
+
+Add the `view_in_browser_url` tag to your email template to generate a link:
+
+```html
+<a href="{% view_in_browser_url %}" target="_blank">View in browser</a>
+```
+
+### MJML Example
+
+A common pattern is to place the view-in-browser link at the top of your email:
+
+```html
+<mjml>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text align="center" color="#888888" font-size="12px">
+          Having trouble viewing this email?
+          <a href="{% view_in_browser_url %}" target="_blank">View in browser</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Rest of your email content -->
+
+  </mj-body>
+</mjml>
+```
+
+## How It Works
+
+1. When an email is sent, the fully rendered HTML (with all user properties substituted) is stored in blob storage
+2. The `view_in_browser_url` tag generates a secure URL with a cryptographic hash
+3. When a recipient clicks the link, they're taken to a page that displays the stored email HTML
+4. The URL is unique to each message and cannot be guessed or enumerated
+
+## Security
+
+- Each view-in-browser URL contains a cryptographic hash that validates the request
+- URLs are specific to individual messages and cannot be used to access other users' emails
+- The hash is generated using a workspace-specific secret
+
+## Limitations
+
+- The URL will render an empty string in template previews (since no message has been sent yet)
+- Requires blob storage to be configured and enabled
+- The stored email reflects the content at the time of sending; subsequent template changes won't affect previously sent emails

@@ -26,6 +26,7 @@ import authController from "../controllers/singleTenantController";
 import subscriptionGroupsController from "../controllers/subscriptionGroupsController";
 import subscriptionManagementController from "../controllers/subscriptionManagementController";
 import userPropertiesController from "../controllers/userPropertiesController";
+import viewInBrowserController from "../controllers/viewInBrowserController";
 import userPropertyIndexController from "../controllers/userPropertyIndexController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
@@ -97,6 +98,7 @@ export default async function router(
         }),
         f.register(publicAppsController, { prefix: "/apps" }),
         f.register(webhooksController, { prefix: "/webhooks" }),
+        f.register(viewInBrowserController, { prefix: "/view-in-browser" }),
         backendConfig().authMode === "single-tenant"
           ? f.register(authController, { prefix: "/single-tenant" })
           : null,

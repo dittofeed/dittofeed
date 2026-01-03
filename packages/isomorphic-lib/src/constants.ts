@@ -33,6 +33,7 @@ export enum SecretNames {
   Webhook = "webhook-channel",
   SmsTestProvider = "SmsTestProvider",
   EmailTestProvider = "EmailTestProvider",
+  ViewInBrowser = "view-in-browser-key",
 }
 
 export enum DataSources {

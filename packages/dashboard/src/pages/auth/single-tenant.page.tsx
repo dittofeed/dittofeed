@@ -9,7 +9,6 @@ import { useRouter } from "next/router";
 import React from "react";
 
 import NavCard from "../../components/layout/drawer/drawerContent/navCard";
-import { apiBase } from "../../lib/apiBase";
 import { useSingleTenantLoginMutation } from "../../lib/useSingleTenantLoginMutation";
 import { getWarningStyles } from "../../lib/warningTheme";
 
@@ -87,7 +86,7 @@ export const getServerSideProps: GetServerSideProps<
   return {
     props: {
       warnings,
-      apiBaseUrl: apiBase(),
+      apiBaseUrl: backendConfig().apiBase,
     },
   };
 };

@@ -1,4 +1,5 @@
 import { Stack } from "@mui/material";
+import backendConfig from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
@@ -19,7 +20,6 @@ import {
   SubscriptionManagement,
   SubscriptionManagementProps,
 } from "../../components/subscriptionManagement";
-import { apiBase } from "../../lib/apiBase";
 
 type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate"> & {
   apiBase: string;
@@ -181,7 +181,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
   });
 
   const props: SSP = {
-    apiBase: apiBase(),
+    apiBase: backendConfig().apiBase,
     subscriptions,
     hash: h,
     identifier: i,

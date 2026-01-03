@@ -40,6 +40,7 @@ import {
   upsertSubscriptionGroup,
   upsertSubscriptionSecret,
 } from "./subscriptionGroups";
+import { upsertViewInBrowserSecret } from "./viewInBrowser";
 import connect from "./temporal/connection";
 import {
   ChannelType,
@@ -302,6 +303,9 @@ export async function bootstrapPostgres({
       }).then(unwrap),
     ),
     upsertSubscriptionSecret({
+      workspaceId,
+    }),
+    upsertViewInBrowserSecret({
       workspaceId,
     }),
     ...getDefaultMessageTemplates({
