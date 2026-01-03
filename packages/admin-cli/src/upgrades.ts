@@ -1054,3 +1054,43 @@ export async function upgradeV024Pre() {
   await createUserSortingIndexTables();
   logger().info("Pre-upgrade steps for v0.24.0 completed.");
 }
+
+export async function migrateMessageIdIndexToBloomFilter() {
+  logger().info(
+    "Migrating message_id index from minmax to bloom_filter on user_events_v2",
+  );
+
+  // Step 1: Drop existing minmax index
+  logger().info("Dropping existing message_id_idx minmax index");
+  await command({
+    query: "ALTER TABLE user_events_v2 DROP INDEX IF EXISTS message_id_idx",
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+
+  // Step 2: Add bloom filter index
+  logger().info("Adding message_id_idx bloom_filter index");
+  await command({
+    query:
+      "ALTER TABLE user_events_v2 ADD INDEX message_id_idx message_id TYPE bloom_filter(0.01) GRANULARITY 4",
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+
+  // Step 3: Materialize the index on existing data
+  logger().info(
+    "Materializing message_id_idx index on existing data (runs in background)",
+  );
+  await command({
+    query: "ALTER TABLE user_events_v2 MATERIALIZE INDEX message_id_idx",
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+
+  logger().info(
+    "message_id index migration initiated. Use 'SELECT * FROM system.mutations WHERE table = \"user_events_v2\"' to check progress.",
+  );
+}
+
+export async function upgradeV025Pre() {
+  logger().info("Performing pre-upgrade steps for v0.25.0");
+  await migrateMessageIdIndexToBloomFilter();
+  logger().info("Pre-upgrade steps for v0.25.0 completed.");
+}

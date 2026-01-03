@@ -352,7 +352,7 @@ export async function createUserEventsTables() {
           server_time DateTime64(3),
           message_raw String,
           workspace_id String,
-          INDEX message_id_idx message_id TYPE minmax GRANULARITY 4
+          INDEX message_id_idx message_id TYPE bloom_filter(0.01) GRANULARITY 4
         )
         ENGINE = MergeTree()
         ORDER BY (
