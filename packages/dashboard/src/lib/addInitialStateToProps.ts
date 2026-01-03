@@ -1,7 +1,6 @@
 import backendConfig from "backend-lib/src/config";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 
-import { apiBase } from "./apiBase";
 import { AppState, DashboardContext, PropsWithInitialState } from "./types";
 
 function clone<T>(obj: T): T {
@@ -34,7 +33,7 @@ export function addInitialStateToProps<
   } = backendConfig();
 
   const stateWithEnvVars: Partial<AppState> = clone<Partial<AppState>>({
-    apiBase: apiBase(),
+    apiBase: backendConfig().apiBase,
     dashboardUrl,
     sourceControlProvider,
     enableSourceControl,

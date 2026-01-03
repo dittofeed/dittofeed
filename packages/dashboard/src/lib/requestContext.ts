@@ -16,7 +16,6 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import { GetServerSideProps, NextApiRequest } from "next";
 
-import { apiBase } from "./apiBase";
 import { GetDFServerSideProps, PropsWithInitialState } from "./types";
 
 const backendConfig = backendConfigFromLib;
@@ -117,7 +116,7 @@ export const requestContext: <T>(
     if (dashboardWriteKey && trackDashboard) {
       await DittofeedSdk.init({
         writeKey: dashboardWriteKey,
-        host: apiBase(),
+        host: backendConfig().apiBase,
       });
     }
 

@@ -223,7 +223,7 @@ function generateViewInBrowserUrl(scope: any): string {
     secret: viewInBrowserSecret,
   });
 
-  const url = new URL(config().dashboardUrl);
+  const url = new URL(config().apiBase);
   url.pathname = "/api/public/view-in-browser";
   url.searchParams.set("w", workspaceId);
   url.searchParams.set("m", messageId);
