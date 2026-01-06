@@ -26,7 +26,7 @@ import { useAppStorePick } from "../../../lib/appStore";
 import { useCommandPaletteContext } from "../../commandPalette";
 import ExternalLink from "../../externalLink";
 import { GitBranchIcon } from "../../gitBranchIcon";
-import { ReturnLink } from "../../returnNavigation";
+import ReturnLink from "../../returnNavigation/ReturnLink";
 import MobileSection from "./headerContent/mobileSection";
 // project import
 import Profile from "./headerContent/profile";

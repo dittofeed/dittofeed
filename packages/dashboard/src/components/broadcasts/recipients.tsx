@@ -202,7 +202,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
         channel={channel}
         disabled={disabled}
         label="Subscription Group"
-        currentPageLabel={broadcast?.name || "Broadcast"}
+        currentPageLabel={broadcast.name || "Broadcast"}
       />
     );
   }
@@ -217,7 +217,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
             onChange={handleSegmentChange}
             disabled={disabled}
             label="Segment"
-            currentPageLabel={broadcast?.name || "Broadcast"}
+            currentPageLabel={broadcast.name || "Broadcast"}
           />
         </Box>
       );

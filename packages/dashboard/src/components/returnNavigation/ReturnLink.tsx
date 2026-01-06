@@ -1,14 +1,12 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { Button, Stack, Typography } from "@mui/material";
+import { Button, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { parseReturnNavigation } from "../../lib/returnNavigation";
 import { useNavigationGuard } from "../../lib/useNavigationGuard";
 
-export interface ReturnLinkProps {}
-
-export default function ReturnLink(_props: ReturnLinkProps) {
+export default function ReturnLink() {
   const router = useRouter();
   const { isNavigating, navigateSafely } = useNavigationGuard();
 

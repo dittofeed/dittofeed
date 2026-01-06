@@ -129,7 +129,7 @@ export default function ResourceSelect({
 
     // Get current page info for return navigation
     const currentPath = router.asPath;
-    const returnLabel = currentPageLabel || "Previous Page";
+    const returnLabel = currentPageLabel ?? "Previous Page";
 
     // Build resource URL
     const resourceUrl = getResourceUrl(resourceType, selectedResource.id, {
