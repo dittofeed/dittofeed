@@ -59,7 +59,7 @@ export default function JourneyPageV2() {
   return (
     <DashboardContent>
       <Stack sx={{ height: "100%", width: "100%" }}>
-        <ReturnLink fallbackPath="/journeys" fallbackLabel="Journeys" />
+        <ReturnLink />
         <JourneyV2 id={id} />
       </Stack>
     </DashboardContent>

@@ -32,10 +32,7 @@ export default function SubscriptionGroupLayout({
   return (
     <DashboardContent>
       <Stack direction="column" sx={{ width: "100%", padding: 1 }}>
-        <ReturnLink
-          fallbackPath="/subscription-groups"
-          fallbackLabel="Subscription Groups"
-        />
+        <ReturnLink />
         <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
           <Tabs value={tabValue}>
             <TabLink

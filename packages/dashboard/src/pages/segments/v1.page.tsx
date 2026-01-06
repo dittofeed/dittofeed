@@ -18,7 +18,7 @@ export default function NewSegment() {
   return (
     <DashboardContent>
       <Stack sx={{ padding: theme.spacing(3) }}>
-        <ReturnLink fallbackPath="/segments" fallbackLabel="Segments" />
+        <ReturnLink />
         <SegmentEditorV2 id={id} />
       </Stack>
     </DashboardContent>

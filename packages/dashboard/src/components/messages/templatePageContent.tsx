@@ -11,7 +11,7 @@ export default function TemplatePageContent({
   return (
     <DashboardContent>
       <Box sx={{ padding: 1, width: "100%", height: "100%" }}>
-        <ReturnLink fallbackPath="/templates" fallbackLabel="Templates" />
+        <ReturnLink />
         {children}
       </Box>
     </DashboardContent>
