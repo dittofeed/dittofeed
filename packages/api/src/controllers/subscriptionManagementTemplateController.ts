@@ -5,6 +5,7 @@ import {
   getSubscriptionManagementTemplate,
   upsertSubscriptionManagementTemplate,
 } from "backend-lib/src/subscriptionManagementTemplateCrud";
+import { DEFAULT_SUBSCRIPTION_TEMPLATE } from "backend-lib/src/subscriptionManagementTemplate";
 import { FastifyInstance } from "fastify";
 
 import { getWorkspaceId } from "../workspace";
@@ -19,10 +20,16 @@ export default async function subscriptionManagementTemplateController(
     {
       schema: {
         description:
-          "Get the custom subscription management template for the workspace.",
+          "Get the custom subscription management template for the workspace. Pass includeDefault=true to also get the default template.",
+        querystring: Type.Object({
+          includeDefault: Type.Optional(
+            Type.String({ description: "Set to 'true' to include the default template" }),
+          ),
+        }),
         response: {
           200: Type.Object({
             template: Type.Union([Type.String(), Type.Null()]),
+            defaultTemplate: Type.Optional(Type.String()),
           }),
           401: Type.Object({
             message: Type.String(),
@@ -38,9 +45,11 @@ export default async function subscriptionManagementTemplateController(
       const workspaceId = workspaceIdResult.value;
 
       const template = await getSubscriptionManagementTemplate({ workspaceId });
+      const includeDefault = request.query.includeDefault === "true";
 
       return reply.status(200).send({
         template: template?.template ?? null,
+        ...(includeDefault ? { defaultTemplate: DEFAULT_SUBSCRIPTION_TEMPLATE } : {}),
       });
     },
   );
