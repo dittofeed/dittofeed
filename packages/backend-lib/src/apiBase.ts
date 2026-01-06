@@ -57,8 +57,8 @@ export function resolveApiBase(params: ResolveApiBaseParams): string {
     return dashboardUrl;
   }
 
-  // 5. Development mode defaults to localhost:3001
-  if (nodeEnv === NodeEnvEnum.Development) {
+  // 5. Development/test mode defaults to localhost:3001
+  if (nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test) {
     return "http://localhost:3001";
   }
 
