@@ -73,7 +73,8 @@
     "react-dom": "18.3.1",
     "react-is": "18.3.1",
     "date-fns-tz": "2.0.0",
-    "@fastify/cookie": "9.0.4"
+    "@fastify/cookie": "9.0.4",
+    "dotenv": "16.0.3"
   },
   "packageManager": "yarn@4.1.1"
 }

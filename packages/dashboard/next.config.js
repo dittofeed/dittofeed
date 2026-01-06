@@ -1,5 +1,10 @@
 const path = require("path");
 
+// Load root .env file in development and test environments
+if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
+  require("dotenv").config({ path: path.join(__dirname, "../../.env") });
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
