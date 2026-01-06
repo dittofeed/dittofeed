@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import { html } from "@codemirror/lang-html";
 import { EditorView } from "@codemirror/view";
-import CodeMirror from "@uiw/react-codemirror";
 import {
   Create,
   InfoOutlined,
@@ -28,6 +27,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import CodeMirror from "@uiw/react-codemirror";
 import axios from "axios";
 import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
@@ -1935,7 +1935,11 @@ function SubscriptionManagementSettings() {
       const response = await axios.get(
         `${apiBase}/api/subscription-management-template?includeDefault=true`,
       );
-      return response.data as { template: string | null; defaultTemplate: string };
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return response.data as {
+        template: string | null;
+        defaultTemplate: string;
+      };
     },
     enabled: !!workspace,
   });
@@ -2050,30 +2054,9 @@ function SubscriptionManagementSettings() {
   const selectedSubscriptionGroup = subscriptionGroups.find(
     (sg) => sg.id === actualSelectedId,
   );
-  const channelToUnsubscribeFrom = selectedSubscriptionGroup?.channel;
-
-  const subscriptions = subscriptionGroups.map((sg) => ({
-    name: sg.name,
-    id: sg.id,
-    isSubscribed: !(
-      fromSubscriptionChange &&
-      !fromSubscribe &&
-      sg.channel === channelToUnsubscribeFrom
-    ),
-    channel: sg.channel,
-  }));
-
   if (!workspace) {
     return null;
   }
-
-  const changedSubscription = fromSubscriptionChange
-    ? actualSelectedId
-    : undefined;
-
-  const changedSubscriptionChannel = fromSubscriptionChange
-    ? channelToUnsubscribeFrom
-    : undefined;
 
   return (
     <Stack>
