@@ -59,7 +59,6 @@ import {
   PartialSegmentResource,
   SmsProviderType,
   SmtpSecretKey,
-  SubscriptionChange,
   SyncIntegration,
   UpsertIntegrationResource,
 } from "isomorphic-lib/src/types";
@@ -89,7 +88,6 @@ import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
 import { PermissionsTable } from "../components/permissionsTable";
-import { SubscriptionManagement } from "../components/subscriptionManagement";
 import WebhookSecretTable from "../components/webhookSecretTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
@@ -2033,25 +2031,35 @@ function SubscriptionManagementSettings() {
               justifyContent: "center",
             }}
           >
-            <SubscriptionManagement
-              key={`${fromSubscribe}-${fromSubscriptionChange}`}
-              subscriptions={subscriptions}
-              workspaceName={workspace.name}
-              subscriptionChange={
-                fromSubscribe
-                  ? SubscriptionChange.Subscribe
-                  : SubscriptionChange.Unsubscribe
+            {(() => {
+              // Build the iframe URL for the subscription management page
+              const iframeParams = new URLSearchParams({
+                w: workspace.id,
+                h: "preview-hash",
+                i: "preview@example.com",
+                ik: "email",
+                isPreview: "true",
+              });
+
+              if (fromSubscriptionChange && actualSelectedId) {
+                iframeParams.set("s", actualSelectedId);
+                iframeParams.set("sub", fromSubscribe ? "1" : "0");
               }
-              changedSubscription={changedSubscription}
-              changedSubscriptionChannel={changedSubscriptionChannel}
-              workspaceId={workspace.id}
-              hash="example-hash"
-              identifier="example@email.com"
-              identifierKey="email"
-              apiBase={apiBase}
-              isPreview
-              showAllChannels={!fromSubscriptionChange}
-            />
+
+              return (
+                <iframe
+                  key={`${fromSubscribe}-${fromSubscriptionChange}-${actualSelectedId}`}
+                  src={`${apiBase}/api/public/subscription-management/page?${iframeParams.toString()}`}
+                  style={{
+                    width: "100%",
+                    minWidth: "400px",
+                    height: "600px",
+                    border: "none",
+                  }}
+                  title="Subscription Management Preview"
+                />
+              );
+            })()}
           </Paper>
         </Stack>
       </Dialog>

@@ -22,6 +22,7 @@ const config = {
       ],
       displayName: "backend-lib",
       roots: ["<rootDir>/packages/backend-lib/src"],
+      testPathIgnorePatterns: ["<rootDir>/packages/backend-lib/src/jsdom-tests/"],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",
@@ -30,6 +31,28 @@ const config = {
           },
         ],
       },
+    },
+    {
+      ...BASE_CONFIG,
+      testEnvironment: "jsdom",
+      displayName: "backend-lib-jsdom",
+      roots: ["<rootDir>/packages/backend-lib/src/jsdom-tests"],
+      setupFilesAfterEnv: [
+        "<rootDir>/packages/backend-lib/src/jsdom-tests/setup.ts",
+        "jest-expect-message",
+      ],
+      transform: {
+        "^.+\\.tsx?$": [
+          "ts-jest",
+          {
+            tsconfig: "<rootDir>/packages/backend-lib/tsconfig.json",
+          },
+        ],
+        "^.+\\.js$": "babel-jest",
+      },
+      transformIgnorePatterns: [
+        "node_modules/(?!(.pnpm|parse5|whatwg-url|whatwg-mimetype|data-urls|html-encoding-sniffer|@exodus/bytes|entities|jsdom)/)",
+      ],
     },
     {
       ...BASE_CONFIG,

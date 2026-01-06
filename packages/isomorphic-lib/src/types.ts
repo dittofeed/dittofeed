@@ -3012,6 +3012,21 @@ export const SubscriptionParams = Type.Object(
           "Show subscription groups for all channels instead of just the changed channel.",
       }),
     ),
+    success: Type.Optional(
+      Type.String({
+        description: "Form submission success flag.",
+      }),
+    ),
+    error: Type.Optional(
+      Type.String({
+        description: "Form submission error flag.",
+      }),
+    ),
+    previewSubmitted: Type.Optional(
+      Type.String({
+        description: "Form submitted in preview mode flag.",
+      }),
+    ),
   },
   {
     description:
@@ -6576,3 +6591,92 @@ export const ViewInBrowserRequest = Type.Object({
 });
 
 export type ViewInBrowserRequest = Static<typeof ViewInBrowserRequest>;
+
+// Subscription Management Template Types
+
+export const SubscriptionManagementTemplateResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  template: Type.String({ description: "Liquid template content" }),
+  createdAt: Type.String(),
+  updatedAt: Type.String(),
+});
+
+export type SubscriptionManagementTemplateResource = Static<
+  typeof SubscriptionManagementTemplateResource
+>;
+
+export const UpsertSubscriptionManagementTemplateRequest = Type.Object({
+  workspaceId: Type.String(),
+  template: Type.String({ description: "Liquid template content" }),
+});
+
+export type UpsertSubscriptionManagementTemplateRequest = Static<
+  typeof UpsertSubscriptionManagementTemplateRequest
+>;
+
+export const DeleteSubscriptionManagementTemplateRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type DeleteSubscriptionManagementTemplateRequest = Static<
+  typeof DeleteSubscriptionManagementTemplateRequest
+>;
+
+export const GetSubscriptionManagementTemplateRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetSubscriptionManagementTemplateRequest = Static<
+  typeof GetSubscriptionManagementTemplateRequest
+>;
+
+export const SubscriptionManagementPageRequest = Type.Object(
+  {
+    w: Type.String({ description: "Workspace Id." }),
+    i: Type.String({
+      description: 'Identifier value for channel e.g. "name@email.com".',
+    }),
+    ik: Type.String({
+      description: 'Identifier key for channel e.g. "email".',
+    }),
+    h: Type.String({
+      description:
+        "Subscription change hash, used to authenticate subscription changes.",
+    }),
+    s: Type.Optional(
+      Type.String({
+        description: "Subscription group Id.",
+      }),
+    ),
+    sub: Type.Optional(
+      Type.Union([
+        Type.Literal("1", {
+          description: "Subscribing user to subscription group.",
+        }),
+        Type.Literal("0", {
+          description: "Unsubscribing user from subscription group.",
+        }),
+      ]),
+    ),
+    isPreview: Type.Optional(
+      Type.String({
+        description: "Preview mode flag to skip subscription updates.",
+      }),
+    ),
+    showAllChannels: Type.Optional(
+      Type.String({
+        description:
+          "Show subscription groups for all channels instead of just the changed channel.",
+      }),
+    ),
+  },
+  {
+    description:
+      "Query parameters for the public subscription management page API endpoint.",
+  },
+);
+
+export type SubscriptionManagementPageRequest = Static<
+  typeof SubscriptionManagementPageRequest
+>;
