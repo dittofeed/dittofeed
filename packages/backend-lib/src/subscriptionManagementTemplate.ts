@@ -74,173 +74,253 @@ export const DEFAULT_SUBSCRIPTION_TEMPLATE = `<!DOCTYPE html>
   <style>
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background-color: #f5f5f5;
-      margin: 0;
-      padding: 20px;
+      background-color: #fafafa;
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
+      padding: 16px;
     }
-    .container {
+    .card {
       background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      padding: 32px;
-      max-width: 500px;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      max-width: 640px;
       width: 100%;
+      overflow: hidden;
     }
-    h1 {
-      font-size: 1.5rem;
+    .card-header {
+      padding: 24px;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    .header-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .success-icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      background-color: #dcfce7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .success-icon svg {
+      width: 20px;
+      height: 20px;
+      color: #16a34a;
+    }
+    .header-text h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0a0a0a;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+    .header-text p {
+      font-size: 0.875rem;
+      color: #737373;
+    }
+    .card-content {
+      padding: 24px;
+    }
+    .section-label {
+      font-size: 0.875rem;
       font-weight: 500;
-      margin: 0 0 24px 0;
-      color: #333;
-    }
-    .alert {
-      background-color: #e3f2fd;
-      border: 1px solid #90caf9;
-      border-radius: 4px;
-      padding: 12px 16px;
-      margin-bottom: 24px;
-      color: #1565c0;
+      color: #737373;
+      margin-bottom: 16px;
     }
     .channel-group {
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     .channel-label {
       display: flex;
       align-items: center;
-      font-weight: 500;
+      gap: 12px;
       cursor: pointer;
-      padding: 8px 0;
+      padding: 4px 0;
     }
-    .channel-label input {
-      margin-right: 12px;
+    .channel-label input[type="checkbox"] {
       width: 18px;
       height: 18px;
       cursor: pointer;
+      accent-color: #0a0a0a;
+    }
+    .channel-label span {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #0a0a0a;
     }
     .subscriptions {
-      margin-left: 30px;
-      border-left: 2px solid #e0e0e0;
-      padding-left: 16px;
+      margin-left: 36px;
+      border-left: 2px solid #e5e5e5;
+      padding-left: 24px;
+      margin-top: 8px;
     }
     .subscription-label {
       display: flex;
       align-items: center;
+      gap: 12px;
       cursor: pointer;
       padding: 6px 0;
-      color: #666;
     }
-    .subscription-label input {
-      margin-right: 12px;
+    .subscription-label input[type="checkbox"] {
       width: 16px;
       height: 16px;
       cursor: pointer;
+      accent-color: #0a0a0a;
     }
-    .df-save-button {
-      background-color: #1976d2;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 12px 24px;
-      font-size: 1rem;
+    .subscription-label span {
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: #737373;
+    }
+    .card-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #e5e5e5;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .btn {
+      padding: 10px 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 6px;
       cursor: pointer;
-      margin-top: 16px;
-      transition: background-color 0.2s;
+      transition: all 0.15s ease;
     }
-    .df-save-button:hover {
-      background-color: #1565c0;
+    .btn-outline {
+      background: white;
+      border: 1px solid #e5e5e5;
+      color: #0a0a0a;
     }
-    .df-save-button:disabled {
-      background-color: #bdbdbd;
+    .btn-outline:hover {
+      background: #f5f5f5;
+    }
+    .btn-primary {
+      background: #0a0a0a;
+      border: 1px solid #0a0a0a;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #262626;
+    }
+    .btn-primary:disabled {
+      background: #a3a3a3;
+      border-color: #a3a3a3;
       cursor: not-allowed;
     }
     .df-success-message {
-      background-color: #e8f5e9;
-      border: 1px solid #a5d6a7;
-      border-radius: 4px;
+      background-color: #dcfce7;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
       padding: 12px 16px;
-      margin-bottom: 24px;
-      color: #2e7d32;
+      margin-bottom: 16px;
+      color: #166534;
+      font-size: 0.875rem;
     }
     .df-error-message {
-      background-color: #ffebee;
-      border: 1px solid #ef9a9a;
-      border-radius: 4px;
+      background-color: #fee2e2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
       padding: 12px 16px;
-      margin-bottom: 24px;
-      color: #c62828;
+      margin-bottom: 16px;
+      color: #991b1b;
+      font-size: 0.875rem;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Manage your subscription preferences for {{ workspaceName }}</h1>
-
-    {% if success %}
-    <div class="df-success-message">
-      Preferences saved successfully!
+  <div class="card">
+    <div class="card-header">
+      <div class="header-content">
+        <div class="success-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="header-text">
+          <h1>
+            {% if subscriptionChange %}
+              {% if subscriptionChange == "Subscribe" %}
+                You have subscribed to {{ changedSubscriptionChannel }} from {{ workspaceName }}
+              {% else %}
+                You have unsubscribed from {{ changedSubscriptionChannel }} from {{ workspaceName }}
+              {% endif %}
+            {% else %}
+              Manage your preferences for {{ workspaceName }}
+            {% endif %}
+          </h1>
+          <p>Manage your communication preferences below</p>
+        </div>
+      </div>
     </div>
-    {% endif %}
-
-    {% if previewSubmitted %}
-    <div class="df-success-message">
-      Preview: Subscription preferences would be updated.
-    </div>
-    {% endif %}
-
-    {% if error %}
-    <div class="df-error-message">
-      Failed to save preferences. Please try again.
-    </div>
-    {% endif %}
-
-    {% if subscriptionChange %}
-    <div class="alert">
-      {% if subscriptionChange == "Subscribe" %}
-        You have subscribed to {{ changedSubscriptionName }}
-      {% else %}
-        You have unsubscribed from all {{ changedSubscriptionChannel }} messages
-      {% endif %}
-    </div>
-    {% endif %}
 
     <form class="df-subscription-form" method="POST">
       {% subscription_hidden_fields %}
 
-      {% for channel in channels %}
-      <div class="channel-group">
-        <label class="channel-label">
-          <input type="checkbox"
-                 class="df-channel-toggle"
-                 data-channel="{{ channel.name }}" />
-          {{ channel.name }}
-        </label>
-
-        <div class="subscriptions">
-          {% for subscription in channel.subscriptions %}
-          <label class="subscription-label">
-            <input type="checkbox"
-                   class="df-subscription-checkbox"
-                   name="sub_{{ subscription.id }}"
-                   value="true"
-                   data-subscription-id="{{ subscription.id }}"
-                   data-channel="{{ channel.name }}"
-                   {% if subscription.isSubscribed %}checked{% endif %} />
-            {{ subscription.name }}
-          </label>
-          {% endfor %}
+      <div class="card-content">
+        {% if success %}
+        <div class="df-success-message">
+          Preferences saved successfully!
         </div>
-      </div>
-      {% endfor %}
+        {% endif %}
 
-      <button type="submit" class="df-save-button">
-        Save Preferences
-      </button>
+        {% if previewSubmitted %}
+        <div class="df-success-message">
+          Preview: Subscription preferences would be updated.
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="df-error-message">
+          Failed to save preferences. Please try again.
+        </div>
+        {% endif %}
+
+        <div class="section-label">Communication Channels</div>
+
+        {% for channel in channels %}
+        <div class="channel-group">
+          <label class="channel-label">
+            <input type="checkbox"
+                   class="df-channel-toggle"
+                   data-channel="{{ channel.name }}" />
+            <span>{{ channel.name }}</span>
+          </label>
+
+          <div class="subscriptions">
+            {% for subscription in channel.subscriptions %}
+            <label class="subscription-label">
+              <input type="checkbox"
+                     class="df-subscription-checkbox"
+                     name="sub_{{ subscription.id }}"
+                     value="true"
+                     data-subscription-id="{{ subscription.id }}"
+                     data-channel="{{ channel.name }}"
+                     {% if subscription.isSubscribed %}checked{% endif %} />
+              <span>{{ subscription.name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="card-footer">
+        <button type="button" class="btn btn-outline" onclick="window.history.back()">Cancel</button>
+        <button type="submit" class="btn btn-primary df-save-button">Save Preferences</button>
+      </div>
     </form>
   </div>
 </body>
