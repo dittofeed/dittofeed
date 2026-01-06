@@ -1,3 +1,4 @@
+import { Stack } from "@mui/material";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -56,7 +57,9 @@ export default function JourneyPageV2() {
 
   return (
     <DashboardContent>
-      <JourneyV2 id={id} />
+      <Stack sx={{ height: "100%", width: "100%" }}>
+        <JourneyV2 id={id} />
+      </Stack>
     </DashboardContent>
   );
 }

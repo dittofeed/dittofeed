@@ -564,6 +564,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           set((state) => {
             state.viewDraft = viewDraft;
           }),
+
         ...createJourneySlice(set, ...remaining),
         ...preloadedState,
       };

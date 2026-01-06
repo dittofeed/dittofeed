@@ -30,7 +30,7 @@ export default function SubscriptionGroupLayout({
 
   return (
     <DashboardContent>
-      <Stack direction="column" sx={{ width: "100%" }}>
+      <Stack direction="column" sx={{ width: "100%", padding: 1 }}>
         <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
           <Tabs value={tabValue}>
             <TabLink

@@ -1239,7 +1239,9 @@ export default function NewUserProperty() {
 
   return (
     <>
-      <DashboardContent>{body}</DashboardContent>
+      <DashboardContent>
+        <Stack sx={{ width: "100%", height: "100%" }}>{body}</Stack>
+      </DashboardContent>
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}

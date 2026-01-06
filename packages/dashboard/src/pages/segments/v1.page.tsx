@@ -1,4 +1,4 @@
-import { useTheme } from "@mui/material";
+import { Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 
 import DashboardContent from "../../components/dashboardContent";
@@ -16,7 +16,9 @@ export default function NewSegment() {
   }
   return (
     <DashboardContent>
-      <SegmentEditorV2 id={id} sx={{ padding: theme.spacing(3) }} />
+      <Stack sx={{ padding: theme.spacing(3) }}>
+        <SegmentEditorV2 id={id} />
+      </Stack>
     </DashboardContent>
   );
 }

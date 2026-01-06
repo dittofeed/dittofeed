@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { getDefaultMessageTemplateDefinition } from "../../lib/defaultTemplateDefinition";
+import { ResourceType } from "../../lib/types";
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useMessageTemplateQuery } from "../../lib/useMessageTemplateQuery";
@@ -22,11 +23,7 @@ import { useMessageTemplateUpdateMutation } from "../../lib/useMessageTemplateUp
 import EmailEditor from "../messages/emailEditor";
 import SmsEditor from "../messages/smsEditor";
 import WebhookEditor from "../messages/webhookEditor";
-import {
-  MessageTemplateAutocomplete,
-  MessageTemplateChangeHandler,
-  SimpleMessageTemplate,
-} from "../messageTemplateAutocomplete";
+import ResourceSelect from "../resourceSelect";
 import { BroadcastState } from "./broadcastsShared";
 
 function EmailControls({
@@ -322,12 +319,11 @@ export default function Content({ state }: { state: BroadcastState }) {
     setSelectExistingTemplate("existing");
   }, [broadcast, state.id, workspace, selectExistingTemplate]);
 
-  const handleMessageTemplateChange: MessageTemplateChangeHandler = useCallback(
-    (template: SimpleMessageTemplate | null) => {
-      const newTemplateId = template?.id ?? null;
-      broadcastMutation.mutate({ messageTemplateId: newTemplateId });
+  const handleMessageTemplateChange = useCallback(
+    (resourceId: string | null) => {
+      broadcastMutation.mutate({ messageTemplateId: resourceId });
     },
-    [setSelectExistingTemplate],
+    [broadcastMutation],
   );
 
   let templateSelect: React.ReactNode;
@@ -336,11 +332,14 @@ export default function Content({ state }: { state: BroadcastState }) {
       templateSelect = (
         <Stack spacing={1} sx={{ flex: 1 }}>
           <Box sx={{ maxWidth: 600 }}>
-            <MessageTemplateAutocomplete
-              messageTemplateId={broadcast?.messageTemplateId}
-              handler={handleMessageTemplateChange}
+            <ResourceSelect
+              resourceType={ResourceType.MessageTemplate}
+              value={broadcast?.messageTemplateId ?? null}
+              onChange={handleMessageTemplateChange}
               channel={broadcast?.config.message.type}
               disabled={disabled}
+              label="Template"
+              currentPageLabel={broadcast?.name || "Broadcast"}
             />
           </Box>
           <ExistingTemplatePreview broadcastId={state.id} />

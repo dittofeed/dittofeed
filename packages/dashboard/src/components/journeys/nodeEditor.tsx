@@ -35,7 +35,6 @@ import {
   EntryNode,
   JourneyNodeType,
   JourneyUiNodeType,
-  MessageTemplateResource,
   MobilePushProviderType,
   PartialSegmentResource,
   SavedSegmentResource,
@@ -43,7 +42,6 @@ import {
   SignalWireSenderOverrideType,
   SmsProviderType,
   TwilioSenderOverrideType,
-  UserPropertyResource,
   WorkspaceWideEmailProviders,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useCallback, useMemo } from "react";
@@ -56,13 +54,12 @@ import {
   JourneyUiNodeDefinitionProps,
   MessageUiNodeProps,
   RandomCohortUiNodeProps,
+  ResourceType,
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
 } from "../../lib/types";
-import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
 import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
-import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import ChannelProviderAutocomplete from "../channelProviderAutocomplete";
 import DurationSelect from "../durationSelect";
 import {
@@ -71,7 +68,7 @@ import {
 } from "../eventsAutocomplete";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
-import { SubscriptionGroupAutocompleteV2 } from "../subscriptionGroupAutocomplete";
+import ResourceSelect, { ResourceOption } from "../resourceSelect";
 import { TimezoneAutocomplete } from "../timezoneAutocomplete";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
@@ -93,40 +90,26 @@ function SegmentSplitNodeFields({
   nodeProps: SegmentSplitUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData } = useAppStorePick(["updateJourneyNodeData"]);
-  const { data: segmentsData } = useSegmentsQuery({
-    resourceType: "Declarative",
-  });
-
-  const onSegmentChangeHandler = (
-    _event: unknown,
-    segment: PartialSegmentResource | null,
-  ) => {
-    updateJourneyNodeData(nodeId, (node) => {
-      const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.SegmentSplitNode) {
-        props.segmentId = segment?.id;
-      }
-    });
-  };
-
-  if (!segmentsData) {
-    return null;
-  }
-
-  const segment =
-    segmentsData.segments.find((t) => t.id === nodeProps.segmentId) ?? null;
+  const { updateJourneyNodeData, journeyName } = useAppStorePick([
+    "updateJourneyNodeData",
+    "journeyName",
+  ]);
 
   return (
-    <Autocomplete
-      value={segment}
-      options={segmentsData.segments}
-      getOptionLabel={getLabel}
-      onChange={onSegmentChangeHandler}
+    <ResourceSelect
+      resourceType={ResourceType.Segment}
+      value={nodeProps.segmentId ?? null}
+      onChange={(resourceId) => {
+        updateJourneyNodeData(nodeId, (node) => {
+          const props = node.data.nodeTypeProps;
+          if (props.type === JourneyNodeType.SegmentSplitNode) {
+            props.segmentId = resourceId ?? undefined;
+          }
+        });
+      }}
       disabled={disabled}
-      renderInput={(params) => (
-        <TextField {...params} label="segment" variant="outlined" />
-      )}
+      label="Segment"
+      currentPageLabel={journeyName || "Journey"}
     />
   );
 }
@@ -408,10 +391,6 @@ function EntryNodeFields({
   );
 }
 
-function getTemplateLabel(tr: MessageTemplateResource) {
-  return tr.name;
-}
-
 function MessageNodeFields({
   nodeId,
   nodeProps,
@@ -421,14 +400,13 @@ function MessageNodeFields({
   nodeProps: MessageUiNodeProps;
   disabled?: boolean;
 }) {
-  const { enableMobilePush, updateJourneyNodeData } = useAppStorePick([
-    "enableMobilePush",
-    "updateJourneyNodeData",
-  ]);
+  const { enableMobilePush, updateJourneyNodeData, journeyName } =
+    useAppStorePick([
+      "enableMobilePush",
+      "updateJourneyNodeData",
+      "journeyName",
+    ]);
   const { data: subscriptionGroups } = useSubscriptionGroupsQuery();
-  const { data: messageTemplates } = useMessageTemplatesQuery({
-    resourceType: "Declarative",
-  });
 
   const onNameChangeHandler: React.ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement
@@ -442,25 +420,19 @@ function MessageNodeFields({
   };
 
   const onTemplateChangeHandler = (
-    _event: unknown,
-    template: MessageTemplateResource | null,
+    _resourceId: string | null,
+    resource: ResourceOption | null,
   ) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
       if (props.type === JourneyNodeType.MessageNode) {
-        props.templateId = template?.id;
+        props.templateId = resource?.id;
         if (props.name.length === 0) {
-          props.name = template?.name ?? "";
+          props.name = resource?.name ?? "";
         }
       }
     });
   };
-
-  const templates = messageTemplates
-    ? messageTemplates.filter((t) => t.type === nodeProps.channel)
-    : [];
-
-  const template = templates.find((t) => t.id === nodeProps.templateId) ?? null;
 
   const onChannelChangeHandler: SelectInputProps<ChannelType>["onChange"] = (
     e,
@@ -746,28 +718,30 @@ function MessageNodeFields({
           </MenuItem>
         </Select>
       </FormControl>
-      <SubscriptionGroupAutocompleteV2
-        subscriptionGroupId={nodeProps.subscriptionGroupId}
-        channel={nodeProps.channel}
-        disabled={disabled}
-        handler={(subscriptionGroup) => {
+      <ResourceSelect
+        resourceType={ResourceType.SubscriptionGroup}
+        value={nodeProps.subscriptionGroupId ?? null}
+        onChange={(resourceId) => {
           updateJourneyNodeData(nodeId, (node) => {
             const props = node.data.nodeTypeProps;
             if (props.type === JourneyNodeType.MessageNode) {
-              props.subscriptionGroupId = subscriptionGroup?.id;
+              props.subscriptionGroupId = resourceId ?? undefined;
             }
           });
         }}
-      />
-      <Autocomplete
-        value={template}
-        options={templates}
+        channel={nodeProps.channel}
         disabled={disabled}
-        getOptionLabel={getTemplateLabel}
+        label="Subscription Group"
+        currentPageLabel={journeyName || "Journey"}
+      />
+      <ResourceSelect
+        resourceType={ResourceType.MessageTemplate}
+        value={nodeProps.templateId ?? null}
         onChange={onTemplateChangeHandler}
-        renderInput={(params) => (
-          <TextField {...params} label="Template" variant="outlined" />
-        )}
+        channel={nodeProps.channel}
+        disabled={disabled}
+        label="Template"
+        currentPageLabel={journeyName || "Journey"}
       />
       {nodeProps.templateId ? (
         <TextField
@@ -869,10 +843,10 @@ function DelayNodeFields({
   nodeProps: DelayUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData } = useAppStorePick(["updateJourneyNodeData"]);
-  const { data: userProperties } = useUserPropertiesQuery({
-    resourceType: "Declarative",
-  });
+  const { updateJourneyNodeData, journeyName } = useAppStorePick([
+    "updateJourneyNodeData",
+    "journeyName",
+  ]);
   let variant: React.ReactElement;
   const nodeVariant = nodeProps.variant;
   switch (nodeVariant.type) {
@@ -1001,37 +975,27 @@ function DelayNodeFields({
       break;
     }
     case DelayVariantType.UserProperty: {
-      const userProperty =
-        userProperties?.userProperties.find(
-          (p) => p.id === nodeVariant.userProperty,
-        ) ?? null;
-      const onUserPropertyChangeHandler = (
-        _event: unknown,
-        up: UserPropertyResource | null,
-      ) => {
-        updateJourneyNodeData(nodeId, (node) => {
-          if (
-            node.data.nodeTypeProps.type !== JourneyNodeType.DelayNode ||
-            node.data.nodeTypeProps.variant.type !==
-              DelayVariantType.UserProperty
-          ) {
-            return;
-          }
-          node.data.nodeTypeProps.variant.userProperty = up?.id ?? undefined;
-        });
-      };
-
       variant = (
         <>
-          <Autocomplete
-            value={userProperty}
-            options={userProperties?.userProperties ?? []}
-            getOptionLabel={getLabel}
-            onChange={onUserPropertyChangeHandler}
-            renderInput={(params) => (
-              <TextField {...params} label="User Property" variant="outlined" />
-            )}
+          <ResourceSelect
+            resourceType={ResourceType.UserProperty}
+            value={nodeVariant.userProperty ?? null}
+            onChange={(resourceId) => {
+              updateJourneyNodeData(nodeId, (node) => {
+                if (
+                  node.data.nodeTypeProps.type !== JourneyNodeType.DelayNode ||
+                  node.data.nodeTypeProps.variant.type !==
+                    DelayVariantType.UserProperty
+                ) {
+                  return;
+                }
+                node.data.nodeTypeProps.variant.userProperty =
+                  resourceId ?? undefined;
+              });
+            }}
             disabled={disabled}
+            label="User Property"
+            currentPageLabel={journeyName || "Journey"}
           />
           <FormControlLabel
             control={

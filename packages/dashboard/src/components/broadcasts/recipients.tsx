@@ -20,19 +20,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
 import { useAppStorePick } from "../../lib/appStore";
+import { ResourceType } from "../../lib/types";
 import { useBroadcastMutation } from "../../lib/useBroadcastMutation";
 import { useBroadcastQuery } from "../../lib/useBroadcastQuery";
 import { useRecomputeBroadcastSegmentMutation } from "../../lib/useRecomputeBroadcastSegmentMutation";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
+import ResourceSelect from "../resourceSelect";
 import SegmentEditor, { SegmentEditorProps } from "../segments/editor";
-import {
-  SegmentChangeHandler,
-  SegmentsAutocomplete,
-} from "../segmentsAutocomplete";
-import {
-  SubscriptionGroupAutocompleteV2,
-  SubscriptionGroupChangeHandler,
-} from "../subscriptionGroupAutocomplete";
 import { BroadcastState } from "./broadcastsShared";
 
 function BroadcastSegmentEditor({
@@ -164,27 +158,19 @@ export default function Recipients({ state }: { state: BroadcastState }) {
     // Only include external dependencies that determine the initial state
   }, [broadcastQuery.data, state.id, workspace]);
 
-  const handleSubscriptionGroupChange: SubscriptionGroupChangeHandler =
-    useCallback(
-      (sg) => {
-        const newSubscriptionGroupId = sg?.id ?? null;
-
-        // Persist the change via mutation
-        broadcastMutation.mutate({
-          subscriptionGroupId: newSubscriptionGroupId,
-        });
-      },
-      [broadcastMutation],
-    );
-
-  // Added handler for segment changes
-  const handleSegmentChange: SegmentChangeHandler = useCallback(
-    (segment: { id: string } | null) => {
-      const newSegmentId = segment?.id ?? null;
-
-      // Persist the change via mutation
+  const handleSubscriptionGroupChange = useCallback(
+    (resourceId: string | null) => {
       broadcastMutation.mutate({
-        segmentId: newSegmentId,
+        subscriptionGroupId: resourceId,
+      });
+    },
+    [broadcastMutation],
+  );
+
+  const handleSegmentChange = useCallback(
+    (resourceId: string | null) => {
+      broadcastMutation.mutate({
+        segmentId: resourceId,
       });
     },
     [broadcastMutation],
@@ -206,16 +192,17 @@ export default function Recipients({ state }: { state: BroadcastState }) {
   const currentSegmentId = broadcast.segmentId ?? undefined;
   const currentSubscriptionGroupId = broadcast.subscriptionGroupId ?? undefined;
 
-  let subscriptionGroupAutocomplete: React.ReactNode = null;
+  let subscriptionGroupSelect: React.ReactNode = null;
   if (channel) {
-    subscriptionGroupAutocomplete = (
-      <SubscriptionGroupAutocompleteV2
+    subscriptionGroupSelect = (
+      <ResourceSelect
+        resourceType={ResourceType.SubscriptionGroup}
+        value={currentSubscriptionGroupId ?? null}
+        onChange={handleSubscriptionGroupChange}
         channel={channel}
-        selectInitialDefault
-        subscriptionGroupId={currentSubscriptionGroupId}
-        handler={handleSubscriptionGroupChange}
         disabled={disabled}
-        disableClearable
+        label="Subscription Group"
+        currentPageLabel={broadcast.name || "Broadcast"}
       />
     );
   }
@@ -224,10 +211,13 @@ export default function Recipients({ state }: { state: BroadcastState }) {
     case "existing":
       segmentSelect = (
         <Box sx={{ maxWidth: 600 }}>
-          <SegmentsAutocomplete
-            segmentId={currentSegmentId}
-            handler={handleSegmentChange}
+          <ResourceSelect
+            resourceType={ResourceType.Segment}
+            value={currentSegmentId ?? null}
+            onChange={handleSegmentChange}
             disabled={disabled}
+            label="Segment"
+            currentPageLabel={broadcast.name || "Broadcast"}
           />
         </Box>
       );
@@ -248,7 +238,7 @@ export default function Recipients({ state }: { state: BroadcastState }) {
       <Typography variant="caption" sx={{ mb: -1 }}>
         Subscription Group (Required)
       </Typography>
-      <Box sx={{ maxWidth: 600 }}>{subscriptionGroupAutocomplete}</Box>
+      <Box sx={{ maxWidth: 600 }}>{subscriptionGroupSelect}</Box>
       <Typography variant="body2" sx={{ mt: 1, maxWidth: 600 }}>
         Select a Subscription Group (required). Optionally, you can select an
         additional segment which will further restrict the set of messaged users
