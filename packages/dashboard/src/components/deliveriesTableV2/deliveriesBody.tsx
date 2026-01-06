@@ -624,10 +624,10 @@ export function useDeliveryBodyState({
     // For now, use the first journey/broadcast ID if arrays are provided
     // TODO: Update backend to support arrays of journey and broadcast IDs
     const resolvedJourneyId =
-      journeyId ||
+      journeyId ??
       (journeyIds && journeyIds.length > 0 ? journeyIds[0] : undefined);
     const resolvedBroadcastId =
-      broadcastId ||
+      broadcastId ??
       (broadcastIds && broadcastIds.length > 0 ? broadcastIds[0] : undefined);
 
     return {
