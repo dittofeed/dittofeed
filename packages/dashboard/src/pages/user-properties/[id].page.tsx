@@ -50,7 +50,6 @@ import { v4 as uuidv4, validate } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
 import { EditableTitle } from "../../components/editableName/v2";
-import { ReturnLink } from "../../components/returnNavigation";
 import { SubtleHeader } from "../../components/headers";
 import InfoTooltip from "../../components/infoTooltip";
 import { SettingsCommand, SettingsMenu } from "../../components/settingsMenu";
@@ -1241,10 +1240,7 @@ export default function NewUserProperty() {
   return (
     <>
       <DashboardContent>
-        <Stack sx={{ width: "100%", height: "100%" }}>
-          <ReturnLink />
-          {body}
-        </Stack>
+        <Stack sx={{ width: "100%", height: "100%" }}>{body}</Stack>
       </DashboardContent>
       <Snackbar
         open={snackbarOpen}

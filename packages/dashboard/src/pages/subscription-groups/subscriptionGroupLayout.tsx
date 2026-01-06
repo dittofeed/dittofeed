@@ -3,7 +3,6 @@ import Stack from "@mui/material/Stack";
 import Tabs from "@mui/material/Tabs";
 
 import DashboardContent from "../../components/dashboardContent";
-import { ReturnLink } from "../../components/returnNavigation";
 import TabLink from "../../components/tabLink";
 
 export enum SubscriptionGroupTabLabel {
@@ -32,7 +31,6 @@ export default function SubscriptionGroupLayout({
   return (
     <DashboardContent>
       <Stack direction="column" sx={{ width: "100%", padding: 1 }}>
-        <ReturnLink />
         <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
           <Tabs value={tabValue}>
             <TabLink

@@ -27,18 +27,28 @@ export default function ReturnLink(_props: ReturnLinkProps) {
 
   return (
     <Button
-      startIcon={<ArrowBackIcon />}
+      startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
       onClick={handleClick}
       disabled={isNavigating}
       size="small"
-      sx={{ mb: 1, textTransform: "none" }}
+      sx={{
+        ml: 2,
+        flexShrink: 0,
+        textTransform: "none",
+        bgcolor: "grey.100",
+        color: "text.secondary",
+        "&:hover": {
+          bgcolor: "grey.200",
+        },
+        px: 1.5,
+        py: 0.5,
+        borderRadius: 1,
+        whiteSpace: "nowrap",
+      }}
     >
-      <Stack direction="row" spacing={0.5} alignItems="center">
-        <Typography variant="body2">Back to</Typography>
-        <Typography variant="body2" fontWeight="medium">
-          {returnInfo.returnLabel}
-        </Typography>
-      </Stack>
+      <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
+        Back to {returnInfo.returnLabel}
+      </Typography>
     </Button>
   );
 }
