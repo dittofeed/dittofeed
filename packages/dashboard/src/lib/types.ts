@@ -103,6 +103,7 @@ export enum ResourceType {
   SubscriptionGroup = "SubscriptionGroup",
   MessageTemplate = "MessageTemplate",
   Journey = "Journey",
+  UserProperty = "UserProperty",
 }
 
 export type PropsWithInitialState<T = object> = {

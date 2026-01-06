@@ -62,6 +62,7 @@ export default function ResourceSelect({
       segments: resourceType === ResourceType.Segment,
       subscriptionGroups: resourceType === ResourceType.SubscriptionGroup,
       journeys: resourceType === ResourceType.Journey,
+      userProperties: resourceType === ResourceType.UserProperty,
     },
     {
       // Only enable the query for the specific resource type
@@ -107,6 +108,13 @@ export default function ResourceSelect({
           name: j.name,
         }));
       }
+      case ResourceType.UserProperty: {
+        const userProperties = data?.userProperties ?? [];
+        return userProperties.map((up) => ({
+          id: up.id,
+          name: up.name,
+        }));
+      }
       default:
         return [];
     }
@@ -149,6 +157,8 @@ export default function ResourceSelect({
         return "Subscription Group";
       case ResourceType.Journey:
         return "Journey";
+      case ResourceType.UserProperty:
+        return "User Property";
       default:
         return "Resource";
     }

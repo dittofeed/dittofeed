@@ -42,7 +42,6 @@ import {
   SignalWireSenderOverrideType,
   SmsProviderType,
   TwilioSenderOverrideType,
-  UserPropertyResource,
   WorkspaceWideEmailProviders,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useCallback, useMemo } from "react";
@@ -61,7 +60,6 @@ import {
 } from "../../lib/types";
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
 import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
-import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
 import ChannelProviderAutocomplete from "../channelProviderAutocomplete";
 import DurationSelect from "../durationSelect";
 import {
@@ -845,10 +843,10 @@ function DelayNodeFields({
   nodeProps: DelayUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData } = useAppStorePick(["updateJourneyNodeData"]);
-  const { data: userProperties } = useUserPropertiesQuery({
-    resourceType: "Declarative",
-  });
+  const { updateJourneyNodeData, journeyName } = useAppStorePick([
+    "updateJourneyNodeData",
+    "journeyName",
+  ]);
   let variant: React.ReactElement;
   const nodeVariant = nodeProps.variant;
   switch (nodeVariant.type) {
@@ -977,37 +975,27 @@ function DelayNodeFields({
       break;
     }
     case DelayVariantType.UserProperty: {
-      const userProperty =
-        userProperties?.userProperties.find(
-          (p) => p.id === nodeVariant.userProperty,
-        ) ?? null;
-      const onUserPropertyChangeHandler = (
-        _event: unknown,
-        up: UserPropertyResource | null,
-      ) => {
-        updateJourneyNodeData(nodeId, (node) => {
-          if (
-            node.data.nodeTypeProps.type !== JourneyNodeType.DelayNode ||
-            node.data.nodeTypeProps.variant.type !==
-              DelayVariantType.UserProperty
-          ) {
-            return;
-          }
-          node.data.nodeTypeProps.variant.userProperty = up?.id ?? undefined;
-        });
-      };
-
       variant = (
         <>
-          <Autocomplete
-            value={userProperty}
-            options={userProperties?.userProperties ?? []}
-            getOptionLabel={getLabel}
-            onChange={onUserPropertyChangeHandler}
-            renderInput={(params) => (
-              <TextField {...params} label="User Property" variant="outlined" />
-            )}
+          <ResourceSelect
+            resourceType={ResourceType.UserProperty}
+            value={nodeVariant.userProperty ?? null}
+            onChange={(resourceId) => {
+              updateJourneyNodeData(nodeId, (node) => {
+                if (
+                  node.data.nodeTypeProps.type !== JourneyNodeType.DelayNode ||
+                  node.data.nodeTypeProps.variant.type !==
+                    DelayVariantType.UserProperty
+                ) {
+                  return;
+                }
+                node.data.nodeTypeProps.variant.userProperty =
+                  resourceId ?? undefined;
+              });
+            }}
             disabled={disabled}
+            label="User Property"
+            currentPageLabel={journeyName || "Journey"}
           />
           <FormControlLabel
             control={

@@ -34,5 +34,7 @@ export function getResourceUrl(
     }
     case ResourceType.Journey:
       return `/journeys/v2?id=${resourceId}`;
+    case ResourceType.UserProperty:
+      return `/user-properties/${resourceId}`;
   }
 }
