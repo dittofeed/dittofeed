@@ -1,3 +1,4 @@
+import { Stack } from "@mui/material";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -7,6 +8,7 @@ import { validate } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
 import JourneyV2 from "../../components/journeys/v2";
+import { ReturnLink } from "../../components/returnNavigation";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
@@ -56,7 +58,10 @@ export default function JourneyPageV2() {
 
   return (
     <DashboardContent>
-      <JourneyV2 id={id} />
+      <Stack sx={{ height: "100%", width: "100%" }}>
+        <ReturnLink fallbackPath="/journeys" fallbackLabel="Journeys" />
+        <JourneyV2 id={id} />
+      </Stack>
     </DashboardContent>
   );
 }
