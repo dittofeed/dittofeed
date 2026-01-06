@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 
 import DashboardContent from "../dashboardContent";
+import { ReturnLink } from "../returnNavigation";
 
 export default function TemplatePageContent({
   children,
@@ -9,7 +10,10 @@ export default function TemplatePageContent({
 }) {
   return (
     <DashboardContent>
-      <Box sx={{ padding: 1, width: "100%", height: "100%" }}>{children}</Box>
+      <Box sx={{ padding: 1, width: "100%", height: "100%" }}>
+        <ReturnLink fallbackPath="/templates" fallbackLabel="Templates" />
+        {children}
+      </Box>
     </DashboardContent>
   );
 }

@@ -35,7 +35,6 @@ import {
   EntryNode,
   JourneyNodeType,
   JourneyUiNodeType,
-  MessageTemplateResource,
   MobilePushProviderType,
   PartialSegmentResource,
   SavedSegmentResource,
@@ -56,10 +55,10 @@ import {
   JourneyUiNodeDefinitionProps,
   MessageUiNodeProps,
   RandomCohortUiNodeProps,
+  ResourceType,
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
 } from "../../lib/types";
-import { useMessageTemplatesQuery } from "../../lib/useMessageTemplatesQuery";
 import { useSegmentsQuery } from "../../lib/useSegmentsQuery";
 import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
 import { useUserPropertiesQuery } from "../../lib/useUserPropertiesQuery";
@@ -71,6 +70,7 @@ import {
 } from "../eventsAutocomplete";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
+import ResourceSelect, { ResourceOption } from "../resourceSelect";
 import { SubscriptionGroupAutocompleteV2 } from "../subscriptionGroupAutocomplete";
 import { TimezoneAutocomplete } from "../timezoneAutocomplete";
 import findJourneyNode from "./findJourneyNode";
@@ -408,10 +408,6 @@ function EntryNodeFields({
   );
 }
 
-function getTemplateLabel(tr: MessageTemplateResource) {
-  return tr.name;
-}
-
 function MessageNodeFields({
   nodeId,
   nodeProps,
@@ -421,14 +417,13 @@ function MessageNodeFields({
   nodeProps: MessageUiNodeProps;
   disabled?: boolean;
 }) {
-  const { enableMobilePush, updateJourneyNodeData } = useAppStorePick([
-    "enableMobilePush",
-    "updateJourneyNodeData",
-  ]);
+  const { enableMobilePush, updateJourneyNodeData, journeyName } =
+    useAppStorePick([
+      "enableMobilePush",
+      "updateJourneyNodeData",
+      "journeyName",
+    ]);
   const { data: subscriptionGroups } = useSubscriptionGroupsQuery();
-  const { data: messageTemplates } = useMessageTemplatesQuery({
-    resourceType: "Declarative",
-  });
 
   const onNameChangeHandler: React.ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement
@@ -442,25 +437,19 @@ function MessageNodeFields({
   };
 
   const onTemplateChangeHandler = (
-    _event: unknown,
-    template: MessageTemplateResource | null,
+    _resourceId: string | null,
+    resource: ResourceOption | null,
   ) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
       if (props.type === JourneyNodeType.MessageNode) {
-        props.templateId = template?.id;
+        props.templateId = resource?.id;
         if (props.name.length === 0) {
-          props.name = template?.name ?? "";
+          props.name = resource?.name ?? "";
         }
       }
     });
   };
-
-  const templates = messageTemplates
-    ? messageTemplates.filter((t) => t.type === nodeProps.channel)
-    : [];
-
-  const template = templates.find((t) => t.id === nodeProps.templateId) ?? null;
 
   const onChannelChangeHandler: SelectInputProps<ChannelType>["onChange"] = (
     e,
@@ -759,15 +748,14 @@ function MessageNodeFields({
           });
         }}
       />
-      <Autocomplete
-        value={template}
-        options={templates}
-        disabled={disabled}
-        getOptionLabel={getTemplateLabel}
+      <ResourceSelect
+        resourceType={ResourceType.MessageTemplate}
+        value={nodeProps.templateId ?? null}
         onChange={onTemplateChangeHandler}
-        renderInput={(params) => (
-          <TextField {...params} label="Template" variant="outlined" />
-        )}
+        channel={nodeProps.channel}
+        disabled={disabled}
+        label="Template"
+        currentPageLabel={journeyName || "Journey"}
       />
       {nodeProps.templateId ? (
         <TextField

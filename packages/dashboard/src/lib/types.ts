@@ -97,6 +97,14 @@ export {
   type WaitForUiNodeProps,
 };
 
+// Resource types for ResourceSelect component
+export enum ResourceType {
+  Segment = "Segment",
+  SubscriptionGroup = "SubscriptionGroup",
+  MessageTemplate = "MessageTemplate",
+  Journey = "Journey",
+}
+
 export type PropsWithInitialState<T = object> = {
   serverInitialState: PreloadedState;
 } & T;
