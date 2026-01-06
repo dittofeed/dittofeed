@@ -152,7 +152,7 @@ export const DEFAULT_SUBSCRIPTION_TEMPLATE = `<!DOCTYPE html>
       width: 18px;
       height: 18px;
       cursor: pointer;
-      accent-color: #0a0a0a;
+      accent-color: #0858D9;
     }
     .channel-label span {
       font-size: 1rem;
@@ -176,7 +176,7 @@ export const DEFAULT_SUBSCRIPTION_TEMPLATE = `<!DOCTYPE html>
       width: 16px;
       height: 16px;
       cursor: pointer;
-      accent-color: #0a0a0a;
+      accent-color: #0858D9;
     }
     .subscription-label span {
       font-size: 0.875rem;
@@ -207,16 +207,17 @@ export const DEFAULT_SUBSCRIPTION_TEMPLATE = `<!DOCTYPE html>
       background: #f5f5f5;
     }
     .btn-primary {
-      background: #0a0a0a;
-      border: 1px solid #0a0a0a;
+      background: #0858D9;
+      border: 1px solid #0858D9;
       color: white;
     }
     .btn-primary:hover {
-      background: #262626;
+      background: #0747b3;
+      border-color: #0747b3;
     }
     .btn-primary:disabled {
-      background: #a3a3a3;
-      border-color: #a3a3a3;
+      background: #7fadeb;
+      border-color: #7fadeb;
       cursor: not-allowed;
     }
     .df-success-message {
