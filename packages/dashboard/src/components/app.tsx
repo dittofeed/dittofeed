@@ -14,6 +14,7 @@ import { Provider as StoreProvider, useCreateStore } from "../lib/appStore";
 import createEmotionCache from "../lib/createEmotionCache";
 import { PreloadedState } from "../lib/types";
 import ThemeCustomization from "../themeCustomization";
+import { CommandPaletteProvider } from "./commandPalette";
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
@@ -230,7 +231,9 @@ export default function App({
           <SnackbarProvider preventDuplicate>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <QueryClientProvider client={queryClient}>
-                <Component {...pageProps} />
+                <CommandPaletteProvider>
+                  <Component {...pageProps} />
+                </CommandPaletteProvider>
               </QueryClientProvider>
             </LocalizationProvider>
           </SnackbarProvider>

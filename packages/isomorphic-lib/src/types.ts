@@ -5794,6 +5794,7 @@ export const GetResourcesResponse = Type.Object({
       Type.Object({
         id: Type.String(),
         name: Type.String(),
+        channel: Type.Optional(Type.Enum(ChannelType)),
       }),
     ),
   ),

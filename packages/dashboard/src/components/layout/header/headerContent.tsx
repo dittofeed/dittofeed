@@ -1,5 +1,5 @@
 // material-ui
-import { GitHub, Lock } from "@mui/icons-material";
+import { GitHub, Lock, Search as SearchIcon } from "@mui/icons-material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import {
   Box,
@@ -23,6 +23,7 @@ import {
 import React, { lazy, Suspense } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
+import { useCommandPaletteContext } from "../../commandPalette";
 import ExternalLink from "../../externalLink";
 import { GitBranchIcon } from "../../gitBranchIcon";
 import MobileSection from "./headerContent/mobileSection";
@@ -309,10 +310,61 @@ function HeaderContent() {
     theme.breakpoints.down("md"),
   );
   const { features } = useAppStorePick(["features"]);
+  const { setOpen: openCommandPalette } = useCommandPaletteContext();
 
   return (
     <>
       <BranchSelect />
+      <Box
+        onClick={() => openCommandPalette(true)}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          color: "text.secondary",
+          bgcolor: "grey.100",
+          borderRadius: 1,
+          px: 1.5,
+          py: 0.75,
+          ml: 1,
+          cursor: "pointer",
+          "&:hover": {
+            bgcolor: "grey.200",
+          },
+        }}
+        title="Search (Cmd+K)"
+      >
+        <SearchIcon sx={{ fontSize: 18 }} />
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            display: { xs: "none", sm: "block" },
+          }}
+        >
+          Search
+        </Typography>
+        <Box
+          component="kbd"
+          sx={{
+            display: { xs: "none", md: "flex" },
+            alignItems: "center",
+            gap: 0.25,
+            px: 0.75,
+            py: 0.25,
+            borderRadius: 0.5,
+            bgcolor: "background.paper",
+            border: 1,
+            borderColor: "divider",
+            fontSize: "0.7rem",
+            fontFamily: "inherit",
+            color: "text.secondary",
+          }}
+        >
+          <span>⌘</span>
+          <span>K</span>
+        </Box>
+      </Box>
       <Box sx={{ width: "100%", ml: { xs: 0, md: 1 } }} />
       {matchesXs && <Box sx={{ width: "100%", ml: 1 }} />}
       <GitActionsSelect />
