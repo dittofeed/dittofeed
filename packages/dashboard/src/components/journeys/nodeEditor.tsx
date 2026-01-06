@@ -71,7 +71,6 @@ import {
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
 import ResourceSelect, { ResourceOption } from "../resourceSelect";
-import { SubscriptionGroupAutocompleteV2 } from "../subscriptionGroupAutocomplete";
 import { TimezoneAutocomplete } from "../timezoneAutocomplete";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
@@ -93,40 +92,26 @@ function SegmentSplitNodeFields({
   nodeProps: SegmentSplitUiNodeProps;
   disabled?: boolean;
 }) {
-  const { updateJourneyNodeData } = useAppStorePick(["updateJourneyNodeData"]);
-  const { data: segmentsData } = useSegmentsQuery({
-    resourceType: "Declarative",
-  });
-
-  const onSegmentChangeHandler = (
-    _event: unknown,
-    segment: PartialSegmentResource | null,
-  ) => {
-    updateJourneyNodeData(nodeId, (node) => {
-      const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.SegmentSplitNode) {
-        props.segmentId = segment?.id;
-      }
-    });
-  };
-
-  if (!segmentsData) {
-    return null;
-  }
-
-  const segment =
-    segmentsData.segments.find((t) => t.id === nodeProps.segmentId) ?? null;
+  const { updateJourneyNodeData, journeyName } = useAppStorePick([
+    "updateJourneyNodeData",
+    "journeyName",
+  ]);
 
   return (
-    <Autocomplete
-      value={segment}
-      options={segmentsData.segments}
-      getOptionLabel={getLabel}
-      onChange={onSegmentChangeHandler}
+    <ResourceSelect
+      resourceType={ResourceType.Segment}
+      value={nodeProps.segmentId ?? null}
+      onChange={(resourceId) => {
+        updateJourneyNodeData(nodeId, (node) => {
+          const props = node.data.nodeTypeProps;
+          if (props.type === JourneyNodeType.SegmentSplitNode) {
+            props.segmentId = resourceId ?? undefined;
+          }
+        });
+      }}
       disabled={disabled}
-      renderInput={(params) => (
-        <TextField {...params} label="segment" variant="outlined" />
-      )}
+      label="Segment"
+      currentPageLabel={journeyName || "Journey"}
     />
   );
 }
@@ -735,18 +720,21 @@ function MessageNodeFields({
           </MenuItem>
         </Select>
       </FormControl>
-      <SubscriptionGroupAutocompleteV2
-        subscriptionGroupId={nodeProps.subscriptionGroupId}
-        channel={nodeProps.channel}
-        disabled={disabled}
-        handler={(subscriptionGroup) => {
+      <ResourceSelect
+        resourceType={ResourceType.SubscriptionGroup}
+        value={nodeProps.subscriptionGroupId ?? null}
+        onChange={(resourceId) => {
           updateJourneyNodeData(nodeId, (node) => {
             const props = node.data.nodeTypeProps;
             if (props.type === JourneyNodeType.MessageNode) {
-              props.subscriptionGroupId = subscriptionGroup?.id;
+              props.subscriptionGroupId = resourceId ?? undefined;
             }
           });
         }}
+        channel={nodeProps.channel}
+        disabled={disabled}
+        label="Subscription Group"
+        currentPageLabel={journeyName || "Journey"}
       />
       <ResourceSelect
         resourceType={ResourceType.MessageTemplate}
