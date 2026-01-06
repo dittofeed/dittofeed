@@ -413,7 +413,7 @@ export async function getResources({
     null | Promise<{ id: string; name: string }[]>,
     null | Promise<{ id: string; name: string; channel: string }[]>,
     null | Promise<MinimalJourneysResource[]>,
-    null | Promise<{ id: string; name: string }[]>,
+    null | Promise<{ id: string; name: string; definition: unknown }[]>,
     null | Promise<
       { id: string; name: string; version: BroadcastResourceVersion | null }[]
     >,
@@ -467,6 +467,7 @@ export async function getResources({
           columns: {
             id: true,
             name: true,
+            definition: true,
           },
           where: and(
             eq(schema.messageTemplate.workspaceId, workspaceId),
@@ -523,10 +524,18 @@ export async function getResources({
     response.journeys = journeys;
   }
   if (messageTemplates) {
-    response.messageTemplates = messageTemplates.map((messageTemplate) => ({
-      id: messageTemplate.id,
-      name: messageTemplate.name,
-    }));
+    response.messageTemplates = messageTemplates.map((messageTemplate) => {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const definition = messageTemplate.definition as
+        | { type?: ChannelType }
+        | null
+        | undefined;
+      return {
+        id: messageTemplate.id,
+        name: messageTemplate.name,
+        channel: definition?.type,
+      };
+    });
   }
 
   if (broadcasts) {

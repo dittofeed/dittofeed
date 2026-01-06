@@ -1,5 +1,5 @@
 // material-ui
-import { GitHub, Lock } from "@mui/icons-material";
+import { GitHub, Lock, Search as SearchIcon } from "@mui/icons-material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import {
   Box,
@@ -23,6 +23,7 @@ import {
 import React, { lazy, Suspense } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
+import { useCommandPaletteContext } from "../../commandPalette";
 import ExternalLink from "../../externalLink";
 import { GitBranchIcon } from "../../gitBranchIcon";
 import MobileSection from "./headerContent/mobileSection";
@@ -309,10 +310,22 @@ function HeaderContent() {
     theme.breakpoints.down("md"),
   );
   const { features } = useAppStorePick(["features"]);
+  const { setOpen: openCommandPalette } = useCommandPaletteContext();
 
   return (
     <>
       <BranchSelect />
+      <IconButton
+        onClick={() => openCommandPalette(true)}
+        sx={{
+          color: "text.primary",
+          bgcolor: "grey.100",
+          ml: 1,
+        }}
+        title="Search (Cmd+K)"
+      >
+        <SearchIcon />
+      </IconButton>
       <Box sx={{ width: "100%", ml: { xs: 0, md: 1 } }} />
       {matchesXs && <Box sx={{ width: "100%", ml: 1 }} />}
       <GitActionsSelect />
