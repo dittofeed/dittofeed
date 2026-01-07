@@ -317,6 +317,7 @@ function buildTags({
   userId?: string;
 }): Record<string, string> {
   return {
+    broadcastId: "sample-broadcast-id",
     journeyId: "sample-journey-id",
     messageId: "sample-message-id",
     nodeId: "sample-node-id",
