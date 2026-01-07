@@ -104,6 +104,29 @@ Your Liquid template has access to the following variables:
 }
 ```
 
+## Custom Liquid Tags
+
+### `subscription_hidden_fields`
+
+The `subscription_hidden_fields` tag is a custom Liquid tag available only in subscription management page templates. It renders the hidden form fields required for form submission authentication.
+
+```html
+{% subscription_hidden_fields %}
+```
+
+This tag is **required** in your custom template for form submissions to work. Place it inside your `<form>` element.
+
+The tag renders:
+
+```html
+<input type="hidden" name="w" value="workspace-id">
+<input type="hidden" name="h" value="auth-hash">
+<input type="hidden" name="i" value="user@example.com">
+<input type="hidden" name="ik" value="email">
+```
+
+Without this tag, the form cannot authenticate the user or identify which workspace the submission belongs to.
+
 ## CSS Class API
 
 The JavaScript behavior attaches to specific CSS classes. Your custom template must include elements with these classes for the interactive features to work.
