@@ -46,16 +46,15 @@ const getSubscriptionGroupsSSP: GetServerSideProps<PropsWithInitialState> =
       serverInitialState.subscriptionGroups = [resource];
       serverInitialState.editedSubscriptionGroup = resource;
 
-      const segment = subscriptionGroup.segments[0];
+      // Load all segments associated with this subscription group
+      const segmentResources = subscriptionGroup.segments
+        .map((segment) => toSegmentResource(segment).unwrapOr(null))
+        .filter((s): s is NonNullable<typeof s> => s !== null);
 
-      const segmentResource = segment
-        ? toSegmentResource(segment).unwrapOr(null)
-        : null;
-
-      if (segmentResource) {
+      if (segmentResources.length > 0) {
         serverInitialState.segments = {
           type: CompletionStatus.Successful,
-          value: [segmentResource],
+          value: segmentResources,
         };
       }
     } else {

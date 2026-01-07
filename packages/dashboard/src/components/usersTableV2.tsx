@@ -681,6 +681,7 @@ export type UsersTableProps = Omit<GetUsersRequest, "workspaceId"> & {
   reloadPeriodMs?: number;
   userUriTemplate?: string;
   hideControls?: boolean;
+  negativeSegmentFilter?: string[];
 };
 
 // ============================================================================
@@ -1140,6 +1141,7 @@ function UsersTableInner({
 export default function UsersTableV2({
   segmentFilter,
   subscriptionGroupFilter,
+  negativeSegmentFilter,
   cursor,
   direction,
   sortBy,
@@ -1152,6 +1154,7 @@ export default function UsersTableV2({
     const initialState: UsersTableStoreInitialState = {
       staticSegmentIds: segmentFilter,
       staticSubscriptionGroupIds: subscriptionGroupFilter,
+      negativeSegmentIds: negativeSegmentFilter,
       cursor: cursor ?? undefined,
       direction: direction ?? undefined,
       sortBy: sortBy ?? undefined,

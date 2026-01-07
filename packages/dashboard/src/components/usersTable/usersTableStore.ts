@@ -26,6 +26,8 @@ export interface UserFilterState {
   subscriptionGroups: Set<string>;
   /** Subscription group ids that are fixed and cannot be removed by the user */
   staticSubscriptionGroups: Set<string>;
+  /** Set of segment ids to exclude users from (negative filter) */
+  negativeSegments: Set<string>;
 }
 
 export interface PaginationState {
@@ -116,6 +118,8 @@ export interface UsersTableStoreInitialState {
   staticSegmentIds?: string[];
   /** Initial subscription group IDs to filter by (static, cannot be removed) */
   staticSubscriptionGroupIds?: string[];
+  /** Initial negative segment IDs (users NOT in these segments) */
+  negativeSegmentIds?: string[];
   /** Initial cursor for pagination */
   cursor?: string;
   /** Initial pagination direction */
@@ -137,6 +141,7 @@ function getInitialState(
   const staticSubscriptionGroups = new Set(
     initialState?.staticSubscriptionGroupIds ?? [],
   );
+  const negativeSegments = new Set(initialState?.negativeSegmentIds ?? []);
 
   return {
     // Filter state
@@ -145,6 +150,7 @@ function getInitialState(
     staticSegments,
     subscriptionGroups: new Set(staticSubscriptionGroups),
     staticSubscriptionGroups,
+    negativeSegments,
 
     // Pagination state
     cursor: initialState?.cursor ?? null,
@@ -423,6 +429,7 @@ export function createUsersTableStore(
           segments,
           subscriptionGroups,
           userProperties,
+          negativeSegments,
         } = get();
 
         const userPropertyFilter: GetUsersUserPropertyFilter | undefined =
@@ -440,6 +447,10 @@ export function createUsersTableStore(
           sortBy: sortBy ?? undefined,
           sortOrder,
           segmentFilter: segments.size > 0 ? Array.from(segments) : undefined,
+          negativeSegmentFilter:
+            negativeSegments.size > 0
+              ? Array.from(negativeSegments)
+              : undefined,
           subscriptionGroupFilter:
             subscriptionGroups.size > 0
               ? Array.from(subscriptionGroups)
@@ -451,7 +462,7 @@ export function createUsersTableStore(
       },
 
       getFilterParams: () => {
-        const { segments, subscriptionGroups, userProperties } = get();
+        const { segments, subscriptionGroups, userProperties, negativeSegments } = get();
 
         const userPropertyFilter: GetUsersUserPropertyFilter | undefined =
           userProperties.size > 0
@@ -463,6 +474,10 @@ export function createUsersTableStore(
 
         return {
           segmentFilter: segments.size > 0 ? Array.from(segments) : undefined,
+          negativeSegmentFilter:
+            negativeSegments.size > 0
+              ? Array.from(negativeSegments)
+              : undefined,
           subscriptionGroupFilter:
             subscriptionGroups.size > 0
               ? Array.from(subscriptionGroups)

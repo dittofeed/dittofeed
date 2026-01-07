@@ -8,13 +8,17 @@ import TabLink from "../../components/tabLink";
 export enum SubscriptionGroupTabLabel {
   Configure = "Configure",
   Users = "Users",
+  UsersNotInGroup = "Not In Group",
+  UsersUnsubscribed = "Unsubscribed",
   Upload = "Upload",
 }
 
 const TabToIndex: Record<SubscriptionGroupTabLabel, number> = {
   [SubscriptionGroupTabLabel.Configure]: 0,
   [SubscriptionGroupTabLabel.Users]: 1,
-  [SubscriptionGroupTabLabel.Upload]: 2,
+  [SubscriptionGroupTabLabel.UsersNotInGroup]: 2,
+  [SubscriptionGroupTabLabel.UsersUnsubscribed]: 3,
+  [SubscriptionGroupTabLabel.Upload]: 4,
 };
 
 export default function SubscriptionGroupLayout({
@@ -44,9 +48,19 @@ export default function SubscriptionGroupLayout({
               index={1}
             />
             <TabLink
+              label="Not In Group"
+              href={`/subscription-groups/users-not-in-group/${id}`}
+              index={2}
+            />
+            <TabLink
+              label="Unsubscribed"
+              href={`/subscription-groups/users-unsubscribed/${id}`}
+              index={3}
+            />
+            <TabLink
               label="Upload"
               href={`/subscription-groups/upload/${id}`}
-              index={2}
+              index={4}
             />
           </Tabs>
         </Box>
