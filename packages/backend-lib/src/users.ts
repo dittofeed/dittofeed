@@ -29,6 +29,7 @@ import { deserializeCursor, serializeCursor } from "./pagination";
 import {
   getSubscriptionGroupDetails,
   getSubscriptionGroupsWithAssignments,
+  getSubscriptionGroupUnsubscribedSegmentName,
   inSubscriptionGroup,
 } from "./subscriptionGroups";
 import {
@@ -530,6 +531,7 @@ export async function getUsers(
     limit = 10,
     subscriptionGroupFilter,
     negativeSubscriptionGroupFilter,
+    unsubscribedFromFilter,
     includeSubscriptions,
     sortBy,
     sortOrder = SortOrderEnum.Asc,
@@ -612,16 +614,20 @@ export async function getUsers(
       }
     }
 
-    let subscriptionGroups = new Map<
+    const subscriptionGroups = new Map<
       string,
       {
         type: SubscriptionGroupType;
         segmentId: string;
       }
     >();
+    // Map from subscription group ID to unsubscribed segment ID
+    const unsubscribedSegments = new Map<string, string>();
+
     const allSubscriptionGroupIds = [
       ...(subscriptionGroupFilter ?? []),
       ...(negativeSubscriptionGroupFilter ?? []),
+      ...(unsubscribedFromFilter ?? []),
     ];
     if (allSubscriptionGroupIds.length > 0) {
       const subscriptionGroupsRows = await db()
@@ -629,6 +635,7 @@ export async function getUsers(
           id: dbSubscriptionGroup.id,
           type: dbSubscriptionGroup.type,
           segmentId: dbSegment.id,
+          segmentName: dbSegment.name,
         })
         .from(dbSubscriptionGroup)
         .innerJoin(
@@ -636,26 +643,26 @@ export async function getUsers(
           eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
         )
         .where(inArray(dbSubscriptionGroup.id, allSubscriptionGroupIds));
-      subscriptionGroups = subscriptionGroupsRows.reduce(
-        (acc, subscriptionGroup) => {
+
+      for (const row of subscriptionGroupsRows) {
+        const expectedUnsubscribedName =
+          getSubscriptionGroupUnsubscribedSegmentName(row.id);
+
+        if (row.segmentName === expectedUnsubscribedName) {
+          // This is the unsubscribed segment
+          unsubscribedSegments.set(row.id, row.segmentId);
+        } else {
+          // This is the main segment
           const subscriptionGroupType =
-            subscriptionGroup.type === SubscriptionGroupType.OptOut
+            row.type === SubscriptionGroupType.OptOut
               ? SubscriptionGroupType.OptOut
               : SubscriptionGroupType.OptIn;
-          acc.set(subscriptionGroup.id, {
+          subscriptionGroups.set(row.id, {
             type: subscriptionGroupType,
-            segmentId: subscriptionGroup.segmentId,
+            segmentId: row.segmentId,
           });
-          return acc;
-        },
-        new Map<
-          string,
-          {
-            type: SubscriptionGroupType;
-            segmentId: string;
-          }
-        >(),
-      );
+        }
+      }
     }
 
     const buildWorkspaceIdClause = (qb: ClickHouseQueryBuilder) =>
@@ -783,6 +790,40 @@ export async function getUsers(
         }
       }
 
+      // Unsubscribed from filter: users who have EXPLICITLY unsubscribed from the subscription group
+      // This uses the unsubscribed segment (not the main subscription segment)
+      const unsubscribedFromIds = unsubscribedFromFilter ?? [];
+      for (const subscriptionGroupId of unsubscribedFromIds) {
+        const unsubscribedSegmentId =
+          unsubscribedSegments.get(subscriptionGroupId);
+        if (!unsubscribedSegmentId) {
+          logger().error(
+            {
+              subscriptionGroupId,
+              workspaceId,
+            },
+            "unsubscribed segment not found for subscription group",
+          );
+          if (throwOnError) {
+            throw new Error(
+              "unsubscribed segment not found for subscription group",
+            );
+          }
+          continue;
+        }
+
+        computedPropertyIds.push(unsubscribedSegmentId);
+
+        const varName = qb.getVariableName();
+        selectUserIdColumns.push(
+          `argMax(if(computed_property_id = ${qb.addQueryValue(unsubscribedSegmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+        );
+
+        // User is in unsubscribed segment if segment_value == True
+        havingSubClauses.push(`${varName} == True`);
+        hasStrictFilter = true;
+      }
+
       // [OPTIMIZATION] Implicit Anchor
       // If we have no filters (or only Opt-Out filters), we must anchor on the 'id' property
       // to prevent a full table scan. The 'id' User Property serves as a perfect index of all users.
@@ -816,7 +857,8 @@ export async function getUsers(
         (negativeSegmentFilter && negativeSegmentFilter.length > 0) ||
         (subscriptionGroupFilter && subscriptionGroupFilter.length > 0) ||
         (negativeSubscriptionGroupFilter &&
-          negativeSubscriptionGroupFilter.length > 0)
+          negativeSubscriptionGroupFilter.length > 0) ||
+        (unsubscribedFromFilter && unsubscribedFromFilter.length > 0)
       ) {
         propertyTypes.push("'segment'");
       }
@@ -1540,6 +1582,7 @@ export async function getUsersCount({
   userIds,
   userPropertyFilter,
   subscriptionGroupFilter,
+  unsubscribedFromFilter,
 }: Omit<GetUsersRequest, "cursor" | "direction" | "limit">): Promise<
   Result<GetUsersCountResponse, Error>
 > {
@@ -1655,6 +1698,59 @@ export async function getUsersCount({
     }
   }
 
+  // Unsubscribed from filter: users who have EXPLICITLY unsubscribed from the subscription group
+  if (unsubscribedFromFilter && unsubscribedFromFilter.length > 0) {
+    // Query subscription groups and their segments (including unsubscribed segments)
+    const subscriptionGroupsRows = await db()
+      .select({
+        id: dbSubscriptionGroup.id,
+        segmentId: dbSegment.id,
+        segmentName: dbSegment.name,
+      })
+      .from(dbSubscriptionGroup)
+      .innerJoin(
+        dbSegment,
+        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
+      )
+      .where(inArray(dbSubscriptionGroup.id, unsubscribedFromFilter));
+
+    // Build a map from subscription group ID to unsubscribed segment ID
+    const unsubscribedSegments = new Map<string, string>();
+    for (const row of subscriptionGroupsRows) {
+      const expectedUnsubscribedName =
+        getSubscriptionGroupUnsubscribedSegmentName(row.id);
+      if (row.segmentName === expectedUnsubscribedName) {
+        unsubscribedSegments.set(row.id, row.segmentId);
+      }
+    }
+
+    for (const subscriptionGroupId of unsubscribedFromFilter) {
+      const unsubscribedSegmentId =
+        unsubscribedSegments.get(subscriptionGroupId);
+      if (!unsubscribedSegmentId) {
+        logger().error(
+          {
+            subscriptionGroupId,
+            workspaceId,
+          },
+          "unsubscribed segment not found for subscription group",
+        );
+        continue;
+      }
+
+      computedPropertyIds.push(unsubscribedSegmentId);
+
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(unsubscribedSegmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+      );
+
+      // User is in unsubscribed segment if segment_value == True
+      havingSubClauses.push(`${varName} == True`);
+      hasStrictFilter = true;
+    }
+  }
+
   // [OPTIMIZATION] Implicit Anchor
   // If we have no filters (or only Opt-Out filters), we must anchor on the 'id' property
   // to prevent a full table scan. The 'id' User Property serves as a perfect index of all users.
@@ -1685,7 +1781,8 @@ export async function getUsersCount({
   const propertyTypes: string[] = [];
   if (
     (segmentFilter && segmentFilter.length > 0) ||
-    (subscriptionGroupFilter && subscriptionGroupFilter.length > 0)
+    (subscriptionGroupFilter && subscriptionGroupFilter.length > 0) ||
+    (unsubscribedFromFilter && unsubscribedFromFilter.length > 0)
   ) {
     propertyTypes.push("'segment'");
   }

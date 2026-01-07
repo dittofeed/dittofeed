@@ -2759,6 +2759,7 @@ export const GetUsersRequest = Type.Object({
   userIds: Type.Optional(Type.Array(UserId)),
   subscriptionGroupFilter: Type.Optional(Type.Array(Type.String())),
   negativeSubscriptionGroupFilter: Type.Optional(Type.Array(Type.String())),
+  unsubscribedFromFilter: Type.Optional(Type.Array(Type.String())),
   userPropertyFilter: Type.Optional(GetUsersUserPropertyFilter),
   workspaceId: Type.String(),
   includeSubscriptions: Type.Optional(Type.Boolean()),

@@ -12,6 +12,7 @@ import {
 } from "./db/schema";
 import { insertSegmentAssignments } from "./segments";
 import {
+  getSubscriptionGroupUnsubscribedSegmentName,
   updateUserSubscriptions,
   upsertSubscriptionGroup,
 } from "./subscriptionGroups";
@@ -2101,6 +2102,176 @@ describe("users", () => {
           // User2 is in group1 and in group2 -> excluded
           expect(result.users).toHaveLength(1);
           expect(result.users[0]?.id).toBe(userId1);
+        });
+      });
+    });
+
+    describe("when an unsubscribedFromFilter is passed", () => {
+      let userId1: string;
+      let userPropertyId: string;
+      let subscriptionGroupId: string;
+      let unsubscribedSegmentId: string;
+
+      beforeEach(async () => {
+        userId1 = randomUUID();
+        userPropertyId = randomUUID();
+        subscriptionGroupId = randomUUID();
+
+        // Create user property for id
+        await db()
+          .insert(dbUserProperty)
+          .values({
+            id: userPropertyId,
+            workspaceId: workspace.id,
+            name: "id",
+            updatedAt: new Date(),
+            definition: {
+              type: UserPropertyDefinitionType.Id,
+            },
+          });
+
+        // Create subscription group (this creates both main and unsubscribed segments)
+        await upsertSubscriptionGroup({
+          id: subscriptionGroupId,
+          workspaceId: workspace.id,
+          name: "TestSubscriptionGroup",
+          type: SubscriptionGroupType.OptOut,
+          channel: ChannelType.Email,
+        });
+
+        // Get the unsubscribed segment ID
+        const unsubscribedSegmentName =
+          getSubscriptionGroupUnsubscribedSegmentName(subscriptionGroupId);
+        const segment = await db().query.segment.findFirst({
+          where: (seg, { eq, and }) =>
+            and(
+              eq(seg.workspaceId, workspace.id),
+              eq(seg.name, unsubscribedSegmentName),
+            ),
+        });
+        if (!segment) {
+          throw new Error("Unsubscribed segment not found");
+        }
+        unsubscribedSegmentId = segment.id;
+      });
+
+      describe("when a user has no unsubscribed segment assignment", () => {
+        beforeEach(async () => {
+          await insertUserPropertyAssignments([
+            {
+              userPropertyId,
+              userId: userId1,
+              workspaceId: workspace.id,
+              value: JSON.stringify(userId1),
+            },
+          ]);
+        });
+
+        it("the user is NOT included (they haven't explicitly unsubscribed)", async () => {
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              unsubscribedFromFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(result.users).toHaveLength(0);
+        });
+
+        it("getUsersCount returns 0", async () => {
+          const { userCount } = unwrap(
+            await getUsersCount({
+              workspaceId: workspace.id,
+              unsubscribedFromFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(userCount).toBe(0);
+        });
+      });
+
+      describe("when a user has explicitly unsubscribed (inSegment: true on unsubscribed segment)", () => {
+        beforeEach(async () => {
+          await Promise.all([
+            insertUserPropertyAssignments([
+              {
+                userPropertyId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                value: JSON.stringify(userId1),
+              },
+            ]),
+            insertSegmentAssignments([
+              {
+                segmentId: unsubscribedSegmentId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                inSegment: true,
+              },
+            ]),
+          ]);
+        });
+
+        it("the user IS included", async () => {
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              unsubscribedFromFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(result.users).toHaveLength(1);
+          expect(result.users[0]?.id).toBe(userId1);
+        });
+
+        it("getUsersCount returns 1", async () => {
+          const { userCount } = unwrap(
+            await getUsersCount({
+              workspaceId: workspace.id,
+              unsubscribedFromFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(userCount).toBe(1);
+        });
+      });
+
+      describe("when a user has inSegment: false on unsubscribed segment", () => {
+        beforeEach(async () => {
+          await Promise.all([
+            insertUserPropertyAssignments([
+              {
+                userPropertyId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                value: JSON.stringify(userId1),
+              },
+            ]),
+            insertSegmentAssignments([
+              {
+                segmentId: unsubscribedSegmentId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                inSegment: false,
+              },
+            ]),
+          ]);
+        });
+
+        it("the user is NOT included", async () => {
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              unsubscribedFromFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(result.users).toHaveLength(0);
+        });
+
+        it("getUsersCount returns 0", async () => {
+          const { userCount } = unwrap(
+            await getUsersCount({
+              workspaceId: workspace.id,
+              unsubscribedFromFilter: [subscriptionGroupId],
+            }),
+          );
+          expect(userCount).toBe(0);
         });
       });
     });
