@@ -5800,6 +5800,8 @@ export const GetResourcesResponse = Type.Object({
         id: Type.String(),
         name: Type.String(),
         channel: Type.Enum(ChannelType),
+        segmentId: Type.Optional(Type.String()),
+        unsubscribedSegmentId: Type.Optional(Type.String()),
       }),
     ),
   ),
