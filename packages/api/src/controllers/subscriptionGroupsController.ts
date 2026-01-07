@@ -3,6 +3,8 @@ import { Type } from "@sinclair/typebox";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import {
+  getSubscriptionGroupSegmentName,
+  getSubscriptionGroupUnsubscribedSegmentName,
   processSubscriptionGroupCsv,
   subscriptionGroupToResource,
   updateUserSubscriptions,
@@ -19,7 +21,7 @@ import {
   UpsertSubscriptionGroupResource,
   WorkspaceId,
 } from "backend-lib/src/types";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import {
   SUBSRIPTION_GROUP_ID_HEADER,
@@ -165,14 +167,65 @@ export default async function subscriptionGroupsController(
       },
     },
     async (request, reply) => {
+      const { workspaceId } = request.query;
+
       const subscriptionGroups = await db()
         .select()
         .from(schema.subscriptionGroup)
-        .where(
-          eq(schema.subscriptionGroup.workspaceId, request.query.workspaceId),
+        .where(eq(schema.subscriptionGroup.workspaceId, workspaceId));
+
+      // Fetch segments associated with subscription groups
+      const subscriptionGroupIds = subscriptionGroups.map((sg) => sg.id);
+      const relatedSegments =
+        subscriptionGroupIds.length > 0
+          ? await db().query.segment.findMany({
+              columns: {
+                id: true,
+                name: true,
+                subscriptionGroupId: true,
+              },
+              where: and(
+                eq(schema.segment.workspaceId, workspaceId),
+                isNotNull(schema.segment.subscriptionGroupId),
+                inArray(schema.segment.subscriptionGroupId, subscriptionGroupIds),
+              ),
+            })
+          : [];
+
+      // Build a map of subscriptionGroupId -> { segmentId, unsubscribedSegmentId }
+      const segmentMap = new Map<
+        string,
+        { segmentId?: string; unsubscribedSegmentId?: string }
+      >();
+      for (const segment of relatedSegments) {
+        if (!segment.subscriptionGroupId) continue;
+
+        const expectedSegmentName = getSubscriptionGroupSegmentName(
+          segment.subscriptionGroupId,
+        );
+        const expectedUnsubscribedName = getSubscriptionGroupUnsubscribedSegmentName(
+          segment.subscriptionGroupId,
         );
 
-      const resources = subscriptionGroups.map(subscriptionGroupToResource);
+        const existing = segmentMap.get(segment.subscriptionGroupId) ?? {};
+        if (segment.name === expectedSegmentName) {
+          existing.segmentId = segment.id;
+        } else if (segment.name === expectedUnsubscribedName) {
+          existing.unsubscribedSegmentId = segment.id;
+        }
+        segmentMap.set(segment.subscriptionGroupId, existing);
+      }
+
+      const resources = subscriptionGroups.map((sg) => {
+        const resource = subscriptionGroupToResource(sg);
+        const segments = segmentMap.get(sg.id);
+        return {
+          ...resource,
+          segmentId: segments?.segmentId,
+          unsubscribedSegmentId: segments?.unsubscribedSegmentId,
+        };
+      });
+
       return reply.status(200).send(resources);
     },
   );

@@ -1,6 +1,5 @@
 import { Stack, Typography } from "@mui/material";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
@@ -9,8 +8,8 @@ import UsersTableV2, {
   usersTablePaginationHandler,
   UsersTableParams,
 } from "../../../components/usersTableV2";
-import { useAppStore } from "../../../lib/appStore";
 import { PropsWithInitialState } from "../../../lib/types";
+import { useSubscriptionGroupsQuery } from "../../../lib/useSubscriptionGroupsQuery";
 import getSubscriptionGroupsSSP from "../getSubscriptionGroupsSSP";
 import SubscriptionGroupLayout, {
   SubscriptionGroupTabLabel,
@@ -23,9 +22,11 @@ export default function SubscriptionGroupUsersNotInGroup() {
   const router = useRouter();
   const id = typeof router.query.id === "string" ? router.query.id : undefined;
 
-  const segmentsResult = useAppStore((store) => store.segments);
-  const editedSubscriptionGroup = useAppStore(
-    (store) => store.editedSubscriptionGroup,
+  const { data: subscriptionGroups } = useSubscriptionGroupsQuery();
+
+  const subscriptionGroup = useMemo(
+    () => subscriptionGroups?.find((sg) => sg.id === id),
+    [subscriptionGroups, id],
   );
 
   const queryParams = useMemo(
@@ -33,22 +34,28 @@ export default function SubscriptionGroupUsersNotInGroup() {
     [router.query],
   );
 
-  const segment = useMemo(
-    () =>
-      segmentsResult.type === CompletionStatus.Successful
-        ? segmentsResult.value.find((s) => s.subscriptionGroupId === id)
-        : undefined,
-    [segmentsResult, id],
-  );
   if (!id) {
     return new Error("Missing id");
   }
 
   const onUsersTablePaginate = usersTablePaginationHandler(router);
 
-  if (!editedSubscriptionGroup) {
-    console.error("missing editedSubscriptionGroup");
-    return null;
+  // Show loading state while fetching subscription group
+  if (!subscriptionGroup) {
+    return (
+      <SubscriptionGroupLayout
+        tab={SubscriptionGroupTabLabel.UsersNotInGroup}
+        id={id}
+      >
+        <Stack
+          direction="column"
+          sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
+          spacing={3}
+        >
+          <Typography variant="body1">Loading...</Typography>
+        </Stack>
+      </SubscriptionGroupLayout>
+    );
   }
 
   return (
@@ -61,18 +68,14 @@ export default function SubscriptionGroupUsersNotInGroup() {
         sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
         spacing={3}
       >
-        {segment ? (
-          <>
-            <Typography variant="h4">
-              Users Not in &quot;{editedSubscriptionGroup.name}&quot;
-            </Typography>
-            <UsersTableV2
-              negativeSegmentFilter={[segment.id]}
-              {...queryParams}
-              onPaginationChange={onUsersTablePaginate}
-            />
-          </>
-        ) : null}
+        <Typography variant="h4">
+          Users Not in &quot;{subscriptionGroup.name}&quot;
+        </Typography>
+        <UsersTableV2
+          negativeSubscriptionGroupFilter={[subscriptionGroup.id]}
+          {...queryParams}
+          onPaginationChange={onUsersTablePaginate}
+        />
       </Stack>
     </SubscriptionGroupLayout>
   );

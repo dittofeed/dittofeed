@@ -682,6 +682,8 @@ export type UsersTableProps = Omit<GetUsersRequest, "workspaceId"> & {
   userUriTemplate?: string;
   hideControls?: boolean;
   negativeSegmentFilter?: string[];
+  // Optional name overrides for internal segments (segment ID -> display name)
+  segmentNameOverride?: Record<string, string>;
 };
 
 // ============================================================================
@@ -706,6 +708,7 @@ function UsersTableInner({
   reloadPeriodMs = 10000,
   userUriTemplate = "/users/{userId}",
   hideControls = false,
+  segmentNameOverride,
 }: UsersTableInnerProps) {
   useAppStore();
 
@@ -721,10 +724,14 @@ function UsersTableInner({
     sortOrder,
     usersCount,
     segments,
+    negativeSegments,
     subscriptionGroups,
+    negativeSubscriptionGroups,
     userProperties,
     staticSegments,
+    staticNegativeSegments,
     staticSubscriptionGroups,
+    staticNegativeSubscriptionGroups,
   } = store;
 
   const {
@@ -735,10 +742,14 @@ function UsersTableInner({
     setSortOrder,
     setStaticSegments,
     setStaticSubscriptionGroups,
+    setStaticNegativeSubscriptionGroups,
     addSegment,
     removeSegment,
+    removeNegativeSegment,
     addSubscriptionGroup,
     removeSubscriptionGroup,
+    addNegativeSubscriptionGroup,
+    removeNegativeSubscriptionGroup,
     addUserPropertyFilter,
     removeUserPropertyFilter,
     handleUsersResponse,
@@ -953,10 +964,17 @@ function UsersTableInner({
           userProperties={userProperties}
           segments={segments}
           staticSegments={staticSegments}
+          negativeSegments={negativeSegments}
+          staticNegativeSegments={staticNegativeSegments}
           subscriptionGroups={subscriptionGroups}
           staticSubscriptionGroups={staticSubscriptionGroups}
+          negativeSubscriptionGroups={negativeSubscriptionGroups}
+          staticNegativeSubscriptionGroups={staticNegativeSubscriptionGroups}
+          segmentNameOverride={segmentNameOverride}
           onRemoveSegment={removeSegment}
+          onRemoveNegativeSegment={removeNegativeSegment}
           onRemoveSubscriptionGroup={removeSubscriptionGroup}
+          onRemoveNegativeSubscriptionGroup={removeNegativeSubscriptionGroup}
           onRemoveUserProperty={removeUserPropertyFilter}
           onAddSegment={addSegment}
           onAddSubscriptionGroup={addSubscriptionGroup}
@@ -1142,6 +1160,7 @@ export default function UsersTableV2({
   segmentFilter,
   subscriptionGroupFilter,
   negativeSegmentFilter,
+  negativeSubscriptionGroupFilter,
   cursor,
   direction,
   sortBy,
@@ -1155,6 +1174,7 @@ export default function UsersTableV2({
       staticSegmentIds: segmentFilter,
       staticSubscriptionGroupIds: subscriptionGroupFilter,
       negativeSegmentIds: negativeSegmentFilter,
+      negativeSubscriptionGroupIds: negativeSubscriptionGroupFilter,
       cursor: cursor ?? undefined,
       direction: direction ?? undefined,
       sortBy: sortBy ?? undefined,
