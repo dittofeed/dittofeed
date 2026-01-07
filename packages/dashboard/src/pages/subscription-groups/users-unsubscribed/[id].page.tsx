@@ -34,15 +34,6 @@ export default function SubscriptionGroupUsersUnsubscribed() {
     [router.query],
   );
 
-  // Create a name override for the internal unsubscribed segment
-  // Must be before early returns to follow React hooks rules
-  const segmentNameOverride = useMemo(() => {
-    if (!subscriptionGroup?.unsubscribedSegmentId) return undefined;
-    return {
-      [subscriptionGroup.unsubscribedSegmentId]: `Unsubscribed from ${subscriptionGroup.name}`,
-    };
-  }, [subscriptionGroup]);
-
   const onUsersTablePaginate = usersTablePaginationHandler(router);
 
   if (!id) {
@@ -58,30 +49,15 @@ export default function SubscriptionGroupUsersUnsubscribed() {
       >
         <Stack
           direction="column"
-          sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
+          sx={{
+            width: "100%",
+            height: "100%",
+            padding: 2,
+            alignItems: "start",
+          }}
           spacing={3}
         >
           <Typography variant="body1">Loading...</Typography>
-        </Stack>
-      </SubscriptionGroupLayout>
-    );
-  }
-
-  // Show message if unsubscribed segment ID is not available
-  if (!subscriptionGroup.unsubscribedSegmentId) {
-    return (
-      <SubscriptionGroupLayout
-        tab={SubscriptionGroupTabLabel.UsersUnsubscribed}
-        id={id}
-      >
-        <Stack
-          direction="column"
-          sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
-          spacing={3}
-        >
-          <Typography variant="body1">
-            Unsubscribed segment not found for this subscription group.
-          </Typography>
         </Stack>
       </SubscriptionGroupLayout>
     );
@@ -101,8 +77,7 @@ export default function SubscriptionGroupUsersUnsubscribed() {
           Users Who Unsubscribed from &quot;{subscriptionGroup.name}&quot;
         </Typography>
         <UsersTableV2
-          segmentFilter={[subscriptionGroup.unsubscribedSegmentId]}
-          segmentNameOverride={segmentNameOverride}
+          unsubscribedFromFilter={[subscriptionGroup.id]}
           {...queryParams}
           onPaginationChange={onUsersTablePaginate}
         />
