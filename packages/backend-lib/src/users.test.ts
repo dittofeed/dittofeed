@@ -1767,6 +1767,16 @@ describe("users", () => {
             );
             expect(result.users).toHaveLength(0);
           });
+
+          it("getUsersCount returns 0", async () => {
+            const { userCount } = unwrap(
+              await getUsersCount({
+                workspaceId: workspace.id,
+                negativeSubscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(userCount).toBe(0);
+          });
         });
 
         describe("when a user has explicitly opted in (inSegment: true)", () => {
@@ -1830,6 +1840,16 @@ describe("users", () => {
               }),
             );
             expect(result.users).toHaveLength(1);
+          });
+
+          it("getUsersCount returns 1", async () => {
+            const { userCount } = unwrap(
+              await getUsersCount({
+                workspaceId: workspace.id,
+                negativeSubscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(userCount).toBe(1);
           });
         });
       });
