@@ -52,6 +52,7 @@ import {
   SubscriptionChange,
   SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
+  SubscriptionGroupUnsubscribedSegmentNode,
   UserPropertyDefinitionType,
   UserPropertyOperatorType,
 } from "../types";
@@ -318,6 +319,34 @@ function subscriptionChangeToPerformed(
       },
     ],
     hasProperties,
+  };
+}
+
+function subscriptionGroupUnsubscribedToPerformed(
+  node: SubscriptionGroupUnsubscribedSegmentNode,
+): LastPerformedSegmentNode {
+  return {
+    id: node.id,
+    type: SegmentNodeType.LastPerformed,
+    event: InternalEventType.SubscriptionChange,
+    whereProperties: [
+      {
+        path: "subscriptionId",
+        operator: {
+          type: SegmentOperatorType.Equals,
+          value: node.subscriptionGroupId,
+        },
+      },
+    ],
+    hasProperties: [
+      {
+        path: "action",
+        operator: {
+          type: SegmentOperatorType.Equals,
+          value: SubscriptionChange.Unsubscribe,
+        },
+      },
+    ],
   };
 }
 
@@ -1353,6 +1382,19 @@ function segmentToResolvedState({
         qb,
       });
     }
+    case SegmentNodeType.SubscriptionGroupUnsubscribed: {
+      const performedNode = subscriptionGroupUnsubscribedToPerformed(node);
+      return segmentToResolvedState({
+        node: performedNode,
+        segment,
+        now,
+        periodBound,
+        workspaceId,
+        idUserProperty,
+        prunedComputedProperties,
+        qb,
+      });
+    }
     case SegmentNodeType.LastPerformed: {
       const varName = qb.getVariableName();
       const hasPropertyConditions =
@@ -1664,6 +1706,14 @@ function resolvedSegmentToAssignment({
     }
     case SegmentNodeType.SubscriptionGroup: {
       const performedNode = subscriptionChangeToPerformed(node);
+      return resolvedSegmentToAssignment({
+        node: performedNode,
+        segment,
+        qb,
+      });
+    }
+    case SegmentNodeType.SubscriptionGroupUnsubscribed: {
+      const performedNode = subscriptionGroupUnsubscribedToPerformed(node);
       return resolvedSegmentToAssignment({
         node: performedNode,
         segment,
@@ -2065,6 +2115,15 @@ export function segmentNodeToStateSubQuery({
     case SegmentNodeType.SubscriptionGroup: {
       const performedNode: LastPerformedSegmentNode =
         subscriptionChangeToPerformed(node);
+      return segmentNodeToStateSubQuery({
+        node: performedNode,
+        segment,
+        qb,
+      });
+    }
+    case SegmentNodeType.SubscriptionGroupUnsubscribed: {
+      const performedNode: LastPerformedSegmentNode =
+        subscriptionGroupUnsubscribedToPerformed(node);
       return segmentNodeToStateSubQuery({
         node: performedNode,
         segment,
@@ -4496,6 +4555,14 @@ function segmentNodeToPruned({
     }
     case SegmentNodeType.SubscriptionGroup: {
       const lastPerformedNode = subscriptionChangeToPerformed(node);
+      return segmentNodeToPruned({
+        segment,
+        node: lastPerformedNode,
+        qb,
+      });
+    }
+    case SegmentNodeType.SubscriptionGroupUnsubscribed: {
+      const lastPerformedNode = subscriptionGroupUnsubscribedToPerformed(node);
       return segmentNodeToPruned({
         segment,
         node: lastPerformedNode,

@@ -78,6 +78,7 @@ export async function buildGetUsersQueriesForDebug(
     workspaceId,
     cursor: unparsedCursor,
     segmentFilter,
+    negativeSegmentFilter,
     userIds,
     userPropertyFilter,
     direction = CursorDirectionEnum.After,
@@ -190,6 +191,17 @@ export async function buildGetUsersQueriesForDebug(
       havingSubClauses.push(`${varName} == True`);
     }
 
+    // Negative segment filter: exclude users who are IN the specified segments
+    for (const segment of negativeSegmentFilter ?? []) {
+      const varName = qb.getVariableName();
+      selectUserIdColumns.push(
+        `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
+      );
+      // User is NOT in segment if segment_value is False or NULL
+      havingSubClauses.push(`(${varName} == False OR ${varName} IS NULL)`);
+      computedPropertyIds.push(segment);
+    }
+
     const subscriptionGroupsFilter = subscriptionGroupFilter ?? [];
     for (const subscriptionGroup of subscriptionGroupsFilter) {
       const sg = subscriptionGroups.get(subscriptionGroup);
@@ -240,6 +252,7 @@ export async function buildGetUsersQueriesForDebug(
     const propertyTypes: string[] = [];
     if (
       (segmentFilter && segmentFilter.length > 0) ||
+      (negativeSegmentFilter && negativeSegmentFilter.length > 0) ||
       (subscriptionGroupFilter && subscriptionGroupFilter.length > 0)
     ) {
       propertyTypes.push("'segment'");
@@ -510,6 +523,7 @@ export async function getUsers(
     workspaceId,
     cursor: unparsedCursor,
     segmentFilter,
+    negativeSegmentFilter,
     userIds,
     userPropertyFilter,
     direction = CursorDirectionEnum.After,
@@ -682,6 +696,17 @@ export async function getUsers(
         havingSubClauses.push(`${varName} == True`);
       }
 
+      // Negative segment filter: exclude users who are IN the specified segments
+      for (const segment of negativeSegmentFilter ?? []) {
+        const varName = qb.getVariableName();
+        selectUserIdColumns.push(
+          `argMax(if(computed_property_id = ${qb.addQueryValue(segment, "String")}, segment_value, null), assigned_at) as ${varName}`,
+        );
+        // User is NOT in segment if segment_value is False or NULL
+        havingSubClauses.push(`(${varName} == False OR ${varName} IS NULL)`);
+        computedPropertyIds.push(segment);
+      }
+
       const subscriptionGroupsFilter = subscriptionGroupFilter ?? [];
       for (const subscriptionGroup of subscriptionGroupsFilter) {
         const sg = subscriptionGroups.get(subscriptionGroup);
@@ -744,6 +769,7 @@ export async function getUsers(
       const propertyTypes: string[] = [];
       if (
         (segmentFilter && segmentFilter.length > 0) ||
+        (negativeSegmentFilter && negativeSegmentFilter.length > 0) ||
         (subscriptionGroupFilter && subscriptionGroupFilter.length > 0)
       ) {
         propertyTypes.push("'segment'");

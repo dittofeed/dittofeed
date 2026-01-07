@@ -1501,6 +1501,196 @@ describe("users", () => {
       });
     });
 
+    describe("when a negativeSegmentFilter is passed", () => {
+      let userIds: [string, string, string, string];
+      let segmentId1: string;
+      let segmentId2: string;
+
+      beforeEach(async () => {
+        userIds = ["user-in-seg", "user-out-seg", "user-no-seg", "user-in-seg2"];
+        const segmentDefinition1: SegmentDefinition = {
+          entryNode: {
+            type: SegmentNodeType.Trait,
+            id: "1",
+            path: "trait1",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "value1",
+            },
+          },
+          nodes: [],
+        };
+        const segmentDefinition2: SegmentDefinition = {
+          entryNode: {
+            type: SegmentNodeType.Trait,
+            id: "2",
+            path: "trait2",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "value2",
+            },
+          },
+          nodes: [],
+        };
+        segmentId1 = randomUUID();
+        segmentId2 = randomUUID();
+
+        // Create an id user property so we have users in the system
+        const idProperty = unwrap(
+          await insert({
+            table: dbUserProperty,
+            values: {
+              id: randomUUID(),
+              workspaceId: workspace.id,
+              name: "id",
+              updatedAt: new Date(),
+              definition: {
+                type: UserPropertyDefinitionType.Id,
+              },
+            },
+          }),
+        );
+
+        await Promise.all([
+          insert({
+            table: dbSegment,
+            values: {
+              id: segmentId1,
+              workspaceId: workspace.id,
+              name: "segment1",
+              updatedAt: new Date(),
+              definition: segmentDefinition1,
+            },
+          }),
+          insert({
+            table: dbSegment,
+            values: {
+              id: segmentId2,
+              workspaceId: workspace.id,
+              name: "segment2",
+              updatedAt: new Date(),
+              definition: segmentDefinition2,
+            },
+          }),
+        ]);
+
+        // Create user property assignments so users exist
+        await insertUserPropertyAssignments(
+          userIds.map((userId) => ({
+            userPropertyId: idProperty.id,
+            workspaceId: workspace.id,
+            userId,
+            value: JSON.stringify(userId),
+          })),
+        );
+
+        // Set up segment assignments:
+        // user-in-seg: IN segment1 (inSegment: true)
+        // user-out-seg: OUT of segment1 (inSegment: false)
+        // user-no-seg: NO segment assignment at all
+        // user-in-seg2: IN segment2 (to test combination filters)
+        await insertSegmentAssignments([
+          {
+            userId: userIds[0], // user-in-seg
+            inSegment: true,
+            segmentId: segmentId1,
+            workspaceId: workspace.id,
+          },
+          {
+            userId: userIds[1], // user-out-seg
+            inSegment: false,
+            segmentId: segmentId1,
+            workspaceId: workspace.id,
+          },
+          // user-no-seg has no segment assignment
+          {
+            userId: userIds[3], // user-in-seg2
+            inSegment: true,
+            segmentId: segmentId2,
+            workspaceId: workspace.id,
+          },
+        ]);
+      });
+
+      it("excludes users who are IN the segment", async () => {
+        const result = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            negativeSegmentFilter: [segmentId1],
+          }),
+        );
+
+        const resultUserIds = result.users.map((u) => u.id).sort();
+        // user-in-seg should be EXCLUDED (they are in the segment)
+        // user-out-seg should be INCLUDED (inSegment: false)
+        // user-no-seg should be INCLUDED (no assignment = NULL)
+        // user-in-seg2 should be INCLUDED (not related to segmentId1)
+        expect(resultUserIds).toEqual([
+          "user-in-seg2",
+          "user-no-seg",
+          "user-out-seg",
+        ]);
+      });
+
+      it("includes users with inSegment: false", async () => {
+        const result = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            negativeSegmentFilter: [segmentId1],
+          }),
+        );
+
+        expect(result.users.map((u) => u.id)).toContain("user-out-seg");
+      });
+
+      it("includes users with no segment assignment (NULL)", async () => {
+        const result = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            negativeSegmentFilter: [segmentId1],
+          }),
+        );
+
+        expect(result.users.map((u) => u.id)).toContain("user-no-seg");
+      });
+
+      it("works with combination of positive and negative segment filters", async () => {
+        // Add user-in-seg2 to segment1 as well
+        await insertSegmentAssignments([
+          {
+            userId: userIds[3], // user-in-seg2
+            inSegment: true,
+            segmentId: segmentId1,
+            workspaceId: workspace.id,
+          },
+        ]);
+
+        const result = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            segmentFilter: [segmentId2], // must be IN segment2
+            negativeSegmentFilter: [segmentId1], // must NOT be in segment1
+          }),
+        );
+
+        // user-in-seg2 is in segment2 but now also in segment1, so excluded
+        expect(result.users).toHaveLength(0);
+      });
+
+      it("works with positive segment filter selecting users not in negative filter", async () => {
+        const result = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            segmentFilter: [segmentId2], // must be IN segment2
+            negativeSegmentFilter: [segmentId1], // must NOT be in segment1
+          }),
+        );
+
+        // user-in-seg2 is in segment2, and NOT in segment1
+        expect(result.users.map((u) => u.id)).toEqual(["user-in-seg2"]);
+      });
+    });
+
     describe("when a segmentId and subscriptionGroupFilter are passed", () => {
       let userIds: [string, string, string];
       let segmentId1: string;

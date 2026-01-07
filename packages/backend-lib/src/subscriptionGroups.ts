@@ -201,6 +201,10 @@ export function getSubscriptionGroupSegmentName(id: string) {
   return `subscriptionGroup-${id}`;
 }
 
+export function getSubscriptionGroupUnsubscribedSegmentName(id: string) {
+  return `subscriptionGroup-unsubscribed-${id}`;
+}
+
 function mapUpsertValidationError(
   error: QueryError | TxQueryError,
 ): SubscriptionGroupUpsertValidationError {
@@ -355,6 +359,39 @@ export async function upsertSubscriptionGroup({
       set: {
         name: segmentName,
         definition: segmentDefinition,
+        createdAt,
+        updatedAt,
+      },
+      tx,
+    }).then(unwrap);
+
+    // Create the unsubscribed segment
+    const unsubscribedSegmentName = getSubscriptionGroupUnsubscribedSegmentName(
+      subscriptionGroup.id,
+    );
+    const unsubscribedSegmentDefinition: SegmentDefinition = {
+      entryNode: {
+        type: SegmentNodeType.SubscriptionGroupUnsubscribed,
+        id: "1",
+        subscriptionGroupId: subscriptionGroup.id,
+      },
+      nodes: [],
+    };
+    await upsert({
+      table: dbSegment,
+      values: {
+        name: unsubscribedSegmentName,
+        workspaceId,
+        definition: unsubscribedSegmentDefinition,
+        subscriptionGroupId: subscriptionGroup.id,
+        resourceType: "Internal",
+        createdAt,
+        updatedAt,
+      },
+      target: [dbSegment.workspaceId, dbSegment.name],
+      set: {
+        name: unsubscribedSegmentName,
+        definition: unsubscribedSegmentDefinition,
         createdAt,
         updatedAt,
       },
