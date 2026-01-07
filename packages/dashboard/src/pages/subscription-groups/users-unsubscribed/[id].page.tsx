@@ -34,11 +34,20 @@ export default function SubscriptionGroupUsersUnsubscribed() {
     [router.query],
   );
 
+  // Create a name override for the internal unsubscribed segment
+  // Must be before early returns to follow React hooks rules
+  const segmentNameOverride = useMemo(() => {
+    if (!subscriptionGroup?.unsubscribedSegmentId) return undefined;
+    return {
+      [subscriptionGroup.unsubscribedSegmentId]: `Unsubscribed from ${subscriptionGroup.name}`,
+    };
+  }, [subscriptionGroup]);
+
+  const onUsersTablePaginate = usersTablePaginationHandler(router);
+
   if (!id) {
     return new Error("Missing id");
   }
-
-  const onUsersTablePaginate = usersTablePaginationHandler(router);
 
   // Show loading state while fetching subscription group
   if (!subscriptionGroup) {
@@ -77,13 +86,6 @@ export default function SubscriptionGroupUsersUnsubscribed() {
       </SubscriptionGroupLayout>
     );
   }
-
-  // Create a name override for the internal unsubscribed segment
-  const segmentNameOverride = useMemo(() => {
-    const { unsubscribedSegmentId, name } = subscriptionGroup;
-    if (!unsubscribedSegmentId) return undefined;
-    return { [unsubscribedSegmentId]: `Unsubscribed from ${name}` };
-  }, [subscriptionGroup]);
 
   return (
     <SubscriptionGroupLayout
