@@ -529,6 +529,7 @@ export async function getUsers(
     direction = CursorDirectionEnum.After,
     limit = 10,
     subscriptionGroupFilter,
+    negativeSubscriptionGroupFilter,
     includeSubscriptions,
     sortBy,
     sortOrder = SortOrderEnum.Asc,
@@ -618,7 +619,11 @@ export async function getUsers(
         segmentId: string;
       }
     >();
-    if (subscriptionGroupFilter?.length) {
+    const allSubscriptionGroupIds = [
+      ...(subscriptionGroupFilter ?? []),
+      ...(negativeSubscriptionGroupFilter ?? []),
+    ];
+    if (allSubscriptionGroupIds.length > 0) {
       const subscriptionGroupsRows = await db()
         .select({
           id: dbSubscriptionGroup.id,
@@ -630,7 +635,7 @@ export async function getUsers(
           dbSegment,
           eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
         )
-        .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
+        .where(inArray(dbSubscriptionGroup.id, allSubscriptionGroupIds));
       subscriptionGroups = subscriptionGroupsRows.reduce(
         (acc, subscriptionGroup) => {
           const subscriptionGroupType =
@@ -739,6 +744,45 @@ export async function getUsers(
         }
       }
 
+      // Negative subscription group filter: exclude users who ARE in the specified subscription groups
+      // The logic is inverted from the positive filter:
+      // - OptOut: User is NOT in group only if they explicitly unsubscribed (segment_value = False)
+      // - OptIn: User is NOT in group if they never opted in OR opted out (segment_value = False OR NULL)
+      const negativeSubscriptionGroupsFilter =
+        negativeSubscriptionGroupFilter ?? [];
+      for (const subscriptionGroup of negativeSubscriptionGroupsFilter) {
+        const sg = subscriptionGroups.get(subscriptionGroup);
+        if (!sg) {
+          logger().error(
+            {
+              subscriptionGroupId: subscriptionGroup,
+              workspaceId,
+            },
+            "subscription group not found for negative filter",
+          );
+          if (throwOnError) {
+            throw new Error("subscription group not found for negative filter");
+          }
+          continue;
+        }
+        const { type, segmentId } = sg;
+
+        computedPropertyIds.push(segmentId);
+
+        const varName = qb.getVariableName();
+        selectUserIdColumns.push(
+          `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+        );
+        if (type === SubscriptionGroupType.OptOut) {
+          // For OptOut groups: user is NOT in group only if they explicitly unsubscribed
+          havingSubClauses.push(`${varName} == False`);
+          hasStrictFilter = true;
+        } else {
+          // For OptIn groups: user is NOT in group if they never opted in OR opted out
+          havingSubClauses.push(`(${varName} == False OR ${varName} IS NULL)`);
+        }
+      }
+
       // [OPTIMIZATION] Implicit Anchor
       // If we have no filters (or only Opt-Out filters), we must anchor on the 'id' property
       // to prevent a full table scan. The 'id' User Property serves as a perfect index of all users.
@@ -770,7 +814,9 @@ export async function getUsers(
       if (
         (segmentFilter && segmentFilter.length > 0) ||
         (negativeSegmentFilter && negativeSegmentFilter.length > 0) ||
-        (subscriptionGroupFilter && subscriptionGroupFilter.length > 0)
+        (subscriptionGroupFilter && subscriptionGroupFilter.length > 0) ||
+        (negativeSubscriptionGroupFilter &&
+          negativeSubscriptionGroupFilter.length > 0)
       ) {
         propertyTypes.push("'segment'");
       }

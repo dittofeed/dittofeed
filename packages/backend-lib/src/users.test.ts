@@ -1691,6 +1691,420 @@ describe("users", () => {
       });
     });
 
+    describe("when a negativeSubscriptionGroupFilter is passed", () => {
+      let userId1: string;
+
+      beforeEach(() => {
+        userId1 = randomUUID();
+      });
+
+      describe("when the subscription group is opt-out", () => {
+        let subscriptionGroupId: string;
+        let userPropertyId: string;
+        let segmentId: string;
+
+        beforeEach(async () => {
+          subscriptionGroupId = randomUUID();
+          userPropertyId = randomUUID();
+          segmentId = randomUUID();
+          await Promise.all([
+            db().insert(dbSubscriptionGroup).values({
+              id: subscriptionGroupId,
+              workspaceId: workspace.id,
+              name: "subscriptionGroup1",
+              updatedAt: new Date(),
+              type: SubscriptionGroupType.OptOut,
+              channel: ChannelType.Email,
+            }),
+            db()
+              .insert(dbUserProperty)
+              .values({
+                id: userPropertyId,
+                workspaceId: workspace.id,
+                name: "id",
+                updatedAt: new Date(),
+                definition: {
+                  type: UserPropertyDefinitionType.Id,
+                },
+              }),
+          ]);
+
+          await db()
+            .insert(dbSegment)
+            .values({
+              id: segmentId,
+              workspaceId: workspace.id,
+              name: "segment1",
+              updatedAt: new Date(),
+              subscriptionGroupId,
+              definition: {
+                type: SegmentNodeType.SubscriptionGroup,
+                id: "1",
+                subscriptionGroupId,
+                subscriptionGroupType: SubscriptionGroupType.OptOut,
+              } satisfies SubscriptionGroupSegmentNode,
+            });
+        });
+
+        describe("when a user has no segment assignment (default in group)", () => {
+          beforeEach(async () => {
+            await insertUserPropertyAssignments([
+              {
+                userPropertyId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                value: JSON.stringify(userId1),
+              },
+            ]);
+          });
+          it("the user is NOT included (they are in group by default)", async () => {
+            const result = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                negativeSubscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(result.users).toHaveLength(0);
+          });
+        });
+
+        describe("when a user has explicitly opted in (inSegment: true)", () => {
+          beforeEach(async () => {
+            await Promise.all([
+              insertUserPropertyAssignments([
+                {
+                  userPropertyId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  value: JSON.stringify(userId1),
+                },
+              ]),
+              insertSegmentAssignments([
+                {
+                  segmentId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  inSegment: true,
+                },
+              ]),
+            ]);
+          });
+          it("the user is NOT included (they are in the group)", async () => {
+            const result = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                negativeSubscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(result.users).toHaveLength(0);
+          });
+        });
+
+        describe("when a user has opted out (inSegment: false)", () => {
+          beforeEach(async () => {
+            await Promise.all([
+              insertUserPropertyAssignments([
+                {
+                  userPropertyId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  value: JSON.stringify(userId1),
+                },
+              ]),
+              insertSegmentAssignments([
+                {
+                  segmentId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  inSegment: false,
+                },
+              ]),
+            ]);
+          });
+          it("the user IS included (they unsubscribed, so NOT in group)", async () => {
+            const result = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                negativeSubscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(result.users).toHaveLength(1);
+          });
+        });
+      });
+
+      describe("when the subscription group is opt-in", () => {
+        let subscriptionGroupId: string;
+        let userPropertyId: string;
+        let segmentId: string;
+
+        beforeEach(async () => {
+          subscriptionGroupId = randomUUID();
+          userPropertyId = randomUUID();
+          segmentId = randomUUID();
+          await Promise.all([
+            db().insert(dbSubscriptionGroup).values({
+              id: subscriptionGroupId,
+              workspaceId: workspace.id,
+              name: "subscriptionGroup1",
+              updatedAt: new Date(),
+              type: SubscriptionGroupType.OptIn,
+              channel: ChannelType.Email,
+            }),
+            db()
+              .insert(dbUserProperty)
+              .values({
+                id: userPropertyId,
+                workspaceId: workspace.id,
+                name: "id",
+                updatedAt: new Date(),
+                definition: {
+                  type: UserPropertyDefinitionType.Id,
+                },
+              }),
+          ]);
+
+          await db()
+            .insert(dbSegment)
+            .values({
+              id: segmentId,
+              workspaceId: workspace.id,
+              name: "segment1",
+              updatedAt: new Date(),
+              subscriptionGroupId,
+              definition: {
+                type: SegmentNodeType.SubscriptionGroup,
+                id: "1",
+                subscriptionGroupId,
+                subscriptionGroupType: SubscriptionGroupType.OptIn,
+              } satisfies SubscriptionGroupSegmentNode,
+            });
+        });
+
+        describe("when a user has no segment assignment (never opted in)", () => {
+          beforeEach(async () => {
+            await insertUserPropertyAssignments([
+              {
+                userPropertyId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                value: JSON.stringify(userId1),
+              },
+            ]);
+          });
+          it("the user IS included (never opted in means NOT in group)", async () => {
+            const result = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                negativeSubscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(result.users).toHaveLength(1);
+          });
+        });
+
+        describe("when a user has opted in (inSegment: true)", () => {
+          beforeEach(async () => {
+            await Promise.all([
+              insertUserPropertyAssignments([
+                {
+                  userPropertyId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  value: JSON.stringify(userId1),
+                },
+              ]),
+              insertSegmentAssignments([
+                {
+                  segmentId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  inSegment: true,
+                },
+              ]),
+            ]);
+          });
+          it("the user is NOT included (they opted in, so they ARE in group)", async () => {
+            const result = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                negativeSubscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(result.users).toHaveLength(0);
+          });
+        });
+
+        describe("when a user has opted out (inSegment: false)", () => {
+          beforeEach(async () => {
+            await Promise.all([
+              insertUserPropertyAssignments([
+                {
+                  userPropertyId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  value: JSON.stringify(userId1),
+                },
+              ]),
+              insertSegmentAssignments([
+                {
+                  segmentId,
+                  userId: userId1,
+                  workspaceId: workspace.id,
+                  inSegment: false,
+                },
+              ]),
+            ]);
+          });
+          it("the user IS included (they opted out, so NOT in group)", async () => {
+            const result = unwrap(
+              await getUsers({
+                workspaceId: workspace.id,
+                negativeSubscriptionGroupFilter: [subscriptionGroupId],
+              }),
+            );
+            expect(result.users).toHaveLength(1);
+          });
+        });
+      });
+
+      describe("combination with subscriptionGroupFilter", () => {
+        let subscriptionGroup1Id: string;
+        let subscriptionGroup2Id: string;
+        let userPropertyId: string;
+        let segmentId1: string;
+        let segmentId2: string;
+        let userId2: string;
+
+        beforeEach(async () => {
+          subscriptionGroup1Id = randomUUID();
+          subscriptionGroup2Id = randomUUID();
+          userPropertyId = randomUUID();
+          segmentId1 = randomUUID();
+          segmentId2 = randomUUID();
+          userId2 = randomUUID();
+
+          await db()
+            .insert(dbUserProperty)
+            .values({
+              id: userPropertyId,
+              workspaceId: workspace.id,
+              name: "id",
+              updatedAt: new Date(),
+              definition: {
+                type: UserPropertyDefinitionType.Id,
+              },
+            });
+
+          // Create two opt-in subscription groups
+          await Promise.all([
+            db().insert(dbSubscriptionGroup).values({
+              id: subscriptionGroup1Id,
+              workspaceId: workspace.id,
+              name: "subscriptionGroup1",
+              updatedAt: new Date(),
+              type: SubscriptionGroupType.OptIn,
+              channel: ChannelType.Email,
+            }),
+            db().insert(dbSubscriptionGroup).values({
+              id: subscriptionGroup2Id,
+              workspaceId: workspace.id,
+              name: "subscriptionGroup2",
+              updatedAt: new Date(),
+              type: SubscriptionGroupType.OptIn,
+              channel: ChannelType.Email,
+            }),
+          ]);
+
+          await Promise.all([
+            db()
+              .insert(dbSegment)
+              .values({
+                id: segmentId1,
+                workspaceId: workspace.id,
+                name: "segment1",
+                updatedAt: new Date(),
+                subscriptionGroupId: subscriptionGroup1Id,
+                definition: {
+                  type: SegmentNodeType.SubscriptionGroup,
+                  id: "1",
+                  subscriptionGroupId: subscriptionGroup1Id,
+                  subscriptionGroupType: SubscriptionGroupType.OptIn,
+                } satisfies SubscriptionGroupSegmentNode,
+              }),
+            db()
+              .insert(dbSegment)
+              .values({
+                id: segmentId2,
+                workspaceId: workspace.id,
+                name: "segment2",
+                updatedAt: new Date(),
+                subscriptionGroupId: subscriptionGroup2Id,
+                definition: {
+                  type: SegmentNodeType.SubscriptionGroup,
+                  id: "2",
+                  subscriptionGroupId: subscriptionGroup2Id,
+                  subscriptionGroupType: SubscriptionGroupType.OptIn,
+                } satisfies SubscriptionGroupSegmentNode,
+              }),
+          ]);
+
+          // User1: in group1, NOT in group2
+          // User2: in both groups
+          await Promise.all([
+            insertUserPropertyAssignments([
+              {
+                userPropertyId,
+                userId: userId1,
+                workspaceId: workspace.id,
+                value: JSON.stringify(userId1),
+              },
+              {
+                userPropertyId,
+                userId: userId2,
+                workspaceId: workspace.id,
+                value: JSON.stringify(userId2),
+              },
+            ]),
+            insertSegmentAssignments([
+              {
+                segmentId: segmentId1,
+                userId: userId1,
+                workspaceId: workspace.id,
+                inSegment: true,
+              },
+              {
+                segmentId: segmentId1,
+                userId: userId2,
+                workspaceId: workspace.id,
+                inSegment: true,
+              },
+              {
+                segmentId: segmentId2,
+                userId: userId2,
+                workspaceId: workspace.id,
+                inSegment: true,
+              },
+            ]),
+          ]);
+        });
+
+        it("returns users in group1 but NOT in group2", async () => {
+          const result = unwrap(
+            await getUsers({
+              workspaceId: workspace.id,
+              subscriptionGroupFilter: [subscriptionGroup1Id],
+              negativeSubscriptionGroupFilter: [subscriptionGroup2Id],
+            }),
+          );
+          // User1 is in group1 and NOT in group2 -> included
+          // User2 is in group1 and in group2 -> excluded
+          expect(result.users).toHaveLength(1);
+          expect(result.users[0]?.id).toBe(userId1);
+        });
+      });
+    });
+
     describe("when a segmentId and subscriptionGroupFilter are passed", () => {
       let userIds: [string, string, string];
       let segmentId1: string;
