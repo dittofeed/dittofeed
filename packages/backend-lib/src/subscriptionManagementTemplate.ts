@@ -258,9 +258,9 @@ export const DEFAULT_SUBSCRIPTION_TEMPLATE = `<!DOCTYPE html>
           <h1>
             {% if subscriptionChange %}
               {% if subscriptionChange == "Subscribe" %}
-                You have subscribed to {{ changedSubscriptionChannel }} from {{ workspaceName }}
+                You have subscribed to {{ changedSubscriptionName }}
               {% else %}
-                You have unsubscribed from {{ changedSubscriptionChannel }} from {{ workspaceName }}
+                You have unsubscribed from all {{ changedSubscriptionChannel }} messages
               {% endif %}
             {% else %}
               Manage your preferences for {{ workspaceName }}
