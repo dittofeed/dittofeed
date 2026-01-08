@@ -78,6 +78,10 @@ export default function SubscriptionGroupUsersNotInGroup() {
         </Typography>
         <UsersTableV2
           negativeSubscriptionGroupFilter={[subscriptionGroup.id]}
+          subscriptionGroupAction={{
+            subscriptionGroupId: subscriptionGroup.id,
+            type: "subscribe",
+          }}
           {...queryParams}
           onPaginationChange={onUsersTablePaginate}
         />

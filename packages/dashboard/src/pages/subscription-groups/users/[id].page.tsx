@@ -46,7 +46,12 @@ export default function SubscriptionGroupUsers() {
       <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Users} id={id}>
         <Stack
           direction="column"
-          sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
+          sx={{
+            width: "100%",
+            height: "100%",
+            padding: 2,
+            alignItems: "start",
+          }}
           spacing={3}
         >
           <Typography variant="body1">Loading...</Typography>
@@ -67,6 +72,10 @@ export default function SubscriptionGroupUsers() {
         </Typography>
         <UsersTableV2
           subscriptionGroupFilter={[id]}
+          subscriptionGroupAction={{
+            subscriptionGroupId: id,
+            type: "unsubscribe",
+          }}
           {...queryParams}
           onPaginationChange={onUsersTablePaginate}
         />

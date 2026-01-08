@@ -78,6 +78,10 @@ export default function SubscriptionGroupUsersUnsubscribed() {
         </Typography>
         <UsersTableV2
           unsubscribedFromFilter={[subscriptionGroup.id]}
+          subscriptionGroupAction={{
+            subscriptionGroupId: subscriptionGroup.id,
+            type: "subscribe",
+          }}
           {...queryParams}
           onPaginationChange={onUsersTablePaginate}
         />
