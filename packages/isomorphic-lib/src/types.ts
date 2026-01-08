@@ -189,6 +189,8 @@ export const SubscriptionGroupResource = Type.Object({
   name: Type.String(),
   channel: Type.Enum(ChannelType),
   type: Type.Enum(SubscriptionGroupType),
+  segmentId: Type.Optional(Type.String()),
+  unsubscribedSegmentId: Type.Optional(Type.String()),
 });
 
 export type SubscriptionGroupResource = Static<
@@ -334,6 +336,7 @@ export enum SegmentNodeType {
   LastPerformed = "LastPerformed",
   Broadcast = "Broadcast",
   SubscriptionGroup = "SubscriptionGroup",
+  SubscriptionGroupUnsubscribed = "SubscriptionGroupUnsubscribed",
   Email = "Email",
   Manual = "Manual",
   RandomBucket = "RandomBucket",
@@ -360,6 +363,16 @@ export const SubscriptionGroupSegmentNode = Type.Object({
 
 export type SubscriptionGroupSegmentNode = Static<
   typeof SubscriptionGroupSegmentNode
+>;
+
+export const SubscriptionGroupUnsubscribedSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.SubscriptionGroupUnsubscribed),
+  id: Type.String(),
+  subscriptionGroupId: Type.String(),
+});
+
+export type SubscriptionGroupUnsubscribedSegmentNode = Static<
+  typeof SubscriptionGroupUnsubscribedSegmentNode
 >;
 
 export const RandomBucketSegmentNode = Type.Object({
@@ -562,6 +575,7 @@ export const BodySegmentNode = Type.Union([
   EmailSegmentNode,
   BroadcastSegmentNode,
   SubscriptionGroupSegmentNode,
+  SubscriptionGroupUnsubscribedSegmentNode,
   RandomBucketSegmentNode,
   IncludesSegmentNode,
 ]);
@@ -2739,10 +2753,13 @@ export type SortOrder = Static<typeof SortOrder>;
 export const GetUsersRequest = Type.Object({
   cursor: Type.Optional(Type.String()),
   segmentFilter: Type.Optional(Type.Array(Type.String())),
+  negativeSegmentFilter: Type.Optional(Type.Array(Type.String())),
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
   userIds: Type.Optional(Type.Array(UserId)),
   subscriptionGroupFilter: Type.Optional(Type.Array(Type.String())),
+  negativeSubscriptionGroupFilter: Type.Optional(Type.Array(Type.String())),
+  unsubscribedFromFilter: Type.Optional(Type.Array(Type.String())),
   userPropertyFilter: Type.Optional(GetUsersUserPropertyFilter),
   workspaceId: Type.String(),
   includeSubscriptions: Type.Optional(Type.Boolean()),
@@ -5785,6 +5802,8 @@ export const GetResourcesResponse = Type.Object({
         id: Type.String(),
         name: Type.String(),
         channel: Type.Enum(ChannelType),
+        segmentId: Type.Optional(Type.String()),
+        unsubscribedSegmentId: Type.Optional(Type.String()),
       }),
     ),
   ),

@@ -26,6 +26,18 @@ export interface UserFilterState {
   subscriptionGroups: Set<string>;
   /** Subscription group ids that are fixed and cannot be removed by the user */
   staticSubscriptionGroups: Set<string>;
+  /** Set of segment ids to exclude users from (negative filter) */
+  negativeSegments: Set<string>;
+  /** Negative segment ids that are fixed and cannot be removed by the user */
+  staticNegativeSegments: Set<string>;
+  /** Set of subscription group ids to exclude users from (negative filter) */
+  negativeSubscriptionGroups: Set<string>;
+  /** Negative subscription group ids that are fixed and cannot be removed by the user */
+  staticNegativeSubscriptionGroups: Set<string>;
+  /** Set of subscription group ids to filter by explicit unsubscribes */
+  unsubscribedFromSubscriptionGroups: Set<string>;
+  /** Unsubscribed from subscription group ids that are fixed and cannot be removed by the user */
+  staticUnsubscribedFromSubscriptionGroups: Set<string>;
 }
 
 export interface PaginationState {
@@ -79,10 +91,18 @@ export interface UsersTableActions {
   // Filter actions
   setStaticSegments: (segmentIds: string[]) => void;
   setStaticSubscriptionGroups: (subscriptionGroupIds: string[]) => void;
+  setStaticNegativeSubscriptionGroups: (subscriptionGroupIds: string[]) => void;
+  setStaticUnsubscribedFromSubscriptionGroups: (
+    subscriptionGroupIds: string[],
+  ) => void;
   addSegment: (segmentId: string) => void;
   removeSegment: (segmentId: string) => void;
+  addNegativeSegment: (segmentId: string) => void;
+  removeNegativeSegment: (segmentId: string) => void;
   addSubscriptionGroup: (subscriptionGroupId: string) => void;
   removeSubscriptionGroup: (subscriptionGroupId: string) => void;
+  addNegativeSubscriptionGroup: (subscriptionGroupId: string) => void;
+  removeNegativeSubscriptionGroup: (subscriptionGroupId: string) => void;
   addUserPropertyFilter: (propertyId: string, value: string) => void;
   removeUserPropertyFilter: (propertyId: string) => void;
 
@@ -116,6 +136,12 @@ export interface UsersTableStoreInitialState {
   staticSegmentIds?: string[];
   /** Initial subscription group IDs to filter by (static, cannot be removed) */
   staticSubscriptionGroupIds?: string[];
+  /** Initial negative segment IDs (users NOT in these segments) */
+  negativeSegmentIds?: string[];
+  /** Initial negative subscription group IDs (users NOT in these groups) */
+  negativeSubscriptionGroupIds?: string[];
+  /** Initial unsubscribed from subscription group IDs (users who explicitly unsubscribed) */
+  unsubscribedFromSubscriptionGroupIds?: string[];
   /** Initial cursor for pagination */
   cursor?: string;
   /** Initial pagination direction */
@@ -137,6 +163,23 @@ function getInitialState(
   const staticSubscriptionGroups = new Set(
     initialState?.staticSubscriptionGroupIds ?? [],
   );
+  const negativeSegments = new Set(initialState?.negativeSegmentIds ?? []);
+  // Static negative segments are those that cannot be removed by the user
+  const staticNegativeSegments = new Set(
+    initialState?.negativeSegmentIds ?? [],
+  );
+  const negativeSubscriptionGroups = new Set(
+    initialState?.negativeSubscriptionGroupIds ?? [],
+  );
+  const staticNegativeSubscriptionGroups = new Set(
+    initialState?.negativeSubscriptionGroupIds ?? [],
+  );
+  const unsubscribedFromSubscriptionGroups = new Set(
+    initialState?.unsubscribedFromSubscriptionGroupIds ?? [],
+  );
+  const staticUnsubscribedFromSubscriptionGroups = new Set(
+    initialState?.unsubscribedFromSubscriptionGroupIds ?? [],
+  );
 
   return {
     // Filter state
@@ -145,6 +188,12 @@ function getInitialState(
     staticSegments,
     subscriptionGroups: new Set(staticSubscriptionGroups),
     staticSubscriptionGroups,
+    negativeSegments,
+    staticNegativeSegments,
+    negativeSubscriptionGroups,
+    staticNegativeSubscriptionGroups,
+    unsubscribedFromSubscriptionGroups,
+    staticUnsubscribedFromSubscriptionGroups,
 
     // Pagination state
     cursor: initialState?.cursor ?? null,
@@ -297,6 +346,28 @@ export function createUsersTableStore(
         });
       },
 
+      addNegativeSegment: (segmentId) => {
+        set((state) => {
+          if (!state.staticNegativeSegments.has(segmentId)) {
+            state.negativeSegments.add(segmentId);
+            // Reset pagination when filters change
+            state.cursor = null;
+            state.direction = null;
+          }
+        });
+      },
+
+      removeNegativeSegment: (segmentId) => {
+        set((state) => {
+          if (!state.staticNegativeSegments.has(segmentId)) {
+            state.negativeSegments.delete(segmentId);
+            // Reset pagination when filters change
+            state.cursor = null;
+            state.direction = null;
+          }
+        });
+      },
+
       addSubscriptionGroup: (subscriptionGroupId) => {
         set((state) => {
           if (!state.staticSubscriptionGroups.has(subscriptionGroupId)) {
@@ -312,6 +383,70 @@ export function createUsersTableStore(
         set((state) => {
           if (!state.staticSubscriptionGroups.has(subscriptionGroupId)) {
             state.subscriptionGroups.delete(subscriptionGroupId);
+            // Reset pagination when filters change
+            state.cursor = null;
+            state.direction = null;
+          }
+        });
+      },
+
+      setStaticNegativeSubscriptionGroups: (subscriptionGroupIds) => {
+        set((state) => {
+          // Remove old static negative subscription groups
+          for (const sgId of state.staticNegativeSubscriptionGroups) {
+            state.negativeSubscriptionGroups.delete(sgId);
+          }
+          // Add new static negative subscription groups
+          state.staticNegativeSubscriptionGroups = new Set(
+            subscriptionGroupIds,
+          );
+          for (const sgId of subscriptionGroupIds) {
+            state.negativeSubscriptionGroups.add(sgId);
+          }
+          // Reset pagination when filters change
+          state.cursor = null;
+          state.direction = null;
+        });
+      },
+
+      setStaticUnsubscribedFromSubscriptionGroups: (subscriptionGroupIds) => {
+        set((state) => {
+          // Remove old static unsubscribed from subscription groups
+          for (const sgId of state.staticUnsubscribedFromSubscriptionGroups) {
+            state.unsubscribedFromSubscriptionGroups.delete(sgId);
+          }
+          // Add new static unsubscribed from subscription groups
+          state.staticUnsubscribedFromSubscriptionGroups = new Set(
+            subscriptionGroupIds,
+          );
+          for (const sgId of subscriptionGroupIds) {
+            state.unsubscribedFromSubscriptionGroups.add(sgId);
+          }
+          // Reset pagination when filters change
+          state.cursor = null;
+          state.direction = null;
+        });
+      },
+
+      addNegativeSubscriptionGroup: (subscriptionGroupId) => {
+        set((state) => {
+          if (
+            !state.staticNegativeSubscriptionGroups.has(subscriptionGroupId)
+          ) {
+            state.negativeSubscriptionGroups.add(subscriptionGroupId);
+            // Reset pagination when filters change
+            state.cursor = null;
+            state.direction = null;
+          }
+        });
+      },
+
+      removeNegativeSubscriptionGroup: (subscriptionGroupId) => {
+        set((state) => {
+          if (
+            !state.staticNegativeSubscriptionGroups.has(subscriptionGroupId)
+          ) {
+            state.negativeSubscriptionGroups.delete(subscriptionGroupId);
             // Reset pagination when filters change
             state.cursor = null;
             state.direction = null;
@@ -422,7 +557,10 @@ export function createUsersTableStore(
           sortOrder,
           segments,
           subscriptionGroups,
+          negativeSubscriptionGroups,
+          unsubscribedFromSubscriptionGroups,
           userProperties,
+          negativeSegments,
         } = get();
 
         const userPropertyFilter: GetUsersUserPropertyFilter | undefined =
@@ -440,9 +578,21 @@ export function createUsersTableStore(
           sortBy: sortBy ?? undefined,
           sortOrder,
           segmentFilter: segments.size > 0 ? Array.from(segments) : undefined,
+          negativeSegmentFilter:
+            negativeSegments.size > 0
+              ? Array.from(negativeSegments)
+              : undefined,
           subscriptionGroupFilter:
             subscriptionGroups.size > 0
               ? Array.from(subscriptionGroups)
+              : undefined,
+          negativeSubscriptionGroupFilter:
+            negativeSubscriptionGroups.size > 0
+              ? Array.from(negativeSubscriptionGroups)
+              : undefined,
+          unsubscribedFromFilter:
+            unsubscribedFromSubscriptionGroups.size > 0
+              ? Array.from(unsubscribedFromSubscriptionGroups)
               : undefined,
           userPropertyFilter,
           // Always use exclusive cursor for correct back-navigation behavior
@@ -451,7 +601,14 @@ export function createUsersTableStore(
       },
 
       getFilterParams: () => {
-        const { segments, subscriptionGroups, userProperties } = get();
+        const {
+          segments,
+          subscriptionGroups,
+          negativeSubscriptionGroups,
+          unsubscribedFromSubscriptionGroups,
+          userProperties,
+          negativeSegments,
+        } = get();
 
         const userPropertyFilter: GetUsersUserPropertyFilter | undefined =
           userProperties.size > 0
@@ -463,9 +620,21 @@ export function createUsersTableStore(
 
         return {
           segmentFilter: segments.size > 0 ? Array.from(segments) : undefined,
+          negativeSegmentFilter:
+            negativeSegments.size > 0
+              ? Array.from(negativeSegments)
+              : undefined,
           subscriptionGroupFilter:
             subscriptionGroups.size > 0
               ? Array.from(subscriptionGroups)
+              : undefined,
+          negativeSubscriptionGroupFilter:
+            negativeSubscriptionGroups.size > 0
+              ? Array.from(negativeSubscriptionGroups)
+              : undefined,
+          unsubscribedFromFilter:
+            unsubscribedFromSubscriptionGroups.size > 0
+              ? Array.from(unsubscribedFromSubscriptionGroups)
               : undefined,
           userPropertyFilter,
         };

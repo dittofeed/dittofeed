@@ -6,6 +6,8 @@ import {
   KeyboardArrowRight,
   KeyboardDoubleArrowLeft,
   MoreVert as MoreVertIcon,
+  NotificationsActive as SubscribeIcon,
+  NotificationsOff as UnsubscribeIcon,
   OpenInNew,
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
@@ -66,6 +68,7 @@ import React, {
 
 import { useAppStore } from "../lib/appStore";
 import { useDeleteUserMutation } from "../lib/useDeleteUserMutation";
+import { useUpdateSubscriptionAssignmentMutation } from "../lib/useUpdateSubscriptionAssignmentMutation";
 import { useUserPropertyResourcesQuery } from "../lib/useUserPropertyResourcesQuery";
 import { useUsersCountQuery } from "../lib/useUsersCountQuery";
 import { useUsersQuery } from "../lib/useUsersQuery";
@@ -430,16 +433,25 @@ const sortPropertyCellRenderer = ({
 };
 
 // Actions menu item
-function ActionsCell({ userId }: { userId: string }) {
+function ActionsCell({
+  userId,
+  subscriptionGroupAction,
+}: {
+  userId: string;
+  subscriptionGroupAction?: SubscriptionGroupAction;
+}) {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [deleteSuccess, setDeleteSuccess] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState(false);
+  const [subscriptionSuccess, setSubscriptionSuccess] = React.useState(false);
+  const [subscriptionError, setSubscriptionError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
   const open = Boolean(anchorEl);
 
   const deleteUserMutation = useDeleteUserMutation();
+  const subscriptionMutation = useUpdateSubscriptionAssignmentMutation();
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -479,6 +491,46 @@ function ActionsCell({ userId }: { userId: string }) {
     handleConfirmClose();
   };
 
+  const handleSubscriptionClick = () => {
+    if (!subscriptionGroupAction) return;
+    handleClose();
+
+    const isSubscribe = subscriptionGroupAction.type === "subscribe";
+    subscriptionMutation.mutate(
+      {
+        userId,
+        subscriptionGroupId: subscriptionGroupAction.subscriptionGroupId,
+        isSubscribed: isSubscribe,
+      },
+      {
+        onSuccess: () => {
+          setSubscriptionSuccess(true);
+        },
+        onError: (error) => {
+          setSubscriptionError(true);
+          if (axios.isAxiosError(error) && error.response?.data) {
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            const errorData = error.response.data as { message?: string };
+            setErrorMessage(
+              errorData.message ??
+                `Failed to ${isSubscribe ? "subscribe" : "unsubscribe"} user. Please try again.`,
+            );
+          } else {
+            setErrorMessage(
+              `Failed to ${isSubscribe ? "subscribe" : "unsubscribe"} user. Please try again.`,
+            );
+          }
+        },
+      },
+    );
+  };
+
+  const isSubscribe = subscriptionGroupAction?.type === "subscribe";
+  const subscriptionActionLabel = isSubscribe ? "Subscribe" : "Unsubscribe";
+  const subscriptionSuccessMessage = isSubscribe
+    ? "User successfully subscribed"
+    : "User successfully unsubscribed";
+
   return (
     <>
       <IconButton
@@ -514,6 +566,34 @@ function ActionsCell({ userId }: { userId: string }) {
           },
         }}
       >
+        {subscriptionGroupAction && (
+          <MenuItem
+            onClick={handleSubscriptionClick}
+            sx={{
+              borderRadius: 0,
+              py: 1.5,
+              color: theme.palette.grey[700],
+              "&:hover": {
+                bgcolor: theme.palette.grey[100],
+              },
+            }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center">
+              {isSubscribe ? (
+                <SubscribeIcon
+                  fontSize="small"
+                  sx={{ color: theme.palette.grey[700] }}
+                />
+              ) : (
+                <UnsubscribeIcon
+                  fontSize="small"
+                  sx={{ color: theme.palette.grey[700] }}
+                />
+              )}
+              <Typography variant="body2">{subscriptionActionLabel}</Typography>
+            </Stack>
+          </MenuItem>
+        )}
         <MenuItem
           onClick={handleDeleteClick}
           sx={{
@@ -535,7 +615,7 @@ function ActionsCell({ userId }: { userId: string }) {
         </MenuItem>
       </Menu>
 
-      {/* Confirmation Dialog */}
+      {/* Delete Confirmation Dialog */}
       <Dialog open={confirmOpen} onClose={handleConfirmClose}>
         <DialogTitle>Confirm deletion</DialogTitle>
         <DialogContent>
@@ -575,7 +655,7 @@ function ActionsCell({ userId }: { userId: string }) {
         </DialogActions>
       </Dialog>
 
-      {/* Success Snackbar */}
+      {/* Delete Success Snackbar */}
       <Snackbar
         open={deleteSuccess}
         autoHideDuration={2000}
@@ -584,7 +664,7 @@ function ActionsCell({ userId }: { userId: string }) {
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       />
 
-      {/* Error Snackbar */}
+      {/* Delete Error Snackbar */}
       <Snackbar
         open={deleteError}
         autoHideDuration={4000}
@@ -597,17 +677,47 @@ function ActionsCell({ userId }: { userId: string }) {
           },
         }}
       />
+
+      {/* Subscription Success Snackbar */}
+      <Snackbar
+        open={subscriptionSuccess}
+        autoHideDuration={2000}
+        onClose={() => setSubscriptionSuccess(false)}
+        message={subscriptionSuccessMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
+
+      {/* Subscription Error Snackbar */}
+      <Snackbar
+        open={subscriptionError}
+        autoHideDuration={4000}
+        onClose={() => setSubscriptionError(false)}
+        message={errorMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        ContentProps={{
+          sx: {
+            bgcolor: theme.palette.error.main,
+          },
+        }}
+      />
     </>
   );
 }
 
-const actionsCellRendererFactory = () => {
+const actionsCellRendererFactory = (
+  subscriptionGroupAction?: SubscriptionGroupAction,
+) => {
   return function ActionsCellRenderer({
     row,
   }: {
     row: { original: { id: string } };
   }) {
-    return <ActionsCell userId={row.original.id} />;
+    return (
+      <ActionsCell
+        userId={row.original.id}
+        subscriptionGroupAction={subscriptionGroupAction}
+      />
+    );
   };
 };
 
@@ -655,6 +765,11 @@ export function usersTablePaginationHandler(router: NextRouter) {
 // Types
 // ============================================================================
 
+export interface SubscriptionGroupAction {
+  subscriptionGroupId: string;
+  type: "subscribe" | "unsubscribe";
+}
+
 interface Row {
   id: string;
   email: string;
@@ -681,6 +796,11 @@ export type UsersTableProps = Omit<GetUsersRequest, "workspaceId"> & {
   reloadPeriodMs?: number;
   userUriTemplate?: string;
   hideControls?: boolean;
+  negativeSegmentFilter?: string[];
+  // Optional name overrides for internal segments (segment ID -> display name)
+  segmentNameOverride?: Record<string, string>;
+  // Optional subscription group action for subscribe/unsubscribe functionality
+  subscriptionGroupAction?: SubscriptionGroupAction;
 };
 
 // ============================================================================
@@ -705,6 +825,8 @@ function UsersTableInner({
   reloadPeriodMs = 10000,
   userUriTemplate = "/users/{userId}",
   hideControls = false,
+  segmentNameOverride,
+  subscriptionGroupAction,
 }: UsersTableInnerProps) {
   useAppStore();
 
@@ -720,10 +842,14 @@ function UsersTableInner({
     sortOrder,
     usersCount,
     segments,
+    negativeSegments,
     subscriptionGroups,
+    negativeSubscriptionGroups,
     userProperties,
     staticSegments,
+    staticNegativeSegments,
     staticSubscriptionGroups,
+    staticNegativeSubscriptionGroups,
   } = store;
 
   const {
@@ -736,8 +862,10 @@ function UsersTableInner({
     setStaticSubscriptionGroups,
     addSegment,
     removeSegment,
+    removeNegativeSegment,
     addSubscriptionGroup,
     removeSubscriptionGroup,
+    removeNegativeSubscriptionGroup,
     addUserPropertyFilter,
     removeUserPropertyFilter,
     handleUsersResponse,
@@ -837,8 +965,8 @@ function UsersTableInner({
   }, [currentPageUserIds, users, sortBy]);
 
   const actionsCellRenderer = useMemo(() => {
-    return actionsCellRendererFactory();
-  }, []);
+    return actionsCellRendererFactory(subscriptionGroupAction);
+  }, [subscriptionGroupAction]);
 
   const columns = useMemo<ColumnDef<Row>[]>(() => {
     const baseColumns: ColumnDef<Row>[] = [
@@ -952,10 +1080,17 @@ function UsersTableInner({
           userProperties={userProperties}
           segments={segments}
           staticSegments={staticSegments}
+          negativeSegments={negativeSegments}
+          staticNegativeSegments={staticNegativeSegments}
           subscriptionGroups={subscriptionGroups}
           staticSubscriptionGroups={staticSubscriptionGroups}
+          negativeSubscriptionGroups={negativeSubscriptionGroups}
+          staticNegativeSubscriptionGroups={staticNegativeSubscriptionGroups}
+          segmentNameOverride={segmentNameOverride}
           onRemoveSegment={removeSegment}
+          onRemoveNegativeSegment={removeNegativeSegment}
           onRemoveSubscriptionGroup={removeSubscriptionGroup}
+          onRemoveNegativeSubscriptionGroup={removeNegativeSubscriptionGroup}
           onRemoveUserProperty={removeUserPropertyFilter}
           onAddSegment={addSegment}
           onAddSubscriptionGroup={addSubscriptionGroup}
@@ -1140,6 +1275,9 @@ function UsersTableInner({
 export default function UsersTableV2({
   segmentFilter,
   subscriptionGroupFilter,
+  negativeSegmentFilter,
+  negativeSubscriptionGroupFilter,
+  unsubscribedFromFilter,
   cursor,
   direction,
   sortBy,
@@ -1152,6 +1290,9 @@ export default function UsersTableV2({
     const initialState: UsersTableStoreInitialState = {
       staticSegmentIds: segmentFilter,
       staticSubscriptionGroupIds: subscriptionGroupFilter,
+      negativeSegmentIds: negativeSegmentFilter,
+      negativeSubscriptionGroupIds: negativeSubscriptionGroupFilter,
+      unsubscribedFromSubscriptionGroupIds: unsubscribedFromFilter,
       cursor: cursor ?? undefined,
       direction: direction ?? undefined,
       sortBy: sortBy ?? undefined,

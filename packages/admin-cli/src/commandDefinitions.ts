@@ -101,6 +101,7 @@ import { resetWorkspaceData } from "./reset";
 import { spawnWithEnv } from "./spawn";
 import {
   backfillInternalEvents,
+  createUnsubscribedSegmentsForExistingSubscriptionGroups,
   createUserSortingIndexTables,
   disentangleResendSendgrid,
   migrateMessageIdIndexToBloomFilter,
@@ -1027,6 +1028,14 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await migrateMessageIdIndexToBloomFilter();
+      },
+    )
+    .command(
+      "create-unsubscribed-segments",
+      "Creates unsubscribed segments for existing subscription groups that don't have them.",
+      (y) => y,
+      async () => {
+        await createUnsubscribedSegmentsForExistingSubscriptionGroups();
       },
     )
     .command(

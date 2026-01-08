@@ -16,6 +16,7 @@ import { db, insert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
 import { publicDrizzleMigrate } from "backend-lib/src/migrate";
+import { getSubscriptionGroupUnsubscribedSegmentName } from "backend-lib/src/subscriptionGroups";
 import {
   EmailProviderSecret,
   EmailProviderType,
@@ -1093,4 +1094,84 @@ export async function upgradeV025Pre() {
   logger().info("Performing pre-upgrade steps for v0.25.0");
   await migrateMessageIdIndexToBloomFilter();
   logger().info("Pre-upgrade steps for v0.25.0 completed.");
+}
+
+export async function createUnsubscribedSegmentsForExistingSubscriptionGroups() {
+  logger().info(
+    "Creating unsubscribed segments for existing subscription groups",
+  );
+
+  const subscriptionGroups = await db().query.subscriptionGroup.findMany({
+    columns: {
+      id: true,
+      workspaceId: true,
+    },
+  });
+
+  logger().info(
+    { count: subscriptionGroups.length },
+    "Found subscription groups to check",
+  );
+
+  let created = 0;
+  let skipped = 0;
+
+  for (const subscriptionGroup of subscriptionGroups) {
+    const unsubscribedSegmentName = getSubscriptionGroupUnsubscribedSegmentName(
+      subscriptionGroup.id,
+    );
+
+    // Check if unsubscribed segment already exists
+    const existingSegment = await db().query.segment.findFirst({
+      where: and(
+        eq(schema.segment.workspaceId, subscriptionGroup.workspaceId),
+        eq(schema.segment.name, unsubscribedSegmentName),
+      ),
+    });
+
+    if (existingSegment) {
+      skipped += 1;
+      // eslint-disable-next-line no-continue
+      continue;
+    }
+
+    // Create the unsubscribed segment
+    const unsubscribedSegmentDefinition: SegmentDefinition = {
+      entryNode: {
+        type: SegmentNodeType.SubscriptionGroupUnsubscribed,
+        id: "1",
+        subscriptionGroupId: subscriptionGroup.id,
+      },
+      nodes: [],
+    };
+
+    const now = new Date();
+    await insert({
+      table: schema.segment,
+      values: {
+        name: unsubscribedSegmentName,
+        workspaceId: subscriptionGroup.workspaceId,
+        definition: unsubscribedSegmentDefinition,
+        subscriptionGroupId: subscriptionGroup.id,
+        resourceType: "Internal",
+        createdAt: now,
+        updatedAt: now,
+      },
+    }).then(unwrap);
+
+    created += 1;
+    logger().info(
+      {
+        subscriptionGroupId: subscriptionGroup.id,
+        workspaceId: subscriptionGroup.workspaceId,
+        segmentName: unsubscribedSegmentName,
+      },
+      "Created unsubscribed segment",
+    );
+  }
+
+  logger().info(
+    { created, skipped, total: subscriptionGroups.length },
+    "Finished creating unsubscribed segments for existing subscription groups",
+  );
 }

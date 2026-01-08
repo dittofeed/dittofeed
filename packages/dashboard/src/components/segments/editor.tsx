@@ -238,6 +238,16 @@ function mapSegmentNodeToNewType(
         secondary: [],
       };
     }
+    case SegmentNodeType.SubscriptionGroupUnsubscribed: {
+      return {
+        primary: {
+          type: SegmentNodeType.SubscriptionGroupUnsubscribed,
+          id: node.id,
+          subscriptionGroupId: "",
+        },
+        secondary: [],
+      };
+    }
     case SegmentNodeType.Performed: {
       return {
         primary: {
@@ -574,7 +584,10 @@ const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
 ];
 
 const keyedSegmentOptions: Record<
-  Exclude<SegmentNodeType, SegmentNodeType.Broadcast>,
+  Exclude<
+    SegmentNodeType,
+    SegmentNodeType.Broadcast | SegmentNodeType.SubscriptionGroupUnsubscribed
+  >,
   SegmentGroupedOption
 > = {
   [SegmentNodeType.Everyone]: everyoneOption,
@@ -2779,7 +2792,10 @@ function SegmentNodeComponent({
     [isRoot],
   );
 
-  if (node.type === SegmentNodeType.Broadcast) {
+  if (
+    node.type === SegmentNodeType.Broadcast ||
+    node.type === SegmentNodeType.SubscriptionGroupUnsubscribed
+  ) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }
 

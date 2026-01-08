@@ -23,7 +23,6 @@ import {
 import React, { lazy, Suspense } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
-import { useCommandPaletteContext } from "../../commandPalette";
 import ExternalLink from "../../externalLink";
 import { GitBranchIcon } from "../../gitBranchIcon";
 import ReturnLink from "../../returnNavigation/ReturnLink";
@@ -310,14 +309,16 @@ function HeaderContent() {
   const matchesXs = useMediaQuery<Theme>((theme) =>
     theme.breakpoints.down("md"),
   );
-  const { features } = useAppStorePick(["features"]);
-  const { setOpen: openCommandPalette } = useCommandPaletteContext();
+  const { features, setCommandPaletteOpen } = useAppStorePick([
+    "features",
+    "setCommandPaletteOpen",
+  ]);
 
   return (
     <>
       <BranchSelect />
       <Box
-        onClick={() => openCommandPalette(true)}
+        onClick={() => setCommandPaletteOpen(true)}
         sx={{
           display: "flex",
           alignItems: "center",

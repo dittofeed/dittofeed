@@ -201,6 +201,10 @@ export function getSubscriptionGroupSegmentName(id: string) {
   return `subscriptionGroup-${id}`;
 }
 
+export function getSubscriptionGroupUnsubscribedSegmentName(id: string) {
+  return `subscriptionGroup-unsubscribed-${id}`;
+}
+
 function mapUpsertValidationError(
   error: QueryError | TxQueryError,
 ): SubscriptionGroupUpsertValidationError {
@@ -355,6 +359,39 @@ export async function upsertSubscriptionGroup({
       set: {
         name: segmentName,
         definition: segmentDefinition,
+        createdAt,
+        updatedAt,
+      },
+      tx,
+    }).then(unwrap);
+
+    // Create the unsubscribed segment
+    const unsubscribedSegmentName = getSubscriptionGroupUnsubscribedSegmentName(
+      subscriptionGroup.id,
+    );
+    const unsubscribedSegmentDefinition: SegmentDefinition = {
+      entryNode: {
+        type: SegmentNodeType.SubscriptionGroupUnsubscribed,
+        id: "1",
+        subscriptionGroupId: subscriptionGroup.id,
+      },
+      nodes: [],
+    };
+    await upsert({
+      table: dbSegment,
+      values: {
+        name: unsubscribedSegmentName,
+        workspaceId,
+        definition: unsubscribedSegmentDefinition,
+        subscriptionGroupId: subscriptionGroup.id,
+        resourceType: "Internal",
+        createdAt,
+        updatedAt,
+      },
+      target: [dbSegment.workspaceId, dbSegment.name],
+      set: {
+        name: unsubscribedSegmentName,
+        definition: unsubscribedSegmentDefinition,
         createdAt,
         updatedAt,
       },
@@ -652,18 +689,47 @@ export async function updateUserSubscriptions({
     ),
   });
 
-  const segmentBySubscriptionGroupId = segments.reduce<Record<string, Segment>>(
-    (acc, segment) => {
-      if (!segment.subscriptionGroupId) {
-        return acc;
-      }
+  // Store both main and unsubscribed segments per subscription group
+  interface SegmentPair {
+    mainSegmentId?: string;
+    unsubscribedSegmentId?: string;
+  }
+
+  const segmentsBySubscriptionGroupId = segments.reduce<
+    Record<string, SegmentPair>
+  >((acc, segment) => {
+    if (!segment.subscriptionGroupId) {
+      return acc;
+    }
+
+    const existingPair = acc[segment.subscriptionGroupId] ?? {};
+    const mainSegmentName = getSubscriptionGroupSegmentName(
+      segment.subscriptionGroupId,
+    );
+    const unsubscribedSegmentName = getSubscriptionGroupUnsubscribedSegmentName(
+      segment.subscriptionGroupId,
+    );
+
+    if (segment.name === mainSegmentName) {
       return {
         ...acc,
-        [segment.subscriptionGroupId]: segment,
+        [segment.subscriptionGroupId]: {
+          ...existingPair,
+          mainSegmentId: segment.id,
+        },
       };
-    },
-    {},
-  );
+    }
+    if (segment.name === unsubscribedSegmentName) {
+      return {
+        ...acc,
+        [segment.subscriptionGroupId]: {
+          ...existingPair,
+          unsubscribedSegmentId: segment.id,
+        },
+      };
+    }
+    return acc;
+  }, {});
 
   const allUserEvents = userUpdates.flatMap(({ userId, changes }) => {
     const userChangePairs = R.entries(changes);
@@ -683,22 +749,45 @@ export async function updateUserSubscriptions({
     ({ userId, changes }) => {
       const changePairs = R.entries(changes);
       return changePairs.flatMap(([subscriptionGroupId, isSubscribed]) => {
-        const segment = segmentBySubscriptionGroupId[subscriptionGroupId];
-        if (!segment) {
+        const segmentPair = segmentsBySubscriptionGroupId[subscriptionGroupId];
+        if (!segmentPair) {
           return [];
         }
-        return [
-          {
+
+        const assignments: SegmentBulkUpsertItem[] = [];
+
+        // Main segment: inSegment = isSubscribed
+        if (segmentPair.mainSegmentId) {
+          assignments.push({
             workspaceId,
             userId,
-            segmentId: segment.id,
+            segmentId: segmentPair.mainSegmentId,
             inSegment: isSubscribed,
-          },
-        ];
+          });
+        }
+
+        // Unsubscribed segment: inSegment = !isSubscribed
+        if (segmentPair.unsubscribedSegmentId) {
+          assignments.push({
+            workspaceId,
+            userId,
+            segmentId: segmentPair.unsubscribedSegmentId,
+            inSegment: !isSubscribed,
+          });
+        }
+
+        return assignments;
       });
     },
   );
 
+  logger().debug(
+    {
+      segmentAssignmentUpdates,
+      allUserEvents,
+    },
+    "loc1 Updating subscription assignments",
+  );
   await Promise.all([
     insertSegmentAssignments(segmentAssignmentUpdates),
     insertUserEvents({

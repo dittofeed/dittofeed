@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
@@ -7,6 +7,10 @@ import { Db, db } from "./db";
 import * as schema from "./db/schema";
 import { getMessageTemplates, getSubscribedSegments } from "./journeys";
 import logger from "./logger";
+import {
+  getSubscriptionGroupSegmentName,
+  getSubscriptionGroupUnsubscribedSegmentName,
+} from "./subscriptionGroups";
 import {
   BroadcastResourceVersion,
   ChannelType,
@@ -512,12 +516,59 @@ export async function getResources({
     }));
   }
   if (subscriptionGroups) {
+    // Fetch segments associated with subscription groups
+    const subscriptionGroupIds = subscriptionGroups.map((sg) => sg.id);
+    const relatedSegments =
+      subscriptionGroupIds.length > 0
+        ? await db().query.segment.findMany({
+            columns: {
+              id: true,
+              name: true,
+              subscriptionGroupId: true,
+            },
+            where: and(
+              eq(schema.segment.workspaceId, workspaceId),
+              isNotNull(schema.segment.subscriptionGroupId),
+              inArray(schema.segment.subscriptionGroupId, subscriptionGroupIds),
+            ),
+          })
+        : [];
+
+    // Build a map of subscriptionGroupId -> { segmentId, unsubscribedSegmentId }
+    const segmentMap = new Map<
+      string,
+      { segmentId?: string; unsubscribedSegmentId?: string }
+    >();
+    for (const segment of relatedSegments) {
+      if (!segment.subscriptionGroupId) continue;
+
+      const expectedSegmentName = getSubscriptionGroupSegmentName(
+        segment.subscriptionGroupId,
+      );
+      const expectedUnsubscribedName = getSubscriptionGroupUnsubscribedSegmentName(
+        segment.subscriptionGroupId,
+      );
+
+      const existing = segmentMap.get(segment.subscriptionGroupId) ?? {};
+      if (segment.name === expectedSegmentName) {
+        existing.segmentId = segment.id;
+      } else if (segment.name === expectedUnsubscribedName) {
+        existing.unsubscribedSegmentId = segment.id;
+      }
+      segmentMap.set(segment.subscriptionGroupId, existing);
+    }
+
     response.subscriptionGroups = subscriptionGroups.map(
-      (subscriptionGroup) => ({
-        id: subscriptionGroup.id,
-        name: subscriptionGroup.name,
-        channel: subscriptionGroup.channel as ChannelType,
-      }),
+      (subscriptionGroup) => {
+        const segments = segmentMap.get(subscriptionGroup.id);
+        return {
+          id: subscriptionGroup.id,
+          name: subscriptionGroup.name,
+          channel: subscriptionGroup.channel as ChannelType,
+          segmentId: segments?.segmentId,
+          unsubscribedSegmentId: segments?.unsubscribedSegmentId,
+        };
+      },
     );
   }
   if (journeys) {

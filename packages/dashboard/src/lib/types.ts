@@ -175,6 +175,7 @@ export type AppState = {
   sourceControlProvider?: SourceControlProviderEnum;
   viewDraft: boolean;
   inTransition?: boolean;
+  commandPaletteOpen: boolean;
 } & PageStoreContents &
   Pick<
     Config,
@@ -226,6 +227,7 @@ export interface AppActions {
     defaultSmsProvider: DefaultSmsProviderResource,
   ) => void;
   setViewDraft: (viewDraft: boolean) => void;
+  setCommandPaletteOpen: (open: boolean) => void;
   upsertAdminApiKey: (apiKey: AdminApiKeyResource) => void;
   deleteAdminApiKey: (id: string) => void;
   patchSecretAvailability: (secret: {

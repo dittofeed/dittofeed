@@ -18,7 +18,7 @@ import SubscriptionGroupLayout, {
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   getSubscriptionGroupsSSP;
 
-export default function SubscriptionGroupUsers() {
+export default function SubscriptionGroupUsersNotInGroup() {
   const router = useRouter();
   const id = typeof router.query.id === "string" ? router.query.id : undefined;
 
@@ -43,7 +43,10 @@ export default function SubscriptionGroupUsers() {
   // Show loading state while fetching subscription group
   if (!subscriptionGroup) {
     return (
-      <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Users} id={id}>
+      <SubscriptionGroupLayout
+        tab={SubscriptionGroupTabLabel.UsersNotInGroup}
+        id={id}
+      >
         <Stack
           direction="column"
           sx={{
@@ -61,20 +64,23 @@ export default function SubscriptionGroupUsers() {
   }
 
   return (
-    <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Users} id={id}>
+    <SubscriptionGroupLayout
+      tab={SubscriptionGroupTabLabel.UsersNotInGroup}
+      id={id}
+    >
       <Stack
         direction="column"
         sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
         spacing={3}
       >
         <Typography variant="h4">
-          Users in &quot;{subscriptionGroup.name}&quot;
+          Users Not in &quot;{subscriptionGroup.name}&quot;
         </Typography>
         <UsersTableV2
-          subscriptionGroupFilter={[id]}
+          negativeSubscriptionGroupFilter={[subscriptionGroup.id]}
           subscriptionGroupAction={{
-            subscriptionGroupId: id,
-            type: "unsubscribe",
+            subscriptionGroupId: subscriptionGroup.id,
+            type: "subscribe",
           }}
           {...queryParams}
           onPaginationChange={onUsersTablePaginate}

@@ -21,7 +21,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import React, { useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { BulletList, BulletListItem } from "../../components/bulletList";
 import { EditableTitle } from "../../components/editableName/v2";
@@ -30,6 +30,7 @@ import InfoTooltip from "../../components/infoTooltip";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../../lib/appStore";
 import { PropsWithInitialState } from "../../lib/types";
+import { useSubscriptionGroupsQuery } from "../../lib/useSubscriptionGroupsQuery";
 import getSubscriptionGroupsSSP from "./getSubscriptionGroupsSSP";
 import SubscriptionGroupLayout, {
   SubscriptionGroupTabLabel,
@@ -38,42 +39,69 @@ import SubscriptionGroupLayout, {
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   getSubscriptionGroupsSSP;
 
+interface EditedSubscriptionGroup {
+  id: string;
+  name: string;
+  type: SubscriptionGroupType;
+  channel: ChannelType;
+}
+
 export default function SubscriptionGroupConfig() {
   const theme = useTheme();
-  const path = useRouter();
+  const router = useRouter();
+  const id = typeof router.query.id === "string" ? router.query.id : undefined;
+
   const {
     subscriptionGroupUpdateRequest,
-    updateEditedSubscriptionGroup,
-    editedSubscriptionGroup,
     setSubscriptionGroupUpdateRequest,
     apiBase,
     upsertSubscriptionGroup,
     enableMobilePush,
-    subscriptionGroups,
   } = useAppStorePick([
-    "subscriptionGroups",
     "subscriptionGroupUpdateRequest",
-    "updateEditedSubscriptionGroup",
-    "editedSubscriptionGroup",
     "setSubscriptionGroupUpdateRequest",
     "apiBase",
     "enableMobilePush",
     "upsertSubscriptionGroup",
   ]);
-  const id = typeof path.query.id === "string" ? path.query.id : undefined;
 
   const workspace = useAppStore((store) => store.workspace);
+  const { data: subscriptionGroups } = useSubscriptionGroupsQuery();
+
+  // Local state for editing
+  const [editedSubscriptionGroup, setEditedSubscriptionGroup] =
+    useState<EditedSubscriptionGroup | null>(null);
+
+  // Initialize local state from fetched data
+  useEffect(() => {
+    if (!id || !subscriptionGroups) return;
+    const sg = subscriptionGroups.find((s) => s.id === id);
+    if (sg && !editedSubscriptionGroup) {
+      setEditedSubscriptionGroup({
+        id: sg.id,
+        name: sg.name,
+        type: sg.type,
+        channel: sg.channel,
+      });
+    }
+  }, [id, subscriptionGroups, editedSubscriptionGroup]);
+
+  const updateEditedSubscriptionGroup = useCallback(
+    (updates: Partial<EditedSubscriptionGroup>) => {
+      setEditedSubscriptionGroup((prev) =>
+        prev ? { ...prev, ...updates } : null,
+      );
+    },
+    [],
+  );
 
   const onChannelChangeHandler: SelectInputProps<ChannelType>["onChange"] = (
     e,
   ) => {
-    if (editedSubscriptionGroup) {
-      updateEditedSubscriptionGroup({
-        id: editedSubscriptionGroup.id,
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        channel: e.target.value as ChannelType,
-      });
-    }
+    updateEditedSubscriptionGroup({
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      channel: e.target.value as ChannelType,
+    });
   };
 
   const handleSubmit = useMemo(() => {
@@ -82,7 +110,6 @@ export default function SubscriptionGroupConfig() {
       !id ||
       !editedSubscriptionGroup
     ) {
-      console.error("failed to submit", workspace, id, editedSubscriptionGroup);
       return;
     }
     const { name } = editedSubscriptionGroup;
@@ -100,9 +127,13 @@ export default function SubscriptionGroupConfig() {
       responseSchema: SavedSubscriptionGroupResource,
       setResponse: (sg) => {
         upsertSubscriptionGroup(sg);
-        updateEditedSubscriptionGroup(sg);
+        setEditedSubscriptionGroup({
+          id: sg.id,
+          name: sg.name,
+          type: sg.type,
+          channel: sg.channel,
+        });
       },
-      // TODO redirect on completion
       onSuccessNotice: `Saved subscription group ${name}`,
       onFailureNoticeHandler: () =>
         `API Error: Failed to save subscription group ${name}`,
@@ -123,21 +154,26 @@ export default function SubscriptionGroupConfig() {
     setSubscriptionGroupUpdateRequest,
     apiBase,
     upsertSubscriptionGroup,
-    updateEditedSubscriptionGroup,
   ]);
 
-  if (!editedSubscriptionGroup) {
-    console.error("missing editedSubscriptionGroup");
+  if (!id) {
     return null;
   }
 
-  if (!id) {
-    console.error("missing subscription group id");
-    return null;
+  // Show loading while fetching subscription group
+  if (!editedSubscriptionGroup) {
+    return (
+      <SubscriptionGroupLayout
+        tab={SubscriptionGroupTabLabel.Configure}
+        id={id}
+      />
+    );
   }
 
   const optIn = editedSubscriptionGroup.type === SubscriptionGroupType.OptIn;
-  const hasBeenCreated = subscriptionGroups.some((sg) => sg.id === id);
+  const hasBeenCreated =
+    subscriptionGroups?.some((sg) => sg.id === id) ?? false;
+
   return (
     <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Configure} id={id}>
       <Stack
