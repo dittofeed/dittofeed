@@ -187,7 +187,10 @@ export default async function subscriptionGroupsController(
               where: and(
                 eq(schema.segment.workspaceId, workspaceId),
                 isNotNull(schema.segment.subscriptionGroupId),
-                inArray(schema.segment.subscriptionGroupId, subscriptionGroupIds),
+                inArray(
+                  schema.segment.subscriptionGroupId,
+                  subscriptionGroupIds,
+                ),
               ),
             })
           : [];
@@ -203,9 +206,10 @@ export default async function subscriptionGroupsController(
         const expectedSegmentName = getSubscriptionGroupSegmentName(
           segment.subscriptionGroupId,
         );
-        const expectedUnsubscribedName = getSubscriptionGroupUnsubscribedSegmentName(
-          segment.subscriptionGroupId,
-        );
+        const expectedUnsubscribedName =
+          getSubscriptionGroupUnsubscribedSegmentName(
+            segment.subscriptionGroupId,
+          );
 
         const existing = segmentMap.get(segment.subscriptionGroupId) ?? {};
         if (segment.name === expectedSegmentName) {

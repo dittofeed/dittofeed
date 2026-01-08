@@ -92,7 +92,9 @@ export interface UsersTableActions {
   setStaticSegments: (segmentIds: string[]) => void;
   setStaticSubscriptionGroups: (subscriptionGroupIds: string[]) => void;
   setStaticNegativeSubscriptionGroups: (subscriptionGroupIds: string[]) => void;
-  setStaticUnsubscribedFromSubscriptionGroups: (subscriptionGroupIds: string[]) => void;
+  setStaticUnsubscribedFromSubscriptionGroups: (
+    subscriptionGroupIds: string[],
+  ) => void;
   addSegment: (segmentId: string) => void;
   removeSegment: (segmentId: string) => void;
   addNegativeSegment: (segmentId: string) => void;

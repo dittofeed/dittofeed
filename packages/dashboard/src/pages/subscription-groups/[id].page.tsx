@@ -163,10 +163,18 @@ export default function SubscriptionGroupConfig() {
   // Show loading while fetching subscription group
   if (!editedSubscriptionGroup) {
     return (
-      <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Configure} id={id}>
+      <SubscriptionGroupLayout
+        tab={SubscriptionGroupTabLabel.Configure}
+        id={id}
+      >
         <Stack
           direction="column"
-          sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
+          sx={{
+            width: "100%",
+            height: "100%",
+            padding: 2,
+            alignItems: "start",
+          }}
           spacing={3}
         >
           <Typography variant="body1">Loading...</Typography>
@@ -176,7 +184,8 @@ export default function SubscriptionGroupConfig() {
   }
 
   const optIn = editedSubscriptionGroup.type === SubscriptionGroupType.OptIn;
-  const hasBeenCreated = subscriptionGroups?.some((sg) => sg.id === id) ?? false;
+  const hasBeenCreated =
+    subscriptionGroups?.some((sg) => sg.id === id) ?? false;
 
   return (
     <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Configure} id={id}>

@@ -134,13 +134,10 @@ export function UsersFilterV2({
     }
     const subscriptionGroupsList =
       subscriptionGroupsQuery.data.subscriptionGroups || [];
-    return subscriptionGroupsList.reduce(
-      (acc: Map<string, string>, sg) => {
-        acc.set(sg.id, sg.name);
-        return acc;
-      },
-      new Map<string, string>(),
-    );
+    return subscriptionGroupsList.reduce((acc: Map<string, string>, sg) => {
+      acc.set(sg.id, sg.name);
+      return acc;
+    }, new Map<string, string>());
   }, [subscriptionGroupsQuery]);
 
   const joinedSubscriptionGroups: {
