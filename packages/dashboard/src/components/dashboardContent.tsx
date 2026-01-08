@@ -1,6 +1,9 @@
-import { CommandPaletteProvider } from "./commandPalette";
+import dynamic from "next/dynamic";
+
 import DashboardHead from "./dashboardHead";
 import MainLayout from "./mainLayout";
+
+const CommandPalette = dynamic(() => import("./commandPalette"), { ssr: false });
 
 export default function DashboardContent({
   children,
@@ -8,11 +11,12 @@ export default function DashboardContent({
   children?: React.ReactNode;
 }) {
   return (
-    <CommandPaletteProvider>
+    <>
       <DashboardHead />
       <MainLayout>
         <>{children}</>
       </MainLayout>
-    </CommandPaletteProvider>
+      <CommandPalette />
+    </>
   );
 }

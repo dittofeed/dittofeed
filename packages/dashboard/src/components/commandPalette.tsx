@@ -3,38 +3,10 @@ import { Dialog, useTheme } from "@mui/material";
 import { Command } from "cmdk";
 import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import React, {
-  createContext,
-  ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useCallback, useEffect } from "react";
 
 import { useAppStorePick } from "../lib/appStore";
 import { useResourcesQuery } from "../lib/useResourcesQuery";
-
-// Context for command palette state
-interface CommandPaletteContextValue {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-}
-
-const CommandPaletteContext = createContext<CommandPaletteContextValue | null>(
-  null,
-);
-
-export function useCommandPaletteContext() {
-  const context = useContext(CommandPaletteContext);
-  if (!context) {
-    throw new Error(
-      "useCommandPaletteContext must be used within CommandPaletteProvider",
-    );
-  }
-  return context;
-}
 
 // Map channel type to route path
 function getTemplateChannelPath(channel?: ChannelType): string {
@@ -53,16 +25,32 @@ function getTemplateChannelPath(channel?: ChannelType): string {
 }
 
 // Command Palette Component
-function CommandPalette({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+export default function CommandPalette() {
   const theme = useTheme();
   const router = useRouter();
-  const { workspace } = useAppStorePick(["workspace"]);
+  const { workspace, commandPaletteOpen, setCommandPaletteOpen } =
+    useAppStorePick([
+      "workspace",
+      "commandPaletteOpen",
+      "setCommandPaletteOpen",
+    ]);
+
+  // Keyboard shortcut handler
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      // Check for Cmd+K (Mac) or Ctrl+K (Windows/Linux)
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+        event.preventDefault();
+        setCommandPaletteOpen(!commandPaletteOpen);
+      }
+    },
+    [commandPaletteOpen, setCommandPaletteOpen],
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   // Only fetch when workspace is loaded
   const workspaceReady = workspace.type === CompletionStatus.Successful;
@@ -75,22 +63,22 @@ function CommandPalette({
       subscriptionGroups: true,
     },
     {
-      enabled: workspaceReady && open,
+      enabled: workspaceReady && commandPaletteOpen,
     },
   );
 
   const handleSelect = useCallback(
     (path: string) => {
       router.push(path);
-      onOpenChange(false);
+      setCommandPaletteOpen(false);
     },
-    [router, onOpenChange],
+    [router, setCommandPaletteOpen],
   );
 
   return (
     <Dialog
-      open={open}
-      onClose={() => onOpenChange(false)}
+      open={commandPaletteOpen}
+      onClose={() => setCommandPaletteOpen(false)}
       maxWidth="sm"
       fullWidth
       PaperProps={{
@@ -191,33 +179,5 @@ function CommandPalette({
         </Command.List>
       </Command>
     </Dialog>
-  );
-}
-
-// Provider Component
-export function CommandPaletteProvider({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-
-  // Keyboard shortcut handler
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    // Check for Cmd+K (Mac) or Ctrl+K (Windows/Linux)
-    if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-      event.preventDefault();
-      setOpen((prev) => !prev);
-    }
-  }, []);
-
-  useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-
-  const contextValue = useMemo(() => ({ open, setOpen }), [open]);
-
-  return (
-    <CommandPaletteContext.Provider value={contextValue}>
-      {children}
-      <CommandPalette open={open} onOpenChange={setOpen} />
-    </CommandPaletteContext.Provider>
   );
 }

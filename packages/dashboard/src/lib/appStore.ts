@@ -51,6 +51,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         },
         features: {},
         viewDraft: true,
+        commandPaletteOpen: false,
         enableAdditionalDashboardSettings: false,
         upsertTraits: (traits) =>
           set((state) => {
@@ -563,6 +564,10 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setViewDraft: (viewDraft) =>
           set((state) => {
             state.viewDraft = viewDraft;
+          }),
+        setCommandPaletteOpen: (open) =>
+          set((state) => {
+            state.commandPaletteOpen = open;
           }),
 
         ...createJourneySlice(set, ...remaining),
