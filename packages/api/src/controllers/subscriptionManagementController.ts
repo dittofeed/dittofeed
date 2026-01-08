@@ -17,7 +17,10 @@ import {
 } from "backend-lib/src/types";
 import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
-import { SubscriptionParams } from "isomorphic-lib/src/types";
+import {
+  SubscriptionManagementPageSubmissionRequest,
+  SubscriptionParams,
+} from "isomorphic-lib/src/types";
 
 export default async function subscriptionManagementController(
   fastify: FastifyInstance,
@@ -249,13 +252,7 @@ export default async function subscriptionManagementController(
       schema: {
         description:
           "Handles form submission for subscription preferences and redirects back to the page.",
-        body: Type.Object({
-          w: Type.String({ description: "Workspace ID" }),
-          h: Type.String({ description: "Hash for user verification" }),
-          i: Type.String({ description: "User identifier" }),
-          ik: Type.String({ description: "Identifier key" }),
-          isPreview: Type.Optional(Type.String()),
-        }),
+        body: SubscriptionManagementPageSubmissionRequest,
         response: {
           302: Type.Null(),
           401: Type.Object({
@@ -266,14 +263,7 @@ export default async function subscriptionManagementController(
     },
     async (request, reply) => {
       // Type from schema defines w, h, i, ik as required strings
-      const typedBody = request.body as {
-        w: string;
-        h: string;
-        i: string;
-        ik: string;
-        isPreview?: string;
-        [key: string]: string | undefined;
-      };
+      const typedBody = request.body;
       const {
         w: workspaceId,
         h: hash,

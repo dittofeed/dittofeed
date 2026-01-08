@@ -1921,7 +1921,9 @@ export const InvalidIdentifierKeyError = Type.Object({
   identifierKey: Type.String(),
 });
 
-export type InvalidIdentifierKeyError = Static<typeof InvalidIdentifierKeyError>;
+export type InvalidIdentifierKeyError = Static<
+  typeof InvalidIdentifierKeyError
+>;
 
 export const UpsertMessageTemplateValidationError = Type.Union([
   UniqueConstraintViolationError,
@@ -6679,4 +6681,16 @@ export const SubscriptionManagementPageRequest = Type.Object(
 
 export type SubscriptionManagementPageRequest = Static<
   typeof SubscriptionManagementPageRequest
+>;
+
+export const SubscriptionManagementPageSubmissionRequest = Type.Object({
+  w: Type.String({ description: "Workspace ID" }),
+  h: Type.String({ description: "Hash for user verification" }),
+  i: Type.String({ description: "User identifier" }),
+  ik: Type.String({ description: "Identifier key" }),
+  isPreview: Type.Optional(Type.String()),
+});
+
+export type SubscriptionManagementPageSubmissionRequest = Static<
+  typeof SubscriptionManagementPageSubmissionRequest
 >;
