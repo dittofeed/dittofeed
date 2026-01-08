@@ -20,3 +20,4 @@ jobs:
       package-name: 'backend-lib'
       is_backend: 'true'
       run_tests: 'true'
+      test_shards: 4
