@@ -16,10 +16,7 @@ import { db, insert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
 import { publicDrizzleMigrate } from "backend-lib/src/migrate";
-import {
-  getSubscriptionGroupSegmentName,
-  getSubscriptionGroupUnsubscribedSegmentName,
-} from "backend-lib/src/subscriptionGroups";
+import { getSubscriptionGroupUnsubscribedSegmentName } from "backend-lib/src/subscriptionGroups";
 import {
   EmailProviderSecret,
   EmailProviderType,
