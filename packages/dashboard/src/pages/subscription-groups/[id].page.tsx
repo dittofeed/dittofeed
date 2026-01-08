@@ -166,20 +166,7 @@ export default function SubscriptionGroupConfig() {
       <SubscriptionGroupLayout
         tab={SubscriptionGroupTabLabel.Configure}
         id={id}
-      >
-        <Stack
-          direction="column"
-          sx={{
-            width: "100%",
-            height: "100%",
-            padding: 2,
-            alignItems: "start",
-          }}
-          spacing={3}
-        >
-          <Typography variant="body1">Loading...</Typography>
-        </Stack>
-      </SubscriptionGroupLayout>
+      />
     );
   }
 
