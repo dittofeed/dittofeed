@@ -1,4 +1,6 @@
-import { Liquid, TagToken, Context, Emitter, TopLevelToken } from "liquidjs";
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/consistent-type-assertions */
+import { Context, Emitter, Liquid, TagToken, TopLevelToken } from "liquidjs";
 
 import { SubscriptionManagementTemplateContext } from "./types";
 
@@ -29,9 +31,11 @@ const liquid = new Liquid();
  * - isPreview (if in preview mode)
  */
 liquid.registerTag("subscription_hidden_fields", {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   parse(tagToken: TagToken, remainTokens: TopLevelToken[]) {
     // No arguments to parse
   },
+  // eslint-disable-next-line require-yield
   *render(ctx: Context, emitter: Emitter) {
     const workspaceId = ctx.get(["workspaceId"]) as string;
     const hash = ctx.get(["hash"]) as string;
