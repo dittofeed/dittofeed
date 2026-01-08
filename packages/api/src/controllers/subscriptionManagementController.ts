@@ -10,7 +10,11 @@ import {
   updateUserSubscriptions,
 } from "backend-lib/src/subscriptionGroups";
 import { generateSubscriptionManagementPage } from "backend-lib/src/subscriptionManagementPage";
-import { EmptyResponse, SubscriptionChange, UserSubscriptionsUpdate } from "backend-lib/src/types";
+import {
+  EmptyResponse,
+  SubscriptionChange,
+  UserSubscriptionsUpdate,
+} from "backend-lib/src/types";
 import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { SubscriptionParams } from "isomorphic-lib/src/types";
@@ -294,7 +298,10 @@ export default async function subscriptionManagementController(
       // In preview mode, just redirect with preview_submitted flag
       if (isPreview) {
         redirectParams.set("previewSubmitted", "true");
-        return reply.redirect(302, `/api/public/subscription-management/page?${redirectParams.toString()}`);
+        return reply.redirect(
+          302,
+          `/api/public/subscription-management/page?${redirectParams.toString()}`,
+        );
       }
 
       // Verify user
@@ -348,7 +355,10 @@ export default async function subscriptionManagementController(
         redirectParams.set("error", "true");
       }
 
-      return reply.redirect(302, `/api/public/subscription-management/page?${redirectParams.toString()}`);
+      return reply.redirect(
+        302,
+        `/api/public/subscription-management/page?${redirectParams.toString()}`,
+      );
     },
   );
 }
