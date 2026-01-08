@@ -1640,6 +1640,7 @@ export async function getUsersCount({
         id: dbSubscriptionGroup.id,
         type: dbSubscriptionGroup.type,
         segmentId: dbSegment.id,
+        segmentName: dbSegment.name,
       })
       .from(dbSubscriptionGroup)
       .innerJoin(
@@ -1647,30 +1648,27 @@ export async function getUsersCount({
         eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
       )
       .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
-    const subscriptionGroups = subscriptionGroupsRows.reduce(
-      (acc, subscriptionGroup) => {
+
+    // Build a map of subscription group ID to main segment info (excluding unsubscribed segments)
+    const subscriptionGroups = new Map<
+      string,
+      { type: SubscriptionGroupType; segmentId: string }
+    >();
+    for (const row of subscriptionGroupsRows) {
+      const expectedUnsubscribedName =
+        getSubscriptionGroupUnsubscribedSegmentName(row.id);
+      // Only include main segments (not unsubscribed segments)
+      if (row.segmentName !== expectedUnsubscribedName) {
         const subscriptionGroupType =
-          subscriptionGroup.type === SubscriptionGroupType.OptOut
+          row.type === SubscriptionGroupType.OptOut
             ? SubscriptionGroupType.OptOut
             : SubscriptionGroupType.OptIn;
-        const entry: {
-          type: SubscriptionGroupType;
-          segmentId: string;
-        } = {
+        subscriptionGroups.set(row.id, {
           type: subscriptionGroupType,
-          segmentId: subscriptionGroup.segmentId,
-        };
-        acc.set(subscriptionGroup.id, entry);
-        return acc;
-      },
-      new Map<
-        string,
-        {
-          type: SubscriptionGroupType;
-          segmentId: string;
-        }
-      >(),
-    );
+          segmentId: row.segmentId,
+        });
+      }
+    }
 
     for (const subscriptionGroup of subscriptionGroupFilter) {
       const sg = subscriptionGroups.get(subscriptionGroup);
