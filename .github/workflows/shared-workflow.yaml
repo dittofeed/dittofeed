@@ -107,4 +107,4 @@ jobs:
         run: yarn workspace ${{ inputs.package-name }} check
 
       - name: Run Tests
-        run: yarn jest "packages/${{ inputs.package-name }}" --shard=${{ matrix.shard }}/${{ inputs.test_shards }}
+        run: yarn jest "packages/${{ inputs.package-name }}" --shard=${{ matrix.shard }}/${{ inputs.test_shards }} --maxWorkers=4
