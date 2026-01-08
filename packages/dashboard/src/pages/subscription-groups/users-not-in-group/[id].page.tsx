@@ -49,7 +49,12 @@ export default function SubscriptionGroupUsersNotInGroup() {
       >
         <Stack
           direction="column"
-          sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
+          sx={{
+            width: "100%",
+            height: "100%",
+            padding: 2,
+            alignItems: "start",
+          }}
           spacing={3}
         >
           <Typography variant="body1">Loading...</Typography>
