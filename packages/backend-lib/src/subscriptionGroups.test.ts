@@ -7,12 +7,16 @@ import { Readable } from "stream";
 import { bootstrapPostgres } from "./bootstrap";
 import { db } from "./db";
 import * as schema from "./db/schema";
+import { findAllSegmentAssignmentsByIds } from "./segments";
 import {
   generateSubscriptionChangeUrl,
+  getSubscriptionGroupSegmentName,
+  getSubscriptionGroupUnsubscribedSegmentName,
   getUserSubscriptions,
   inSubscriptionGroup,
   parseSubscriptionGroupCsv,
   processSubscriptionGroupCsv,
+  updateUserSubscriptions,
   upsertSubscriptionGroup,
 } from "./subscriptionGroups";
 import {
@@ -288,4 +292,191 @@ John,subscribe`;
     });
   });
 
+  describe("updateUserSubscriptions", () => {
+    let workspaceId: string;
+    let userId: string;
+    let subscriptionGroupId: string;
+    let mainSegmentId: string;
+    let unsubscribedSegmentId: string;
+
+    beforeEach(async () => {
+      userId = randomUUID();
+      const workspaceName = randomUUID();
+      subscriptionGroupId = randomUUID();
+
+      const bootstrapResult = unwrap(
+        await bootstrapPostgres({
+          workspaceName,
+          workspaceType: WorkspaceTypeAppEnum.Root,
+        }),
+      );
+      workspaceId = bootstrapResult.id;
+
+      // Create subscription group (creates both main and unsubscribed segments)
+      unwrap(
+        await upsertSubscriptionGroup({
+          id: subscriptionGroupId,
+          workspaceId,
+          name: "Test Subscription Group",
+          type: SubscriptionGroupType.OptOut,
+          channel: ChannelType.Email,
+        }),
+      );
+
+      // Get segment IDs
+      const segments = await db().query.segment.findMany({
+        where: and(
+          eq(schema.segment.workspaceId, workspaceId),
+          eq(schema.segment.subscriptionGroupId, subscriptionGroupId),
+        ),
+      });
+
+      const mainSegmentName =
+        getSubscriptionGroupSegmentName(subscriptionGroupId);
+      const unsubscribedSegmentName =
+        getSubscriptionGroupUnsubscribedSegmentName(subscriptionGroupId);
+
+      const mainSegment = segments.find((s) => s.name === mainSegmentName);
+      const unsubscribedSegment = segments.find(
+        (s) => s.name === unsubscribedSegmentName,
+      );
+
+      if (!mainSegment || !unsubscribedSegment) {
+        throw new Error("Segments not found");
+      }
+
+      mainSegmentId = mainSegment.id;
+      unsubscribedSegmentId = unsubscribedSegment.id;
+    });
+
+    describe("when unsubscribing a user", () => {
+      beforeEach(async () => {
+        await updateUserSubscriptions({
+          workspaceId,
+          userUpdates: [
+            {
+              userId,
+              changes: {
+                [subscriptionGroupId]: false,
+              },
+            },
+          ],
+        });
+      });
+
+      it("sets main segment inSegment to false", async () => {
+        const assignments = await findAllSegmentAssignmentsByIds({
+          workspaceId,
+          segmentIds: [mainSegmentId],
+          userId,
+        });
+        expect(assignments).toHaveLength(1);
+        expect(assignments[0]?.inSegment).toBe(false);
+      });
+
+      it("sets unsubscribed segment inSegment to true", async () => {
+        const assignments = await findAllSegmentAssignmentsByIds({
+          workspaceId,
+          segmentIds: [unsubscribedSegmentId],
+          userId,
+        });
+        expect(assignments).toHaveLength(1);
+        expect(assignments[0]?.inSegment).toBe(true);
+      });
+    });
+
+    describe("when subscribing a user", () => {
+      beforeEach(async () => {
+        await updateUserSubscriptions({
+          workspaceId,
+          userUpdates: [
+            {
+              userId,
+              changes: {
+                [subscriptionGroupId]: true,
+              },
+            },
+          ],
+        });
+      });
+
+      it("sets main segment inSegment to true", async () => {
+        const assignments = await findAllSegmentAssignmentsByIds({
+          workspaceId,
+          segmentIds: [mainSegmentId],
+          userId,
+        });
+        expect(assignments).toHaveLength(1);
+        expect(assignments[0]?.inSegment).toBe(true);
+      });
+
+      it("sets unsubscribed segment inSegment to false", async () => {
+        const assignments = await findAllSegmentAssignmentsByIds({
+          workspaceId,
+          segmentIds: [unsubscribedSegmentId],
+          userId,
+        });
+        expect(assignments).toHaveLength(1);
+        expect(assignments[0]?.inSegment).toBe(false);
+      });
+    });
+
+    describe("when toggling subscription state", () => {
+      it("correctly updates both segments when unsubscribing then subscribing", async () => {
+        // Unsubscribe
+        await updateUserSubscriptions({
+          workspaceId,
+          userUpdates: [
+            {
+              userId,
+              changes: {
+                [subscriptionGroupId]: false,
+              },
+            },
+          ],
+        });
+
+        // Verify unsubscribed state
+        let assignments = await findAllSegmentAssignmentsByIds({
+          workspaceId,
+          segmentIds: [mainSegmentId, unsubscribedSegmentId],
+          userId,
+        });
+        expect(
+          assignments.find((a) => a.segmentId === mainSegmentId)?.inSegment,
+        ).toBe(false);
+        expect(
+          assignments.find((a) => a.segmentId === unsubscribedSegmentId)
+            ?.inSegment,
+        ).toBe(true);
+
+        // Subscribe
+        await updateUserSubscriptions({
+          workspaceId,
+          userUpdates: [
+            {
+              userId,
+              changes: {
+                [subscriptionGroupId]: true,
+              },
+            },
+          ],
+        });
+
+        // Verify subscribed state
+        assignments = await findAllSegmentAssignmentsByIds({
+          workspaceId,
+          segmentIds: [mainSegmentId, unsubscribedSegmentId],
+          userId,
+        });
+        expect(
+          assignments.find((a) => a.segmentId === mainSegmentId)?.inSegment,
+        ).toBe(true);
+        expect(
+          assignments.find((a) => a.segmentId === unsubscribedSegmentId)
+            ?.inSegment,
+        ).toBe(false);
+      });
+    });
+  });
 });
