@@ -405,8 +405,13 @@ export function renderSubscriptionManagementPage(
   context: SubscriptionManagementTemplateContext,
   template: string = DEFAULT_SUBSCRIPTION_TEMPLATE,
 ): string {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const renderedTemplate = liquid.parseAndRenderSync(template, context);
 
   // Inject the behavior script before closing body tag for channel toggle UX
-  return renderedTemplate.replace("</body>", `${SUBSCRIPTION_PAGE_SCRIPT}</body>`);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+  return renderedTemplate.replace(
+    "</body>",
+    `${SUBSCRIPTION_PAGE_SCRIPT}</body>`,
+  );
 }

@@ -14,12 +14,12 @@ import {
 export interface GenerateSubscriptionPageParams {
   workspaceId: string;
   workspaceName: string;
-  subscriptions: Array<{
+  subscriptions: {
     id: string;
     name: string;
     isSubscribed: boolean;
     channel: string;
-  }>;
+  }[];
   hash: string;
   identifier: string;
   identifierKey: string;
@@ -88,7 +88,9 @@ export async function generateSubscriptionManagementPage(
   // Find the changed subscription name if we have a changedSubscriptionId
   let changedSubscriptionName: string | undefined;
   if (changedSubscriptionId) {
-    const changedSub = subscriptions.find((s) => s.id === changedSubscriptionId);
+    const changedSub = subscriptions.find(
+      (s) => s.id === changedSubscriptionId,
+    );
     changedSubscriptionName = changedSub?.name;
   }
 
