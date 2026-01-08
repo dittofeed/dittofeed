@@ -67,6 +67,18 @@ describe("reEnter", () => {
     sendMessageV2: sendMessageFactory(senderMock),
   };
 
+  beforeAll(async () => {
+    const envAndWorker = await createEnvAndWorker({
+      activityOverrides: testActivities,
+    });
+    testEnv = envAndWorker.testEnv;
+    worker = envAndWorker.worker;
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
+
   beforeEach(async () => {
     workspace = unwrap(
       await createWorkspace({
@@ -75,12 +87,6 @@ describe("reEnter", () => {
         type: WorkspaceTypeAppEnum.Root,
       }),
     );
-
-    const envAndWorker = await createEnvAndWorker({
-      activityOverrides: testActivities,
-    });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
 
     segment = await insert({
       table: dbSegment,
@@ -102,10 +108,6 @@ describe("reEnter", () => {
         } satisfies SegmentDefinition,
       },
     }).then(unwrap);
-  });
-
-  afterEach(async () => {
-    await testEnv.teardown();
   });
 
   describe("when canRunMultiple is true and the journey is run twice", () => {

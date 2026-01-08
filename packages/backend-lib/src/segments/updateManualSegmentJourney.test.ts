@@ -45,17 +45,24 @@ describe.skip("when a segment entry journey has a manual segment", () => {
   let journey: JourneyResource;
   let segment: SegmentResource;
 
+  beforeAll(async () => {
+    const envAndWorker = await createEnvAndWorker();
+    testEnv = envAndWorker.testEnv;
+    worker = envAndWorker.worker;
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
+
   beforeEach(async () => {
     workspace = unwrap(
       await createWorkspace({
         name: randomUUID(),
       }),
     );
-
-    const envAndWorker = await createEnvAndWorker();
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
   });
+
   describe("and a user is added to the segment", () => {
     beforeEach(async () => {
       const [segmentInner, messageTemplate] = await Promise.all([

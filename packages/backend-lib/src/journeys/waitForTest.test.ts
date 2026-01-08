@@ -59,13 +59,7 @@ describe("journeys with wait-for nodes", () => {
     sendMessageV2: sendMessageFactory(senderMock),
   };
 
-  beforeEach(async () => {
-    workspace = unwrap(
-      await createWorkspace({
-        name: `event-entry-${randomUUID()}`,
-      }),
-    );
-
+  beforeAll(async () => {
     const envAndWorker = await createEnvAndWorker({
       activityOverrides: testActivities,
     });
@@ -73,8 +67,16 @@ describe("journeys with wait-for nodes", () => {
     worker = envAndWorker.worker;
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await testEnv.teardown();
+  });
+
+  beforeEach(async () => {
+    workspace = unwrap(
+      await createWorkspace({
+        name: `event-entry-${randomUUID()}`,
+      }),
+    );
   });
   describe("when a journey a user already is in the segment being waited for, and when they satisfy the wait-for condition after entering they should also be sent to the message node", () => {
     let journey: Journey;

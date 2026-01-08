@@ -54,6 +54,18 @@ describe("eventEntry journeys with hidden triggering events", () => {
     sendMessageV2: sendMessageFactory(senderMock),
   };
 
+  beforeAll(async () => {
+    const envAndWorker = await createEnvAndWorker({
+      activityOverrides: testActivities,
+    });
+    testEnv = envAndWorker.testEnv;
+    worker = envAndWorker.worker;
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
+
   beforeEach(async () => {
     workspace = unwrap(
       await createWorkspace({
@@ -62,16 +74,6 @@ describe("eventEntry journeys with hidden triggering events", () => {
         updatedAt: new Date(),
       }),
     );
-
-    const envAndWorker = await createEnvAndWorker({
-      activityOverrides: testActivities,
-    });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
-  });
-
-  afterEach(async () => {
-    await testEnv.teardown();
   });
 
   describe("when a journey is keyed on appointmentId and waits for a cancellation event before sending a message", () => {
