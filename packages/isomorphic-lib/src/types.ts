@@ -6683,13 +6683,16 @@ export type SubscriptionManagementPageRequest = Static<
   typeof SubscriptionManagementPageRequest
 >;
 
-export const SubscriptionManagementPageSubmissionRequest = Type.Object({
-  w: Type.String({ description: "Workspace ID" }),
-  h: Type.String({ description: "Hash for user verification" }),
-  i: Type.String({ description: "User identifier" }),
-  ik: Type.String({ description: "Identifier key" }),
-  isPreview: Type.Optional(Type.String()),
-});
+export const SubscriptionManagementPageSubmissionRequest = Type.Intersect([
+  Type.Object({
+    w: Type.String({ description: "Workspace ID" }),
+    h: Type.String({ description: "Hash for user verification" }),
+    i: Type.String({ description: "User identifier" }),
+    ik: Type.String({ description: "Identifier key" }),
+    isPreview: Type.Optional(Type.String()),
+  }),
+  Type.Record(Type.String(), Type.String()),
+]);
 
 export type SubscriptionManagementPageSubmissionRequest = Static<
   typeof SubscriptionManagementPageSubmissionRequest
