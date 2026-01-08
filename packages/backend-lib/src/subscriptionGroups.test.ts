@@ -5,6 +5,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { Readable } from "stream";
 
 import { bootstrapPostgres } from "./bootstrap";
+import config from "./config";
 import { db } from "./db";
 import * as schema from "./db/schema";
 import { findAllSegmentAssignmentsByIds } from "./segments";
@@ -111,7 +112,7 @@ describe("subscriptionGroups", () => {
       });
       const parsed = new URL(url);
       expect(url).toContain(
-        "http://localhost:3000/dashboard/public/subscription-management",
+        `${config().dashboardUrl}/dashboard/public/subscription-management`,
       );
       expect(parsed.searchParams.get("w")).toEqual(workspaceId);
       expect(parsed.searchParams.get("i")).toEqual(email);
