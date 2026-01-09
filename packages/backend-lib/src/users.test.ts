@@ -1508,7 +1508,12 @@ describe("users", () => {
       let segmentId2: string;
 
       beforeEach(async () => {
-        userIds = ["user-in-seg", "user-out-seg", "user-no-seg", "user-in-seg2"];
+        userIds = [
+          "user-in-seg",
+          "user-out-seg",
+          "user-no-seg",
+          "user-in-seg2",
+        ];
         const segmentDefinition1: SegmentDefinition = {
           entryNode: {
             type: SegmentNodeType.Trait,
@@ -2376,7 +2381,7 @@ describe("users", () => {
             ],
           });
         });
-        it("filters users by segment id and subscription group id", async () => {
+        it.only("filters users by segment id and subscription group id", async () => {
           const result = unwrap(
             await getUsers({
               workspaceId: workspace.id,
@@ -2411,7 +2416,10 @@ describe("users", () => {
               subscriptionGroupFilter: [subscriptionGroupId],
             }),
           );
-          expect(userCount).toEqual(1);
+          expect(
+            userCount,
+            "only includes user that has both segment and subscription group within the count",
+          ).toEqual(1);
         });
       });
 

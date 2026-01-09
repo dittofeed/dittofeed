@@ -541,6 +541,16 @@ export async function recomputeBroadcastSegment({
     );
     return false;
   }
+  if (!broadcast.segmentId) {
+    logger().debug(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast segment is null skipping recompute",
+    );
+    return false;
+  }
   if (!broadcast.segment) {
     logger().error(
       {

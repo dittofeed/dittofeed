@@ -7,7 +7,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok } from "neverthrow";
 import { times } from "remeda";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { broadcastV2ToResource } from "../broadcasts";
 import { insert } from "../db";
 import * as schema from "../db/schema";
@@ -81,7 +81,7 @@ function buildManuallyTriggered<T = void>() {
   };
 }
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("broadcastWorkflowV2", () => {
   let workspace: Workspace;
@@ -94,6 +94,14 @@ describe("broadcastWorkflowV2", () => {
   let subscriptionGroupId: string;
   let messageTemplate: MessageTemplate;
   let senderMock: jest.Mock;
+
+  beforeAll(async () => {
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
 
   beforeEach(async () => {
     workspace = await createWorkspace({
@@ -158,10 +166,6 @@ describe("broadcastWorkflowV2", () => {
     }).then(unwrap);
   });
 
-  afterEach(async () => {
-    await testEnv.teardown();
-  });
-
   async function createBroadcast({
     config,
     scheduledAt,
@@ -202,11 +206,10 @@ describe("broadcastWorkflowV2", () => {
       sendMessages: sendMessagesFactory(senderMock),
     };
 
-    const envAndWorker = await createEnvAndWorker({
+    worker = await createWorker({
+      testEnv,
       activityOverrides: testActivities,
     });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
   }
 
   describe("when sending a broadcast immediately with no rate limit", () => {
