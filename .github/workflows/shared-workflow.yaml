@@ -52,14 +52,28 @@ jobs:
       - name: Run Typecheck
         run: yarn workspace ${{ inputs.package-name }} check
 
+  setup-test-matrix:
+    name: Setup Test Matrix
+    if: ${{ inputs.run_tests == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      shards: ${{ steps.set-shards.outputs.shards }}
+    steps:
+      - name: Generate shard matrix
+        id: set-shards
+        run: |
+          shards=$(seq 1 ${{ inputs.test_shards }} | jq -R . | jq -s -c .)
+          echo "shards=$shards" >> $GITHUB_OUTPUT
+
   test:
     name: Run Tests (${{ matrix.shard }}/${{ inputs.test_shards }})
-    if: ${{ inputs.run_tests == 'true' && matrix.shard <= inputs.test_shards }}
+    needs: setup-test-matrix
+    if: ${{ inputs.run_tests == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: ${{ fromJson(needs.setup-test-matrix.outputs.shards) }}
     services:
       postgres:
         # Only start the service if the backend is being tested
