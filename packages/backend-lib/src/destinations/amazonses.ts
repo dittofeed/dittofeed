@@ -58,13 +58,14 @@ export async function sendMail({
   config: AmazonSesConfig;
   mailData: SesMailData;
 }): Promise<Result<SendEmailCommandOutput, SESv2ServiceException | unknown>> {
-  const { accessKeyId, secretAccessKey, region } = config;
+  const { accessKeyId, secretAccessKey, region, endpoint } = config;
   const client = new SESv2Client({
     region,
     credentials: {
       accessKeyId,
       secretAccessKey,
     },
+    ...(endpoint && { endpoint }),
   });
 
   const tags: MessageTag[] | undefined = mailData.tags

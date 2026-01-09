@@ -1360,6 +1360,7 @@ export async function sendEmail({
           accessKeyId: emailProvider.accessKeyId,
           secretAccessKey: emailProvider.secretAccessKey,
           region: emailProvider.region,
+          endpoint: emailProvider.endpoint,
         },
       });
 
