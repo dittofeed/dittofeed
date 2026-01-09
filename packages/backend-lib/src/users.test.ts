@@ -2381,7 +2381,7 @@ describe("users", () => {
             ],
           });
         });
-        it.only("filters users by segment id and subscription group id", async () => {
+        it("filters users by segment id and subscription group id", async () => {
           const result = unwrap(
             await getUsers({
               workspaceId: workspace.id,
