@@ -4780,9 +4780,8 @@ export type AmazonSesSecret = Static<typeof AmazonSesSecret>;
 
 export type AmazonSesConfig = Required<
   Pick<AmazonSesSecret, "accessKeyId" | "secretAccessKey" | "region">
-> & {
-  endpoint?: string;
-};
+> &
+  Pick<AmazonSesSecret, "endpoint">;
 
 export const AmazonSesMailFields = Type.Object({
   from: Type.String(),
