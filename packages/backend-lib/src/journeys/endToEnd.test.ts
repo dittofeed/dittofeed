@@ -64,7 +64,7 @@ describe("end to end journeys", () => {
     sendMessageV2: jest.fn().mockReturnValue(true),
   };
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     try {
       logger().info("creating test env and worker");
       const envAndWorker = await createEnvAndWorker({
@@ -84,7 +84,7 @@ describe("end to end journeys", () => {
     }
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await testEnv.teardown();
   });
 

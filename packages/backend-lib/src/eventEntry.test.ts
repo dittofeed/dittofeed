@@ -93,10 +93,6 @@ describe("eventEntry journeys", () => {
     ]);
   });
 
-  afterEach(async () => {
-    await testEnv.teardown();
-  });
-
   describe("testing calls to the inner send message", () => {
     const senderMock = jest.fn().mockReturnValue(
       ok({
@@ -119,12 +115,16 @@ describe("eventEntry journeys", () => {
     const testActivities = {
       sendMessageV2: sendMessageFactory(senderMock),
     };
-    beforeEach(async () => {
+    beforeAll(async () => {
       const envAndWorker = await createEnvAndWorker({
         activityOverrides: testActivities,
       });
       testEnv = envAndWorker.testEnv;
       worker = envAndWorker.worker;
+    });
+
+    afterAll(async () => {
+      await testEnv.teardown();
     });
     describe("when messaging a user with an anyof performed user property", () => {
       let journeyId: string;
@@ -281,6 +281,18 @@ describe("eventEntry journeys", () => {
       sendMessageV2: sendMessageFactory(senderMock),
     };
 
+    beforeAll(async () => {
+      const envAndWorker = await createEnvAndWorker({
+        activityOverrides: testActivities,
+      });
+      testEnv = envAndWorker.testEnv;
+      worker = envAndWorker.worker;
+    });
+
+    afterAll(async () => {
+      await testEnv.teardown();
+    });
+
     beforeEach(async () => {
       messageId = randomUUID();
       userId = randomUUID();
@@ -296,12 +308,6 @@ describe("eventEntry journeys", () => {
           },
         },
       } as const;
-
-      const envAndWorker = await createEnvAndWorker({
-        activityOverrides: testActivities,
-      });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
 
       await submitBatch({
         workspaceId: workspace.id,
@@ -402,12 +408,16 @@ describe("eventEntry journeys", () => {
     const testActivities = {
       sendMessageV2: jest.fn().mockReturnValue(true),
     };
-    beforeEach(async () => {
+    beforeAll(async () => {
       const envAndWorker = await createEnvAndWorker({
         activityOverrides: testActivities,
       });
       testEnv = envAndWorker.testEnv;
       worker = envAndWorker.worker;
+    });
+
+    afterAll(async () => {
+      await testEnv.teardown();
     });
 
     describe("when a user is pre-assigned to a segment", () => {

@@ -18,6 +18,11 @@ on:
         required: false
         default: "false"
         type: string
+      test_shards:
+        required: false
+        default: 1
+        type: number
+        description: "Number of parallel shards for test execution"
 
 jobs:
   lint:
@@ -48,9 +53,13 @@ jobs:
         run: yarn workspace ${{ inputs.package-name }} check
 
   test:
-    name: Run Tests
-    if: ${{ inputs.run_tests == 'true' }}
+    name: Run Tests (${{ matrix.shard }}/${{ inputs.test_shards }})
+    if: ${{ inputs.run_tests == 'true' && matrix.shard <= inputs.test_shards }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         # Only start the service if the backend is being tested
@@ -98,4 +107,4 @@ jobs:
         run: yarn workspace ${{ inputs.package-name }} check
 
       - name: Run Tests
-        run: yarn jest "packages/${{ inputs.package-name }}"
+        run: yarn jest "packages/${{ inputs.package-name }}" --shard=${{ matrix.shard }}/${{ inputs.test_shards }} --maxWorkers=4

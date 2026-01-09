@@ -37,20 +37,22 @@ describe("ManualSegmentsWorkflow", () => {
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
 
+  beforeAll(async () => {
+    const envAndWorker = await createEnvAndWorker();
+    testEnv = envAndWorker.testEnv;
+    worker = envAndWorker.worker;
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
+
   beforeEach(async () => {
     workspace = unwrap(
       await createWorkspace({
         name: randomUUID(),
       }),
     );
-
-    const envAndWorker = await createEnvAndWorker();
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
-  });
-
-  afterEach(async () => {
-    await testEnv.teardown();
   });
 
   describe("when running multiple append and replace operations in sequence", () => {

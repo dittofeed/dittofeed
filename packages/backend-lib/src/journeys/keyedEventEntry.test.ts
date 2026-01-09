@@ -84,6 +84,18 @@ describe("keyedEventEntry journeys", () => {
     sendMessageV2: sendMessageFactory(senderMock),
   };
 
+  beforeAll(async () => {
+    const envAndWorker = await createEnvAndWorker({
+      activityOverrides: testActivities,
+    });
+    testEnv = envAndWorker.testEnv;
+    worker = envAndWorker.worker;
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
+
   beforeEach(async () => {
     workspace = unwrap(
       await createWorkspace({
@@ -92,16 +104,6 @@ describe("keyedEventEntry journeys", () => {
         updatedAt: new Date(),
       }),
     );
-
-    const envAndWorker = await createEnvAndWorker({
-      activityOverrides: testActivities,
-    });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
-  });
-
-  afterEach(async () => {
-    await testEnv.teardown();
   });
 
   describe("when the same appointment event is received twice", () => {
