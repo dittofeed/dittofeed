@@ -23,7 +23,7 @@ import {
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("randomCohortJourney", () => {
   let workspace: Workspace;

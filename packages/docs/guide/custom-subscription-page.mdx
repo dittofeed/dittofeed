@@ -1,0 +1,640 @@
+---
+title: "Custom Subscription Management Page"
+description: "Serve a self-contained subscription management page with custom templates."
+---
+
+## Introduction
+
+Dittofeed provides a self-contained subscription management page that can be served directly from the API. This is useful for deployments where you only expose `/api/public/*` endpoints (e.g., Kubernetes ingress configurations that don't expose the dashboard's static assets).
+
+The page is served from `/api/public/subscription-management/page` and includes all CSS and JavaScript inline, requiring no external dependencies.
+
+## Self-Contained Page Endpoint
+
+### Endpoint
+
+```
+GET /api/public/subscription-management/page
+```
+
+### Query Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `w` | Yes | Workspace ID |
+| `i` | Yes | User identifier value |
+| `ik` | Yes | Identifier key (e.g., `email`, `userId`) |
+| `h` | Yes | Cryptographic hash for authentication |
+| `s` | No | Subscription group ID (for single subscription change on load) |
+| `sub` | No | Subscription action: `1` to subscribe, `0` to unsubscribe |
+| `isPreview` | No | Set to `true` to preview the page without making changes |
+
+### Response
+
+The endpoint returns a complete HTML page (`Content-Type: text/html`) with:
+- Inline CSS for styling
+- Inline JavaScript for interactivity
+- Server-rendered subscription data
+
+### Example URL
+
+```
+/api/public/subscription-management/page?w=workspace-id&i=user@example.com&ik=email&h=hash-value
+```
+
+## Custom Templates
+
+You can customize the subscription management page by uploading a custom Liquid template via the admin API.
+
+### Template API Endpoints
+
+#### Get Current Template
+
+```
+GET /api/subscription-management-template
+```
+
+Returns the current custom template, or `null` if using the default.
+
+#### Upsert Template
+
+```
+PUT /api/subscription-management-template
+Content-Type: application/json
+
+{
+  "template": "<html>... your Liquid template ...</html>"
+}
+```
+
+#### Delete Template (Reset to Default)
+
+```
+DELETE /api/subscription-management-template
+```
+
+Removes the custom template, reverting to the default.
+
+## Template Variables
+
+Your Liquid template has access to the following variables:
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `workspaceName` | string | Name of the workspace |
+| `channels` | array | Array of channel objects |
+| `subscriptionChange` | string | `"Subscribe"` or `"Unsubscribe"` if a change occurred |
+| `changedSubscriptionName` | string | Name of the subscription that changed |
+| `changedSubscriptionChannel` | string | Channel of the subscription that changed |
+| `isPreview` | boolean | Whether this is a preview render |
+| `subscriptionDataJson` | string | JSON data for JavaScript initialization |
+
+### Channel Object
+
+```json
+{
+  "name": "Email",
+  "subscriptions": [
+    {
+      "id": "subscription-uuid",
+      "name": "Marketing Updates",
+      "isSubscribed": true
+    }
+  ]
+}
+```
+
+## Custom Liquid Tags
+
+### `subscription_hidden_fields`
+
+The `subscription_hidden_fields` tag is a custom Liquid tag available only in subscription management page templates. It renders the hidden form fields required for form submission authentication.
+
+```html
+{% subscription_hidden_fields %}
+```
+
+This tag is **required** in your custom template for form submissions to work. Place it inside your `<form>` element.
+
+The tag renders:
+
+```html
+<input type="hidden" name="w" value="workspace-id">
+<input type="hidden" name="h" value="auth-hash">
+<input type="hidden" name="i" value="user@example.com">
+<input type="hidden" name="ik" value="email">
+```
+
+Without this tag, the form cannot authenticate the user or identify which workspace the submission belongs to.
+
+## CSS Class API
+
+The JavaScript behavior attaches to specific CSS classes. Your custom template must include elements with these classes for the interactive features to work.
+
+### Required Classes
+
+| Class | Element | Description |
+|-------|---------|-------------|
+| `df-subscription-form` | `<form>` | Main form container. Handles form submission. |
+| `df-subscription-checkbox` | `<input type="checkbox">` | Individual subscription checkboxes. Requires `data-subscription-id` and `data-channel` attributes. |
+| `df-channel-toggle` | `<input type="checkbox">` | Channel-level toggle. Requires `data-channel` attribute. Toggles all subscriptions in the channel. |
+| `df-save-button` | `<button>` | Save button. Triggers API call to save preferences. |
+| `df-loading-indicator` | any | Shown while saving. Hidden by default. |
+| `df-success-message` | any | Shown on successful save. Hidden by default. |
+| `df-error-message` | any | Shown on save error. Hidden by default. |
+
+### Data Attributes
+
+| Attribute | Used On | Description |
+|-----------|---------|-------------|
+| `data-subscription-id` | `df-subscription-checkbox` | The subscription group UUID |
+| `data-channel` | `df-subscription-checkbox`, `df-channel-toggle` | The channel name (e.g., "Email", "SMS") |
+
+### Example HTML Structure
+
+```html
+<form class="df-subscription-form">
+  <!-- Channel-level toggle -->
+  <div class="channel-group">
+    <label>
+      <input type="checkbox"
+             class="df-channel-toggle"
+             data-channel="Email" />
+      Email
+    </label>
+
+    <!-- Individual subscription checkboxes -->
+    <div class="subscriptions">
+      <label>
+        <input type="checkbox"
+               class="df-subscription-checkbox"
+               data-subscription-id="uuid-here"
+               data-channel="Email"
+               checked />
+        Marketing Updates
+      </label>
+
+      <label>
+        <input type="checkbox"
+               class="df-subscription-checkbox"
+               data-subscription-id="another-uuid"
+               data-channel="Email" />
+        Product Announcements
+      </label>
+    </div>
+  </div>
+
+  <!-- Save button -->
+  <button type="submit" class="df-save-button">
+    Save Preferences
+  </button>
+
+  <!-- Status indicators (hidden by default) -->
+  <div class="df-loading-indicator" style="display: none;">
+    Saving...
+  </div>
+  <div class="df-success-message" style="display: none;">
+    Preferences saved!
+  </div>
+  <div class="df-error-message" style="display: none;">
+    Failed to save preferences.
+  </div>
+</form>
+```
+
+## JavaScript Behavior
+
+The page automatically initializes subscription data from `window.__SUBSCRIPTION_DATA__`. Your template should include this at the bottom of the body:
+
+```html
+<script>
+  window.__SUBSCRIPTION_DATA__ = {{ subscriptionDataJson }};
+</script>
+```
+
+The injected JavaScript handles:
+
+1. **Channel Toggle Logic**: When a channel toggle is checked/unchecked, all subscriptions in that channel are updated accordingly.
+
+2. **Individual Subscription Logic**: When an individual subscription is toggled, the channel toggle is updated (checked if all subscriptions are checked, unchecked otherwise).
+
+3. **Save Functionality**: Clicking the save button or submitting the form sends a PUT request to `/api/public/subscription-management/user-subscriptions` with the updated subscription states.
+
+4. **UI Feedback**: Loading, success, and error indicators are shown/hidden automatically during the save process.
+
+## Default Template Reference
+
+Below is the default template that Dittofeed uses when no custom template is configured. You can use this as a starting point for your own customizations:
+
+```liquid
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Subscription Preferences - {{ workspaceName }}</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background-color: #fafafa;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      max-width: 640px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 24px;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    .header-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .success-icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      background-color: #dcfce7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .success-icon svg {
+      width: 20px;
+      height: 20px;
+      color: #16a34a;
+    }
+    .header-text h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0a0a0a;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+    .header-text p {
+      font-size: 0.875rem;
+      color: #737373;
+    }
+    .card-content {
+      padding: 24px;
+    }
+    .section-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #737373;
+      margin-bottom: 16px;
+    }
+    .channel-group {
+      margin-bottom: 12px;
+    }
+    .channel-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      padding: 4px 0;
+    }
+    .channel-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #0858D9;
+    }
+    .channel-label span {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #0a0a0a;
+    }
+    .subscriptions {
+      margin-left: 36px;
+      border-left: 2px solid #e5e5e5;
+      padding-left: 24px;
+      margin-top: 8px;
+    }
+    .subscription-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      padding: 6px 0;
+    }
+    .subscription-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #0858D9;
+    }
+    .subscription-label span {
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: #737373;
+    }
+    .card-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #e5e5e5;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .btn {
+      padding: 10px 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-outline {
+      background: white;
+      border: 1px solid #e5e5e5;
+      color: #0a0a0a;
+    }
+    .btn-outline:hover {
+      background: #f5f5f5;
+    }
+    .btn-primary {
+      background: #0858D9;
+      border: 1px solid #0858D9;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #0747b3;
+      border-color: #0747b3;
+    }
+    .btn-primary:disabled {
+      background: #7fadeb;
+      border-color: #7fadeb;
+      cursor: not-allowed;
+    }
+    .df-success-message {
+      background-color: #dcfce7;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      color: #166534;
+      font-size: 0.875rem;
+    }
+    .df-error-message {
+      background-color: #fee2e2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      color: #991b1b;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div class="header-content">
+        <div class="success-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="header-text">
+          <h1>
+            {% if subscriptionChange %}
+              {% if subscriptionChange == "Subscribe" %}
+                You have subscribed to {{ changedSubscriptionChannel }} from {{ workspaceName }}
+              {% else %}
+                You have unsubscribed from {{ changedSubscriptionChannel }} from {{ workspaceName }}
+              {% endif %}
+            {% else %}
+              Manage your preferences for {{ workspaceName }}
+            {% endif %}
+          </h1>
+          <p>Manage your communication preferences below</p>
+        </div>
+      </div>
+    </div>
+
+    <form class="df-subscription-form" method="POST">
+      {% subscription_hidden_fields %}
+
+      <div class="card-content">
+        {% if success %}
+        <div class="df-success-message">
+          Preferences saved successfully!
+        </div>
+        {% endif %}
+
+        {% if previewSubmitted %}
+        <div class="df-success-message">
+          Preview: Subscription preferences would be updated.
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="df-error-message">
+          Failed to save preferences. Please try again.
+        </div>
+        {% endif %}
+
+        <div class="section-label">Communication Channels</div>
+
+        {% for channel in channels %}
+        <div class="channel-group">
+          <label class="channel-label">
+            <input type="checkbox"
+                   class="df-channel-toggle"
+                   data-channel="{{ channel.name }}" />
+            <span>{{ channel.name }}</span>
+          </label>
+
+          <div class="subscriptions">
+            {% for subscription in channel.subscriptions %}
+            <label class="subscription-label">
+              <input type="checkbox"
+                     class="df-subscription-checkbox"
+                     name="sub_{{ subscription.id }}"
+                     value="true"
+                     data-subscription-id="{{ subscription.id }}"
+                     data-channel="{{ channel.name }}"
+                     {% if subscription.isSubscribed %}checked{% endif %} />
+              <span>{{ subscription.name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="card-footer">
+        <button type="button" class="btn btn-outline" onclick="window.history.back()">Cancel</button>
+        <button type="submit" class="btn btn-primary df-save-button">Save Preferences</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>
+```
+
+## Example Custom Template
+
+Below is a simpler custom template example that you can use as a starting point:
+
+```liquid
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email Preferences - {{ workspaceName }}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { margin-top: 0; color: #333; }
+    .channel-group { margin: 20px 0; }
+    .channel-toggle { font-weight: bold; }
+    .subscriptions { margin-left: 24px; }
+    label { display: block; margin: 8px 0; cursor: pointer; }
+    .df-save-button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .df-save-button:hover { background: #0056b3; }
+    .df-success-message { color: #28a745; margin-top: 16px; }
+    .df-error-message { color: #dc3545; margin-top: 16px; }
+    .alert {
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .alert-success { background: #d4edda; color: #155724; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Email Preferences</h1>
+    <p>Manage your subscription preferences for {{ workspaceName }}.</p>
+
+    {% if subscriptionChange %}
+    <div class="alert alert-success">
+      {% if subscriptionChange == "Subscribe" %}
+        You have subscribed to {{ changedSubscriptionName }}.
+      {% else %}
+        You have unsubscribed from all {{ changedSubscriptionChannel }} messages.
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <form class="df-subscription-form" method="POST">
+      {% subscription_hidden_fields %}
+
+      {% for channel in channels %}
+      <div class="channel-group">
+        <label class="channel-toggle">
+          <input type="checkbox"
+                 class="df-channel-toggle"
+                 data-channel="{{ channel.name }}" />
+          {{ channel.name }}
+        </label>
+
+        <div class="subscriptions">
+          {% for subscription in channel.subscriptions %}
+          <label>
+            <input type="checkbox"
+                   class="df-subscription-checkbox"
+                   name="sub_{{ subscription.id }}"
+                   value="true"
+                   data-subscription-id="{{ subscription.id }}"
+                   data-channel="{{ channel.name }}"
+                   {% if subscription.isSubscribed %}checked{% endif %} />
+            {{ subscription.name }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <button type="submit" class="df-save-button">
+        Save Preferences
+      </button>
+
+      <div class="df-success-message" style="display: none;">
+        Your preferences have been saved!
+      </div>
+      <div class="df-error-message" style="display: none;">
+        Something went wrong. Please try again.
+      </div>
+    </form>
+  </div>
+</body>
+</html>
+```
+
+## Use Cases
+
+### Kubernetes Ingress Restriction
+
+If your Kubernetes ingress only exposes `/api/public/*` paths, you can use the self-contained page endpoint instead of the default dashboard page:
+
+```yaml
+# Example ingress configuration
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dittofeed-public
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api/public
+            pathType: Prefix
+            backend:
+              service:
+                name: dittofeed-api
+                port:
+                  number: 3001
+```
+
+Users accessing `/api/public/subscription-management/page` will receive a fully functional subscription management page without requiring access to dashboard static assets.
+
+### Branded Subscription Pages
+
+Use custom templates to match your brand:
+- Custom colors and typography
+- Your company logo
+- Custom messaging and copy
+- Localized content
+
+### Simplified UI
+
+Create minimal templates that only show essential options, removing unnecessary complexity for your users.

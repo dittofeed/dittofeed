@@ -1,9 +1,6 @@
 import csvParser from "csv-parser";
 import { and, eq, inArray, SQL } from "drizzle-orm";
-import {
-  SecretNames,
-  SUBSCRIPTION_MANAGEMENT_PAGE,
-} from "isomorphic-lib/src/constants";
+import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
@@ -500,8 +497,8 @@ export function generateSubscriptionChangeUrl({
   if (showAllChannels) {
     params.showAllChannels = "true";
   }
-  const url = new URL(config().dashboardUrl);
-  url.pathname = path.join("/dashboard", SUBSCRIPTION_MANAGEMENT_PAGE);
+  const url = new URL(config().apiBase);
+  url.pathname = "/api/public/subscription-management/page";
   url.search = new URLSearchParams(params).toString();
   const urlString = url.toString();
   logger().debug(
@@ -781,13 +778,6 @@ export async function updateUserSubscriptions({
     },
   );
 
-  logger().debug(
-    {
-      segmentAssignmentUpdates,
-      allUserEvents,
-    },
-    "loc1 Updating subscription assignments",
-  );
   await Promise.all([
     insertSegmentAssignments(segmentAssignmentUpdates),
     insertUserEvents({

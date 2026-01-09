@@ -115,3 +115,32 @@ Example usage in an email header:
 ```
 
 For more details, see the [View in Browser guide](/guide/view-in-browser).
+
+### `subscription_hidden_fields`
+
+The `subscription_hidden_fields` tag outputs the hidden form fields required for subscription management page form submissions. This tag is only available in custom subscription management page templates.
+
+```html
+{% subscription_hidden_fields %}
+```
+
+This renders hidden inputs for:
+- `w` - Workspace ID
+- `h` - Cryptographic hash for authentication
+- `i` - User identifier value
+- `ik` - Identifier key (e.g., `email`, `userId`)
+- `isPreview` - Preview mode flag (if applicable)
+
+Example usage in a form:
+
+```html
+<form class="df-subscription-form" method="POST">
+  {% subscription_hidden_fields %}
+  <!-- subscription checkboxes here -->
+  <button type="submit">Save Preferences</button>
+</form>
+```
+
+<Note>
+This tag is required for form submission to work correctly. Without it, the subscription management page cannot authenticate or identify the user. See [Custom Subscription Management Page](/guide/custom-subscription-page) for full documentation.
+</Note>

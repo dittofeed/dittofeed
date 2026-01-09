@@ -175,7 +175,7 @@ function CustomLegend(props: { payload?: readonly LegendPayload[] }) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       {payload.map((entry) => {
-        const value = entry.value || "";
+        const value = entry.value ?? "";
         const truncatedValue = truncateText(value, maxLength);
         const needsTruncation = value.length > maxLength;
 
@@ -452,19 +452,19 @@ export function AnalysisChart({ configuration }: AnalysisChartProps = {}) {
         resourcesQuery.data?.journeys?.map((journey) => [
           journey.id,
           journey.name,
-        ]) || [],
+        ]) ?? [],
       ),
       broadcast: new Map(
         resourcesQuery.data?.broadcasts?.map((broadcast) => [
           broadcast.id,
           broadcast.name,
-        ]) || [],
+        ]) ?? [],
       ),
       messageTemplate: new Map(
         resourcesQuery.data?.messageTemplates?.map((template) => [
           template.id,
           template.name,
-        ]) || [],
+        ]) ?? [],
       ),
     };
   }, [resourcesQuery.data]);

@@ -112,7 +112,7 @@ describe("subscriptionGroups", () => {
       });
       const parsed = new URL(url);
       expect(url).toContain(
-        `${config().dashboardUrl}/dashboard/public/subscription-management`,
+        `${config().apiBase}/api/public/subscription-management/page`,
       );
       expect(parsed.searchParams.get("w")).toEqual(workspaceId);
       expect(parsed.searchParams.get("i")).toEqual(email);

@@ -41,6 +41,7 @@ import {
   segmentAssignment as dbSegmentAssignment,
   smsProvider as dbSmsProvider,
   subscriptionGroup as dbSubscriptionGroup,
+  subscriptionManagementTemplate as dbSubscriptionManagementTemplate,
   userJourneyEvent as dbUserJourneyEvent,
   userProperty as dbUserProperty,
   userPropertyAssignment as dbUserPropertyAssignment,
@@ -108,6 +109,10 @@ export type ComponentConfiguration = InferSelectModel<
 >;
 
 export type SubscriptionGroup = InferSelectModel<typeof dbSubscriptionGroup>;
+
+export type SubscriptionManagementTemplate = InferSelectModel<
+  typeof dbSubscriptionManagementTemplate
+>;
 
 export { dbJourneyStatus as JourneyStatus, dbWorkspaceType as WorkspaceType };
 
@@ -879,3 +884,33 @@ export type WorkspaceQueueItem =
   | EntireWorkspaceQueueItem
   | IndividualComputedPropertyQueueItem
   | BatchComputedPropertyQueueItem;
+
+// Subscription Management Template Types
+
+export interface SubscriptionManagementChannel {
+  name: string;
+  subscriptions: Array<{
+    id: string;
+    name: string;
+    isSubscribed: boolean;
+  }>;
+}
+
+export interface SubscriptionManagementTemplateContext {
+  workspaceName: string;
+  workspaceId: string;
+  channels: SubscriptionManagementChannel[];
+  subscriptionChange?: "Subscribe" | "Unsubscribe";
+  changedSubscriptionName?: string;
+  changedSubscriptionChannel?: string;
+  hash: string;
+  identifier: string;
+  identifierKey: string;
+  isPreview: boolean;
+  /** Form submission result - preferences saved successfully */
+  success?: boolean;
+  /** Form submission result - error occurred */
+  error?: boolean;
+  /** Form submission in preview mode - would have saved */
+  previewSubmitted?: boolean;
+}
