@@ -4773,13 +4773,15 @@ export const AmazonSesSecret = Type.Object({
   accessKeyId: Type.Optional(Type.String()),
   secretAccessKey: Type.Optional(Type.String()),
   region: Type.Optional(Type.String()),
+  endpoint: Type.Optional(Type.String()),
 });
 
 export type AmazonSesSecret = Static<typeof AmazonSesSecret>;
 
 export type AmazonSesConfig = Required<
   Pick<AmazonSesSecret, "accessKeyId" | "secretAccessKey" | "region">
->;
+> &
+  Pick<AmazonSesSecret, "endpoint">;
 
 export const AmazonSesMailFields = Type.Object({
   from: Type.String(),
