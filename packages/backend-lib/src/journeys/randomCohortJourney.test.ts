@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { insert } from "../db";
 import { journey as dbJourney } from "../db/schema";
 import {
@@ -53,6 +53,14 @@ describe("randomCohortJourney", () => {
       },
     }),
   );
+
+  beforeAll(async () => {
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
 
   beforeEach(async () => {
     workspace = unwrap(
@@ -154,11 +162,10 @@ describe("randomCohortJourney", () => {
         getRandomNumber: jest.fn().mockResolvedValue(0.1),
       };
 
-      const envAndWorker = await createEnvAndWorker({
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
     });
 
     it("receives the first message", async () => {
@@ -203,11 +210,10 @@ describe("randomCohortJourney", () => {
         getRandomNumber: jest.fn().mockResolvedValue(0.5),
       };
 
-      const envAndWorker = await createEnvAndWorker({
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
     });
 
     it("receives the second message", async () => {
@@ -252,11 +258,10 @@ describe("randomCohortJourney", () => {
         getRandomNumber: jest.fn().mockResolvedValue(0.9),
       };
 
-      const envAndWorker = await createEnvAndWorker({
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
     });
 
     it("receives the third message", async () => {
