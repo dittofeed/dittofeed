@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../test/temporal";
+import { createWorker } from "../test/temporal";
 import { submitBatch } from "./apps/batch";
 import { db, insert } from "./db";
 import {
@@ -53,6 +53,14 @@ describe("eventEntry journeys", () => {
   let worker: Worker;
   let emailUserPropertyId: string;
   let idUserPropertyId: string;
+
+  beforeAll(async () => {
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
 
   beforeEach(async () => {
     workspace = await createWorkspace({
@@ -116,16 +124,12 @@ describe("eventEntry journeys", () => {
       sendMessageV2: sendMessageFactory(senderMock),
     };
     beforeAll(async () => {
-      const envAndWorker = await createEnvAndWorker({
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
     });
 
-    afterAll(async () => {
-      await testEnv.teardown();
-    });
     describe("when messaging a user with an anyof performed user property", () => {
       let journeyId: string;
       let journeyDefinition: JourneyDefinition;
@@ -281,19 +285,11 @@ describe("eventEntry journeys", () => {
       sendMessageV2: sendMessageFactory(senderMock),
     };
 
-    beforeAll(async () => {
-      const envAndWorker = await createEnvAndWorker({
+    beforeEach(async () => {
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
-    });
-
-    afterAll(async () => {
-      await testEnv.teardown();
-    });
-
-    beforeEach(async () => {
       messageId = randomUUID();
       userId = randomUUID();
       const event = {
@@ -408,16 +404,11 @@ describe("eventEntry journeys", () => {
     const testActivities = {
       sendMessageV2: jest.fn().mockReturnValue(true),
     };
-    beforeAll(async () => {
-      const envAndWorker = await createEnvAndWorker({
+    beforeEach(async () => {
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
-    });
-
-    afterAll(async () => {
-      await testEnv.teardown();
     });
 
     describe("when a user is pre-assigned to a segment", () => {
