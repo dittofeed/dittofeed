@@ -14,9 +14,11 @@ import workerLogger from "../src/workerLogger";
 export async function createWorker({
   testEnv,
   activityOverrides,
+  taskQueue = "default",
 }: {
   testEnv: TestWorkflowEnvironment;
   activityOverrides?: Parameters<typeof Worker.create>[0]["activities"];
+  taskQueue?: string;
 }) {
   const worker = await Worker.create({
     connection: testEnv.nativeConnection,
@@ -36,7 +38,7 @@ export async function createWorker({
     ),
     activities: { ...activities, ...activityOverrides },
     sinks: defaultSinks(workerLogger),
-    taskQueue: "default",
+    taskQueue,
   });
   return worker;
 }

@@ -94,6 +94,7 @@ describe("broadcastWorkflowV2", () => {
   let subscriptionGroupId: string;
   let messageTemplate: MessageTemplate;
   let senderMock: jest.Mock;
+  let taskQueue: string;
 
   beforeAll(async () => {
     testEnv = await TestWorkflowEnvironment.createTimeSkipping();
@@ -191,24 +192,31 @@ describe("broadcastWorkflowV2", () => {
     broadcast = broadcastV2ToResource(dbBroadcast);
   }
 
-  async function createTestEnvAndWorker({
+  async function createBroadcastTestWorker({
     sendMessageOverride,
   }: {
     sendMessageOverride?: (
       params: SendMessageParameters,
     ) => Promise<BackendMessageSendResult>;
   } = {}) {
+    taskQueue = `test-queue-${randomUUID()}`;
+
     const sendMessageImplementation =
       sendMessageOverride ??
       (() => Promise.resolve(ok(successMessageSentResult)));
     senderMock = jest.fn().mockImplementation(sendMessageImplementation);
     const testActivities = {
       sendMessages: sendMessagesFactory(senderMock),
+      // Override config to return the test's task queue for computedPropertiesActivityTaskQueue
+      config: () => ({
+        computedPropertiesActivityTaskQueue: taskQueue,
+      }),
     };
 
     worker = await createWorker({
       testEnv,
       activityOverrides: testActivities,
+      taskQueue,
     });
   }
 
@@ -218,7 +226,7 @@ describe("broadcastWorkflowV2", () => {
     let anonymousUserId: string;
 
     beforeEach(async () => {
-      await createTestEnvAndWorker();
+      await createBroadcastTestWorker();
       anonymousUserId = randomUUID();
       userId = randomUUID();
       userId2 = randomUUID();
@@ -299,7 +307,7 @@ describe("broadcastWorkflowV2", () => {
             workspaceId: workspace.id,
             broadcastId: broadcast.id,
           }),
-          taskQueue: "default",
+          taskQueue,
           args: [
             {
               workspaceId: workspace.id,
@@ -345,7 +353,7 @@ describe("broadcastWorkflowV2", () => {
         firstMessagePromise = manuallyTriggered.triggeredPromise;
         firstMessageTrigger = manuallyTriggered.trigger;
 
-        await createTestEnvAndWorker({
+        await createBroadcastTestWorker({
           sendMessageOverride: () => {
             firstMessageTrigger();
             return Promise.resolve(ok(successMessageSentResult));
@@ -396,7 +404,7 @@ describe("broadcastWorkflowV2", () => {
                 workspaceId: workspace.id,
                 broadcastId: broadcast.id,
               }),
-              taskQueue: "default",
+              taskQueue,
               args: [
                 {
                   workspaceId: workspace.id,
@@ -442,7 +450,7 @@ describe("broadcastWorkflowV2", () => {
       userId1 = randomUUID();
       userId2 = randomUUID();
 
-      await createTestEnvAndWorker({
+      await createBroadcastTestWorker({
         sendMessageOverride: () => {
           if (shouldError) {
             return Promise.resolve(
@@ -515,7 +523,7 @@ describe("broadcastWorkflowV2", () => {
               workspaceId: workspace.id,
               broadcastId: broadcast.id,
             }),
-            taskQueue: "default",
+            taskQueue,
             args: [
               {
                 workspaceId: workspace.id,
@@ -568,7 +576,7 @@ describe("broadcastWorkflowV2", () => {
       userId1 = randomUUID();
       userId2 = randomUUID();
 
-      await createTestEnvAndWorker({
+      await createBroadcastTestWorker({
         sendMessageOverride: (params) => {
           if (shouldError && params.userId === userId1) {
             return Promise.resolve(
@@ -641,7 +649,7 @@ describe("broadcastWorkflowV2", () => {
               workspaceId: workspace.id,
               broadcastId: broadcast.id,
             }),
-            taskQueue: "default",
+            taskQueue,
             args: [
               {
                 workspaceId: workspace.id,
@@ -670,11 +678,14 @@ describe("broadcastWorkflowV2", () => {
       beforeEach(async () => {
         userId = randomUUID();
 
-        await createTestEnvAndWorker();
+        await createBroadcastTestWorker();
         timeZone = "America/New_York";
-        const currentYear = new Date().getFullYear();
-        // Test will fail after this date.
-        scheduledAt = `${currentYear + 1}-01-01 08:00`;
+
+        // Get the current time from the time-skipping environment (which may have
+        // been advanced by previous tests) and schedule 1 year in the future from that
+        const envTime = await testEnv.currentTimeMs();
+        const futureDate = new Date(envTime + 365 * 24 * 60 * 60 * 1000);
+        scheduledAt = `${futureDate.getFullYear()}-01-01 08:00`;
 
         await createBroadcast({
           scheduledAt,
@@ -713,7 +724,7 @@ describe("broadcastWorkflowV2", () => {
                 workspaceId: workspace.id,
                 broadcastId: broadcast.id,
               }),
-              taskQueue: "default",
+              taskQueue,
               args: [
                 {
                   workspaceId: workspace.id,
@@ -757,7 +768,7 @@ describe("broadcastWorkflowV2", () => {
     beforeEach(async () => {
       userId = randomUUID();
 
-      await createTestEnvAndWorker({
+      await createBroadcastTestWorker({
         sendMessageOverride: () => {
           throw new Error("sendMessage failed");
         },
@@ -798,7 +809,7 @@ describe("broadcastWorkflowV2", () => {
             workspaceId: workspace.id,
             broadcastId: broadcast.id,
           }),
-          taskQueue: "default",
+          taskQueue,
           args: [
             {
               workspaceId: workspace.id,
@@ -852,7 +863,7 @@ describe("broadcastWorkflowV2", () => {
         },
       }).then(unwrap);
 
-      await createTestEnvAndWorker();
+      await createBroadcastTestWorker();
       await createBroadcast({
         config: {
           type: "V2",
@@ -895,7 +906,7 @@ describe("broadcastWorkflowV2", () => {
             workspaceId: workspace.id,
             broadcastId: broadcast.id,
           }),
-          taskQueue: "default",
+          taskQueue,
           args: [
             {
               workspaceId: workspace.id,
