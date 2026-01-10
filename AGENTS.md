@@ -11,6 +11,14 @@ yarn workspace backend-lib eslint src/resources.test.ts --fix
 # Run tests for a specific file. A similar command can be used for other packages.
 yarn jest packages/backend-lib/src/resources.test.ts
 
+# Run tests and pipe output to a timestamped file in .tmp for debugging.
+# Prefer this for large tests to avoid inflating context. The output file can be
+# searched and explored more efficiently using Read, Grep, etc.
+yarn test:file packages/backend-lib/src/resources.test.ts
+
+# Run tests with jest flags (e.g., -t to filter by test name).
+yarn test:file packages/backend-lib/src/resources.test.ts -t "specific test name"
+
 # Reduces the log levels before running tests, providing more verbose log output.
 LOG_LEVEL=debug yarn jest packages/backend-lib/src/resources.test.ts
 
