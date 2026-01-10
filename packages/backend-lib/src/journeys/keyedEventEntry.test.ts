@@ -84,6 +84,7 @@ describe("keyedEventEntry journeys", () => {
     sendMessageV2: sendMessageFactory(senderMock),
   };
 
+  // FIXME succeeds when run as a beforeEach along with the teardown
   beforeAll(async () => {
     testEnv = await TestWorkflowEnvironment.createTimeSkipping();
   });
