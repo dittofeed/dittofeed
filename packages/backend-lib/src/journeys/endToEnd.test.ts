@@ -21,7 +21,6 @@ import {
   segment as dbSegment,
 } from "../db/schema";
 import { enrichJourney } from "../journeys";
-import logger from "../logger";
 import { upsertSubscriptionGroup } from "../subscriptionGroups";
 import {
   ChannelType,
@@ -59,6 +58,7 @@ jest.setTimeout(30000);
 describe("end to end journeys", () => {
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  let workerRunPromise: Promise<void>;
 
   const testActivities = {
     sendMessageV2: jest.fn().mockReturnValue(true),
@@ -66,19 +66,20 @@ describe("end to end journeys", () => {
 
   beforeAll(async () => {
     testEnv = await TestWorkflowEnvironment.createTimeSkipping();
-  });
-
-  afterAll(async () => {
-    await testEnv.teardown();
-    await clickhouseClient().close();
-  });
-
-  beforeEach(async () => {
     worker = await createWorker({
       testEnv,
       activityOverrides: testActivities,
     });
+    workerRunPromise = worker.run();
   });
+
+  afterAll(async () => {
+    worker.shutdown();
+    await workerRunPromise;
+    await testEnv.teardown();
+    await clickhouseClient().close();
+  });
+
 
   describe("wait for journey", () => {
     let journey: EnrichedJourney;
@@ -244,51 +245,47 @@ describe("end to end journeys", () => {
         });
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
-        await worker.runUntil(async () => {
-          await testEnv.client.workflow.start(computePropertiesWorkflow, {
-            workflowId: segmentWorkflow1,
-            taskQueue: "default",
-            args: [
-              {
-                tableVersion: config().defaultUserEventsTableVersion,
-                workspaceId: workspace.id,
-                // poll multiple times to ensure we get segment update
-                maxPollingAttempts: 10,
-                shouldContinueAsNew: false,
-              },
-            ],
-          });
-
-          const segmentWorkflowHandle =
-            testEnv.client.workflow.getHandle(segmentWorkflow1);
-
-          // waiting past 1 day timeout
-          await testEnv.sleep("1 week");
-
-          await submitBatch({
-            workspaceId: workspace.id,
-            now: currentTimeMS,
-            data: [
-              {
-                userId: userId1,
-                type: EventType.Identify,
-                processingOffsetMs: -1000,
-                offsetMs: -6000,
-                traits: {
-                  plan: "paid",
-                },
-              },
-            ],
-          });
-
-          await segmentWorkflowHandle.result();
-
-          const handle = testEnv.client.workflow.getHandle(
-            userJourneyWorkflowId,
-          );
-
-          await handle.result();
+        await testEnv.client.workflow.start(computePropertiesWorkflow, {
+          workflowId: segmentWorkflow1,
+          taskQueue: "default",
+          args: [
+            {
+              tableVersion: config().defaultUserEventsTableVersion,
+              workspaceId: workspace.id,
+              // poll multiple times to ensure we get segment update
+              maxPollingAttempts: 10,
+              shouldContinueAsNew: false,
+            },
+          ],
         });
+
+        const segmentWorkflowHandle =
+          testEnv.client.workflow.getHandle(segmentWorkflow1);
+
+        // waiting past 1 day timeout
+        await testEnv.sleep("1 week");
+
+        await submitBatch({
+          workspaceId: workspace.id,
+          now: currentTimeMS,
+          data: [
+            {
+              userId: userId1,
+              type: EventType.Identify,
+              processingOffsetMs: -1000,
+              offsetMs: -6000,
+              traits: {
+                plan: "paid",
+              },
+            },
+          ],
+        });
+
+        await segmentWorkflowHandle.result();
+
+        const handle = testEnv.client.workflow.getHandle(userJourneyWorkflowId);
+
+        await handle.result();
 
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
         expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
@@ -319,52 +316,48 @@ describe("end to end journeys", () => {
           ],
         });
 
-        await worker.runUntil(async () => {
-          // recompute properties once
-          await testEnv.client.workflow.start(computePropertiesWorkflow, {
-            workflowId: segmentWorkflow1,
-            taskQueue: "default",
-            args: [
-              {
-                tableVersion: config().defaultUserEventsTableVersion,
-                workspaceId: workspace.id,
-                maxPollingAttempts: 2,
-                shouldContinueAsNew: false,
-              },
-            ],
-          });
-
-          const segmentWorkflowHandle =
-            testEnv.client.workflow.getHandle(segmentWorkflow1);
-
-          // submit event to satisfy segment and trigger wait for journey node
-          await submitBatch({
-            workspaceId: workspace.id,
-            now: currentTimeMS,
-            data: [
-              {
-                userId: userId1,
-                type: EventType.Identify,
-                processingOffsetMs: -5000,
-                offsetMs: -10000,
-                traits: {
-                  onboardingState: "step1",
-                },
-              },
-            ],
-          });
-
-          // wait for polling period sleep to finish, allowing recompute workflow to run a second time
-          await testEnv.sleep(45000);
-
-          await segmentWorkflowHandle.result();
-
-          const handle = testEnv.client.workflow.getHandle(
-            userJourneyWorkflowId,
-          );
-
-          await handle.result();
+        // recompute properties once
+        await testEnv.client.workflow.start(computePropertiesWorkflow, {
+          workflowId: segmentWorkflow1,
+          taskQueue: "default",
+          args: [
+            {
+              tableVersion: config().defaultUserEventsTableVersion,
+              workspaceId: workspace.id,
+              maxPollingAttempts: 2,
+              shouldContinueAsNew: false,
+            },
+          ],
         });
+
+        const segmentWorkflowHandle =
+          testEnv.client.workflow.getHandle(segmentWorkflow1);
+
+        // submit event to satisfy segment and trigger wait for journey node
+        await submitBatch({
+          workspaceId: workspace.id,
+          now: currentTimeMS,
+          data: [
+            {
+              userId: userId1,
+              type: EventType.Identify,
+              processingOffsetMs: -5000,
+              offsetMs: -10000,
+              traits: {
+                onboardingState: "step1",
+              },
+            },
+          ],
+        });
+
+        // wait for polling period sleep to finish, allowing recompute workflow to run a second time
+        await testEnv.sleep(45000);
+
+        await segmentWorkflowHandle.result();
+
+        const handle = testEnv.client.workflow.getHandle(userJourneyWorkflowId);
+
+        await handle.result();
 
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
         expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
@@ -395,50 +388,46 @@ describe("end to end journeys", () => {
 
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
-        await worker.runUntil(async () => {
-          await testEnv.client.workflow.start(computePropertiesWorkflow, {
-            workflowId: segmentWorkflow1,
-            taskQueue: "default",
-            args: [
-              {
-                tableVersion: config().defaultUserEventsTableVersion,
-                workspaceId: workspace.id,
-                // poll multiple times to ensure we get segment update
-                maxPollingAttempts: 2,
-                shouldContinueAsNew: false,
-              },
-            ],
-          });
-
-          const segmentWorkflowHandle =
-            testEnv.client.workflow.getHandle(segmentWorkflow1);
-
-          await submitBatch({
-            workspaceId: workspace.id,
-            now: currentTimeMS,
-            data: [
-              {
-                userId: userId1,
-                type: EventType.Identify,
-                processingOffsetMs: -1000,
-                offsetMs: -6000,
-                traits: {
-                  plan: "paid",
-                },
-              },
-            ],
-          });
-
-          await testEnv.sleep(45000);
-
-          await segmentWorkflowHandle.result();
-
-          const handle = testEnv.client.workflow.getHandle(
-            userJourneyWorkflowId,
-          );
-
-          await handle.result();
+        await testEnv.client.workflow.start(computePropertiesWorkflow, {
+          workflowId: segmentWorkflow1,
+          taskQueue: "default",
+          args: [
+            {
+              tableVersion: config().defaultUserEventsTableVersion,
+              workspaceId: workspace.id,
+              // poll multiple times to ensure we get segment update
+              maxPollingAttempts: 2,
+              shouldContinueAsNew: false,
+            },
+          ],
         });
+
+        const segmentWorkflowHandle =
+          testEnv.client.workflow.getHandle(segmentWorkflow1);
+
+        await submitBatch({
+          workspaceId: workspace.id,
+          now: currentTimeMS,
+          data: [
+            {
+              userId: userId1,
+              type: EventType.Identify,
+              processingOffsetMs: -1000,
+              offsetMs: -6000,
+              traits: {
+                plan: "paid",
+              },
+            },
+          ],
+        });
+
+        await testEnv.sleep(45000);
+
+        await segmentWorkflowHandle.result();
+
+        const handle = testEnv.client.workflow.getHandle(userJourneyWorkflowId);
+
+        await handle.result();
 
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
         expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
@@ -610,40 +599,36 @@ describe("end to end journeys", () => {
       it("sends them a welcome email", async () => {
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
-        await worker.runUntil(async () => {
-          await testEnv.client.workflow.start(computePropertiesWorkflow, {
-            workflowId: segmentWorkflow1,
-            taskQueue: "default",
-            args: [
-              {
-                tableVersion: config().defaultUserEventsTableVersion,
-                workspaceId: workspace.id,
-                maxPollingAttempts: 1,
-                shouldContinueAsNew: false,
-              },
-            ],
-          });
-
-          const handle3 = testEnv.client.workflow.getHandle(segmentWorkflow1);
-          await handle3.result();
-
-          await testEnv.sleep("1.5 weeks");
-
-          const handle = testEnv.client.workflow.getHandle(
-            userJourneyWorkflowId,
-          );
-
-          const userJourneyWorkflowId2 = getUserJourneyWorkflowId({
-            userId: userId2,
-            journeyId: journey.id,
-          });
-
-          const handle2 = testEnv.client.workflow.getHandle(
-            userJourneyWorkflowId2,
-          );
-
-          await Promise.all([handle.result(), handle2.result()]);
+        await testEnv.client.workflow.start(computePropertiesWorkflow, {
+          workflowId: segmentWorkflow1,
+          taskQueue: "default",
+          args: [
+            {
+              tableVersion: config().defaultUserEventsTableVersion,
+              workspaceId: workspace.id,
+              maxPollingAttempts: 1,
+              shouldContinueAsNew: false,
+            },
+          ],
         });
+
+        const handle3 = testEnv.client.workflow.getHandle(segmentWorkflow1);
+        await handle3.result();
+
+        await testEnv.sleep("1.5 weeks");
+
+        const handle = testEnv.client.workflow.getHandle(userJourneyWorkflowId);
+
+        const userJourneyWorkflowId2 = getUserJourneyWorkflowId({
+          userId: userId2,
+          journeyId: journey.id,
+        });
+
+        const handle2 = testEnv.client.workflow.getHandle(
+          userJourneyWorkflowId2,
+        );
+
+        await Promise.all([handle.result(), handle2.result()]);
 
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
       });
@@ -741,149 +726,135 @@ describe("end to end journeys", () => {
 
       it("only sends messages while the journey is running", async () => {
         const computePropertiesWorkflowId = `segments-notification-workflow-${randomUUID()}`;
-        let workerError: Error | null = null;
 
-        await worker.runUntil(async () => {
-          try {
-            let computedPropertiesParams: ComputedPropertiesWorkflowParams =
-              await testEnv.client.workflow.execute(computePropertiesWorkflow, {
-                workflowId: computePropertiesWorkflowId,
-                taskQueue: "default",
-                args: [
-                  {
-                    tableVersion: config().defaultUserEventsTableVersion,
-                    workspaceId: workspace.id,
-                    maxPollingAttempts: 1,
-                    shouldContinueAsNew: false,
-                  },
-                ],
-              });
-
-            const handle = testEnv.client.workflow.getHandle(
-              userJourneyWorkflowId,
-            );
-
-            let workflowDescribeError: unknown | null = null;
-            try {
-              await handle.describe();
-            } catch (e) {
-              workflowDescribeError = e;
-            }
-            expect(workflowDescribeError).toBeInstanceOf(WorkflowNotFoundError);
-            expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(0);
-
-            await db()
-              .update(dbJourney)
-              .set({
-                status: "Running",
-              })
-              .where(eq(dbJourney.id, journey.id));
-
-            computedPropertiesParams = await testEnv.client.workflow.execute(
-              computePropertiesWorkflow,
+        let computedPropertiesParams: ComputedPropertiesWorkflowParams =
+          await testEnv.client.workflow.execute(computePropertiesWorkflow, {
+            workflowId: computePropertiesWorkflowId,
+            taskQueue: "default",
+            args: [
               {
-                workflowId: computePropertiesWorkflowId,
-                taskQueue: "default",
-                args: [
-                  {
-                    ...computedPropertiesParams,
-                    maxPollingAttempts: 1,
-                    shouldContinueAsNew: false,
-                  },
-                ],
-              },
-            );
-
-            expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
-            expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
-              expect.objectContaining({
-                userId: userId1,
-              }),
-            );
-
-            const currentTimeMS = await testEnv.currentTimeMs();
-
-            await Promise.all([
-              db()
-                .update(dbJourney)
-                .set({
-                  status: "Paused",
-                })
-                .where(eq(dbJourney.id, journey.id)),
-
-              await submitBatch({
+                tableVersion: config().defaultUserEventsTableVersion,
                 workspaceId: workspace.id,
-                now: currentTimeMS,
-                data: [
-                  {
-                    userId: userId2,
-                    type: EventType.Identify,
-                    processingOffsetMs: -5000,
-                    offsetMs: -10000,
-                    traits: {
-                      plan: "paid",
-                    },
-                  },
-                ],
-              }),
-            ]);
-
-            computedPropertiesParams = await testEnv.client.workflow.execute(
-              computePropertiesWorkflow,
-              {
-                workflowId: computePropertiesWorkflowId,
-                taskQueue: "default",
-                args: [
-                  {
-                    ...computedPropertiesParams,
-                    maxPollingAttempts: 1,
-                    shouldContinueAsNew: false,
-                  },
-                ],
+                maxPollingAttempts: 1,
+                shouldContinueAsNew: false,
               },
-            );
+            ],
+          });
 
-            expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
-            expect(testActivities.sendMessageV2).not.toHaveBeenCalledWith(
-              expect.objectContaining({
-                userId: userId2,
-              }),
-            );
+        const handle = testEnv.client.workflow.getHandle(userJourneyWorkflowId);
 
-            await db()
-              .update(dbJourney)
-              .set({
-                status: "Running",
-              })
-              .where(eq(dbJourney.id, journey.id));
-
-            await testEnv.client.workflow.execute(computePropertiesWorkflow, {
-              workflowId: computePropertiesWorkflowId,
-              taskQueue: "default",
-              args: [
-                {
-                  ...computedPropertiesParams,
-                  maxPollingAttempts: 1,
-                  shouldContinueAsNew: false,
-                },
-              ],
-            });
-
-            expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(2);
-            expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
-              expect.objectContaining({
-                userId: userId2,
-              }),
-            );
-          } catch (e) {
-            workerError = e as Error;
-          }
-        });
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (workerError !== null) {
-          // eslint-disable-next-line @typescript-eslint/no-throw-literal
-          throw workerError;
+        let workflowDescribeError: unknown | null = null;
+        try {
+          await handle.describe();
+        } catch (e) {
+          workflowDescribeError = e;
         }
+        expect(workflowDescribeError).toBeInstanceOf(WorkflowNotFoundError);
+        expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(0);
+
+        await db()
+          .update(dbJourney)
+          .set({
+            status: "Running",
+          })
+          .where(eq(dbJourney.id, journey.id));
+
+        computedPropertiesParams = await testEnv.client.workflow.execute(
+          computePropertiesWorkflow,
+          {
+            workflowId: computePropertiesWorkflowId,
+            taskQueue: "default",
+            args: [
+              {
+                ...computedPropertiesParams,
+                maxPollingAttempts: 1,
+                shouldContinueAsNew: false,
+              },
+            ],
+          },
+        );
+
+        expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+        expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userId: userId1,
+          }),
+        );
+
+        const currentTimeMS = await testEnv.currentTimeMs();
+
+        await Promise.all([
+          db()
+            .update(dbJourney)
+            .set({
+              status: "Paused",
+            })
+            .where(eq(dbJourney.id, journey.id)),
+
+          await submitBatch({
+            workspaceId: workspace.id,
+            now: currentTimeMS,
+            data: [
+              {
+                userId: userId2,
+                type: EventType.Identify,
+                processingOffsetMs: -5000,
+                offsetMs: -10000,
+                traits: {
+                  plan: "paid",
+                },
+              },
+            ],
+          }),
+        ]);
+
+        computedPropertiesParams = await testEnv.client.workflow.execute(
+          computePropertiesWorkflow,
+          {
+            workflowId: computePropertiesWorkflowId,
+            taskQueue: "default",
+            args: [
+              {
+                ...computedPropertiesParams,
+                maxPollingAttempts: 1,
+                shouldContinueAsNew: false,
+              },
+            ],
+          },
+        );
+
+        expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+        expect(testActivities.sendMessageV2).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            userId: userId2,
+          }),
+        );
+
+        await db()
+          .update(dbJourney)
+          .set({
+            status: "Running",
+          })
+          .where(eq(dbJourney.id, journey.id));
+
+        await testEnv.client.workflow.execute(computePropertiesWorkflow, {
+          workflowId: computePropertiesWorkflowId,
+          taskQueue: "default",
+          args: [
+            {
+              ...computedPropertiesParams,
+              maxPollingAttempts: 1,
+              shouldContinueAsNew: false,
+            },
+          ],
+        });
+
+        expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(2);
+        expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userId: userId2,
+          }),
+        );
       });
     });
   });
