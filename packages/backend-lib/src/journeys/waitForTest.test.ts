@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { insert } from "../db";
 import { journey as dbJourney, segment as dbSegment } from "../db/schema";
 import { insertSegmentAssignments } from "../segments";
@@ -60,11 +60,7 @@ describe("journeys with wait-for nodes", () => {
   };
 
   beforeAll(async () => {
-    const envAndWorker = await createEnvAndWorker({
-      activityOverrides: testActivities,
-    });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
   });
 
   afterAll(async () => {
@@ -72,6 +68,10 @@ describe("journeys with wait-for nodes", () => {
   });
 
   beforeEach(async () => {
+    worker = await createWorker({
+      testEnv,
+      activityOverrides: testActivities,
+    });
     workspace = unwrap(
       await createWorkspace({
         name: `event-entry-${randomUUID()}`,
