@@ -725,11 +725,9 @@ describe("end to end journeys", () => {
       });
 
       it("only sends messages while the journey is running", async () => {
-        const computePropertiesWorkflowId = `segments-notification-workflow-${randomUUID()}`;
-
         let computedPropertiesParams: ComputedPropertiesWorkflowParams =
           await testEnv.client.workflow.execute(computePropertiesWorkflow, {
-            workflowId: computePropertiesWorkflowId,
+            workflowId: `segments-notification-workflow-${randomUUID()}`,
             taskQueue: "default",
             args: [
               {
@@ -762,7 +760,7 @@ describe("end to end journeys", () => {
         computedPropertiesParams = await testEnv.client.workflow.execute(
           computePropertiesWorkflow,
           {
-            workflowId: computePropertiesWorkflowId,
+            workflowId: `segments-notification-workflow-${randomUUID()}`,
             taskQueue: "default",
             args: [
               {
@@ -811,7 +809,7 @@ describe("end to end journeys", () => {
         computedPropertiesParams = await testEnv.client.workflow.execute(
           computePropertiesWorkflow,
           {
-            workflowId: computePropertiesWorkflowId,
+            workflowId: `segments-notification-workflow-${randomUUID()}`,
             taskQueue: "default",
             args: [
               {
@@ -838,7 +836,7 @@ describe("end to end journeys", () => {
           .where(eq(dbJourney.id, journey.id));
 
         await testEnv.client.workflow.execute(computePropertiesWorkflow, {
-          workflowId: computePropertiesWorkflowId,
+          workflowId: `segments-notification-workflow-${randomUUID()}`,
           taskQueue: "default",
           args: [
             {

@@ -150,8 +150,7 @@ describe("randomCohortJourney", () => {
     }).then(unwrap);
   });
 
-  afterEach(async () => {
-    await testEnv.teardown();
+  afterEach(() => {
     senderMock.mockClear();
   });
 
