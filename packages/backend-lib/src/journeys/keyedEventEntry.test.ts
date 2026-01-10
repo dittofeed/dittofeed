@@ -1770,7 +1770,7 @@ describe("keyedEventEntry journeys", () => {
       });
 
       const handle1 = await testEnv.client.workflow.start(userJourneyWorkflow, {
-        workflowId: `workflow-user1-${orderId1}`,
+        workflowId: `workflow-user1-${randomUUID()}`,
         taskQueue: "default",
         args: [
           {
@@ -1786,7 +1786,7 @@ describe("keyedEventEntry journeys", () => {
       });
 
       const handle2 = await testEnv.client.workflow.start(userJourneyWorkflow, {
-        workflowId: `workflow-user2-${orderId2}`,
+        workflowId: `workflow-user2-${randomUUID()}`,
         taskQueue: "default",
         args: [
           {
