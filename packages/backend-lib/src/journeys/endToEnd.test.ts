@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { submitBatch } from "../../test/testEvents";
 import { clickhouseClient } from "../clickhouse";
 import {
@@ -65,31 +65,19 @@ describe("end to end journeys", () => {
   };
 
   beforeAll(async () => {
-    try {
-      logger().info("creating test env and worker");
-      const envAndWorker = await createEnvAndWorker({
-        activityOverrides: testActivities,
-      });
-      logger().info("created test env and worker");
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
-    } catch (e) {
-      logger().error(
-        {
-          err: e,
-        },
-        "error creating test env and worker",
-      );
-      throw e;
-    }
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
   });
 
   afterAll(async () => {
     await testEnv.teardown();
+    await clickhouseClient().close();
   });
 
-  afterAll(async () => {
-    await clickhouseClient().close();
+  beforeEach(async () => {
+    worker = await createWorker({
+      testEnv,
+      activityOverrides: testActivities,
+    });
   });
 
   describe("wait for journey", () => {

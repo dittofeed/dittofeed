@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { clickhouseClient } from "../clickhouse";
 import { insert } from "../db";
 import { journey as dbJourney } from "../db/schema";
@@ -55,11 +55,7 @@ describe("eventEntry journeys with hidden triggering events", () => {
   };
 
   beforeAll(async () => {
-    const envAndWorker = await createEnvAndWorker({
-      activityOverrides: testActivities,
-    });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
   });
 
   afterAll(async () => {
@@ -67,6 +63,10 @@ describe("eventEntry journeys with hidden triggering events", () => {
   });
 
   beforeEach(async () => {
+    worker = await createWorker({
+      testEnv,
+      activityOverrides: testActivities,
+    });
     workspace = unwrap(
       await createWorkspace({
         id: randomUUID(),

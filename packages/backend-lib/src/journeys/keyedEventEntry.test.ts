@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { submitBatch } from "../apps/batch";
 import { db, insert } from "../db";
 import {
@@ -55,7 +55,7 @@ import {
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("keyedEventEntry journeys", () => {
   let workspace: Workspace;
@@ -85,11 +85,7 @@ describe("keyedEventEntry journeys", () => {
   };
 
   beforeAll(async () => {
-    const envAndWorker = await createEnvAndWorker({
-      activityOverrides: testActivities,
-    });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
   });
 
   afterAll(async () => {
@@ -97,6 +93,10 @@ describe("keyedEventEntry journeys", () => {
   });
 
   beforeEach(async () => {
+    worker = await createWorker({
+      testEnv,
+      activityOverrides: testActivities,
+    });
     workspace = unwrap(
       await createWorkspace({
         id: randomUUID(),

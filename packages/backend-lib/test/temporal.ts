@@ -40,16 +40,3 @@ export async function createWorker({
   });
   return worker;
 }
-export async function createEnvAndWorker({
-  activityOverrides,
-}: {
-  activityOverrides?: Parameters<typeof Worker.create>[0]["activities"];
-} = {}) {
-  const testEnv = await TestWorkflowEnvironment.createTimeSkipping();
-  const worker = await createWorker({
-    testEnv,
-    activityOverrides,
-  });
-
-  return { testEnv, worker };
-}
