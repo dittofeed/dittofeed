@@ -28,6 +28,7 @@ import { withSpan } from "./openTelemetry";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import {
   getSubscriptionGroupDetails,
+  getSubscriptionGroupSegmentName,
   getSubscriptionGroupsWithAssignments,
   getSubscriptionGroupUnsubscribedSegmentName,
   inSubscriptionGroup,
@@ -118,6 +119,9 @@ export async function buildGetUsersQueriesForDebug(
     }
   >();
   if (subscriptionGroupFilter?.length) {
+    const subscribedSegmentNames = subscriptionGroupFilter.map((id) =>
+      getSubscriptionGroupSegmentName(id),
+    );
     const subscriptionGroupsRows = await db()
       .select({
         id: dbSubscriptionGroup.id,
@@ -129,7 +133,14 @@ export async function buildGetUsersQueriesForDebug(
         dbSegment,
         eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
       )
-      .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
+      .where(
+        and(
+          eq(dbSegment.workspaceId, workspaceId),
+          inArray(dbSubscriptionGroup.id, subscriptionGroupFilter),
+          inArray(dbSegment.name, subscribedSegmentNames),
+        ),
+      );
+
     subscriptionGroups = subscriptionGroupsRows.reduce(
       (acc, subscriptionGroup) => {
         const subscriptionGroupType =
@@ -1242,6 +1253,13 @@ export async function getUsers(
         .where(and(...userPropertyCondition)),
       db().select().from(dbSegment).where(segmentCondition),
     ]);
+    logger().debug(
+      {
+        segments,
+        userProperties,
+      },
+      "get users segments and user properties",
+    );
     const segmentNameById = new Map<string, Segment>();
     for (const segment of segments) {
       segmentNameById.set(segment.id, segment);
@@ -1302,13 +1320,28 @@ export async function getUsers(
       const userSegments: GetUsersResponseItem["segments"] =
         row.segments.flatMap(([id, value]) => {
           const segment = segmentNameById.get(id);
-          if (!segment || !value) {
+          // TODO figure out why value is false
+          if (!segment) {
             logger().error(
               {
                 id,
+                segment,
                 workspaceId,
+                value,
               },
-              "segment not found",
+              "segment not found for user",
+            );
+            return [];
+          }
+          if (value === "false") {
+            logger().debug(
+              {
+                id,
+                segment,
+                workspaceId,
+                value,
+              },
+              "skipping false segment",
             );
             return [];
           }
@@ -1634,73 +1667,23 @@ export async function getUsersCount({
     havingSubClauses.push(`${varName} = True`);
   }
 
-  if (subscriptionGroupFilter) {
-    const subscriptionGroupsRows = await db()
-      .select({
-        id: dbSubscriptionGroup.id,
-        type: dbSubscriptionGroup.type,
-        segmentId: dbSegment.id,
-      })
-      .from(dbSubscriptionGroup)
-      .innerJoin(
-        dbSegment,
-        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
-      )
-      .where(inArray(dbSubscriptionGroup.id, subscriptionGroupFilter));
-    const subscriptionGroups = subscriptionGroupsRows.reduce(
-      (acc, subscriptionGroup) => {
-        const subscriptionGroupType =
-          subscriptionGroup.type === SubscriptionGroupType.OptOut
-            ? SubscriptionGroupType.OptOut
-            : SubscriptionGroupType.OptIn;
-        const entry: {
-          type: SubscriptionGroupType;
-          segmentId: string;
-        } = {
-          type: subscriptionGroupType,
-          segmentId: subscriptionGroup.segmentId,
-        };
-        acc.set(subscriptionGroup.id, entry);
-        return acc;
-      },
-      new Map<
-        string,
-        {
-          type: SubscriptionGroupType;
-          segmentId: string;
-        }
-      >(),
-    );
-
-    for (const subscriptionGroup of subscriptionGroupFilter) {
-      const sg = subscriptionGroups.get(subscriptionGroup);
-      if (!sg) {
-        logger().error(
-          {
-            subscriptionGroupId: subscriptionGroup,
-            workspaceId,
-          },
-          "subscription group not found",
-        );
-        continue;
-      }
-      const { type, segmentId } = sg;
-      const varName = qb.getVariableName();
-      computedPropertyIds.push(segmentId);
-      selectUserIdColumns.push(
-        `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
-      );
-      if (type === SubscriptionGroupType.OptOut) {
-        havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
-      } else {
-        havingSubClauses.push(`${varName} == True`);
-        hasStrictFilter = true;
-      }
+  // Fetch all subscription groups and their segments in one query (matching getUsers approach)
+  const subscriptionGroups = new Map<
+    string,
+    {
+      type: SubscriptionGroupType;
+      segmentId: string;
     }
-  }
+  >();
+  // Map from subscription group ID to unsubscribed segment ID
+  const unsubscribedSegments = new Map<string, string>();
 
-  // Negative subscription group filter: exclude users who ARE in the specified subscription groups
-  if (negativeSubscriptionGroupFilter && negativeSubscriptionGroupFilter.length > 0) {
+  const allSubscriptionGroupIds = [
+    ...(subscriptionGroupFilter ?? []),
+    ...(negativeSubscriptionGroupFilter ?? []),
+    ...(unsubscribedFromFilter ?? []),
+  ];
+  if (allSubscriptionGroupIds.length > 0) {
     const subscriptionGroupsRows = await db()
       .select({
         id: dbSubscriptionGroup.id,
@@ -1713,18 +1696,17 @@ export async function getUsersCount({
         dbSegment,
         eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
       )
-      .where(inArray(dbSubscriptionGroup.id, negativeSubscriptionGroupFilter));
+      .where(inArray(dbSubscriptionGroup.id, allSubscriptionGroupIds));
 
-    // Build a map of subscription group ID to main segment info (excluding unsubscribed segments)
-    const subscriptionGroups = new Map<
-      string,
-      { type: SubscriptionGroupType; segmentId: string }
-    >();
     for (const row of subscriptionGroupsRows) {
       const expectedUnsubscribedName =
         getSubscriptionGroupUnsubscribedSegmentName(row.id);
-      // Only include main segments (not unsubscribed segments)
-      if (row.segmentName !== expectedUnsubscribedName) {
+
+      if (row.segmentName === expectedUnsubscribedName) {
+        // This is the unsubscribed segment
+        unsubscribedSegments.set(row.id, row.segmentId);
+      } else {
+        // This is the main segment
         const subscriptionGroupType =
           row.type === SubscriptionGroupType.OptOut
             ? SubscriptionGroupType.OptOut
@@ -1735,89 +1717,99 @@ export async function getUsersCount({
         });
       }
     }
+  }
 
-    for (const subscriptionGroupId of negativeSubscriptionGroupFilter) {
-      const sg = subscriptionGroups.get(subscriptionGroupId);
-      if (!sg) {
-        logger().error(
-          {
-            subscriptionGroupId,
-            workspaceId,
-          },
-          "subscription group not found for negative filter",
-        );
-        continue;
-      }
-      const { type, segmentId } = sg;
-
-      computedPropertyIds.push(segmentId);
-
-      const varName = qb.getVariableName();
-      selectUserIdColumns.push(
-        `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+  const subscriptionGroupsFilter = subscriptionGroupFilter ?? [];
+  for (const subscriptionGroup of subscriptionGroupsFilter) {
+    const sg = subscriptionGroups.get(subscriptionGroup);
+    if (!sg) {
+      logger().error(
+        {
+          subscriptionGroupId: subscriptionGroup,
+          workspaceId,
+        },
+        "subscription group not found",
       );
-      if (type === SubscriptionGroupType.OptOut) {
-        // For OptOut groups: user is NOT in group only if they explicitly unsubscribed
-        havingSubClauses.push(`${varName} == False`);
-        hasStrictFilter = true;
-      } else {
-        // For OptIn groups: user is NOT in group if they never opted in OR opted out
-        havingSubClauses.push(`(${varName} == False OR ${varName} IS NULL)`);
-      }
+      continue;
+    }
+    const { type, segmentId } = sg;
+
+    computedPropertyIds.push(segmentId);
+
+    const varName = qb.getVariableName();
+    selectUserIdColumns.push(
+      `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+    );
+    if (type === SubscriptionGroupType.OptOut) {
+      havingSubClauses.push(`(${varName} == True OR ${varName} IS NULL)`);
+    } else {
+      havingSubClauses.push(`${varName} == True`);
+      hasStrictFilter = true;
+    }
+  }
+
+  // Negative subscription group filter: exclude users who ARE in the specified subscription groups
+  // The logic is inverted from the positive filter:
+  // - OptOut: User is NOT in group only if they explicitly unsubscribed (segment_value = False)
+  // - OptIn: User is NOT in group if they never opted in OR opted out (segment_value = False OR NULL)
+  const negativeSubscriptionGroupsFilter =
+    negativeSubscriptionGroupFilter ?? [];
+  for (const subscriptionGroupId of negativeSubscriptionGroupsFilter) {
+    const sg = subscriptionGroups.get(subscriptionGroupId);
+    if (!sg) {
+      logger().error(
+        {
+          subscriptionGroupId,
+          workspaceId,
+        },
+        "subscription group not found for negative filter",
+      );
+      continue;
+    }
+    const { type, segmentId } = sg;
+
+    computedPropertyIds.push(segmentId);
+
+    const varName = qb.getVariableName();
+    selectUserIdColumns.push(
+      `argMax(if(computed_property_id = ${qb.addQueryValue(segmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+    );
+    if (type === SubscriptionGroupType.OptOut) {
+      // For OptOut groups: user is NOT in group only if they explicitly unsubscribed
+      havingSubClauses.push(`${varName} == False`);
+      hasStrictFilter = true;
+    } else {
+      // For OptIn groups: user is NOT in group if they never opted in OR opted out
+      havingSubClauses.push(`(${varName} == False OR ${varName} IS NULL)`);
     }
   }
 
   // Unsubscribed from filter: users who have EXPLICITLY unsubscribed from the subscription group
-  if (unsubscribedFromFilter && unsubscribedFromFilter.length > 0) {
-    // Query subscription groups and their segments (including unsubscribed segments)
-    const subscriptionGroupsRows = await db()
-      .select({
-        id: dbSubscriptionGroup.id,
-        segmentId: dbSegment.id,
-        segmentName: dbSegment.name,
-      })
-      .from(dbSubscriptionGroup)
-      .innerJoin(
-        dbSegment,
-        eq(dbSegment.subscriptionGroupId, dbSubscriptionGroup.id),
-      )
-      .where(inArray(dbSubscriptionGroup.id, unsubscribedFromFilter));
-
-    // Build a map from subscription group ID to unsubscribed segment ID
-    const unsubscribedSegments = new Map<string, string>();
-    for (const row of subscriptionGroupsRows) {
-      const expectedUnsubscribedName =
-        getSubscriptionGroupUnsubscribedSegmentName(row.id);
-      if (row.segmentName === expectedUnsubscribedName) {
-        unsubscribedSegments.set(row.id, row.segmentId);
-      }
-    }
-
-    for (const subscriptionGroupId of unsubscribedFromFilter) {
-      const unsubscribedSegmentId =
-        unsubscribedSegments.get(subscriptionGroupId);
-      if (!unsubscribedSegmentId) {
-        logger().error(
-          {
-            subscriptionGroupId,
-            workspaceId,
-          },
-          "unsubscribed segment not found for subscription group",
-        );
-        continue;
-      }
-
-      computedPropertyIds.push(unsubscribedSegmentId);
-
-      const varName = qb.getVariableName();
-      selectUserIdColumns.push(
-        `argMax(if(computed_property_id = ${qb.addQueryValue(unsubscribedSegmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+  // This uses the unsubscribed segment (not the main subscription segment)
+  const unsubscribedFromIds = unsubscribedFromFilter ?? [];
+  for (const subscriptionGroupId of unsubscribedFromIds) {
+    const unsubscribedSegmentId = unsubscribedSegments.get(subscriptionGroupId);
+    if (!unsubscribedSegmentId) {
+      logger().error(
+        {
+          subscriptionGroupId,
+          workspaceId,
+        },
+        "unsubscribed segment not found for subscription group",
       );
-
-      // User is in unsubscribed segment if segment_value == True
-      havingSubClauses.push(`${varName} == True`);
-      hasStrictFilter = true;
+      continue;
     }
+
+    computedPropertyIds.push(unsubscribedSegmentId);
+
+    const varName = qb.getVariableName();
+    selectUserIdColumns.push(
+      `argMax(if(computed_property_id = ${qb.addQueryValue(unsubscribedSegmentId, "String")}, segment_value, null), assigned_at) as ${varName}`,
+    );
+
+    // User is in unsubscribed segment if segment_value == True
+    havingSubClauses.push(`${varName} == True`);
+    hasStrictFilter = true;
   }
 
   // [OPTIMIZATION] Implicit Anchor

@@ -226,10 +226,6 @@ export function buildDeliverySearchQueryBody({
     `workspace_id = ${workspaceIdParam}`,
     `event IN ${qb.addQueryValue(statusEventsList, "Array(String)")}`,
   ];
-  logger().debug(
-    { statusEventsList, queryParams: qb.getQueries() },
-    "statusEventsList",
-  );
 
   if (journeyId) {
     statusEventsConditions.push(
@@ -897,13 +893,6 @@ export async function searchDeliveries({
     });
 
     const offset = parseCursorOffset(cursor);
-    logger().debug(
-      {
-        query,
-        queryParams,
-      },
-      "searchDeliveries query",
-    );
 
     const result = await chQuery({
       query,

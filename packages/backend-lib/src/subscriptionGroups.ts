@@ -44,7 +44,6 @@ import {
   ProcessSubscriptionGroupCsvError,
   ProcessSubscriptionGroupCsvErrorType,
   SavedSubscriptionGroupResource,
-  Segment,
   SegmentDefinition,
   SegmentNodeType,
   SubscriptionChange,

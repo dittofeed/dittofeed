@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { insert } from "../db";
 import { journey as dbJourney, segment as dbSegment } from "../db/schema";
 import { insertSegmentAssignments } from "../segments";
@@ -39,6 +39,7 @@ describe("reEnter", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  let workerRunPromise: Promise<void>;
   let journeyDefinition: JourneyDefinition;
   let journey: Journey;
   let segment: Segment;
@@ -68,14 +69,17 @@ describe("reEnter", () => {
   };
 
   beforeAll(async () => {
-    const envAndWorker = await createEnvAndWorker({
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+    worker = await createWorker({
+      testEnv,
       activityOverrides: testActivities,
     });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    workerRunPromise = worker.run();
   });
 
   afterAll(async () => {
+    worker.shutdown();
+    await workerRunPromise;
     await testEnv.teardown();
   });
 
@@ -155,67 +159,65 @@ describe("reEnter", () => {
     });
 
     it("should run the journey twice to completion", async () => {
-      await worker.runUntil(async () => {
-        const handle1 = await testEnv.client.workflow.signalWithStart(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow1",
-            taskQueue: "default",
-            signal: segmentUpdateSignal,
-            signalArgs: [
-              {
-                segmentId: segment.id,
-                currentlyInSegment: true,
-                type: "segment",
-                segmentVersion: await testEnv.currentTimeMs(),
-              },
-            ],
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-              },
-            ],
-          },
-        );
+      const handle1 = await testEnv.client.workflow.signalWithStart(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow1-${randomUUID()}`,
+          taskQueue: "default",
+          signal: segmentUpdateSignal,
+          signalArgs: [
+            {
+              segmentId: segment.id,
+              currentlyInSegment: true,
+              type: "segment",
+              segmentVersion: await testEnv.currentTimeMs(),
+            },
+          ],
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+            },
+          ],
+        },
+      );
 
-        await handle1.result();
+      await handle1.result();
 
-        expect(senderMock).toHaveBeenCalledTimes(1);
+      expect(senderMock).toHaveBeenCalledTimes(1);
 
-        const handle2 = await testEnv.client.workflow.signalWithStart(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow2",
-            taskQueue: "default",
-            signal: segmentUpdateSignal,
-            signalArgs: [
-              {
-                segmentId: segment.id,
-                currentlyInSegment: true,
-                type: "segment",
-                segmentVersion: await testEnv.currentTimeMs(),
-              },
-            ],
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-              },
-            ],
-          },
-        );
+      const handle2 = await testEnv.client.workflow.signalWithStart(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow2-${randomUUID()}`,
+          taskQueue: "default",
+          signal: segmentUpdateSignal,
+          signalArgs: [
+            {
+              segmentId: segment.id,
+              currentlyInSegment: true,
+              type: "segment",
+              segmentVersion: await testEnv.currentTimeMs(),
+            },
+          ],
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+            },
+          ],
+        },
+      );
 
-        await handle2.result();
+      await handle2.result();
 
-        expect(senderMock).toHaveBeenCalledTimes(2);
-      });
+      expect(senderMock).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -263,67 +265,65 @@ describe("reEnter", () => {
       }).then(unwrap);
     });
     it("should run the journey once to completion", async () => {
-      await worker.runUntil(async () => {
-        const handle1 = await testEnv.client.workflow.signalWithStart(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow1",
-            taskQueue: "default",
-            signal: segmentUpdateSignal,
-            signalArgs: [
-              {
-                segmentId: segment.id,
-                currentlyInSegment: true,
-                type: "segment",
-                segmentVersion: await testEnv.currentTimeMs(),
-              },
-            ],
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-              },
-            ],
-          },
-        );
+      const handle1 = await testEnv.client.workflow.signalWithStart(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow1-${randomUUID()}`,
+          taskQueue: "default",
+          signal: segmentUpdateSignal,
+          signalArgs: [
+            {
+              segmentId: segment.id,
+              currentlyInSegment: true,
+              type: "segment",
+              segmentVersion: await testEnv.currentTimeMs(),
+            },
+          ],
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+            },
+          ],
+        },
+      );
 
-        await handle1.result();
+      await handle1.result();
 
-        expect(senderMock).toHaveBeenCalledTimes(1);
+      expect(senderMock).toHaveBeenCalledTimes(1);
 
-        const handle2 = await testEnv.client.workflow.signalWithStart(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow2",
-            taskQueue: "default",
-            signal: segmentUpdateSignal,
-            signalArgs: [
-              {
-                segmentId: segment.id,
-                currentlyInSegment: true,
-                type: "segment",
-                segmentVersion: await testEnv.currentTimeMs(),
-              },
-            ],
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-              },
-            ],
-          },
-        );
+      const handle2 = await testEnv.client.workflow.signalWithStart(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow2-${randomUUID()}`,
+          taskQueue: "default",
+          signal: segmentUpdateSignal,
+          signalArgs: [
+            {
+              segmentId: segment.id,
+              currentlyInSegment: true,
+              type: "segment",
+              segmentVersion: await testEnv.currentTimeMs(),
+            },
+          ],
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+            },
+          ],
+        },
+      );
 
-        await handle2.result();
+      await handle2.result();
 
-        expect(senderMock).toHaveBeenCalledTimes(1);
-      });
+      expect(senderMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -383,43 +383,20 @@ describe("reEnter", () => {
         ]);
       });
       it("should run to completion and continue as new", async () => {
-        await worker.runUntil(async () => {
-          const handle = await testEnv.client.workflow.signalWithStart(
-            userJourneyWorkflow,
-            {
-              workflowId: "workflow1",
-              taskQueue: "default",
-              signal: segmentUpdateSignal,
-              signalArgs: [
-                {
-                  segmentId: segment.id,
-                  currentlyInSegment: true,
-                  type: "segment",
-                  segmentVersion: await testEnv.currentTimeMs(),
-                },
-              ],
-              args: [
-                {
-                  journeyId: journey.id,
-                  workspaceId: workspace.id,
-                  userId,
-                  definition: journeyDefinition,
-                  version: UserJourneyWorkflowVersion.V2,
-                  shouldContinueAsNew: false,
-                },
-              ],
-            },
-          );
-
-          const nextProps = await handle.result();
-          expect(nextProps).not.toBeNull();
-        });
-      });
-      it("should run to completion on second run", async () => {
-        await worker.runUntil(async () => {
-          await testEnv.client.workflow.execute(userJourneyWorkflow, {
-            workflowId: "workflow1",
+        const handle = await testEnv.client.workflow.signalWithStart(
+          userJourneyWorkflow,
+          {
+            workflowId: `workflow1-${randomUUID()}`,
             taskQueue: "default",
+            signal: segmentUpdateSignal,
+            signalArgs: [
+              {
+                segmentId: segment.id,
+                currentlyInSegment: true,
+                type: "segment",
+                segmentVersion: await testEnv.currentTimeMs(),
+              },
+            ],
             args: [
               {
                 journeyId: journey.id,
@@ -430,9 +407,28 @@ describe("reEnter", () => {
                 shouldContinueAsNew: false,
               },
             ],
-          });
-          expect(senderMock).toHaveBeenCalledTimes(1);
+          },
+        );
+
+        const nextProps = await handle.result();
+        expect(nextProps).not.toBeNull();
+      });
+      it("should run to completion on second run", async () => {
+        await testEnv.client.workflow.execute(userJourneyWorkflow, {
+          workflowId: `workflow1-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+              shouldContinueAsNew: false,
+            },
+          ],
         });
+        expect(senderMock).toHaveBeenCalledTimes(1);
       });
     });
     describe("when the user is not in the segment", () => {
@@ -447,67 +443,65 @@ describe("reEnter", () => {
         ]);
       });
       it("should run to completion and not continue as new", async () => {
-        await worker.runUntil(async () => {
-          const handle = await testEnv.client.workflow.signalWithStart(
-            userJourneyWorkflow,
-            {
-              workflowId: "workflow1",
-              taskQueue: "default",
-              signal: segmentUpdateSignal,
-              signalArgs: [
-                {
-                  segmentId: segment.id,
-                  currentlyInSegment: true,
-                  type: "segment",
-                  segmentVersion: await testEnv.currentTimeMs(),
-                },
-              ],
-              args: [
-                {
-                  journeyId: journey.id,
-                  workspaceId: workspace.id,
-                  userId,
-                  definition: journeyDefinition,
-                  version: UserJourneyWorkflowVersion.V2,
-                  shouldContinueAsNew: false,
-                },
-              ],
-            },
-          );
+        const handle = await testEnv.client.workflow.signalWithStart(
+          userJourneyWorkflow,
+          {
+            workflowId: `workflow1-${randomUUID()}`,
+            taskQueue: "default",
+            signal: segmentUpdateSignal,
+            signalArgs: [
+              {
+                segmentId: segment.id,
+                currentlyInSegment: true,
+                type: "segment",
+                segmentVersion: await testEnv.currentTimeMs(),
+              },
+            ],
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+                shouldContinueAsNew: false,
+              },
+            ],
+          },
+        );
 
-          const nextProps = await handle.result();
-          expect(nextProps).toBeNull();
-        });
+        const nextProps = await handle.result();
+        expect(nextProps).toBeNull();
       });
 
       it("should not run to completion on second run", async () => {
         let err: unknown;
-        await worker.runUntil(async () => {
-          const handle = await testEnv.client.workflow.start(
-            userJourneyWorkflow,
-            {
-              workflowId: "workflow1",
-              taskQueue: "default",
-              args: [
-                {
-                  journeyId: journey.id,
-                  workspaceId: workspace.id,
-                  userId,
-                  definition: journeyDefinition,
-                  version: UserJourneyWorkflowVersion.V2,
-                  shouldContinueAsNew: false,
-                },
-              ],
-            },
-          );
-          try {
-            await handle.result();
-          } catch (e) {
-            err = e;
-          }
-        });
+        const handle = await testEnv.client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: `workflow1-${randomUUID()}`,
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+                shouldContinueAsNew: false,
+              },
+            ],
+          },
+        );
+        try {
+          await handle.result();
+        } catch (e) {
+          err = e;
+        }
         expect(err).toBeInstanceOf(WorkflowFailedError);
-        expect((err as WorkflowFailedError).message).toContain("timed out");
+        if (err instanceof WorkflowFailedError) {
+          expect(err.message).toContain("timed out");
+        }
       });
     });
   });

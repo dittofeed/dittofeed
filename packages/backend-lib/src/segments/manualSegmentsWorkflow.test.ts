@@ -6,7 +6,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
 import { sleep } from "isomorphic-lib/src/time";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import {
   COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID,
   getQueueStateQuery,
@@ -38,9 +38,7 @@ describe("ManualSegmentsWorkflow", () => {
   let worker: Worker;
 
   beforeAll(async () => {
-    const envAndWorker = await createEnvAndWorker();
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
   });
 
   afterAll(async () => {
@@ -53,6 +51,9 @@ describe("ManualSegmentsWorkflow", () => {
         name: randomUUID(),
       }),
     );
+    worker = await createWorker({
+      testEnv,
+    });
   });
 
   describe("when running multiple append and replace operations in sequence", () => {

@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { clickhouseClient } from "../clickhouse";
 import { insert } from "../db";
 import { journey as dbJourney } from "../db/schema";
@@ -31,6 +31,7 @@ describe("eventEntry journeys with hidden triggering events", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  let workerRunPromise: Promise<void>;
   const senderMock = jest.fn().mockReturnValue(
     ok({
       type: InternalEventType.MessageSent,
@@ -55,14 +56,17 @@ describe("eventEntry journeys with hidden triggering events", () => {
   };
 
   beforeAll(async () => {
-    const envAndWorker = await createEnvAndWorker({
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+    worker = await createWorker({
+      testEnv,
       activityOverrides: testActivities,
     });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    workerRunPromise = worker.run();
   });
 
   afterAll(async () => {
+    worker.shutdown();
+    await workerRunPromise;
     await testEnv.teardown();
   });
 
@@ -120,28 +124,26 @@ describe("eventEntry journeys with hidden triggering events", () => {
 
     it("should hide the message sent event", async () => {
       const userId = randomUUID();
-      await worker.runUntil(async () => {
-        await testEnv.client.workflow.execute(userJourneyWorkflow, {
-          workflowId: "workflow1",
-          taskQueue: "default",
-          args: [
-            {
-              journeyId: journey.id,
-              workspaceId: workspace.id,
-              userId,
-              definition: journeyDefinition,
-              version: UserJourneyWorkflowVersion.V2,
-              event: {
-                event: "APPOINTMENT_UPDATE",
-                messageId: randomUUID(),
-                context: {
-                  hidden: true,
-                },
-                timestamp: new Date().toISOString(),
+      await testEnv.client.workflow.execute(userJourneyWorkflow, {
+        workflowId: `workflow1-${randomUUID()}`,
+        taskQueue: "default",
+        args: [
+          {
+            journeyId: journey.id,
+            workspaceId: workspace.id,
+            userId,
+            definition: journeyDefinition,
+            version: UserJourneyWorkflowVersion.V2,
+            event: {
+              event: "APPOINTMENT_UPDATE",
+              messageId: randomUUID(),
+              context: {
+                hidden: true,
               },
+              timestamp: new Date(await testEnv.currentTimeMs()).toISOString(),
             },
-          ],
-        });
+          },
+        ],
       });
 
       expect(senderMock).toHaveBeenCalledTimes(1);

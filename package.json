@@ -9,7 +9,8 @@
     "packages/*"
   ],
   "scripts": {
-    "admin": "yarn workspace admin-cli cli \"$@\""
+    "admin": "yarn workspace admin-cli cli \"$@\"",
+    "test:file": "./scripts/test-to-file.sh"
   },
   "license": "MIT",
   "devDependencies": {

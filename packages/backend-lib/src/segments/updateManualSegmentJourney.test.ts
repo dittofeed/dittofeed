@@ -6,7 +6,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
 import { sleep } from "isomorphic-lib/src/time";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { submitBatch } from "../apps/batch";
 import { searchDeliveries } from "../deliveries";
 import { upsertJourney } from "../journeys";
@@ -46,9 +46,7 @@ describe.skip("when a segment entry journey has a manual segment", () => {
   let segment: SegmentResource;
 
   beforeAll(async () => {
-    const envAndWorker = await createEnvAndWorker();
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
   });
 
   afterAll(async () => {
@@ -56,6 +54,9 @@ describe.skip("when a segment entry journey has a manual segment", () => {
   });
 
   beforeEach(async () => {
+    worker = await createWorker({
+      testEnv,
+    });
     workspace = unwrap(
       await createWorkspace({
         name: randomUUID(),
