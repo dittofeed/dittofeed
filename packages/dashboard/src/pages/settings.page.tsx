@@ -839,7 +839,8 @@ function AmazonSesConfig() {
                     name: SecretNames.AmazonSes,
                     secretKey: "endpoint",
                     label: "Custom Endpoint (Optional)",
-                    helperText: "Custom SES endpoint URL. Leave empty to use the default AWS endpoint.",
+                    helperText:
+                      "Custom SES endpoint URL. Leave empty to use the default AWS endpoint.",
                     type: EmailProviderType.AmazonSes,
                     saved: isSecretSaved(
                       SecretNames.AmazonSes,
