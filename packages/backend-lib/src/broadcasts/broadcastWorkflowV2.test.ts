@@ -1,3 +1,6 @@
+/**
+ * @group temporal
+ */
 import { randomUUID } from "node:crypto";
 
 import { TestWorkflowEnvironment } from "@temporalio/testing";

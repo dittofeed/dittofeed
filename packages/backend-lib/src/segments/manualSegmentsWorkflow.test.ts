@@ -1,3 +1,6 @@
+/**
+ * @group temporal
+ */
 /* eslint-disable no-await-in-loop */
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";

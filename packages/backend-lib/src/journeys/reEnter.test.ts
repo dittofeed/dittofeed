@@ -1,3 +1,6 @@
+/**
+ * @group temporal
+ */
 import { WorkflowFailedError } from "@temporalio/client";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";

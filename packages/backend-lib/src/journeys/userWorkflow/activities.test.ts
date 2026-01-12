@@ -1,3 +1,6 @@
+/**
+ * @group temporal
+ */
 import { MockActivityEnvironment } from "@temporalio/testing";
 import { randomUUID } from "crypto";
 import { sleep } from "isomorphic-lib/src/time";
