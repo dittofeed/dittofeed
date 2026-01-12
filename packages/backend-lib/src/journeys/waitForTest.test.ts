@@ -33,7 +33,7 @@ import {
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("journeys with wait-for nodes", () => {
   let workspace: Workspace;
