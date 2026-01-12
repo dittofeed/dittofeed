@@ -195,6 +195,9 @@ const BaseRawConfigProps = {
   // workspaces with large event volumes. This makes pruning less precise but
   // avoids expensive JSON parsing during the pruning phase.
   skipPruneJsonExists: Type.Optional(BoolStr),
+  broadcastSendMessagesMaxAttempts: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -337,6 +340,7 @@ export type Config = Overwrite<
     // Cold storage timeouts (ms)
     clickhouseColdStorageRequestTimeout?: number;
     clickhouseColdStorageMaxExecutionTime?: number;
+    broadcastSendMessagesMaxAttempts: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -769,9 +773,24 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       ? parseInt(rawConfig.batchChunkSize)
       : 100,
     skipPruneJsonExists: rawConfig.skipPruneJsonExists !== "false",
+    broadcastSendMessagesMaxAttempts: parseBroadcastSendMessagesMaxAttempts(
+      rawConfig.broadcastSendMessagesMaxAttempts,
+    ),
   };
 
   return parsedConfig;
+}
+
+function parseBroadcastSendMessagesMaxAttempts(
+  value: string | undefined,
+): number {
+  const parsed = value ? parseInt(value) : 5;
+  if (parsed < 1) {
+    throw new Error(
+      `broadcastSendMessagesMaxAttempts must be >= 1, got ${parsed}`,
+    );
+  }
+  return parsed;
 }
 
 // Singleton configuration object used by application.

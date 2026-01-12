@@ -12,6 +12,7 @@ import { times } from "remeda";
 
 import { createWorker } from "../../test/temporal";
 import { broadcastV2ToResource } from "../broadcasts";
+import config, { Config } from "../config";
 import { insert } from "../db";
 import * as schema from "../db/schema";
 import { searchDeliveries } from "../deliveries";
@@ -196,10 +197,12 @@ describe("broadcastWorkflowV2", () => {
 
   async function createTestEnvAndWorker({
     sendMessageOverride,
+    configOverride,
   }: {
     sendMessageOverride?: (
       params: SendMessageParameters,
     ) => Promise<BackendMessageSendResult>;
+    configOverride?: Partial<Config>;
   } = {}) {
     const sendMessageImplementation =
       sendMessageOverride ??
@@ -207,6 +210,9 @@ describe("broadcastWorkflowV2", () => {
     senderMock = jest.fn().mockImplementation(sendMessageImplementation);
     const testActivities = {
       sendMessages: sendMessagesFactory(senderMock),
+      config: configOverride
+        ? () => Promise.resolve({ ...config(), ...configOverride })
+        : () => Promise.resolve(config()),
     };
 
     worker = await createWorker({
@@ -766,6 +772,9 @@ describe("broadcastWorkflowV2", () => {
       await createTestEnvAndWorker({
         sendMessageOverride: () => {
           throw new Error("sendMessage failed");
+        },
+        configOverride: {
+          broadcastSendMessagesMaxAttempts: 1,
         },
       });
 
