@@ -129,7 +129,7 @@ export async function getBroadcast({
   };
 }
 
-interface SendMessagesResponse {
+export interface SendMessagesResponse {
   messagesSent: number;
   nextCursor?: string;
   includesNonRetryableError: boolean;

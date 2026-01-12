@@ -11,6 +11,7 @@ import {
 // Only import the activity types
 import type * as activities from "../temporal/activities";
 import { BroadcastV2Status, DBWorkspaceOccupantType } from "../types";
+import type { SendMessagesResponse } from "./activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -184,17 +185,20 @@ export async function broadcastWorkflowV2({
         }
         const activityStartTime = Date.now();
 
-        const { nextCursor, messagesSent, includesNonRetryableError } =
-          await sendMessages({
-            workspaceId,
-            broadcastId,
-            timezones,
-            limit: batchSize,
-            cursor: cursor ?? undefined,
-            now: activityStartTime,
-            workspaceOccupantId,
-            workspaceOccupantType,
-          });
+        const {
+          nextCursor,
+          messagesSent,
+          includesNonRetryableError,
+        }: SendMessagesResponse = await sendMessages({
+          workspaceId,
+          broadcastId,
+          timezones,
+          limit: batchSize,
+          cursor: cursor ?? undefined,
+          now: activityStartTime,
+          workspaceOccupantId,
+          workspaceOccupantType,
+        });
 
         const activityEndTime = Date.now();
         const activityDurationMillis = activityEndTime - activityStartTime;

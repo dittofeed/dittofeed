@@ -59,8 +59,8 @@
   },
   "devDependencies": {
     "@apidevtools/openapi-schemas": "^2.1.0",
-    "@temporalio/testing": "1.11.6",
-    "@temporalio/worker": "1.11.6",
+    "@temporalio/testing": "1.14.1",
+    "@temporalio/worker": "1.14.1",
     "@types/jest": "^29.2.6",
     "@types/node": "20.14.8",
     "@types/uuid": "^9.0.0",
