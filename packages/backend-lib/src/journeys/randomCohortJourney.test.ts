@@ -167,6 +167,7 @@ describe("randomCohortJourney", () => {
       worker = await createWorker({
         testEnv,
         activityOverrides: testActivities,
+        buildId: workspace.id,
       });
     });
 
@@ -215,6 +216,7 @@ describe("randomCohortJourney", () => {
       worker = await createWorker({
         testEnv,
         activityOverrides: testActivities,
+        buildId: workspace.id,
       });
     });
 
@@ -263,6 +265,7 @@ describe("randomCohortJourney", () => {
       worker = await createWorker({
         testEnv,
         activityOverrides: testActivities,
+        buildId: workspace.id,
       });
     });
 

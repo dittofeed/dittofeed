@@ -13,9 +13,11 @@ import workerLogger from "../src/workerLogger";
 
 export async function createWorker({
   testEnv,
+  buildId,
   activityOverrides,
 }: {
   testEnv: TestWorkflowEnvironment;
+  buildId?: string;
   activityOverrides?: Parameters<typeof Worker.create>[0]["activities"];
 }) {
   const worker = await Worker.create({
@@ -23,6 +25,7 @@ export async function createWorker({
     workflowsPath: require.resolve(
       path.join(__dirname, "..", "src/temporal/workflows"),
     ),
+    buildId,
     interceptors: appendDefaultInterceptors(
       {
         activityInbound: [
