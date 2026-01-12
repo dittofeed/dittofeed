@@ -32,9 +32,15 @@ jest.setTimeout(30000);
 
 describe("eventEntry journeys with hidden triggering events", () => {
   let workspace: Workspace;
-  let testEnv: TestWorkflowEnvironment;
-  let worker: Worker;
-  let workerRunPromise: Promise<void>;
+  let testEnv: TestWorkflowEnvironment | null = null;
+  let worker: Worker | null = null;
+  let workerRunPromise: Promise<void> | null = null;
+
+  function getTestEnv(): TestWorkflowEnvironment {
+    if (!testEnv) throw new Error("testEnv not initialized");
+    return testEnv;
+  }
+
   const senderMock = jest.fn().mockReturnValue(
     ok({
       type: InternalEventType.MessageSent,
@@ -68,9 +74,15 @@ describe("eventEntry journeys with hidden triggering events", () => {
   });
 
   afterAll(async () => {
-    worker.shutdown();
-    await workerRunPromise;
-    await testEnv.teardown();
+    if (worker) {
+      worker.shutdown();
+    }
+    if (workerRunPromise) {
+      await workerRunPromise;
+    }
+    if (testEnv) {
+      await testEnv.teardown();
+    }
   });
 
   beforeEach(async () => {
@@ -127,7 +139,7 @@ describe("eventEntry journeys with hidden triggering events", () => {
 
     it("should hide the message sent event", async () => {
       const userId = randomUUID();
-      await testEnv.client.workflow.execute(userJourneyWorkflow, {
+      await getTestEnv().client.workflow.execute(userJourneyWorkflow, {
         workflowId: `workflow1-${randomUUID()}`,
         taskQueue: "default",
         args: [
@@ -143,7 +155,9 @@ describe("eventEntry journeys with hidden triggering events", () => {
               context: {
                 hidden: true,
               },
-              timestamp: new Date(await testEnv.currentTimeMs()).toISOString(),
+              timestamp: new Date(
+                await getTestEnv().currentTimeMs(),
+              ).toISOString(),
             },
           },
         ],

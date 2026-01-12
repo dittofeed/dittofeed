@@ -40,9 +40,15 @@ jest.setTimeout(15000);
 
 describe("reEnter", () => {
   let workspace: Workspace;
-  let testEnv: TestWorkflowEnvironment;
-  let worker: Worker;
-  let workerRunPromise: Promise<void>;
+  let testEnv: TestWorkflowEnvironment | null = null;
+  let worker: Worker | null = null;
+  let workerRunPromise: Promise<void> | null = null;
+
+  function getTestEnv(): TestWorkflowEnvironment {
+    if (!testEnv) throw new Error("testEnv not initialized");
+    return testEnv;
+  }
+
   let journeyDefinition: JourneyDefinition;
   let journey: Journey;
   let segment: Segment;
@@ -81,9 +87,15 @@ describe("reEnter", () => {
   });
 
   afterAll(async () => {
-    worker.shutdown();
-    await workerRunPromise;
-    await testEnv.teardown();
+    if (worker) {
+      worker.shutdown();
+    }
+    if (workerRunPromise) {
+      await workerRunPromise;
+    }
+    if (testEnv) {
+      await testEnv.teardown();
+    }
   });
 
   beforeEach(async () => {
@@ -162,7 +174,7 @@ describe("reEnter", () => {
     });
 
     it("should run the journey twice to completion", async () => {
-      const handle1 = await testEnv.client.workflow.signalWithStart(
+      const handle1 = await getTestEnv().client.workflow.signalWithStart(
         userJourneyWorkflow,
         {
           workflowId: `workflow1-${randomUUID()}`,
@@ -173,7 +185,7 @@ describe("reEnter", () => {
               segmentId: segment.id,
               currentlyInSegment: true,
               type: "segment",
-              segmentVersion: await testEnv.currentTimeMs(),
+              segmentVersion: await getTestEnv().currentTimeMs(),
             },
           ],
           args: [
@@ -192,7 +204,7 @@ describe("reEnter", () => {
 
       expect(senderMock).toHaveBeenCalledTimes(1);
 
-      const handle2 = await testEnv.client.workflow.signalWithStart(
+      const handle2 = await getTestEnv().client.workflow.signalWithStart(
         userJourneyWorkflow,
         {
           workflowId: `workflow2-${randomUUID()}`,
@@ -203,7 +215,7 @@ describe("reEnter", () => {
               segmentId: segment.id,
               currentlyInSegment: true,
               type: "segment",
-              segmentVersion: await testEnv.currentTimeMs(),
+              segmentVersion: await getTestEnv().currentTimeMs(),
             },
           ],
           args: [
@@ -268,7 +280,7 @@ describe("reEnter", () => {
       }).then(unwrap);
     });
     it("should run the journey once to completion", async () => {
-      const handle1 = await testEnv.client.workflow.signalWithStart(
+      const handle1 = await getTestEnv().client.workflow.signalWithStart(
         userJourneyWorkflow,
         {
           workflowId: `workflow1-${randomUUID()}`,
@@ -279,7 +291,7 @@ describe("reEnter", () => {
               segmentId: segment.id,
               currentlyInSegment: true,
               type: "segment",
-              segmentVersion: await testEnv.currentTimeMs(),
+              segmentVersion: await getTestEnv().currentTimeMs(),
             },
           ],
           args: [
@@ -298,7 +310,7 @@ describe("reEnter", () => {
 
       expect(senderMock).toHaveBeenCalledTimes(1);
 
-      const handle2 = await testEnv.client.workflow.signalWithStart(
+      const handle2 = await getTestEnv().client.workflow.signalWithStart(
         userJourneyWorkflow,
         {
           workflowId: `workflow2-${randomUUID()}`,
@@ -309,7 +321,7 @@ describe("reEnter", () => {
               segmentId: segment.id,
               currentlyInSegment: true,
               type: "segment",
-              segmentVersion: await testEnv.currentTimeMs(),
+              segmentVersion: await getTestEnv().currentTimeMs(),
             },
           ],
           args: [
@@ -386,7 +398,7 @@ describe("reEnter", () => {
         ]);
       });
       it("should run to completion and continue as new", async () => {
-        const handle = await testEnv.client.workflow.signalWithStart(
+        const handle = await getTestEnv().client.workflow.signalWithStart(
           userJourneyWorkflow,
           {
             workflowId: `workflow1-${randomUUID()}`,
@@ -397,7 +409,7 @@ describe("reEnter", () => {
                 segmentId: segment.id,
                 currentlyInSegment: true,
                 type: "segment",
-                segmentVersion: await testEnv.currentTimeMs(),
+                segmentVersion: await getTestEnv().currentTimeMs(),
               },
             ],
             args: [
@@ -417,7 +429,7 @@ describe("reEnter", () => {
         expect(nextProps).not.toBeNull();
       });
       it("should run to completion on second run", async () => {
-        await testEnv.client.workflow.execute(userJourneyWorkflow, {
+        await getTestEnv().client.workflow.execute(userJourneyWorkflow, {
           workflowId: `workflow1-${randomUUID()}`,
           taskQueue: "default",
           args: [
@@ -446,7 +458,7 @@ describe("reEnter", () => {
         ]);
       });
       it("should run to completion and not continue as new", async () => {
-        const handle = await testEnv.client.workflow.signalWithStart(
+        const handle = await getTestEnv().client.workflow.signalWithStart(
           userJourneyWorkflow,
           {
             workflowId: `workflow1-${randomUUID()}`,
@@ -457,7 +469,7 @@ describe("reEnter", () => {
                 segmentId: segment.id,
                 currentlyInSegment: true,
                 type: "segment",
-                segmentVersion: await testEnv.currentTimeMs(),
+                segmentVersion: await getTestEnv().currentTimeMs(),
               },
             ],
             args: [
@@ -479,7 +491,7 @@ describe("reEnter", () => {
 
       it("should not run to completion on second run", async () => {
         let err: unknown;
-        const handle = await testEnv.client.workflow.start(
+        const handle = await getTestEnv().client.workflow.start(
           userJourneyWorkflow,
           {
             workflowId: `workflow1-${randomUUID()}`,

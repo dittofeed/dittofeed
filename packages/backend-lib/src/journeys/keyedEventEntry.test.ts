@@ -62,8 +62,8 @@ jest.setTimeout(30000);
 
 describe("keyedEventEntry journeys", () => {
   let workspace: Workspace;
-  let testEnv: TestWorkflowEnvironment;
-  let worker: Worker;
+  let testEnv: TestWorkflowEnvironment | null = null;
+  let worker: Worker | null = null;
   const senderMock = jest.fn().mockReturnValue(
     ok({
       type: InternalEventType.MessageSent,
@@ -87,7 +87,12 @@ describe("keyedEventEntry journeys", () => {
     sendMessageV2: sendMessageFactory(senderMock),
   };
 
-  let workerRunPromise: Promise<void>;
+  let workerRunPromise: Promise<void> | null = null;
+
+  function getTestEnv(): TestWorkflowEnvironment {
+    if (!testEnv) throw new Error("testEnv not initialized");
+    return testEnv;
+  }
 
   beforeAll(async () => {
     testEnv = await TestWorkflowEnvironment.createTimeSkipping();
@@ -99,9 +104,15 @@ describe("keyedEventEntry journeys", () => {
   });
 
   afterAll(async () => {
-    worker.shutdown();
-    await workerRunPromise;
-    await testEnv.teardown();
+    if (worker) {
+      worker.shutdown();
+    }
+    if (workerRunPromise) {
+      await workerRunPromise;
+    }
+    if (testEnv) {
+      await testEnv.teardown();
+    }
   });
 
   beforeEach(async () => {
@@ -206,7 +217,7 @@ describe("keyedEventEntry journeys", () => {
       ]);
 
       const firstMessageId = randomUUID();
-      const now = await testEnv.currentTimeMs();
+      const now = await getTestEnv().currentTimeMs();
       await submitBatch({
         workspaceId: workspace.id,
         data: {
@@ -225,7 +236,7 @@ describe("keyedEventEntry journeys", () => {
         },
       });
 
-      const handle1 = await testEnv.client.workflow.start(userJourneyWorkflow, {
+      const handle1 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
         workflowId: `workflow-${randomUUID()}`,
         taskQueue: "default",
         args: [
@@ -265,7 +276,7 @@ describe("keyedEventEntry journeys", () => {
       ).toBe(true);
 
       const secondMessageId = randomUUID();
-      const now2 = await testEnv.currentTimeMs();
+      const now2 = await getTestEnv().currentTimeMs();
       await submitBatch({
         workspaceId: workspace.id,
         data: {
@@ -284,7 +295,7 @@ describe("keyedEventEntry journeys", () => {
         },
       });
 
-      const handle2 = await testEnv.client.workflow.start(userJourneyWorkflow, {
+      const handle2 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
         workflowId: `workflow-${randomUUID()}`,
         taskQueue: "default",
         args: [
@@ -523,7 +534,7 @@ describe("keyedEventEntry journeys", () => {
       });
 
       it("only the cancelled journey should send a message", async () => {
-        const now = await testEnv.currentTimeMs();
+        const now = await getTestEnv().currentTimeMs();
         const timestamp1 = new Date(now).toISOString();
         const timestamp2 = new Date(now + 1000).toISOString();
         const appointmentDate = new Date(
@@ -531,7 +542,7 @@ describe("keyedEventEntry journeys", () => {
         ).toISOString();
 
         const workflowId1 = `workflow1-${randomUUID()}`;
-        const handle1 = await testEnv.client.workflow.start(
+        const handle1 = await getTestEnv().client.workflow.start(
           userJourneyWorkflow,
           {
             workflowId: workflowId1,
@@ -558,7 +569,7 @@ describe("keyedEventEntry journeys", () => {
           },
         );
         const workflowId2 = `workflow2-${randomUUID()}`;
-        const handle2 = await testEnv.client.workflow.start(
+        const handle2 = await getTestEnv().client.workflow.start(
           userJourneyWorkflow,
           {
             workflowId: workflowId2,
@@ -585,14 +596,14 @@ describe("keyedEventEntry journeys", () => {
           },
         );
 
-        await testEnv.sleep(5000);
+        await getTestEnv().sleep(5000);
 
         expect(
           senderMock,
           "should not have sent any messages before waiting for day before appointment date",
         ).toHaveBeenCalledTimes(0);
 
-        await testEnv.sleep(1000 * oneDaySeconds);
+        await getTestEnv().sleep(1000 * oneDaySeconds);
 
         expect(senderMock).toHaveBeenCalledTimes(2);
         expect(
@@ -620,7 +631,7 @@ describe("keyedEventEntry journeys", () => {
           "should have passed the db email user property to the sender",
         ).toBeGreaterThanOrEqual(1);
 
-        const signalTime = await testEnv.currentTimeMs();
+        const signalTime = await getTestEnv().currentTimeMs();
         await handle1.signal(trackSignal, {
           event: "APPOINTMENT_UPDATE",
           properties: {
@@ -630,10 +641,10 @@ describe("keyedEventEntry journeys", () => {
           messageId: randomUUID(),
           timestamp: new Date(signalTime).toISOString(),
         });
-        await testEnv.sleep(5000);
+        await getTestEnv().sleep(5000);
         await handle1.result();
 
-        await testEnv.sleep(oneDaySeconds * 1000);
+        await getTestEnv().sleep(oneDaySeconds * 1000);
         await handle2.result();
 
         expect(
@@ -698,13 +709,13 @@ describe("keyedEventEntry journeys", () => {
         const userId = randomUUID();
         const appointmentId1 = randomUUID();
 
-        const now = await testEnv.currentTimeMs();
+        const now = await getTestEnv().currentTimeMs();
         const timestamp1 = new Date(now).toISOString();
         const appointmentDate = new Date(
           now + 1000 * oneDaySeconds * 2,
         ).toISOString();
 
-        await testEnv.client.workflow.start(userJourneyWorkflow, {
+        await getTestEnv().client.workflow.start(userJourneyWorkflow, {
           workflowId: `workflow1-${randomUUID()}`,
           taskQueue: "default",
           args: [
@@ -728,14 +739,14 @@ describe("keyedEventEntry journeys", () => {
           ],
         });
 
-        await testEnv.sleep(5000);
+        await getTestEnv().sleep(5000);
 
         expect(
           senderMock,
           "should not have sent any messages before waiting for day before appointment date",
         ).toHaveBeenCalledTimes(0);
 
-        await testEnv.sleep(1000 * oneDaySeconds);
+        await getTestEnv().sleep(1000 * oneDaySeconds);
 
         expect(senderMock).toHaveBeenCalledTimes(1);
       });
@@ -913,7 +924,7 @@ describe("keyedEventEntry journeys", () => {
         },
       }).then(unwrap);
 
-      const now = await testEnv.currentTimeMs();
+      const now = await getTestEnv().currentTimeMs();
       const timestamp1 = new Date(now).toISOString();
       const timestamp2 = new Date(now + 1000).toISOString();
 
@@ -970,7 +981,7 @@ describe("keyedEventEntry journeys", () => {
     });
 
     it("only the cancelled journey should send a message", async () => {
-      const testStartTime = await testEnv.currentTimeMs();
+      const testStartTime = await getTestEnv().currentTimeMs();
       logger().debug(
         {
           testStartTime,
@@ -981,7 +992,7 @@ describe("keyedEventEntry journeys", () => {
         "V3 test starting - time state",
       );
 
-      const handle1 = await testEnv.client.workflow.start(userJourneyWorkflow, {
+      const handle1 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
         workflowId: `workflow1-${randomUUID()}`,
         taskQueue: "default",
         args: [
@@ -996,7 +1007,7 @@ describe("keyedEventEntry journeys", () => {
           },
         ],
       });
-      const handle2 = await testEnv.client.workflow.start(userJourneyWorkflow, {
+      const handle2 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
         workflowId: `workflow2-${randomUUID()}`,
         taskQueue: "default",
         args: [
@@ -1013,14 +1024,14 @@ describe("keyedEventEntry journeys", () => {
       });
 
       logger().debug("V3 test - workflows started, sleeping 5000ms");
-      await testEnv.sleep(5000);
+      await getTestEnv().sleep(5000);
 
       expect(
         senderMock,
         "should not have sent any messages before waiting for day before appointment date",
       ).toHaveBeenCalledTimes(0);
 
-      await testEnv.sleep(1000 * oneDaySeconds);
+      await getTestEnv().sleep(1000 * oneDaySeconds);
 
       expect(senderMock).toHaveBeenCalledTimes(2);
       expect(
@@ -1040,7 +1051,7 @@ describe("keyedEventEntry journeys", () => {
         "should have sent a reminder message for appointment 2",
       ).toHaveLength(1);
 
-      const cancelTime = await testEnv.currentTimeMs();
+      const cancelTime = await getTestEnv().currentTimeMs();
       const cancelledEvent = {
         type: EventType.Track,
         event: "APPOINTMENT_UPDATE",
@@ -1064,10 +1075,10 @@ describe("keyedEventEntry journeys", () => {
         version: TrackSignalParamsVersion.V2,
         messageId: cancelledEvent.messageId,
       });
-      await testEnv.sleep(5000);
+      await getTestEnv().sleep(5000);
       await handle1.result();
 
-      await testEnv.sleep(oneDaySeconds * 1000);
+      await getTestEnv().sleep(oneDaySeconds * 1000);
       await handle2.result();
 
       expect(
@@ -1262,7 +1273,7 @@ describe("keyedEventEntry journeys", () => {
         },
       }).then(unwrap);
 
-      const now = await testEnv.currentTimeMs();
+      const now = await getTestEnv().currentTimeMs();
       const timestamp1 = new Date(now).toISOString();
       const timestamp2 = new Date(now + 1000).toISOString();
 
@@ -1308,7 +1319,7 @@ describe("keyedEventEntry journeys", () => {
 
     it("only the cancelled journey should send a message", async () => {
       const mixedWorkflowId1 = `workflow1-mixed-${randomUUID()}`;
-      const handle1 = await testEnv.client.workflow.start(userJourneyWorkflow, {
+      const handle1 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
         workflowId: mixedWorkflowId1,
         taskQueue: "default",
         args: [
@@ -1332,7 +1343,7 @@ describe("keyedEventEntry journeys", () => {
         ],
       });
       const mixedWorkflowId2 = `workflow2-mixed-${randomUUID()}`;
-      const handle2 = await testEnv.client.workflow.start(userJourneyWorkflow, {
+      const handle2 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
         workflowId: mixedWorkflowId2,
         taskQueue: "default",
         args: [
@@ -1356,14 +1367,14 @@ describe("keyedEventEntry journeys", () => {
         ],
       });
 
-      await testEnv.sleep(5000);
+      await getTestEnv().sleep(5000);
 
       expect(
         senderMock,
         "should not have sent any messages before waiting for day before appointment date",
       ).toHaveBeenCalledTimes(0);
 
-      await testEnv.sleep(1000 * oneDaySeconds);
+      await getTestEnv().sleep(1000 * oneDaySeconds);
 
       expect(senderMock).toHaveBeenCalledTimes(2);
       expect(
@@ -1383,7 +1394,7 @@ describe("keyedEventEntry journeys", () => {
         "should have sent a reminder message for appointment 2",
       ).toHaveLength(1);
 
-      const cancelTime = await testEnv.currentTimeMs();
+      const cancelTime = await getTestEnv().currentTimeMs();
       const cancelledEvent = {
         type: EventType.Track,
         event: "APPOINTMENT_UPDATE",
@@ -1408,10 +1419,10 @@ describe("keyedEventEntry journeys", () => {
         version: TrackSignalParamsVersion.V2,
         messageId: cancelledEvent.messageId,
       });
-      await testEnv.sleep(5000);
+      await getTestEnv().sleep(5000);
       await handle1.result();
 
-      await testEnv.sleep(oneDaySeconds * 1000);
+      await getTestEnv().sleep(oneDaySeconds * 1000);
       await handle2.result();
 
       expect(
@@ -1510,7 +1521,7 @@ describe("keyedEventEntry journeys", () => {
 
     it("should delay until 9 AM in the defaultTimezone (America/New_York)", async () => {
       // Get the current time in the test environment
-      const startTime = await testEnv.currentTimeMs();
+      const startTime = await getTestEnv().currentTimeMs();
 
       const messageId = randomUUID();
       const signupId = randomUUID();
@@ -1535,7 +1546,7 @@ describe("keyedEventEntry journeys", () => {
       });
 
       // Execute the workflow and wait for it to complete
-      await testEnv.client.workflow.execute(userJourneyWorkflow, {
+      await getTestEnv().client.workflow.execute(userJourneyWorkflow, {
         workflowId: `workflow-${userId}-${signupId}`,
         taskQueue: "default",
         args: [
@@ -1552,7 +1563,7 @@ describe("keyedEventEntry journeys", () => {
       });
 
       // Get the time after the workflow completes
-      const endTime = await testEnv.currentTimeMs();
+      const endTime = await getTestEnv().currentTimeMs();
 
       // Convert the end time to America/New_York timezone and verify it's 9 AM
       const endDate = new Date(endTime);
@@ -1737,7 +1748,7 @@ describe("keyedEventEntry journeys", () => {
 
       const messageId1 = randomUUID();
       const messageId2 = randomUUID();
-      const now = await testEnv.currentTimeMs();
+      const now = await getTestEnv().currentTimeMs();
 
       // User 1: late_delivery_in_mins = 20 (>= 15, should satisfy segment)
       const event1: BatchItem = {
@@ -1772,7 +1783,7 @@ describe("keyedEventEntry journeys", () => {
         },
       });
 
-      const handle1 = await testEnv.client.workflow.start(userJourneyWorkflow, {
+      const handle1 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
         workflowId: `workflow-user1-${randomUUID()}`,
         taskQueue: "default",
         args: [
@@ -1788,7 +1799,7 @@ describe("keyedEventEntry journeys", () => {
         ],
       });
 
-      const handle2 = await testEnv.client.workflow.start(userJourneyWorkflow, {
+      const handle2 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
         workflowId: `workflow-user2-${randomUUID()}`,
         taskQueue: "default",
         args: [

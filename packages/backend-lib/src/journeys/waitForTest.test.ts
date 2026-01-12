@@ -37,9 +37,15 @@ jest.setTimeout(30000);
 
 describe("journeys with wait-for nodes", () => {
   let workspace: Workspace;
-  let testEnv: TestWorkflowEnvironment;
-  let worker: Worker;
-  let workerRunPromise: Promise<void>;
+  let testEnv: TestWorkflowEnvironment | null = null;
+  let worker: Worker | null = null;
+  let workerRunPromise: Promise<void> | null = null;
+
+  function getTestEnv(): TestWorkflowEnvironment {
+    if (!testEnv) throw new Error("testEnv not initialized");
+    return testEnv;
+  }
+
   const senderMock = jest.fn().mockReturnValue(
     ok({
       type: InternalEventType.MessageSent,
@@ -73,9 +79,15 @@ describe("journeys with wait-for nodes", () => {
   });
 
   afterAll(async () => {
-    worker.shutdown();
-    await workerRunPromise;
-    await testEnv.teardown();
+    if (worker) {
+      worker.shutdown();
+    }
+    if (workerRunPromise) {
+      await workerRunPromise;
+    }
+    if (testEnv) {
+      await testEnv.teardown();
+    }
   });
 
   beforeEach(async () => {
@@ -215,7 +227,7 @@ describe("journeys with wait-for nodes", () => {
     });
 
     it("they should satisfy the wait-for condition", async () => {
-      const handle1 = await testEnv.client.workflow.signalWithStart(
+      const handle1 = await getTestEnv().client.workflow.signalWithStart(
         userJourneyWorkflow,
         {
           workflowId: `workflow1-${randomUUID()}`,
@@ -226,7 +238,7 @@ describe("journeys with wait-for nodes", () => {
               segmentId: entrySegmentId,
               currentlyInSegment: true,
               type: "segment",
-              segmentVersion: await testEnv.currentTimeMs(),
+              segmentVersion: await getTestEnv().currentTimeMs(),
             },
           ],
           args: [
@@ -248,7 +260,7 @@ describe("journeys with wait-for nodes", () => {
         "should have sent a message to user 1 given that they initially satisfied the wait-for condition",
       ).toHaveBeenCalledTimes(1);
 
-      const handle2 = await testEnv.client.workflow.signalWithStart(
+      const handle2 = await getTestEnv().client.workflow.signalWithStart(
         userJourneyWorkflow,
         {
           workflowId: `workflow2-${randomUUID()}`,
@@ -259,7 +271,7 @@ describe("journeys with wait-for nodes", () => {
               segmentId: entrySegmentId,
               currentlyInSegment: true,
               type: "segment",
-              segmentVersion: await testEnv.currentTimeMs(),
+              segmentVersion: await getTestEnv().currentTimeMs(),
             },
           ],
           args: [
@@ -278,7 +290,7 @@ describe("journeys with wait-for nodes", () => {
         segmentId: waitForSegmentId,
         currentlyInSegment: true,
         type: "segment",
-        segmentVersion: await testEnv.currentTimeMs(),
+        segmentVersion: await getTestEnv().currentTimeMs(),
       } satisfies SegmentUpdate);
 
       await handle2.result();

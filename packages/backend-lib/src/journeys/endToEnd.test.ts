@@ -59,9 +59,14 @@ const paidSegmentDefinition: SegmentDefinition = {
 jest.setTimeout(30000);
 
 describe("end to end journeys", () => {
-  let testEnv: TestWorkflowEnvironment;
-  let worker: Worker;
-  let workerRunPromise: Promise<void>;
+  let testEnv: TestWorkflowEnvironment | null = null;
+  let worker: Worker | null = null;
+  let workerRunPromise: Promise<void> | null = null;
+
+  function getTestEnv(): TestWorkflowEnvironment {
+    if (!testEnv) throw new Error("testEnv not initialized");
+    return testEnv;
+  }
 
   const testActivities = {
     sendMessageV2: jest.fn().mockReturnValue(true),
@@ -77,9 +82,15 @@ describe("end to end journeys", () => {
   });
 
   afterAll(async () => {
-    worker.shutdown();
-    await workerRunPromise;
-    await testEnv.teardown();
+    if (worker) {
+      worker.shutdown();
+    }
+    if (workerRunPromise) {
+      await workerRunPromise;
+    }
+    if (testEnv) {
+      await testEnv.teardown();
+    }
     await clickhouseClient().close();
   });
 
@@ -221,7 +232,7 @@ describe("end to end journeys", () => {
         ).andThen(enrichJourney),
       );
 
-      currentTimeMS = await testEnv.currentTimeMs();
+      currentTimeMS = await getTestEnv().currentTimeMs();
 
       userJourneyWorkflowId = getUserJourneyWorkflowId({
         userId: userId1,
@@ -248,7 +259,7 @@ describe("end to end journeys", () => {
         });
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
-        await testEnv.client.workflow.start(computePropertiesWorkflow, {
+        await getTestEnv().client.workflow.start(computePropertiesWorkflow, {
           workflowId: segmentWorkflow1,
           taskQueue: "default",
           args: [
@@ -263,10 +274,10 @@ describe("end to end journeys", () => {
         });
 
         const segmentWorkflowHandle =
-          testEnv.client.workflow.getHandle(segmentWorkflow1);
+          getTestEnv().client.workflow.getHandle(segmentWorkflow1);
 
         // waiting past 1 day timeout
-        await testEnv.sleep("1 week");
+        await getTestEnv().sleep("1 week");
 
         await submitBatch({
           workspaceId: workspace.id,
@@ -286,7 +297,7 @@ describe("end to end journeys", () => {
 
         await segmentWorkflowHandle.result();
 
-        const handle = testEnv.client.workflow.getHandle(userJourneyWorkflowId);
+        const handle = getTestEnv().client.workflow.getHandle(userJourneyWorkflowId);
 
         await handle.result();
 
@@ -320,7 +331,7 @@ describe("end to end journeys", () => {
         });
 
         // recompute properties once
-        await testEnv.client.workflow.start(computePropertiesWorkflow, {
+        await getTestEnv().client.workflow.start(computePropertiesWorkflow, {
           workflowId: segmentWorkflow1,
           taskQueue: "default",
           args: [
@@ -334,7 +345,7 @@ describe("end to end journeys", () => {
         });
 
         const segmentWorkflowHandle =
-          testEnv.client.workflow.getHandle(segmentWorkflow1);
+          getTestEnv().client.workflow.getHandle(segmentWorkflow1);
 
         // submit event to satisfy segment and trigger wait for journey node
         await submitBatch({
@@ -354,11 +365,11 @@ describe("end to end journeys", () => {
         });
 
         // wait for polling period sleep to finish, allowing recompute workflow to run a second time
-        await testEnv.sleep(45000);
+        await getTestEnv().sleep(45000);
 
         await segmentWorkflowHandle.result();
 
-        const handle = testEnv.client.workflow.getHandle(userJourneyWorkflowId);
+        const handle = getTestEnv().client.workflow.getHandle(userJourneyWorkflowId);
 
         await handle.result();
 
@@ -391,7 +402,7 @@ describe("end to end journeys", () => {
 
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
-        await testEnv.client.workflow.start(computePropertiesWorkflow, {
+        await getTestEnv().client.workflow.start(computePropertiesWorkflow, {
           workflowId: segmentWorkflow1,
           taskQueue: "default",
           args: [
@@ -406,7 +417,7 @@ describe("end to end journeys", () => {
         });
 
         const segmentWorkflowHandle =
-          testEnv.client.workflow.getHandle(segmentWorkflow1);
+          getTestEnv().client.workflow.getHandle(segmentWorkflow1);
 
         await submitBatch({
           workspaceId: workspace.id,
@@ -424,11 +435,11 @@ describe("end to end journeys", () => {
           ],
         });
 
-        await testEnv.sleep(45000);
+        await getTestEnv().sleep(45000);
 
         await segmentWorkflowHandle.result();
 
-        const handle = testEnv.client.workflow.getHandle(userJourneyWorkflowId);
+        const handle = getTestEnv().client.workflow.getHandle(userJourneyWorkflowId);
 
         await handle.result();
 
@@ -564,7 +575,7 @@ describe("end to end journeys", () => {
           ),
         );
 
-        const currentTimeMS = await testEnv.currentTimeMs();
+        const currentTimeMS = await getTestEnv().currentTimeMs();
 
         await submitBatch({
           workspaceId: workspace.id,
@@ -602,7 +613,7 @@ describe("end to end journeys", () => {
       it("sends them a welcome email", async () => {
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
-        await testEnv.client.workflow.start(computePropertiesWorkflow, {
+        await getTestEnv().client.workflow.start(computePropertiesWorkflow, {
           workflowId: segmentWorkflow1,
           taskQueue: "default",
           args: [
@@ -615,19 +626,19 @@ describe("end to end journeys", () => {
           ],
         });
 
-        const handle3 = testEnv.client.workflow.getHandle(segmentWorkflow1);
+        const handle3 = getTestEnv().client.workflow.getHandle(segmentWorkflow1);
         await handle3.result();
 
-        await testEnv.sleep("1.5 weeks");
+        await getTestEnv().sleep("1.5 weeks");
 
-        const handle = testEnv.client.workflow.getHandle(userJourneyWorkflowId);
+        const handle = getTestEnv().client.workflow.getHandle(userJourneyWorkflowId);
 
         const userJourneyWorkflowId2 = getUserJourneyWorkflowId({
           userId: userId2,
           journeyId: journey.id,
         });
 
-        const handle2 = testEnv.client.workflow.getHandle(
+        const handle2 = getTestEnv().client.workflow.getHandle(
           userJourneyWorkflowId2,
         );
 
@@ -708,7 +719,7 @@ describe("end to end journeys", () => {
           journeyId: journey.id,
         });
 
-        const currentTimeMS = await testEnv.currentTimeMs();
+        const currentTimeMS = await getTestEnv().currentTimeMs();
 
         await submitBatch({
           workspaceId: workspace.id,
@@ -729,7 +740,7 @@ describe("end to end journeys", () => {
 
       it("only sends messages while the journey is running", async () => {
         let computedPropertiesParams: ComputedPropertiesWorkflowParams =
-          await testEnv.client.workflow.execute(computePropertiesWorkflow, {
+          await getTestEnv().client.workflow.execute(computePropertiesWorkflow, {
             workflowId: `segments-notification-workflow-${randomUUID()}`,
             taskQueue: "default",
             args: [
@@ -742,7 +753,7 @@ describe("end to end journeys", () => {
             ],
           });
 
-        const handle = testEnv.client.workflow.getHandle(userJourneyWorkflowId);
+        const handle = getTestEnv().client.workflow.getHandle(userJourneyWorkflowId);
 
         let workflowDescribeError: unknown | null = null;
         try {
@@ -760,7 +771,7 @@ describe("end to end journeys", () => {
           })
           .where(eq(dbJourney.id, journey.id));
 
-        computedPropertiesParams = await testEnv.client.workflow.execute(
+        computedPropertiesParams = await getTestEnv().client.workflow.execute(
           computePropertiesWorkflow,
           {
             workflowId: `segments-notification-workflow-${randomUUID()}`,
@@ -782,7 +793,7 @@ describe("end to end journeys", () => {
           }),
         );
 
-        const currentTimeMS = await testEnv.currentTimeMs();
+        const currentTimeMS = await getTestEnv().currentTimeMs();
 
         await Promise.all([
           db()
@@ -809,7 +820,7 @@ describe("end to end journeys", () => {
           }),
         ]);
 
-        computedPropertiesParams = await testEnv.client.workflow.execute(
+        computedPropertiesParams = await getTestEnv().client.workflow.execute(
           computePropertiesWorkflow,
           {
             workflowId: `segments-notification-workflow-${randomUUID()}`,
@@ -838,7 +849,7 @@ describe("end to end journeys", () => {
           })
           .where(eq(dbJourney.id, journey.id));
 
-        await testEnv.client.workflow.execute(computePropertiesWorkflow, {
+        await getTestEnv().client.workflow.execute(computePropertiesWorkflow, {
           workflowId: `segments-notification-workflow-${randomUUID()}`,
           taskQueue: "default",
           args: [
