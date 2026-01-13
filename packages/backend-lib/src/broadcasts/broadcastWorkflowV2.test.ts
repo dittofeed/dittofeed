@@ -91,6 +91,7 @@ describe("broadcastWorkflowV2", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  let workerRunPromise: Promise<void> | null = null;
   let broadcast: BroadcastResourceV2;
   let idUserProperty: UserProperty;
   let emailUserProperty: UserProperty;
@@ -218,8 +219,19 @@ describe("broadcastWorkflowV2", () => {
     worker = await createWorker({
       testEnv,
       activityOverrides: testActivities,
+      buildId: workspace.id,
     });
+    workerRunPromise = worker.run();
   }
+
+  afterEach(async () => {
+    if (worker) {
+      worker.shutdown();
+    }
+    if (workerRunPromise) {
+      await workerRunPromise;
+    }
+  });
 
   describe("when sending a broadcast immediately with no rate limit", () => {
     let userId: string;
@@ -302,20 +314,18 @@ describe("broadcastWorkflowV2", () => {
       });
     });
     it("should send messages to all users immediately", async () => {
-      await worker.runUntil(async () => {
-        await testEnv.client.workflow.execute(broadcastWorkflowV2, {
-          workflowId: generateBroadcastWorkflowV2Id({
+      await testEnv.client.workflow.execute(broadcastWorkflowV2, {
+        workflowId: generateBroadcastWorkflowV2Id({
+          workspaceId: workspace.id,
+          broadcastId: broadcast.id,
+        }),
+        taskQueue: "default",
+        args: [
+          {
             workspaceId: workspace.id,
             broadcastId: broadcast.id,
-          }),
-          taskQueue: "default",
-          args: [
-            {
-              workspaceId: workspace.id,
-              broadcastId: broadcast.id,
-            } satisfies BroadcastWorkflowV2Params,
-          ],
-        });
+          } satisfies BroadcastWorkflowV2Params,
+        ],
       });
       expect(senderMock).toHaveBeenCalledTimes(2);
       expect(senderMock).toHaveBeenCalledWith(
@@ -397,48 +407,46 @@ describe("broadcastWorkflowV2", () => {
         });
       });
       it("should stop sending messages until the broadcast is resumed", async () => {
-        await worker.runUntil(async () => {
-          const handle = await testEnv.client.workflow.start(
-            broadcastWorkflowV2,
-            {
-              workflowId: generateBroadcastWorkflowV2Id({
+        const handle = await testEnv.client.workflow.start(
+          broadcastWorkflowV2,
+          {
+            workflowId: generateBroadcastWorkflowV2Id({
+              workspaceId: workspace.id,
+              broadcastId: broadcast.id,
+            }),
+            taskQueue: "default",
+            args: [
+              {
                 workspaceId: workspace.id,
                 broadcastId: broadcast.id,
-              }),
-              taskQueue: "default",
-              args: [
-                {
-                  workspaceId: workspace.id,
-                  broadcastId: broadcast.id,
-                } satisfies BroadcastWorkflowV2Params,
-              ],
-            },
-          );
-          // wait for the first message to be sent
-          await firstMessagePromise;
+              } satisfies BroadcastWorkflowV2Params,
+            ],
+          },
+        );
+        // wait for the first message to be sent
+        await firstMessagePromise;
 
-          expect(
-            senderMock,
-            "should have sent 1 message initially",
-          ).toHaveBeenCalledTimes(1);
+        expect(
+          senderMock,
+          "should have sent 1 message initially",
+        ).toHaveBeenCalledTimes(1);
 
-          await testEnv.sleep(1500);
-          expect(
-            senderMock,
-            "should have sent 2 messages after waiting for one rate limit period",
-          ).toHaveBeenCalledTimes(2);
+        await testEnv.sleep(1500);
+        expect(
+          senderMock,
+          "should have sent 2 messages after waiting for one rate limit period",
+        ).toHaveBeenCalledTimes(2);
 
-          await handle.signal(pauseBroadcastSignal);
-          await testEnv.sleep(5000);
-          expect(
-            senderMock,
-            "should not have sent any more messages while paused",
-          ).toHaveBeenCalledTimes(2);
+        await handle.signal(pauseBroadcastSignal);
+        await testEnv.sleep(5000);
+        expect(
+          senderMock,
+          "should not have sent any more messages while paused",
+        ).toHaveBeenCalledTimes(2);
 
-          await handle.signal(resumeBroadcastSignal);
-          await handle.result();
-          expect(senderMock).toHaveBeenCalledTimes(userIds.length);
-        });
+        await handle.signal(resumeBroadcastSignal);
+        await handle.result();
+        expect(senderMock).toHaveBeenCalledTimes(userIds.length);
       });
     });
   });
@@ -516,55 +524,53 @@ describe("broadcastWorkflowV2", () => {
       });
     });
     it("should be paused until the broadcast is resumed", async () => {
-      await worker.runUntil(async () => {
-        const handle = await testEnv.client.workflow.start(
-          broadcastWorkflowV2,
-          {
-            workflowId: generateBroadcastWorkflowV2Id({
+      const handle = await testEnv.client.workflow.start(
+        broadcastWorkflowV2,
+        {
+          workflowId: generateBroadcastWorkflowV2Id({
+            workspaceId: workspace.id,
+            broadcastId: broadcast.id,
+          }),
+          taskQueue: "default",
+          args: [
+            {
               workspaceId: workspace.id,
               broadcastId: broadcast.id,
-            }),
-            taskQueue: "default",
-            args: [
-              {
-                workspaceId: workspace.id,
-                broadcastId: broadcast.id,
-              } satisfies BroadcastWorkflowV2Params,
-            ],
-          },
-        );
-        await testEnv.sleep(10000);
-        expect(senderMock).toHaveBeenCalledTimes(1);
+            } satisfies BroadcastWorkflowV2Params,
+          ],
+        },
+      );
+      await testEnv.sleep(10000);
+      expect(senderMock).toHaveBeenCalledTimes(1);
 
-        let deliveries = await searchDeliveries({
-          workspaceId: workspace.id,
-          broadcastId: broadcast.id,
-        });
-        expect(deliveries.items).toHaveLength(0);
-
-        let updatedBroadcast = await getBroadcast({
-          workspaceId: workspace.id,
-          broadcastId: broadcast.id,
-        });
-        expect(updatedBroadcast?.status).toBe("Paused");
-
-        shouldError = false;
-        await handle.signal(resumeBroadcastSignal);
-
-        await handle.result();
-
-        updatedBroadcast = await getBroadcast({
-          workspaceId: workspace.id,
-          broadcastId: broadcast.id,
-        });
-        expect(updatedBroadcast?.status).toBe("Completed");
-
-        deliveries = await searchDeliveries({
-          workspaceId: workspace.id,
-          broadcastId: broadcast.id,
-        });
-        expect(deliveries.items).toHaveLength(1);
+      let deliveries = await searchDeliveries({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
       });
+      expect(deliveries.items).toHaveLength(0);
+
+      let updatedBroadcast = await getBroadcast({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
+      });
+      expect(updatedBroadcast?.status).toBe("Paused");
+
+      shouldError = false;
+      await handle.signal(resumeBroadcastSignal);
+
+      await handle.result();
+
+      updatedBroadcast = await getBroadcast({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
+      });
+      expect(updatedBroadcast?.status).toBe("Completed");
+
+      deliveries = await searchDeliveries({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
+      });
+      expect(deliveries.items).toHaveLength(1);
     });
   });
 
@@ -642,32 +648,30 @@ describe("broadcastWorkflowV2", () => {
       });
     });
     it("should skip the message to the user", async () => {
-      await worker.runUntil(async () => {
-        const handle = await testEnv.client.workflow.start(
-          broadcastWorkflowV2,
-          {
-            workflowId: generateBroadcastWorkflowV2Id({
+      const handle = await testEnv.client.workflow.start(
+        broadcastWorkflowV2,
+        {
+          workflowId: generateBroadcastWorkflowV2Id({
+            workspaceId: workspace.id,
+            broadcastId: broadcast.id,
+          }),
+          taskQueue: "default",
+          args: [
+            {
               workspaceId: workspace.id,
               broadcastId: broadcast.id,
-            }),
-            taskQueue: "default",
-            args: [
-              {
-                workspaceId: workspace.id,
-                broadcastId: broadcast.id,
-              } satisfies BroadcastWorkflowV2Params,
-            ],
-          },
-        );
-        await handle.result();
-        expect(senderMock).toHaveBeenCalledTimes(2);
+            } satisfies BroadcastWorkflowV2Params,
+          ],
+        },
+      );
+      await handle.result();
+      expect(senderMock).toHaveBeenCalledTimes(2);
 
-        const deliveries = await searchDeliveries({
-          workspaceId: workspace.id,
-          broadcastId: broadcast.id,
-        });
-        expect(deliveries.items).toHaveLength(1);
+      const deliveries = await searchDeliveries({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
       });
+      expect(deliveries.items).toHaveLength(1);
     });
   });
   describe("when sending a broadcast with a scheduled time", () => {
@@ -717,30 +721,28 @@ describe("broadcastWorkflowV2", () => {
         });
       });
       it("should localize the delivery time to that default timezone", async () => {
-        await worker.runUntil(async () => {
-          const handle = await testEnv.client.workflow.start(
-            broadcastWorkflowV2,
-            {
-              workflowId: generateBroadcastWorkflowV2Id({
+        const handle = await testEnv.client.workflow.start(
+          broadcastWorkflowV2,
+          {
+            workflowId: generateBroadcastWorkflowV2Id({
+              workspaceId: workspace.id,
+              broadcastId: broadcast.id,
+            }),
+            taskQueue: "default",
+            args: [
+              {
                 workspaceId: workspace.id,
                 broadcastId: broadcast.id,
-              }),
-              taskQueue: "default",
-              args: [
-                {
-                  workspaceId: workspace.id,
-                  broadcastId: broadcast.id,
-                } satisfies BroadcastWorkflowV2Params,
-              ],
-            },
-          );
+              } satisfies BroadcastWorkflowV2Params,
+            ],
+          },
+        );
 
-          await testEnv.sleep(1000);
-          expect(senderMock).toHaveBeenCalledTimes(0);
+        await testEnv.sleep(1000);
+        expect(senderMock).toHaveBeenCalledTimes(0);
 
-          await handle.result();
-          await testEnv.sleep(0);
-        });
+        await handle.result();
+        await testEnv.sleep(0);
 
         const deliveries = await searchDeliveries({
           workspaceId: workspace.id,
@@ -807,20 +809,18 @@ describe("broadcastWorkflowV2", () => {
     });
 
     it("should mark the broadcast as failed", async () => {
-      await worker.runUntil(async () => {
-        await testEnv.client.workflow.execute(broadcastWorkflowV2, {
-          workflowId: generateBroadcastWorkflowV2Id({
+      await testEnv.client.workflow.execute(broadcastWorkflowV2, {
+        workflowId: generateBroadcastWorkflowV2Id({
+          workspaceId: workspace.id,
+          broadcastId: broadcast.id,
+        }),
+        taskQueue: "default",
+        args: [
+          {
             workspaceId: workspace.id,
             broadcastId: broadcast.id,
-          }),
-          taskQueue: "default",
-          args: [
-            {
-              workspaceId: workspace.id,
-              broadcastId: broadcast.id,
-            } satisfies BroadcastWorkflowV2Params,
-          ],
-        });
+          } satisfies BroadcastWorkflowV2Params,
+        ],
       });
 
       const updatedBroadcast = await getBroadcast({
@@ -904,20 +904,18 @@ describe("broadcastWorkflowV2", () => {
     });
 
     it("should pass custom user properties to sendMessage", async () => {
-      await worker.runUntil(async () => {
-        await testEnv.client.workflow.execute(broadcastWorkflowV2, {
-          workflowId: generateBroadcastWorkflowV2Id({
+      await testEnv.client.workflow.execute(broadcastWorkflowV2, {
+        workflowId: generateBroadcastWorkflowV2Id({
+          workspaceId: workspace.id,
+          broadcastId: broadcast.id,
+        }),
+        taskQueue: "default",
+        args: [
+          {
             workspaceId: workspace.id,
             broadcastId: broadcast.id,
-          }),
-          taskQueue: "default",
-          args: [
-            {
-              workspaceId: workspace.id,
-              broadcastId: broadcast.id,
-            } satisfies BroadcastWorkflowV2Params,
-          ],
-        });
+          } satisfies BroadcastWorkflowV2Params,
+        ],
       });
 
       expect(senderMock).toHaveBeenCalledTimes(1);
