@@ -131,7 +131,6 @@ describe("eventEntry journeys", () => {
       worker = await createWorker({
         testEnv,
         activityOverrides: testActivities,
-        buildId: workspace.id,
       });
       workerRunPromise = worker.run();
     });

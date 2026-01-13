@@ -37,6 +37,7 @@ const BaseRawConfigProps = {
   clickhouseDatabase: Type.Optional(Type.String()),
   clickhouseUser: Type.String(),
   clickhousePassword: Type.String(),
+  defaultUserJourneyMaxAttempts: Type.Optional(Type.String({ format: "naturalNumber" })),
   kafkaBrokers: Type.Optional(Type.String()),
   kafkaUsername: Type.Optional(Type.String()),
   kafkaPassword: Type.Optional(Type.String()),
@@ -198,6 +199,9 @@ const BaseRawConfigProps = {
   broadcastSendMessagesMaxAttempts: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  defaultGetSegmentAndEventDetailsMaxAttempts: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -289,6 +293,7 @@ export type Config = Overwrite<
     computePropertiesSchedulerInterval: number;
     computePropertiesSchedulerQueueRestartDelay: number;
     computePropertiesWorkflowTaskTimeout: number;
+    defaultUserJourneyMaxAttempts?: number;
     dashboardUrl: string;
     databaseParams: Record<string, string>;
     databaseUrl: string;
@@ -341,6 +346,7 @@ export type Config = Overwrite<
     clickhouseColdStorageRequestTimeout?: number;
     clickhouseColdStorageMaxExecutionTime?: number;
     broadcastSendMessagesMaxAttempts: number;
+    defaultGetSegmentAndEventDetailsMaxAttempts: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -480,6 +486,17 @@ function parseToNumber({
     return nonProdDefault;
   }
   return coerced;
+}
+
+function parseMaxAttempts(
+  value: string | undefined,
+  defaultValue: number,
+): number {
+  const parsed = value ? parseInt(value) : defaultValue;
+  if (parsed < 1) {
+    throw new Error(`maxAttempts must be >= 1, got ${parsed}`);
+  }
+  return parsed;
 }
 
 function buildDashboardUrl({
@@ -762,10 +779,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.waitForComputePropertiesBaseDelayMs
         ? parseInt(rawConfig.waitForComputePropertiesBaseDelayMs)
         : 10_000,
-    waitForComputePropertiesMaxAttempts:
-      rawConfig.waitForComputePropertiesMaxAttempts
-        ? parseInt(rawConfig.waitForComputePropertiesMaxAttempts)
-        : 5,
+    waitForComputePropertiesMaxAttempts: parseMaxAttempts(
+      rawConfig.waitForComputePropertiesMaxAttempts,
+      nodeEnv === NodeEnvEnum.Test ? 1 : 3,
+    ),
     metricsExportIntervalMs: rawConfig.metricsExportIntervalMs
       ? parseInt(rawConfig.metricsExportIntervalMs)
       : 60 * 1000,
@@ -773,24 +790,20 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       ? parseInt(rawConfig.batchChunkSize)
       : 100,
     skipPruneJsonExists: rawConfig.skipPruneJsonExists !== "false",
-    broadcastSendMessagesMaxAttempts: parseBroadcastSendMessagesMaxAttempts(
+    broadcastSendMessagesMaxAttempts: parseMaxAttempts(
       rawConfig.broadcastSendMessagesMaxAttempts,
+      5,
+    ),
+    defaultUserJourneyMaxAttempts: rawConfig.defaultUserJourneyMaxAttempts !== undefined ? parseInt(
+      rawConfig.defaultUserJourneyMaxAttempts,
+    ) : (nodeEnv === NodeEnvEnum.Test ? 1 : undefined),
+    defaultGetSegmentAndEventDetailsMaxAttempts: parseMaxAttempts(
+      rawConfig.defaultGetSegmentAndEventDetailsMaxAttempts,
+      nodeEnv === NodeEnvEnum.Test ? 1 : 10,
     ),
   };
 
   return parsedConfig;
-}
-
-function parseBroadcastSendMessagesMaxAttempts(
-  value: string | undefined,
-): number {
-  const parsed = value ? parseInt(value) : 5;
-  if (parsed < 1) {
-    throw new Error(
-      `broadcastSendMessagesMaxAttempts must be >= 1, got ${parsed}`,
-    );
-  }
-  return parsed;
 }
 
 // Singleton configuration object used by application.

@@ -20,6 +20,7 @@ import {
 } from "../dates";
 import { jsonStringOrNumber, jsonValue } from "../jsonPath";
 import { retryExponential } from "../retry";
+import type * as activities from "../temporal/activities";
 import { assertUnreachableSafe } from "../typeAssertions";
 import {
   ChannelType,
@@ -42,7 +43,6 @@ import {
   WaitForNode,
   WaitForSegmentChild,
 } from "../types";
-import * as activities from "./userWorkflow/activities";
 import { SendParamsV2 } from "./userWorkflow/activities";
 import { GetSegmentAssignmentVersion } from "./userWorkflow/types";
 
@@ -77,44 +77,6 @@ export type TrackSignalParams = TrackSignalParamsV1 | TrackSignalParamsV2;
 export const trackSignal = wf.defineSignal<[TrackSignalParams]>("track");
 
 const WORKFLOW_NAME = "userJourneyWorkflow";
-
-const {
-  onNodeProcessedV2,
-  isRunnable,
-  findNextLocalizedTime,
-  findNextLocalizedTimeV2,
-  getEarliestComputePropertyPeriod,
-  getUserPropertyDelay,
-  getWorkspace,
-  shouldReEnter,
-} = proxyActivities<typeof activities>({
-  startToCloseTimeout: "2 minutes",
-});
-
-const { waitForComputeProperties } = proxyActivities<typeof activities>({
-  startToCloseTimeout: "20 minutes",
-  heartbeatTimeout: "30 seconds",
-  retry: {
-    maximumAttempts: 3,
-  },
-});
-
-const { getEventsById, getSegmentAssignment } = wf.proxyLocalActivities<
-  typeof activities
->({
-  startToCloseTimeout: "2 minutes",
-  retry: {
-    maximumAttempts: 10,
-  },
-});
-
-const { getRandomNumber } = wf.proxyLocalActivities<typeof activities>({
-  startToCloseTimeout: "5 seconds",
-});
-
-const { reportWorkflowInfo } = wf.proxyLocalActivities<typeof activities>({
-  startToCloseTimeout: "30 seconds",
-});
 
 type ReceivedSegmentUpdate = Pick<
   SegmentUpdate,
@@ -244,6 +206,66 @@ const LONG_RUNNING_NODE_TYPES = new Set<JourneyNodeType>([
 export async function userJourneyWorkflow(
   props: UserJourneyWorkflowProps,
 ): Promise<UserJourneyWorkflowProps | null> {
+  const { config } = proxyActivities<typeof activities>({
+    startToCloseTimeout: "1 minutes",
+  });
+
+  const {
+    waitForComputePropertiesMaxAttempts,
+    defaultUserJourneyMaxAttempts,
+    defaultGetSegmentAndEventDetailsMaxAttempts,
+  } = await config([
+    "waitForComputePropertiesMaxAttempts",
+    "defaultUserJourneyMaxAttempts",
+    "defaultGetSegmentAndEventDetailsMaxAttempts",
+  ]);
+
+  const {
+    onNodeProcessedV2,
+    isRunnable,
+    findNextLocalizedTime,
+    findNextLocalizedTimeV2,
+    getEarliestComputePropertyPeriod,
+    getUserPropertyDelay,
+    getWorkspace,
+    shouldReEnter,
+  } = proxyActivities<typeof activities>({
+    startToCloseTimeout: "2 minutes",
+    retry: {
+      maximumAttempts: defaultUserJourneyMaxAttempts,
+    },
+  });
+
+  const { waitForComputeProperties } = proxyActivities<typeof activities>({
+    startToCloseTimeout: "20 minutes",
+    heartbeatTimeout: "30 seconds",
+    retry: {
+      maximumAttempts: waitForComputePropertiesMaxAttempts,
+    },
+  });
+
+  const { getEventsById, getSegmentAssignment } = wf.proxyLocalActivities<
+    typeof activities
+  >({
+    startToCloseTimeout: "2 minutes",
+    retry: {
+      maximumAttempts: defaultGetSegmentAndEventDetailsMaxAttempts,
+    },
+  });
+
+  const { getRandomNumber } = wf.proxyLocalActivities<typeof activities>({
+    startToCloseTimeout: "5 seconds",
+    retry: {
+      maximumAttempts: defaultUserJourneyMaxAttempts,
+    },
+  });
+
+  const { reportWorkflowInfo } = wf.proxyLocalActivities<typeof activities>({
+    startToCloseTimeout: "30 seconds",
+    retry: {
+      maximumAttempts: defaultUserJourneyMaxAttempts,
+    },
+  });
   const {
     workspaceId,
     userId,
