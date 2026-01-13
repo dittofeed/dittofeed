@@ -236,21 +236,24 @@ describe("keyedEventEntry journeys", () => {
         },
       });
 
-      const handle1 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
-        workflowId: `workflow-${randomUUID()}`,
-        taskQueue: "default",
-        args: [
-          {
-            journeyId: journey.id,
-            workspaceId: workspace.id,
-            userId,
-            definition: journeyDefinition,
-            version: UserJourneyWorkflowVersion.V3,
-            eventKey: "appointment-1",
-            messageId: firstMessageId,
-          },
-        ],
-      });
+      const handle1 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: "appointment-1",
+              messageId: firstMessageId,
+            },
+          ],
+        },
+      );
 
       await handle1.result();
       expect(senderMock).toHaveBeenCalledTimes(1);
@@ -295,21 +298,24 @@ describe("keyedEventEntry journeys", () => {
         },
       });
 
-      const handle2 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
-        workflowId: `workflow-${randomUUID()}`,
-        taskQueue: "default",
-        args: [
-          {
-            journeyId: journey.id,
-            workspaceId: workspace.id,
-            userId,
-            definition: journeyDefinition,
-            version: UserJourneyWorkflowVersion.V3,
-            eventKey: "appointment-1",
-            messageId: secondMessageId,
-          },
-        ],
-      });
+      const handle2 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: "appointment-1",
+              messageId: secondMessageId,
+            },
+          ],
+        },
+      );
 
       await handle2.result();
       expect(senderMock).toHaveBeenCalledTimes(1);
@@ -992,36 +998,42 @@ describe("keyedEventEntry journeys", () => {
         "V3 test starting - time state",
       );
 
-      const handle1 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
-        workflowId: `workflow1-${randomUUID()}`,
-        taskQueue: "default",
-        args: [
-          {
-            journeyId: journey.id,
-            workspaceId: workspace.id,
-            userId,
-            definition: journeyDefinition,
-            version: UserJourneyWorkflowVersion.V3,
-            eventKey: appointmentId1,
-            messageId: event1.messageId,
-          },
-        ],
-      });
-      const handle2 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
-        workflowId: `workflow2-${randomUUID()}`,
-        taskQueue: "default",
-        args: [
-          {
-            journeyId: journey.id,
-            workspaceId: workspace.id,
-            userId,
-            definition: journeyDefinition,
-            version: UserJourneyWorkflowVersion.V3,
-            eventKey: appointmentId2,
-            messageId: event2.messageId,
-          },
-        ],
-      });
+      const handle1 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow1-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: appointmentId1,
+              messageId: event1.messageId,
+            },
+          ],
+        },
+      );
+      const handle2 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow2-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: appointmentId2,
+              messageId: event2.messageId,
+            },
+          ],
+        },
+      );
 
       logger().debug("V3 test - workflows started, sleeping 5000ms");
       await getTestEnv().sleep(5000);
@@ -1319,53 +1331,59 @@ describe("keyedEventEntry journeys", () => {
 
     it("only the cancelled journey should send a message", async () => {
       const mixedWorkflowId1 = `workflow1-mixed-${randomUUID()}`;
-      const handle1 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
-        workflowId: mixedWorkflowId1,
-        taskQueue: "default",
-        args: [
-          {
-            journeyId: journey.id,
-            workspaceId: workspace.id,
-            userId,
-            definition: journeyDefinition,
-            version: UserJourneyWorkflowVersion.V2,
-            event: {
-              event: "APPOINTMENT_UPDATE",
-              properties: {
-                operation: "STARTED",
-                appointmentId: appointmentId1,
-                appointmentDate: event1.properties?.appointmentDate,
+      const handle1 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: mixedWorkflowId1,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+              event: {
+                event: "APPOINTMENT_UPDATE",
+                properties: {
+                  operation: "STARTED",
+                  appointmentId: appointmentId1,
+                  appointmentDate: event1.properties?.appointmentDate,
+                },
+                messageId: event1.messageId,
+                timestamp: event1.timestamp,
               },
-              messageId: event1.messageId,
-              timestamp: event1.timestamp,
             },
-          },
-        ],
-      });
+          ],
+        },
+      );
       const mixedWorkflowId2 = `workflow2-mixed-${randomUUID()}`;
-      const handle2 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
-        workflowId: mixedWorkflowId2,
-        taskQueue: "default",
-        args: [
-          {
-            journeyId: journey.id,
-            workspaceId: workspace.id,
-            userId,
-            definition: journeyDefinition,
-            version: UserJourneyWorkflowVersion.V2,
-            event: {
-              event: "APPOINTMENT_UPDATE",
-              properties: {
-                operation: "STARTED",
-                appointmentId: appointmentId2,
-                appointmentDate: event2.properties?.appointmentDate,
+      const handle2 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: mixedWorkflowId2,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+              event: {
+                event: "APPOINTMENT_UPDATE",
+                properties: {
+                  operation: "STARTED",
+                  appointmentId: appointmentId2,
+                  appointmentDate: event2.properties?.appointmentDate,
+                },
+                messageId: event2.messageId,
+                timestamp: event2.timestamp,
               },
-              messageId: event2.messageId,
-              timestamp: event2.timestamp,
             },
-          },
-        ],
-      });
+          ],
+        },
+      );
 
       await getTestEnv().sleep(5000);
 
@@ -1783,37 +1801,43 @@ describe("keyedEventEntry journeys", () => {
         },
       });
 
-      const handle1 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
-        workflowId: `workflow-user1-${randomUUID()}`,
-        taskQueue: "default",
-        args: [
-          {
-            journeyId: journey.id,
-            workspaceId: workspace.id,
-            userId: String(userId1),
-            definition: journeyDefinition,
-            version: UserJourneyWorkflowVersion.V3,
-            eventKey: String(orderId1),
-            messageId: messageId1,
-          },
-        ],
-      });
+      const handle1 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow-user1-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId: String(userId1),
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: String(orderId1),
+              messageId: messageId1,
+            },
+          ],
+        },
+      );
 
-      const handle2 = await getTestEnv().client.workflow.start(userJourneyWorkflow, {
-        workflowId: `workflow-user2-${randomUUID()}`,
-        taskQueue: "default",
-        args: [
-          {
-            journeyId: journey.id,
-            workspaceId: workspace.id,
-            userId: String(userId2),
-            definition: journeyDefinition,
-            version: UserJourneyWorkflowVersion.V3,
-            eventKey: String(orderId2),
-            messageId: messageId2,
-          },
-        ],
-      });
+      const handle2 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow-user2-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId: String(userId2),
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: String(orderId2),
+              messageId: messageId2,
+            },
+          ],
+        },
+      );
 
       await Promise.all([handle1.result(), handle2.result()]);
 
