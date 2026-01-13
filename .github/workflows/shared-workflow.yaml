@@ -70,6 +70,14 @@ jobs:
     needs: setup-test-matrix
     if: ${{ inputs.run_tests == 'true' }}
     runs-on: ubuntu-latest
+    env:
+      # Ensure each shard uses its own Postgres/ClickHouse DB names, so
+      # globalSetup/globalTeardown don't race across parallel test shards.
+      #
+      # `packages/backend-lib/src/config.ts` uses DATABASE_NAME_SUFFIX to suffix both:
+      # - Postgres DB name: dittofeed_test_<suffix>
+      # - ClickHouse DB name: dittofeed_test_<suffix>
+      DATABASE_NAME_SUFFIX: ${{ inputs.is_backend == 'true' && format('shard-{0}-of-{1}', matrix.shard, inputs.test_shards) || '' }}
     strategy:
       fail-fast: false
       matrix:
