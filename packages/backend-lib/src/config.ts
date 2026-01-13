@@ -539,9 +539,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
         logLevel = "debug";
         break;
       case NodeEnvEnum.Test:
-        // logLevel = "error";
-        // FIXME remove
-        logLevel = "debug";
+        logLevel = "error";
     }
   }
 

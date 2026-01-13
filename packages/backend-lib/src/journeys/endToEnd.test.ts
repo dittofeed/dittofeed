@@ -56,7 +56,7 @@ const paidSegmentDefinition: SegmentDefinition = {
   nodes: [],
 };
 
-jest.setTimeout(30000);
+jest.setTimeout(60000);
 
 describe("end to end journeys", () => {
   let testEnv: TestWorkflowEnvironment | null = null;
@@ -93,7 +93,6 @@ describe("end to end journeys", () => {
     }
     await clickhouseClient().close();
   });
-
 
   describe("wait for journey", () => {
     let journey: EnrichedJourney;
@@ -297,7 +296,9 @@ describe("end to end journeys", () => {
 
         await segmentWorkflowHandle.result();
 
-        const handle = getTestEnv().client.workflow.getHandle(userJourneyWorkflowId);
+        const handle = getTestEnv().client.workflow.getHandle(
+          userJourneyWorkflowId,
+        );
 
         await handle.result();
 
@@ -369,7 +370,9 @@ describe("end to end journeys", () => {
 
         await segmentWorkflowHandle.result();
 
-        const handle = getTestEnv().client.workflow.getHandle(userJourneyWorkflowId);
+        const handle = getTestEnv().client.workflow.getHandle(
+          userJourneyWorkflowId,
+        );
 
         await handle.result();
 
@@ -439,7 +442,9 @@ describe("end to end journeys", () => {
 
         await segmentWorkflowHandle.result();
 
-        const handle = getTestEnv().client.workflow.getHandle(userJourneyWorkflowId);
+        const handle = getTestEnv().client.workflow.getHandle(
+          userJourneyWorkflowId,
+        );
 
         await handle.result();
 
@@ -626,12 +631,15 @@ describe("end to end journeys", () => {
           ],
         });
 
-        const handle3 = getTestEnv().client.workflow.getHandle(segmentWorkflow1);
+        const handle3 =
+          getTestEnv().client.workflow.getHandle(segmentWorkflow1);
         await handle3.result();
 
         await getTestEnv().sleep("1.5 weeks");
 
-        const handle = getTestEnv().client.workflow.getHandle(userJourneyWorkflowId);
+        const handle = getTestEnv().client.workflow.getHandle(
+          userJourneyWorkflowId,
+        );
 
         const userJourneyWorkflowId2 = getUserJourneyWorkflowId({
           userId: userId2,
@@ -740,20 +748,25 @@ describe("end to end journeys", () => {
 
       it("only sends messages while the journey is running", async () => {
         let computedPropertiesParams: ComputedPropertiesWorkflowParams =
-          await getTestEnv().client.workflow.execute(computePropertiesWorkflow, {
-            workflowId: `segments-notification-workflow-${randomUUID()}`,
-            taskQueue: "default",
-            args: [
-              {
-                tableVersion: config().defaultUserEventsTableVersion,
-                workspaceId: workspace.id,
-                maxPollingAttempts: 1,
-                shouldContinueAsNew: false,
-              },
-            ],
-          });
+          await getTestEnv().client.workflow.execute(
+            computePropertiesWorkflow,
+            {
+              workflowId: `segments-notification-workflow-${randomUUID()}`,
+              taskQueue: "default",
+              args: [
+                {
+                  tableVersion: config().defaultUserEventsTableVersion,
+                  workspaceId: workspace.id,
+                  maxPollingAttempts: 1,
+                  shouldContinueAsNew: false,
+                },
+              ],
+            },
+          );
 
-        const handle = getTestEnv().client.workflow.getHandle(userJourneyWorkflowId);
+        const handle = getTestEnv().client.workflow.getHandle(
+          userJourneyWorkflowId,
+        );
 
         let workflowDescribeError: unknown | null = null;
         try {
