@@ -1,6 +1,7 @@
 /**
  * @group temporal
  */
+import type { WorkflowClient } from "@temporalio/client";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { WorkflowNotFoundError } from "@temporalio/workflow";
@@ -11,10 +12,11 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { createWorker } from "../../test/temporal";
 import { submitBatch } from "../../test/testEvents";
 import { clickhouseClient } from "../clickhouse";
+import { computePropertiesWorkflow } from "../computedProperties/computePropertiesWorkflow";
 import {
-  ComputedPropertiesWorkflowParams,
-  computePropertiesWorkflow,
-} from "../computedProperties/computePropertiesWorkflow";
+  computePropertiesIncremental,
+  computePropertiesIncrementalArgs,
+} from "../computedProperties/computePropertiesWorkflow/activities/computeProperties";
 import config from "../config";
 import { FEATURE_INCREMENTAL_COMP } from "../constants";
 import { db, insert } from "../db";
@@ -42,6 +44,18 @@ import {
 } from "../types";
 import { createWorkspace } from "../workspaces";
 import { getUserJourneyWorkflowId } from "./userWorkflow";
+
+let workflowClientForNonActivityCalls: WorkflowClient | null = null;
+jest.mock("../temporal/activity", () => ({
+  getContext: () => {
+    if (!workflowClientForNonActivityCalls) {
+      throw new Error("workflowClientForNonActivityCalls not initialized");
+    }
+    return {
+      workflowClient: workflowClientForNonActivityCalls,
+    };
+  },
+}));
 
 const paidSegmentDefinition: SegmentDefinition = {
   entryNode: {
@@ -74,6 +88,7 @@ describe("end to end journeys", () => {
 
   beforeAll(async () => {
     testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+    workflowClientForNonActivityCalls = testEnv.client.workflow;
     worker = await createWorker({
       testEnv,
       activityOverrides: testActivities,
@@ -656,6 +671,7 @@ describe("end to end journeys", () => {
       });
     });
 
+    // call activities directly to test workflow state transitions for speed/reliability to avoid timeouts in CI
     describe("when a journey goes through status transitions", () => {
       let paidAccountSegment: Segment;
 
@@ -747,26 +763,22 @@ describe("end to end journeys", () => {
       });
 
       it("only sends messages while the journey is running", async () => {
-        let computedPropertiesParams: ComputedPropertiesWorkflowParams =
-          await getTestEnv().client.workflow.execute(
-            computePropertiesWorkflow,
-            {
-              workflowId: `segments-notification-workflow-${randomUUID()}`,
-              taskQueue: "default",
-              args: [
-                {
-                  tableVersion: config().defaultUserEventsTableVersion,
-                  workspaceId: workspace.id,
-                  maxPollingAttempts: 1,
-                  shouldContinueAsNew: false,
-                },
-              ],
-            },
-          );
+        const recomputeProperties = async () => {
+          const args = await computePropertiesIncrementalArgs({
+            workspaceId: workspace.id,
+          });
+          await computePropertiesIncremental({
+            ...args,
+            now: await getTestEnv().currentTimeMs(),
+          });
+        };
 
         const handle = getTestEnv().client.workflow.getHandle(
           userJourneyWorkflowId,
         );
+
+        // Compute once while NotStarted (should NOT start journey workflow).
+        await recomputeProperties();
 
         let workflowDescribeError: unknown | null = null;
         try {
@@ -784,20 +796,13 @@ describe("end to end journeys", () => {
           })
           .where(eq(dbJourney.id, journey.id));
 
-        computedPropertiesParams = await getTestEnv().client.workflow.execute(
-          computePropertiesWorkflow,
-          {
-            workflowId: `segments-notification-workflow-${randomUUID()}`,
-            taskQueue: "default",
-            args: [
-              {
-                ...computedPropertiesParams,
-                maxPollingAttempts: 1,
-                shouldContinueAsNew: false,
-              },
-            ],
-          },
-        );
+        await recomputeProperties();
+
+        // `computePropertiesIncremental` calls `signalWithStart` internally, so by the
+        // time it returns, the workflow has been started. Await completion to ensure
+        // message side-effects have happened before we assert.
+        await getTestEnv().sleep(1);
+        await handle.result();
 
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
         expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
@@ -833,20 +838,7 @@ describe("end to end journeys", () => {
           }),
         ]);
 
-        computedPropertiesParams = await getTestEnv().client.workflow.execute(
-          computePropertiesWorkflow,
-          {
-            workflowId: `segments-notification-workflow-${randomUUID()}`,
-            taskQueue: "default",
-            args: [
-              {
-                ...computedPropertiesParams,
-                maxPollingAttempts: 1,
-                shouldContinueAsNew: false,
-              },
-            ],
-          },
-        );
+        await recomputeProperties();
 
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
         expect(testActivities.sendMessageV2).not.toHaveBeenCalledWith(
@@ -862,17 +854,17 @@ describe("end to end journeys", () => {
           })
           .where(eq(dbJourney.id, journey.id));
 
-        await getTestEnv().client.workflow.execute(computePropertiesWorkflow, {
-          workflowId: `segments-notification-workflow-${randomUUID()}`,
-          taskQueue: "default",
-          args: [
-            {
-              ...computedPropertiesParams,
-              maxPollingAttempts: 1,
-              shouldContinueAsNew: false,
-            },
-          ],
+        await recomputeProperties();
+
+        // Wait for user2 journey workflow completion before checking final send count.
+        const userJourneyWorkflowId2 = getUserJourneyWorkflowId({
+          userId: userId2,
+          journeyId: journey.id,
         });
+        await getTestEnv().sleep(1);
+        await getTestEnv()
+          .client.workflow.getHandle(userJourneyWorkflowId2)
+          .result();
 
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(2);
         expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
