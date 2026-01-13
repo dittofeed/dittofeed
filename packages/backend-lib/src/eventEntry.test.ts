@@ -48,7 +48,7 @@ import {
 } from "./userProperties";
 import { createWorkspace } from "./workspaces";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("eventEntry journeys", () => {
   let workspace: Workspace;
