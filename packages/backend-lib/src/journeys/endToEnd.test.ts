@@ -8,6 +8,7 @@ import { WorkflowNotFoundError } from "@temporalio/workflow";
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { sleep } from "isomorphic-lib/src/time";
 
 import { createWorker } from "../../test/temporal";
 import { submitBatch } from "../../test/testEvents";
@@ -801,7 +802,8 @@ describe("end to end journeys", () => {
         // `computePropertiesIncremental` calls `signalWithStart` internally, so by the
         // time it returns, the workflow has been started. Await completion to ensure
         // message side-effects have happened before we assert.
-        await getTestEnv().sleep(1);
+        await getTestEnv().sleep(1000);
+        await sleep(200);
         await handle.result();
 
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
@@ -861,7 +863,8 @@ describe("end to end journeys", () => {
           userId: userId2,
           journeyId: journey.id,
         });
-        await getTestEnv().sleep(1);
+        await getTestEnv().sleep(1000);
+        await sleep(200);
         await getTestEnv()
           .client.workflow.getHandle(userJourneyWorkflowId2)
           .result();
