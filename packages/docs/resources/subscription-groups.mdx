@@ -111,6 +111,10 @@ The subscription management will either unsubscribe, or subscribe the user to a 
 
 Note that this subscription state change occurs synchronously, and will be reflected immediately. This is in contrast to the asynchronous subscription state change that occurs when submitting a track event.
 
+<Note>
+For deployments with restricted ingress (e.g., only exposing `/api/public/*`), Dittofeed provides a self-contained subscription management page that can be served directly from the API. See [Custom Subscription Management Page](/guide/custom-subscription-page) for details.
+</Note>
+
 <Frame>
   ![Subscription Management Page](/images/subscription-management-page.png)
 </Frame>

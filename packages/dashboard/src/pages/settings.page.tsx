@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
+import { html } from "@codemirror/lang-html";
+import { EditorView } from "@codemirror/view";
 import {
   Create,
   InfoOutlined,
@@ -25,6 +27,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import CodeMirror from "@uiw/react-codemirror";
 import axios from "axios";
 import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
@@ -59,7 +62,6 @@ import {
   PartialSegmentResource,
   SmsProviderType,
   SmtpSecretKey,
-  SubscriptionChange,
   SyncIntegration,
   UpsertIntegrationResource,
 } from "isomorphic-lib/src/types";
@@ -89,7 +91,6 @@ import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
 import { PermissionsTable } from "../components/permissionsTable";
-import { SubscriptionManagement } from "../components/subscriptionManagement";
 import WebhookSecretTable from "../components/webhookSecretTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
@@ -1913,12 +1914,136 @@ function SubscriptionManagementSettings() {
   const [selectedSubscriptionGroupId, setSelectedSubscriptionGroupId] =
     useState<string>("");
   const [showPreview, setShowPreview] = useState<boolean>(false);
+  const [templateContent, setTemplateContent] = useState<string>("");
+  const [defaultTemplate, setDefaultTemplate] = useState<string>("");
+  const [hasCustomTemplate, setHasCustomTemplate] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isResetting, setIsResetting] = useState<boolean>(false);
+  const queryClient = useQueryClient();
 
   const workspaceResult = useAppStore((store) => store.workspace);
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
       ? workspaceResult.value
       : null;
+
+  // Fetch template on mount
+  const templateQuery = useQuery({
+    queryKey: ["subscriptionManagementTemplate", workspace?.id],
+    queryFn: async () => {
+      if (!workspace) return null;
+      const response = await axios.get(
+        `${apiBase}/api/subscription-management-template?includeDefault=true`,
+      );
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return response.data as {
+        template: string | null;
+        defaultTemplate: string;
+      };
+    },
+    enabled: !!workspace,
+  });
+
+  // Update state when template data loads
+  useEffect(() => {
+    if (templateQuery.data) {
+      const { template, defaultTemplate: defaultTpl } = templateQuery.data;
+      setDefaultTemplate(defaultTpl);
+      if (template) {
+        setTemplateContent(template);
+        setHasCustomTemplate(true);
+      } else {
+        setTemplateContent(defaultTpl);
+        setHasCustomTemplate(false);
+      }
+    }
+  }, [templateQuery.data]);
+
+  // Save template mutation
+  const saveTemplateMutation = useMutation({
+    mutationFn: async (template: string) => {
+      return axios.put(`${apiBase}/api/subscription-management-template`, {
+        template,
+      });
+    },
+    onSuccess: () => {
+      setHasCustomTemplate(true);
+      queryClient.invalidateQueries({
+        queryKey: ["subscriptionManagementTemplate", workspace?.id],
+      });
+      enqueueSnackbar("Template saved successfully", {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    },
+    onError: (error) => {
+      enqueueSnackbar(
+        `Failed to save template: ${error instanceof Error ? error.message : "Unknown error"}`,
+        {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        },
+      );
+    },
+    onSettled: () => {
+      setIsSaving(false);
+    },
+  });
+
+  // Reset to default mutation
+  const resetTemplateMutation = useMutation({
+    mutationFn: async () => {
+      return axios.delete(`${apiBase}/api/subscription-management-template`);
+    },
+    onSuccess: () => {
+      setTemplateContent(defaultTemplate);
+      setHasCustomTemplate(false);
+      queryClient.invalidateQueries({
+        queryKey: ["subscriptionManagementTemplate", workspace?.id],
+      });
+      enqueueSnackbar("Template reset to default", {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    },
+    onError: (error) => {
+      // 404 means no custom template exists, which is fine for reset
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        setTemplateContent(defaultTemplate);
+        setHasCustomTemplate(false);
+        enqueueSnackbar("Template reset to default", {
+          variant: "success",
+          autoHideDuration: 3000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
+      } else {
+        enqueueSnackbar(
+          `Failed to reset template: ${error instanceof Error ? error.message : "Unknown error"}`,
+          {
+            variant: "error",
+            autoHideDuration: 10000,
+            anchorOrigin: noticeAnchorOrigin,
+          },
+        );
+      }
+    },
+    onSettled: () => {
+      setIsResetting(false);
+    },
+  });
+
+  const handleSaveTemplate = () => {
+    setIsSaving(true);
+    saveTemplateMutation.mutate(templateContent);
+  };
+
+  const handleResetToDefault = () => {
+    setIsResetting(true);
+    resetTemplateMutation.mutate();
+  };
 
   // Set default selected subscription group if not set
   const defaultSubscriptionGroupId = subscriptionGroups[0]?.id || "";
@@ -1929,30 +2054,9 @@ function SubscriptionManagementSettings() {
   const selectedSubscriptionGroup = subscriptionGroups.find(
     (sg) => sg.id === actualSelectedId,
   );
-  const channelToUnsubscribeFrom = selectedSubscriptionGroup?.channel;
-
-  const subscriptions = subscriptionGroups.map((sg) => ({
-    name: sg.name,
-    id: sg.id,
-    isSubscribed: !(
-      fromSubscriptionChange &&
-      !fromSubscribe &&
-      sg.channel === channelToUnsubscribeFrom
-    ),
-    channel: sg.channel,
-  }));
-
   if (!workspace) {
     return null;
   }
-
-  const changedSubscription = fromSubscriptionChange
-    ? actualSelectedId
-    : undefined;
-
-  const changedSubscriptionChannel = fromSubscriptionChange
-    ? channelToUnsubscribeFrom
-    : undefined;
 
   return (
     <Stack>
@@ -2033,25 +2137,35 @@ function SubscriptionManagementSettings() {
               justifyContent: "center",
             }}
           >
-            <SubscriptionManagement
-              key={`${fromSubscribe}-${fromSubscriptionChange}`}
-              subscriptions={subscriptions}
-              workspaceName={workspace.name}
-              subscriptionChange={
-                fromSubscribe
-                  ? SubscriptionChange.Subscribe
-                  : SubscriptionChange.Unsubscribe
+            {(() => {
+              // Build the iframe URL for the subscription management page
+              const iframeParams = new URLSearchParams({
+                w: workspace.id,
+                h: "preview-hash",
+                i: "preview@example.com",
+                ik: "email",
+                isPreview: "true",
+              });
+
+              if (fromSubscriptionChange && actualSelectedId) {
+                iframeParams.set("s", actualSelectedId);
+                iframeParams.set("sub", fromSubscribe ? "1" : "0");
               }
-              changedSubscription={changedSubscription}
-              changedSubscriptionChannel={changedSubscriptionChannel}
-              workspaceId={workspace.id}
-              hash="example-hash"
-              identifier="example@email.com"
-              identifierKey="email"
-              apiBase={apiBase}
-              isPreview
-              showAllChannels={!fromSubscriptionChange}
-            />
+
+              return (
+                <iframe
+                  key={`${fromSubscribe}-${fromSubscriptionChange}-${actualSelectedId}`}
+                  src={`${apiBase}/api/public/subscription-management/page?${iframeParams.toString()}`}
+                  style={{
+                    width: "100%",
+                    minWidth: "400px",
+                    height: "600px",
+                    border: "none",
+                  }}
+                  title="Subscription Management Preview"
+                />
+              );
+            })()}
           </Paper>
         </Stack>
       </Dialog>
@@ -2087,6 +2201,73 @@ function SubscriptionManagementSettings() {
             },
           ]}
         />
+        <Fields
+          disableChildStyling
+          sections={[
+            {
+              id: "subscription-template-section",
+              fieldGroups: [
+                {
+                  id: "subscription-template-editor",
+                  name: "Subscription Page Template",
+                  description:
+                    "Customize the subscription management page HTML template using Liquid syntax.",
+                  fields: [],
+                },
+              ],
+            },
+          ]}
+        >
+          <Stack spacing={2}>
+            {templateQuery.isLoading ? (
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Loading template...
+              </Typography>
+            ) : (
+              <>
+                <Box
+                  sx={{
+                    border: 1,
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    overflow: "hidden",
+                  }}
+                >
+                  <CodeMirror
+                    value={templateContent}
+                    height="400px"
+                    extensions={[html(), EditorView.lineWrapping]}
+                    onChange={(value) => setTemplateContent(value)}
+                  />
+                </Box>
+                <Stack direction="row" spacing={2}>
+                  <LoadingButton
+                    variant="contained"
+                    onClick={handleSaveTemplate}
+                    loading={isSaving}
+                    disabled={isResetting}
+                  >
+                    Save Template
+                  </LoadingButton>
+                  <LoadingButton
+                    variant="outlined"
+                    onClick={handleResetToDefault}
+                    loading={isResetting}
+                    disabled={isSaving || !hasCustomTemplate}
+                  >
+                    Reset to Default
+                  </LoadingButton>
+                </Stack>
+                {hasCustomTemplate && (
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Using custom template. Click &quot;Reset to Default&quot; to
+                    revert to the default template.
+                  </Typography>
+                )}
+              </>
+            )}
+          </Stack>
+        </Fields>
       </Stack>
     </Stack>
   );

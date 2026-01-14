@@ -263,7 +263,7 @@ export function NewDeliveriesFilterButton({
               draft.inputValue = "";
               switch (value.filterKey) {
                 case "template": {
-                  const templates = resources?.messageTemplates || [];
+                  const templates = resources?.messageTemplates ?? [];
 
                   const children: SelectItemCommand[] = templates.map(
                     (template) => ({

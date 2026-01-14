@@ -25,6 +25,7 @@ import settingsController from "../controllers/settingsController";
 import authController from "../controllers/singleTenantController";
 import subscriptionGroupsController from "../controllers/subscriptionGroupsController";
 import subscriptionManagementController from "../controllers/subscriptionManagementController";
+import subscriptionManagementTemplateController from "../controllers/subscriptionManagementTemplateController";
 import userPropertiesController from "../controllers/userPropertiesController";
 import userPropertyIndexController from "../controllers/userPropertyIndexController";
 import usersController from "../controllers/usersController";
@@ -61,6 +62,9 @@ export default async function router(
         f.register(permissionsController, { prefix: "/permissions" }),
         f.register(subscriptionGroupsController, {
           prefix: "/subscription-groups",
+        }),
+        f.register(subscriptionManagementTemplateController, {
+          prefix: "/subscription-management-template",
         }),
         f.register(userPropertiesController, { prefix: "/user-properties" }),
         f.register(userPropertyIndexController, {
