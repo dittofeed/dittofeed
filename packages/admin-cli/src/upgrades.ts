@@ -1050,12 +1050,6 @@ export async function upgradeV023Post() {
   logger().info("Post-upgrade steps for v0.23.0 completed.");
 }
 
-export async function upgradeV024Pre() {
-  logger().info("Performing pre-upgrade steps for v0.24.0");
-  await createUserSortingIndexTables();
-  logger().info("Pre-upgrade steps for v0.24.0 completed.");
-}
-
 export async function migrateMessageIdIndexToBloomFilter() {
   logger().info(
     "Migrating message_id index from minmax to bloom_filter on user_events_v2",
@@ -1090,10 +1084,11 @@ export async function migrateMessageIdIndexToBloomFilter() {
   );
 }
 
-export async function upgradeV025Pre() {
-  logger().info("Performing pre-upgrade steps for v0.25.0");
+export async function upgradeV024Pre() {
+  logger().info("Performing pre-upgrade steps for v0.24.0");
+  await createUserSortingIndexTables();
   await migrateMessageIdIndexToBloomFilter();
-  logger().info("Pre-upgrade steps for v0.25.0 completed.");
+  logger().info("Pre-upgrade steps for v0.24.0 completed.");
 }
 
 export async function createUnsubscribedSegmentsForExistingSubscriptionGroups() {

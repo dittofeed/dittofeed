@@ -115,7 +115,6 @@ import {
   upgradeV023Post,
   upgradeV023Pre,
   upgradeV024Pre,
-  upgradeV025Pre,
 } from "./upgrades";
 
 function formatSqlParam(value: unknown): string {
@@ -241,8 +240,14 @@ export function createCommands(yargs: Argv): Argv {
               /\bcomputed_property_assignments_v2\b/g,
               "dittofeed.computed_property_assignments_v2",
             )
-            .replace(/\buser_property_idx_num\b/g, "dittofeed.user_property_idx_num")
-            .replace(/\buser_property_idx_str\b/g, "dittofeed.user_property_idx_str")
+            .replace(
+              /\buser_property_idx_num\b/g,
+              "dittofeed.user_property_idx_num",
+            )
+            .replace(
+              /\buser_property_idx_str\b/g,
+              "dittofeed.user_property_idx_str",
+            )
             .replace(
               /\buser_property_idx_date\b/g,
               "dittofeed.user_property_idx_date",
@@ -1012,14 +1017,6 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await upgradeV024Pre();
-      },
-    )
-    .command(
-      "upgrade-0-25-0-pre",
-      "Run the pre-upgrade steps for the 0.25.0 prior to updating your Dittofeed application version.",
-      (y) => y,
-      async () => {
-        await upgradeV025Pre();
       },
     )
     .command(
