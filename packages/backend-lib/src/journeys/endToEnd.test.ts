@@ -763,6 +763,7 @@ describe("end to end journeys", () => {
         });
       });
 
+      const REAL_SLEEP_TIME = 1000;
       it("only sends messages while the journey is running", async () => {
         const recomputeProperties = async () => {
           const args = await computePropertiesIncrementalArgs({
@@ -803,7 +804,7 @@ describe("end to end journeys", () => {
         // time it returns, the workflow has been started. Await completion to ensure
         // message side-effects have happened before we assert.
         await getTestEnv().sleep(1000);
-        await sleep(200);
+        await sleep(REAL_SLEEP_TIME);
         await handle.result();
 
         expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
@@ -864,7 +865,7 @@ describe("end to end journeys", () => {
           journeyId: journey.id,
         });
         await getTestEnv().sleep(1000);
-        await sleep(200);
+        await sleep(REAL_SLEEP_TIME);
         await getTestEnv()
           .client.workflow.getHandle(userJourneyWorkflowId2)
           .result();
