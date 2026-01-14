@@ -129,7 +129,7 @@ export async function getBroadcast({
   };
 }
 
-interface SendMessagesResponse {
+export interface SendMessagesResponse {
   messagesSent: number;
   nextCursor?: string;
   includesNonRetryableError: boolean;
@@ -538,6 +538,16 @@ export async function recomputeBroadcastSegment({
         workspaceId,
       },
       "Broadcast not found",
+    );
+    return false;
+  }
+  if (!broadcast.segmentId) {
+    logger().debug(
+      {
+        broadcastId,
+        workspaceId,
+      },
+      "Broadcast segment is null skipping recompute",
     );
     return false;
   }

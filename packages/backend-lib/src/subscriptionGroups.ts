@@ -44,7 +44,6 @@ import {
   ProcessSubscriptionGroupCsvError,
   ProcessSubscriptionGroupCsvErrorType,
   SavedSubscriptionGroupResource,
-  Segment,
   SegmentDefinition,
   SegmentNodeType,
   SubscriptionChange,
@@ -781,13 +780,6 @@ export async function updateUserSubscriptions({
     },
   );
 
-  logger().debug(
-    {
-      segmentAssignmentUpdates,
-      allUserEvents,
-    },
-    "loc1 Updating subscription assignments",
-  );
   await Promise.all([
     insertSegmentAssignments(segmentAssignmentUpdates),
     insertUserEvents({

@@ -1,3 +1,6 @@
+/**
+ * @group temporal
+ */
 import { MockActivityEnvironment } from "@temporalio/testing";
 import { randomUUID } from "crypto";
 import { sleep } from "isomorphic-lib/src/time";
@@ -28,7 +31,9 @@ jest.mock("isomorphic-lib/src/time", () => ({
 }));
 
 jest.mock("../../computedProperties/periods", () => {
-  const actual = jest.requireActual("../../computedProperties/periods");
+  const actual = jest.requireActual<
+    typeof import("../../computedProperties/periods")
+  >("../../computedProperties/periods");
   return {
     ...actual,
     getEarliestComputePropertyPeriod: jest.fn(),
@@ -249,19 +254,24 @@ describe("waitForComputeProperties", () => {
     const after = Date.now();
     const periods = [after - 1, after, after + 5_000];
 
-    mockGetEarliestComputePropertyPeriod.mockImplementation(async () => {
+    mockGetEarliestComputePropertyPeriod.mockImplementation(() => {
       const next = periods.shift();
-      return typeof next === "number" ? next : after + 5_000;
+      return Promise.resolve(typeof next === "number" ? next : after + 5_000);
     });
 
     let elapsedMs = 0;
-    mockSleep.mockImplementation(async (ms: number) => {
+    mockSleep.mockImplementation((ms: number) => {
       elapsedMs += ms;
+      return Promise.resolve();
     });
 
     const result = await activityEnv.run(waitForComputeProperties, {
       workspaceId,
       after,
+      // In test env, config defaults maxAttempts to 1; override so we can
+      // validate polling behavior deterministically.
+      maxAttempts: 3,
+      baseDelayMs: 10_000,
     });
 
     expect(result).toBe(true);

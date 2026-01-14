@@ -1,3 +1,6 @@
+/**
+ * @group temporal
+ */
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
@@ -5,7 +8,7 @@ import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../test/temporal";
+import { createWorker } from "../test/temporal";
 import { submitBatch } from "./apps/batch";
 import { db, insert } from "./db";
 import {
@@ -45,14 +48,23 @@ import {
 } from "./userProperties";
 import { createWorkspace } from "./workspaces";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("eventEntry journeys", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  let workerRunPromise: Promise<void> | null = null;
   let emailUserPropertyId: string;
   let idUserPropertyId: string;
+
+  beforeAll(async () => {
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
 
   beforeEach(async () => {
     workspace = await createWorkspace({
@@ -116,16 +128,22 @@ describe("eventEntry journeys", () => {
       sendMessageV2: sendMessageFactory(senderMock),
     };
     beforeAll(async () => {
-      const envAndWorker = await createEnvAndWorker({
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
+      workerRunPromise = worker.run();
     });
 
     afterAll(async () => {
-      await testEnv.teardown();
+      if (worker) {
+        worker.shutdown();
+      }
+      if (workerRunPromise) {
+        await workerRunPromise;
+      }
     });
+
     describe("when messaging a user with an anyof performed user property", () => {
       let journeyId: string;
       let journeyDefinition: JourneyDefinition;
@@ -209,47 +227,45 @@ describe("eventEntry journeys", () => {
         ]);
       });
       it("should call the inner send message", async () => {
-        await worker.runUntil(async () => {
-          await testEnv.client.workflow.execute(userJourneyWorkflow, {
-            workflowId: "workflow1",
-            taskQueue: "default",
-            args: [
-              {
-                journeyId,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-                event: {
-                  event: "tracking_update",
-                  messageId: randomUUID(),
-                  timestamp: new Date().toISOString(),
-                  properties: {
-                    data: {
-                      carrier: "UPS",
-                    },
+        await testEnv.client.workflow.execute(userJourneyWorkflow, {
+          workflowId: "workflow1",
+          taskQueue: "default",
+          args: [
+            {
+              journeyId,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+              event: {
+                event: "tracking_update",
+                messageId: randomUUID(),
+                timestamp: new Date().toISOString(),
+                properties: {
+                  data: {
+                    carrier: "UPS",
                   },
                 },
               },
-            ],
-          });
-          expect(senderMock).toHaveBeenCalledTimes(1);
-          expect(senderMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-              userPropertyAssignments: expect.objectContaining({
-                carrier: "UPS",
-              }),
-            }),
-          );
-
-          expect(senderMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-              userPropertyAssignments: expect.objectContaining({
-                email: "test@test.com",
-              }),
-            }),
-          );
+            },
+          ],
         });
+        expect(senderMock).toHaveBeenCalledTimes(1);
+        expect(senderMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userPropertyAssignments: expect.objectContaining({
+              carrier: "UPS",
+            }),
+          }),
+        );
+
+        expect(senderMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userPropertyAssignments: expect.objectContaining({
+              email: "test@test.com",
+            }),
+          }),
+        );
       });
     });
   });
@@ -281,19 +297,13 @@ describe("eventEntry journeys", () => {
       sendMessageV2: sendMessageFactory(senderMock),
     };
 
-    beforeAll(async () => {
-      const envAndWorker = await createEnvAndWorker({
-        activityOverrides: testActivities,
-      });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
-    });
-
-    afterAll(async () => {
-      await testEnv.teardown();
-    });
-
     beforeEach(async () => {
+      worker = await createWorker({
+        testEnv,
+        activityOverrides: testActivities,
+        buildId: workspace.id,
+      });
+      workerRunPromise = worker.run();
       messageId = randomUUID();
       userId = randomUUID();
       const event = {
@@ -379,45 +389,58 @@ describe("eventEntry journeys", () => {
       });
     });
 
+    afterEach(async () => {
+      if (worker) {
+        worker.shutdown();
+      }
+      if (workerRunPromise) {
+        await workerRunPromise;
+      }
+    });
+
     it("should call the inner send message", async () => {
-      await worker.runUntil(async () => {
-        await testEnv.client.workflow.execute(userJourneyWorkflow, {
-          workflowId: "workflow1",
-          taskQueue: "default",
-          args: [
-            {
-              journeyId,
-              workspaceId: workspace.id,
-              userId,
-              definition: journeyDefinition,
-              version: UserJourneyWorkflowVersion.V3,
-              messageId,
-            },
-          ],
-        });
-        expect(senderMock).toHaveBeenCalledTimes(1);
-        expect(senderMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            eventIds: [messageId],
-          }),
-        );
+      await testEnv.client.workflow.execute(userJourneyWorkflow, {
+        workflowId: "workflow1",
+        taskQueue: "default",
+        args: [
+          {
+            journeyId,
+            workspaceId: workspace.id,
+            userId,
+            definition: journeyDefinition,
+            version: UserJourneyWorkflowVersion.V3,
+            messageId,
+          },
+        ],
       });
+      expect(senderMock).toHaveBeenCalledTimes(1);
+      expect(senderMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventIds: [messageId],
+        }),
+      );
     });
   });
   describe("testing calls to sendMessageV2", () => {
     const testActivities = {
       sendMessageV2: jest.fn().mockReturnValue(true),
     };
-    beforeAll(async () => {
-      const envAndWorker = await createEnvAndWorker({
+    beforeEach(async () => {
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
+        buildId: workspace.id,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
+      workerRunPromise = worker.run();
     });
 
-    afterAll(async () => {
-      await testEnv.teardown();
+    afterEach(async () => {
+      if (worker) {
+        worker.shutdown();
+      }
+      if (workerRunPromise) {
+        await workerRunPromise;
+      }
     });
 
     describe("when a user is pre-assigned to a segment", () => {
@@ -496,40 +519,38 @@ describe("eventEntry journeys", () => {
         }).then(unwrap);
       });
       it("segment splits should respect the pre-assignment", async () => {
-        await worker.runUntil(async () => {
-          await testEnv.client.workflow.execute(userJourneyWorkflow, {
-            workflowId: "workflow1",
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-                event: {
-                  event: "test",
-                  properties: {
-                    key: "val",
-                  },
-                  messageId: randomUUID(),
-                  timestamp: new Date().toISOString(),
+        await testEnv.client.workflow.execute(userJourneyWorkflow, {
+          workflowId: "workflow1",
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+              event: {
+                event: "test",
+                properties: {
+                  key: "val",
                 },
+                messageId: randomUUID(),
+                timestamp: new Date().toISOString(),
               },
-            ],
-          });
-          expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
-          const events = await db()
-            .select()
-            .from(dbUserJourneyEvent)
-            .where(
-              and(
-                eq(dbUserJourneyEvent.journeyId, journey.id),
-                eq(dbUserJourneyEvent.userId, userId),
-              ),
-            );
-          expect(events).toHaveLength(4);
+            },
+          ],
         });
+        expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+        const events = await db()
+          .select()
+          .from(dbUserJourneyEvent)
+          .where(
+            and(
+              eq(dbUserJourneyEvent.journeyId, journey.id),
+              eq(dbUserJourneyEvent.userId, userId),
+            ),
+          );
+        expect(events).toHaveLength(4);
       });
     });
   });

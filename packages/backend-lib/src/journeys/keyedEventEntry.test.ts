@@ -1,3 +1,6 @@
+/**
+ * @group temporal
+ */
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
@@ -5,7 +8,7 @@ import { and, eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { submitBatch } from "../apps/batch";
 import { db, insert } from "../db";
 import {
@@ -55,12 +58,12 @@ import {
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("keyedEventEntry journeys", () => {
   let workspace: Workspace;
-  let testEnv: TestWorkflowEnvironment;
-  let worker: Worker;
+  let testEnv: TestWorkflowEnvironment | null = null;
+  let worker: Worker | null = null;
   const senderMock = jest.fn().mockReturnValue(
     ok({
       type: InternalEventType.MessageSent,
@@ -84,19 +87,36 @@ describe("keyedEventEntry journeys", () => {
     sendMessageV2: sendMessageFactory(senderMock),
   };
 
+  let workerRunPromise: Promise<void> | null = null;
+
+  function getTestEnv(): TestWorkflowEnvironment {
+    if (!testEnv) throw new Error("testEnv not initialized");
+    return testEnv;
+  }
+
   beforeAll(async () => {
-    const envAndWorker = await createEnvAndWorker({
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+    worker = await createWorker({
+      testEnv,
       activityOverrides: testActivities,
     });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    workerRunPromise = worker.run();
   });
 
   afterAll(async () => {
-    await testEnv.teardown();
+    if (worker) {
+      worker.shutdown();
+    }
+    if (workerRunPromise) {
+      await workerRunPromise;
+    }
+    if (testEnv) {
+      await testEnv.teardown();
+    }
   });
 
   beforeEach(async () => {
+    senderMock.mockClear();
     workspace = unwrap(
       await createWorkspace({
         id: randomUUID(),
@@ -196,110 +216,108 @@ describe("keyedEventEntry journeys", () => {
         },
       ]);
 
-      await worker.runUntil(async () => {
-        const firstMessageId = randomUUID();
-        await submitBatch({
-          workspaceId: workspace.id,
-          data: {
-            batch: [
-              {
-                type: EventType.Track,
-                event: "APPOINTMENT_UPDATE",
-                userId,
-                messageId: firstMessageId,
-                properties: {
-                  appointmentId: "appointment-1",
-                },
-                timestamp: new Date().toISOString(),
+      const firstMessageId = randomUUID();
+      const now = await getTestEnv().currentTimeMs();
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [
+            {
+              type: EventType.Track,
+              event: "APPOINTMENT_UPDATE",
+              userId,
+              messageId: firstMessageId,
+              properties: {
+                appointmentId: "appointment-1",
               },
-            ],
-          },
-        });
-
-        const handle1 = await testEnv.client.workflow.start(
-          userJourneyWorkflow,
-          {
-            workflowId: `workflow-${randomUUID()}`,
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V3,
-                eventKey: "appointment-1",
-                messageId: firstMessageId,
-              },
-            ],
-          },
-        );
-
-        await handle1.result();
-        expect(senderMock).toHaveBeenCalledTimes(1);
-
-        const journeyEvents = await db().query.userJourneyEvent.findMany({
-          where: and(
-            eq(dbUserJourneyEvent.journeyId, journey.id),
-            eq(dbUserJourneyEvent.userId, userId),
-          ),
-        });
-        logger().debug({ journeyEvents }, "journey events");
-        expect(journeyEvents.length).toBeGreaterThan(0);
-        expect(
-          journeyEvents.every((event) => event.eventKey === "appointment-1"),
-        ).toBe(true);
-        expect(
-          journeyEvents.filter((event) => event.eventKey === "appointment-1"),
-        ).not.toHaveLength(0);
-        expect(
-          journeyEvents
-            .filter((event) => event.eventKey === "appointment-1")
-            .every((event) => event.eventKeyName === "appointmentId"),
-        ).toBe(true);
-
-        const secondMessageId = randomUUID();
-        await submitBatch({
-          workspaceId: workspace.id,
-          data: {
-            batch: [
-              {
-                type: EventType.Track,
-                event: "APPOINTMENT_UPDATE",
-                userId,
-                messageId: secondMessageId,
-                properties: {
-                  appointmentId: "appointment-1",
-                },
-                timestamp: new Date().toISOString(),
-              },
-            ],
-          },
-        });
-
-        const handle2 = await testEnv.client.workflow.start(
-          userJourneyWorkflow,
-          {
-            workflowId: `workflow-${randomUUID()}`,
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V3,
-                eventKey: "appointment-1",
-                messageId: secondMessageId,
-              },
-            ],
-          },
-        );
-
-        await handle2.result();
-        expect(senderMock).toHaveBeenCalledTimes(1);
+              timestamp: new Date(now).toISOString(),
+            },
+          ],
+        },
       });
 
+      const handle1 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: "appointment-1",
+              messageId: firstMessageId,
+            },
+          ],
+        },
+      );
+
+      await handle1.result();
+      expect(senderMock).toHaveBeenCalledTimes(1);
+
+      const journeyEvents = await db().query.userJourneyEvent.findMany({
+        where: and(
+          eq(dbUserJourneyEvent.journeyId, journey.id),
+          eq(dbUserJourneyEvent.userId, userId),
+        ),
+      });
+      logger().debug({ journeyEvents }, "journey events");
+      expect(journeyEvents.length).toBeGreaterThan(0);
+      expect(
+        journeyEvents.every((event) => event.eventKey === "appointment-1"),
+      ).toBe(true);
+      expect(
+        journeyEvents.filter((event) => event.eventKey === "appointment-1"),
+      ).not.toHaveLength(0);
+      expect(
+        journeyEvents
+          .filter((event) => event.eventKey === "appointment-1")
+          .every((event) => event.eventKeyName === "appointmentId"),
+      ).toBe(true);
+
+      const secondMessageId = randomUUID();
+      const now2 = await getTestEnv().currentTimeMs();
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [
+            {
+              type: EventType.Track,
+              event: "APPOINTMENT_UPDATE",
+              userId,
+              messageId: secondMessageId,
+              properties: {
+                appointmentId: "appointment-1",
+              },
+              timestamp: new Date(now2).toISOString(),
+            },
+          ],
+        },
+      });
+
+      const handle2 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: "appointment-1",
+              messageId: secondMessageId,
+            },
+          ],
+        },
+      );
+
+      await handle2.result();
       expect(senderMock).toHaveBeenCalledTimes(1);
     });
   });
@@ -522,143 +540,137 @@ describe("keyedEventEntry journeys", () => {
       });
 
       it("only the cancelled journey should send a message", async () => {
-        await worker.runUntil(async () => {
-          const timestamp1 = new Date().toISOString();
-          const timestamp2 = new Date(
-            new Date().getTime() + 1000,
-          ).toISOString();
+        const now = await getTestEnv().currentTimeMs();
+        const timestamp1 = new Date(now).toISOString();
+        const timestamp2 = new Date(now + 1000).toISOString();
+        const appointmentDate = new Date(
+          now + 1000 * oneDaySeconds * 2,
+        ).toISOString();
 
-          const now = await testEnv.currentTimeMs();
-          const appointmentDate = new Date(
-            now + 1000 * oneDaySeconds * 2,
-          ).toISOString();
-
-          const handle1 = await testEnv.client.workflow.start(
-            userJourneyWorkflow,
-            {
-              workflowId: "workflow1",
-              taskQueue: "default",
-              args: [
-                {
-                  journeyId: journey.id,
-                  workspaceId: workspace.id,
-                  userId,
-                  definition: journeyDefinition,
-                  version: UserJourneyWorkflowVersion.V2,
-                  event: {
-                    event: "APPOINTMENT_UPDATE",
-                    properties: {
-                      operation: "STARTED",
-                      appointmentId: appointmentId1,
-                      appointmentDate,
-                    },
-                    messageId: randomUUID(),
-                    timestamp: timestamp1,
+        const workflowId1 = `workflow1-${randomUUID()}`;
+        const handle1 = await getTestEnv().client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: workflowId1,
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+                event: {
+                  event: "APPOINTMENT_UPDATE",
+                  properties: {
+                    operation: "STARTED",
+                    appointmentId: appointmentId1,
+                    appointmentDate,
                   },
+                  messageId: randomUUID(),
+                  timestamp: timestamp1,
                 },
-              ],
-            },
-          );
-          const handle2 = await testEnv.client.workflow.start(
-            userJourneyWorkflow,
-            {
-              workflowId: "workflow2",
-              taskQueue: "default",
-              args: [
-                {
-                  journeyId: journey.id,
-                  workspaceId: workspace.id,
-                  userId,
-                  definition: journeyDefinition,
-                  version: UserJourneyWorkflowVersion.V2,
-                  event: {
-                    event: "APPOINTMENT_UPDATE",
-                    properties: {
-                      operation: "STARTED",
-                      appointmentId: appointmentId2,
-                      appointmentDate,
-                    },
-                    messageId: randomUUID(),
-                    timestamp: timestamp2,
+              },
+            ],
+          },
+        );
+        const workflowId2 = `workflow2-${randomUUID()}`;
+        const handle2 = await getTestEnv().client.workflow.start(
+          userJourneyWorkflow,
+          {
+            workflowId: workflowId2,
+            taskQueue: "default",
+            args: [
+              {
+                journeyId: journey.id,
+                workspaceId: workspace.id,
+                userId,
+                definition: journeyDefinition,
+                version: UserJourneyWorkflowVersion.V2,
+                event: {
+                  event: "APPOINTMENT_UPDATE",
+                  properties: {
+                    operation: "STARTED",
+                    appointmentId: appointmentId2,
+                    appointmentDate,
                   },
+                  messageId: randomUUID(),
+                  timestamp: timestamp2,
                 },
-              ],
-            },
-          );
+              },
+            ],
+          },
+        );
 
-          await testEnv.sleep(5000);
+        await getTestEnv().sleep(5000);
 
-          expect(
-            senderMock,
-            "should not have sent any messages before waiting for day before appointment date",
-          ).toHaveBeenCalledTimes(0);
+        expect(
+          senderMock,
+          "should not have sent any messages before waiting for day before appointment date",
+        ).toHaveBeenCalledTimes(0);
 
-          await testEnv.sleep(1000 * oneDaySeconds);
+        await getTestEnv().sleep(1000 * oneDaySeconds);
 
-          expect(senderMock).toHaveBeenCalledTimes(2);
-          expect(
-            senderMock.mock.calls.filter(
-              (call) =>
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                call[0].userPropertyAssignments?.appointmentId ===
-                appointmentId1,
-            ),
-            "should have sent a reminder message for appointment 1",
-          ).toHaveLength(1);
-          expect(
-            senderMock.mock.calls.filter(
-              (call) =>
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                call[0].userPropertyAssignments?.appointmentId ===
-                appointmentId2,
-            ),
-            "should have sent a reminder message for appointment 2",
-          ).toHaveLength(1);
-          expect(
-            senderMock.mock.calls.filter(
-              (call) =>
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                call[0].userPropertyAssignments?.email === "test@test.com",
-            ).length,
-            "should have passed the db email user property to the sender",
-          ).toBeGreaterThanOrEqual(1);
+        expect(senderMock).toHaveBeenCalledTimes(2);
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId1,
+          ),
+          "should have sent a reminder message for appointment 1",
+        ).toHaveLength(1);
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId2,
+          ),
+          "should have sent a reminder message for appointment 2",
+        ).toHaveLength(1);
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.email === "test@test.com",
+          ).length,
+          "should have passed the db email user property to the sender",
+        ).toBeGreaterThanOrEqual(1);
 
-          await handle1.signal(trackSignal, {
-            event: "APPOINTMENT_UPDATE",
-            properties: {
-              operation: "CANCELLED",
-              appointmentId: appointmentId1,
-            },
-            messageId: randomUUID(),
-            timestamp: new Date().toISOString(),
-          });
-          await testEnv.sleep(5000);
-          await handle1.result();
-
-          await testEnv.sleep(oneDaySeconds * 1000);
-          await handle2.result();
-
-          expect(
-            senderMock.mock.calls.filter(
-              (call) =>
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                call[0].userPropertyAssignments?.appointmentId ===
-                appointmentId1,
-            ),
-            "should have sent a reminder and cancellation message for appointment 1",
-          ).toHaveLength(2);
-
-          expect(
-            senderMock.mock.calls.filter(
-              (call) =>
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                call[0].userPropertyAssignments?.appointmentId ===
-                appointmentId2,
-            ),
-            "should have sent a reminder message for appointment 2 but not a cancellation message",
-          ).toHaveLength(1);
-          expect(senderMock).toHaveBeenCalledTimes(3);
+        const signalTime = await getTestEnv().currentTimeMs();
+        await handle1.signal(trackSignal, {
+          event: "APPOINTMENT_UPDATE",
+          properties: {
+            operation: "CANCELLED",
+            appointmentId: appointmentId1,
+          },
+          messageId: randomUUID(),
+          timestamp: new Date(signalTime).toISOString(),
         });
+        await getTestEnv().sleep(5000);
+        await handle1.result();
+
+        await getTestEnv().sleep(oneDaySeconds * 1000);
+        await handle2.result();
+
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId1,
+          ),
+          "should have sent a reminder and cancellation message for appointment 1",
+        ).toHaveLength(2);
+
+        expect(
+          senderMock.mock.calls.filter(
+            (call) =>
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              call[0].userPropertyAssignments?.appointmentId === appointmentId2,
+          ),
+          "should have sent a reminder message for appointment 2 but not a cancellation message",
+        ).toHaveLength(1);
+        expect(senderMock).toHaveBeenCalledTimes(3);
       });
     });
     describe("when the appointment date user property is part of an any of group", () => {
@@ -703,48 +715,46 @@ describe("keyedEventEntry journeys", () => {
         const userId = randomUUID();
         const appointmentId1 = randomUUID();
 
-        await worker.runUntil(async () => {
-          const timestamp1 = new Date().toISOString();
-          const now = await testEnv.currentTimeMs();
-          const appointmentDate = new Date(
-            now + 1000 * oneDaySeconds * 2,
-          ).toISOString();
+        const now = await getTestEnv().currentTimeMs();
+        const timestamp1 = new Date(now).toISOString();
+        const appointmentDate = new Date(
+          now + 1000 * oneDaySeconds * 2,
+        ).toISOString();
 
-          await testEnv.client.workflow.start(userJourneyWorkflow, {
-            workflowId: "workflow1",
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-                event: {
-                  event: "APPOINTMENT_UPDATE",
-                  properties: {
-                    operation: "STARTED",
-                    appointmentId: appointmentId1,
-                    appointmentDate,
-                  },
-                  messageId: randomUUID(),
-                  timestamp: timestamp1,
+        await getTestEnv().client.workflow.start(userJourneyWorkflow, {
+          workflowId: `workflow1-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+              event: {
+                event: "APPOINTMENT_UPDATE",
+                properties: {
+                  operation: "STARTED",
+                  appointmentId: appointmentId1,
+                  appointmentDate,
                 },
+                messageId: randomUUID(),
+                timestamp: timestamp1,
               },
-            ],
-          });
-
-          await testEnv.sleep(5000);
-
-          expect(
-            senderMock,
-            "should not have sent any messages before waiting for day before appointment date",
-          ).toHaveBeenCalledTimes(0);
-
-          await testEnv.sleep(1000 * oneDaySeconds);
-
-          expect(senderMock).toHaveBeenCalledTimes(1);
+            },
+          ],
         });
+
+        await getTestEnv().sleep(5000);
+
+        expect(
+          senderMock,
+          "should not have sent any messages before waiting for day before appointment date",
+        ).toHaveBeenCalledTimes(0);
+
+        await getTestEnv().sleep(1000 * oneDaySeconds);
+
+        expect(senderMock).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -920,13 +930,25 @@ describe("keyedEventEntry journeys", () => {
         },
       }).then(unwrap);
 
-      const now = await testEnv.currentTimeMs();
+      const now = await getTestEnv().currentTimeMs();
       const timestamp1 = new Date(now).toISOString();
       const timestamp2 = new Date(now + 1000).toISOString();
 
       const appointmentDate = new Date(
         now + 1000 * oneDaySeconds * 2,
       ).toISOString();
+
+      logger().debug(
+        {
+          now,
+          nowISO: new Date(now).toISOString(),
+          timestamp1,
+          timestamp2,
+          appointmentDate,
+          delayTargetTime: new Date(now + 1000 * oneDaySeconds).toISOString(),
+        },
+        "V3 test beforeEach - setting up events",
+      );
 
       const eventFull1: BatchItem = {
         type: EventType.Track,
@@ -965,119 +987,130 @@ describe("keyedEventEntry journeys", () => {
     });
 
     it("only the cancelled journey should send a message", async () => {
-      await worker.runUntil(async () => {
-        const handle1 = await testEnv.client.workflow.start(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow1",
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V3,
-                eventKey: appointmentId1,
-                messageId: event1.messageId,
-              },
-            ],
-          },
-        );
-        const handle2 = await testEnv.client.workflow.start(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow2",
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V3,
-                eventKey: appointmentId2,
-                messageId: event2.messageId,
-              },
-            ],
-          },
-        );
+      const testStartTime = await getTestEnv().currentTimeMs();
+      logger().debug(
+        {
+          testStartTime,
+          testStartTimeISO: new Date(testStartTime).toISOString(),
+          event1Timestamp: event1.timestamp,
+          event2Timestamp: event2.timestamp,
+        },
+        "V3 test starting - time state",
+      );
 
-        await testEnv.sleep(5000);
+      const handle1 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow1-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: appointmentId1,
+              messageId: event1.messageId,
+            },
+          ],
+        },
+      );
+      const handle2 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow2-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: appointmentId2,
+              messageId: event2.messageId,
+            },
+          ],
+        },
+      );
 
-        expect(
-          senderMock,
-          "should not have sent any messages before waiting for day before appointment date",
-        ).toHaveBeenCalledTimes(0);
+      logger().debug("V3 test - workflows started, sleeping 5000ms");
+      await getTestEnv().sleep(5000);
 
-        await testEnv.sleep(1000 * oneDaySeconds);
+      expect(
+        senderMock,
+        "should not have sent any messages before waiting for day before appointment date",
+      ).toHaveBeenCalledTimes(0);
 
-        expect(senderMock).toHaveBeenCalledTimes(2);
-        expect(
-          senderMock.mock.calls.filter(
-            (call) =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              call[0].userPropertyAssignments?.appointmentId === appointmentId1,
-          ),
-          "should have sent a reminder message for appointment 1",
-        ).toHaveLength(1);
-        expect(
-          senderMock.mock.calls.filter(
-            (call) =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              call[0].userPropertyAssignments?.appointmentId === appointmentId2,
-          ),
-          "should have sent a reminder message for appointment 2",
-        ).toHaveLength(1);
+      await getTestEnv().sleep(1000 * oneDaySeconds);
 
-        const cancelledEvent = {
-          type: EventType.Track,
-          event: "APPOINTMENT_UPDATE",
-          userId,
-          messageId: randomUUID(),
-          properties: {
-            operation: "CANCELLED",
-            appointmentId: appointmentId1,
-          },
-          timestamp: new Date().toISOString(),
-        } as const;
+      expect(senderMock).toHaveBeenCalledTimes(2);
+      expect(
+        senderMock.mock.calls.filter(
+          (call) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            call[0].userPropertyAssignments?.appointmentId === appointmentId1,
+        ),
+        "should have sent a reminder message for appointment 1",
+      ).toHaveLength(1);
+      expect(
+        senderMock.mock.calls.filter(
+          (call) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            call[0].userPropertyAssignments?.appointmentId === appointmentId2,
+        ),
+        "should have sent a reminder message for appointment 2",
+      ).toHaveLength(1);
 
-        await submitBatch({
-          workspaceId: workspace.id,
-          data: {
-            batch: [cancelledEvent],
-          },
-        });
+      const cancelTime = await getTestEnv().currentTimeMs();
+      const cancelledEvent = {
+        type: EventType.Track,
+        event: "APPOINTMENT_UPDATE",
+        userId,
+        messageId: randomUUID(),
+        properties: {
+          operation: "CANCELLED",
+          appointmentId: appointmentId1,
+        },
+        timestamp: new Date(cancelTime).toISOString(),
+      } as const;
 
-        await handle1.signal(trackSignal, {
-          version: TrackSignalParamsVersion.V2,
-          messageId: cancelledEvent.messageId,
-        });
-        await testEnv.sleep(5000);
-        await handle1.result();
-
-        await testEnv.sleep(oneDaySeconds * 1000);
-        await handle2.result();
-
-        expect(
-          senderMock.mock.calls.filter(
-            (call) =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              call[0].userPropertyAssignments?.appointmentId === appointmentId1,
-          ),
-          "should have sent a reminder and cancellation message for appointment 1",
-        ).toHaveLength(2);
-
-        expect(
-          senderMock.mock.calls.filter(
-            (call) =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              call[0].userPropertyAssignments?.appointmentId === appointmentId2,
-          ),
-          "should have sent a reminder message for appointment 2 but not a cancellation message",
-        ).toHaveLength(1);
-        expect(senderMock).toHaveBeenCalledTimes(3);
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [cancelledEvent],
+        },
       });
+
+      await handle1.signal(trackSignal, {
+        version: TrackSignalParamsVersion.V2,
+        messageId: cancelledEvent.messageId,
+      });
+      await getTestEnv().sleep(5000);
+      await handle1.result();
+
+      await getTestEnv().sleep(oneDaySeconds * 1000);
+      await handle2.result();
+
+      expect(
+        senderMock.mock.calls.filter(
+          (call) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            call[0].userPropertyAssignments?.appointmentId === appointmentId1,
+        ),
+        "should have sent a reminder and cancellation message for appointment 1",
+      ).toHaveLength(2);
+
+      expect(
+        senderMock.mock.calls.filter(
+          (call) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            call[0].userPropertyAssignments?.appointmentId === appointmentId2,
+        ),
+        "should have sent a reminder message for appointment 2 but not a cancellation message",
+      ).toHaveLength(1);
+      expect(senderMock).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -1252,7 +1285,7 @@ describe("keyedEventEntry journeys", () => {
         },
       }).then(unwrap);
 
-      const now = await testEnv.currentTimeMs();
+      const now = await getTestEnv().currentTimeMs();
       const timestamp1 = new Date(now).toISOString();
       const timestamp2 = new Date(now + 1000).toISOString();
 
@@ -1297,136 +1330,137 @@ describe("keyedEventEntry journeys", () => {
     });
 
     it("only the cancelled journey should send a message", async () => {
-      await worker.runUntil(async () => {
-        const handle1 = await testEnv.client.workflow.start(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow1-mixed",
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-                event: {
-                  event: "APPOINTMENT_UPDATE",
-                  properties: {
-                    operation: "STARTED",
-                    appointmentId: appointmentId1,
-                    appointmentDate: event1.properties?.appointmentDate,
-                  },
-                  messageId: event1.messageId,
-                  timestamp: event1.timestamp,
+      const mixedWorkflowId1 = `workflow1-mixed-${randomUUID()}`;
+      const handle1 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: mixedWorkflowId1,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+              event: {
+                event: "APPOINTMENT_UPDATE",
+                properties: {
+                  operation: "STARTED",
+                  appointmentId: appointmentId1,
+                  appointmentDate: event1.properties?.appointmentDate,
                 },
+                messageId: event1.messageId,
+                timestamp: event1.timestamp,
               },
-            ],
-          },
-        );
-        const handle2 = await testEnv.client.workflow.start(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow2-mixed",
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-                event: {
-                  event: "APPOINTMENT_UPDATE",
-                  properties: {
-                    operation: "STARTED",
-                    appointmentId: appointmentId2,
-                    appointmentDate: event2.properties?.appointmentDate,
-                  },
-                  messageId: event2.messageId,
-                  timestamp: event2.timestamp,
+            },
+          ],
+        },
+      );
+      const mixedWorkflowId2 = `workflow2-mixed-${randomUUID()}`;
+      const handle2 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: mixedWorkflowId2,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+              event: {
+                event: "APPOINTMENT_UPDATE",
+                properties: {
+                  operation: "STARTED",
+                  appointmentId: appointmentId2,
+                  appointmentDate: event2.properties?.appointmentDate,
                 },
+                messageId: event2.messageId,
+                timestamp: event2.timestamp,
               },
-            ],
-          },
-        );
+            },
+          ],
+        },
+      );
 
-        await testEnv.sleep(5000);
+      await getTestEnv().sleep(5000);
 
-        expect(
-          senderMock,
-          "should not have sent any messages before waiting for day before appointment date",
-        ).toHaveBeenCalledTimes(0);
+      expect(
+        senderMock,
+        "should not have sent any messages before waiting for day before appointment date",
+      ).toHaveBeenCalledTimes(0);
 
-        await testEnv.sleep(1000 * oneDaySeconds);
+      await getTestEnv().sleep(1000 * oneDaySeconds);
 
-        expect(senderMock).toHaveBeenCalledTimes(2);
-        expect(
-          senderMock.mock.calls.filter(
-            (call) =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              call[0].userPropertyAssignments?.appointmentId === appointmentId1,
-          ),
-          "should have sent a reminder message for appointment 1",
-        ).toHaveLength(1);
-        expect(
-          senderMock.mock.calls.filter(
-            (call) =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              call[0].userPropertyAssignments?.appointmentId === appointmentId2,
-          ),
-          "should have sent a reminder message for appointment 2",
-        ).toHaveLength(1);
+      expect(senderMock).toHaveBeenCalledTimes(2);
+      expect(
+        senderMock.mock.calls.filter(
+          (call) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            call[0].userPropertyAssignments?.appointmentId === appointmentId1,
+        ),
+        "should have sent a reminder message for appointment 1",
+      ).toHaveLength(1);
+      expect(
+        senderMock.mock.calls.filter(
+          (call) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            call[0].userPropertyAssignments?.appointmentId === appointmentId2,
+        ),
+        "should have sent a reminder message for appointment 2",
+      ).toHaveLength(1);
 
-        const cancelledEvent = {
-          type: EventType.Track,
-          event: "APPOINTMENT_UPDATE",
-          userId,
-          messageId: randomUUID(),
-          properties: {
-            operation: "CANCELLED",
-            appointmentId: appointmentId1,
-          },
-          timestamp: new Date().toISOString(),
-        } as const;
+      const cancelTime = await getTestEnv().currentTimeMs();
+      const cancelledEvent = {
+        type: EventType.Track,
+        event: "APPOINTMENT_UPDATE",
+        userId,
+        messageId: randomUUID(),
+        properties: {
+          operation: "CANCELLED",
+          appointmentId: appointmentId1,
+        },
+        timestamp: new Date(cancelTime).toISOString(),
+      } as const;
 
-        await submitBatch({
-          workspaceId: workspace.id,
-          data: {
-            batch: [cancelledEvent],
-          },
-        });
-
-        // Use V2 signal args (new style) with V2 workflow args (old style)
-        await handle1.signal(trackSignal, {
-          version: TrackSignalParamsVersion.V2,
-          messageId: cancelledEvent.messageId,
-        });
-        await testEnv.sleep(5000);
-        await handle1.result();
-
-        await testEnv.sleep(oneDaySeconds * 1000);
-        await handle2.result();
-
-        expect(
-          senderMock.mock.calls.filter(
-            (call) =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              call[0].userPropertyAssignments?.appointmentId === appointmentId1,
-          ),
-          "should have sent a reminder and cancellation message for appointment 1",
-        ).toHaveLength(2);
-
-        expect(
-          senderMock.mock.calls.filter(
-            (call) =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              call[0].userPropertyAssignments?.appointmentId === appointmentId2,
-          ),
-          "should have sent a reminder message for appointment 2 but not a cancellation message",
-        ).toHaveLength(1);
-        expect(senderMock).toHaveBeenCalledTimes(3);
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [cancelledEvent],
+        },
       });
+
+      // Use V2 signal args (new style) with V2 workflow args (old style)
+      await handle1.signal(trackSignal, {
+        version: TrackSignalParamsVersion.V2,
+        messageId: cancelledEvent.messageId,
+      });
+      await getTestEnv().sleep(5000);
+      await handle1.result();
+
+      await getTestEnv().sleep(oneDaySeconds * 1000);
+      await handle2.result();
+
+      expect(
+        senderMock.mock.calls.filter(
+          (call) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            call[0].userPropertyAssignments?.appointmentId === appointmentId1,
+        ),
+        "should have sent a reminder and cancellation message for appointment 1",
+      ).toHaveLength(2);
+
+      expect(
+        senderMock.mock.calls.filter(
+          (call) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            call[0].userPropertyAssignments?.appointmentId === appointmentId2,
+        ),
+        "should have sent a reminder message for appointment 2 but not a cancellation message",
+      ).toHaveLength(1);
+      expect(senderMock).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -1504,70 +1538,68 @@ describe("keyedEventEntry journeys", () => {
     });
 
     it("should delay until 9 AM in the defaultTimezone (America/New_York)", async () => {
-      await worker.runUntil(async () => {
-        // Get the current time in the test environment
-        const startTime = await testEnv.currentTimeMs();
+      // Get the current time in the test environment
+      const startTime = await getTestEnv().currentTimeMs();
 
-        const messageId = randomUUID();
-        const signupId = randomUUID();
+      const messageId = randomUUID();
+      const signupId = randomUUID();
 
-        // Submit the batch to create the event
-        await submitBatch({
-          workspaceId: workspace.id,
-          data: {
-            batch: [
-              {
-                type: EventType.Track,
-                event: "SIGNUP",
-                userId,
-                messageId,
-                properties: {
-                  signupId,
-                },
-                timestamp: new Date(startTime).toISOString(),
-              } satisfies BatchItem,
-            ],
-          },
-        });
-
-        // Execute the workflow and wait for it to complete
-        await testEnv.client.workflow.execute(userJourneyWorkflow, {
-          workflowId: `workflow-${userId}-${signupId}`,
-          taskQueue: "default",
-          args: [
+      // Submit the batch to create the event
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [
             {
-              journeyId: journey.id,
-              workspaceId: workspace.id,
+              type: EventType.Track,
+              event: "SIGNUP",
               userId,
-              definition: journeyDefinition,
-              version: UserJourneyWorkflowVersion.V3,
-              eventKey: signupId,
               messageId,
-            },
+              properties: {
+                signupId,
+              },
+              timestamp: new Date(startTime).toISOString(),
+            } satisfies BatchItem,
           ],
-        });
-
-        // Get the time after the workflow completes
-        const endTime = await testEnv.currentTimeMs();
-
-        // Convert the end time to America/New_York timezone and verify it's 9 AM
-        const endDate = new Date(endTime);
-        const formatter = new Intl.DateTimeFormat("en-US", {
-          timeZone: "America/New_York",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        });
-        const nyTime = formatter.format(endDate);
-
-        // Should be 9:XX in New York time (allowing for small timing variations)
-        // Extract hour and minutes
-        const [hour, minute] = nyTime.split(":");
-        expect(hour).toBe("09");
-        // Minutes should be close to 00 (allow up to 5 minutes of workflow overhead)
-        expect(minute).toBeDefined();
-        expect(parseInt(minute ?? "0", 10)).toBeLessThan(5);
+        },
       });
+
+      // Execute the workflow and wait for it to complete
+      await getTestEnv().client.workflow.execute(userJourneyWorkflow, {
+        workflowId: `workflow-${userId}-${signupId}`,
+        taskQueue: "default",
+        args: [
+          {
+            journeyId: journey.id,
+            workspaceId: workspace.id,
+            userId,
+            definition: journeyDefinition,
+            version: UserJourneyWorkflowVersion.V3,
+            eventKey: signupId,
+            messageId,
+          },
+        ],
+      });
+
+      // Get the time after the workflow completes
+      const endTime = await getTestEnv().currentTimeMs();
+
+      // Convert the end time to America/New_York timezone and verify it's 9 AM
+      const endDate = new Date(endTime);
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      const nyTime = formatter.format(endDate);
+
+      // Should be 9:XX in New York time (allowing for small timing variations)
+      // Extract hour and minutes
+      const [hour, minute] = nyTime.split(":");
+      expect(hour).toBe("09");
+      // Minutes should be close to 00 (allow up to 5 minutes of workflow overhead)
+      expect(minute).toBeDefined();
+      expect(parseInt(minute ?? "0", 10)).toBeLessThan(5);
     });
   });
   // FIXME run a test that starts a worker with the previous workflow and activity definitions and then signals the workflow with the new args
@@ -1732,103 +1764,102 @@ describe("keyedEventEntry journeys", () => {
         ]),
       ]);
 
-      await worker.runUntil(async () => {
-        const messageId1 = randomUUID();
-        const messageId2 = randomUUID();
+      const messageId1 = randomUUID();
+      const messageId2 = randomUUID();
+      const now = await getTestEnv().currentTimeMs();
 
-        // User 1: late_delivery_in_mins = 20 (>= 15, should satisfy segment)
-        const event1: BatchItem = {
-          type: EventType.Track,
-          event: "late_delivery",
-          userId: String(userId1),
-          messageId: messageId1,
-          properties: {
-            order_id: orderId1,
-            late_delivery_in_mins: 20,
-          },
-          timestamp: new Date().toISOString(),
-        };
+      // User 1: late_delivery_in_mins = 20 (>= 15, should satisfy segment)
+      const event1: BatchItem = {
+        type: EventType.Track,
+        event: "late_delivery",
+        userId: String(userId1),
+        messageId: messageId1,
+        properties: {
+          order_id: orderId1,
+          late_delivery_in_mins: 20,
+        },
+        timestamp: new Date(now).toISOString(),
+      };
 
-        // User 2: late_delivery_in_mins = 10 (< 15, should NOT satisfy segment)
-        const event2: BatchItem = {
-          type: EventType.Track,
-          event: "late_delivery",
-          userId: String(userId2),
-          messageId: messageId2,
-          properties: {
-            order_id: orderId2,
-            late_delivery_in_mins: 10,
-          },
-          timestamp: new Date().toISOString(),
-        };
+      // User 2: late_delivery_in_mins = 10 (< 15, should NOT satisfy segment)
+      const event2: BatchItem = {
+        type: EventType.Track,
+        event: "late_delivery",
+        userId: String(userId2),
+        messageId: messageId2,
+        properties: {
+          order_id: orderId2,
+          late_delivery_in_mins: 10,
+        },
+        timestamp: new Date(now + 1000).toISOString(),
+      };
 
-        await submitBatch({
-          workspaceId: workspace.id,
-          data: {
-            batch: [event1, event2],
-          },
-        });
-
-        const handle1 = await testEnv.client.workflow.start(
-          userJourneyWorkflow,
-          {
-            workflowId: `workflow-user1-${orderId1}`,
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId: String(userId1),
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V3,
-                eventKey: String(orderId1),
-                messageId: messageId1,
-              },
-            ],
-          },
-        );
-
-        const handle2 = await testEnv.client.workflow.start(
-          userJourneyWorkflow,
-          {
-            workflowId: `workflow-user2-${orderId2}`,
-            taskQueue: "default",
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId: String(userId2),
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V3,
-                eventKey: String(orderId2),
-                messageId: messageId2,
-              },
-            ],
-          },
-        );
-
-        await Promise.all([handle1.result(), handle2.result()]);
-
-        // Check that user 1 (who satisfies the segment) received at least one message
-        const user1Messages = senderMock.mock.calls.filter(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          (call) => call[0].userId === String(userId1),
-        );
-        expect(
-          user1Messages.length,
-          "user 1 (late_delivery_in_mins >= 15) should have received at least one message",
-        ).toBeGreaterThanOrEqual(1);
-
-        // Check that user 2 (who does not satisfy the segment) received no messages
-        const user2Messages = senderMock.mock.calls.filter(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          (call) => call[0].userId === String(userId2),
-        );
-        expect(
-          user2Messages.length,
-          "user 2 (late_delivery_in_mins < 15) should not have received any messages",
-        ).toBe(0);
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [event1, event2],
+        },
       });
+
+      const handle1 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow-user1-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId: String(userId1),
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: String(orderId1),
+              messageId: messageId1,
+            },
+          ],
+        },
+      );
+
+      const handle2 = await getTestEnv().client.workflow.start(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow-user2-${randomUUID()}`,
+          taskQueue: "default",
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId: String(userId2),
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V3,
+              eventKey: String(orderId2),
+              messageId: messageId2,
+            },
+          ],
+        },
+      );
+
+      await Promise.all([handle1.result(), handle2.result()]);
+
+      // Check that user 1 (who satisfies the segment) received at least one message
+      const user1Messages = senderMock.mock.calls.filter(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (call) => call[0].userId === String(userId1),
+      );
+      expect(
+        user1Messages.length,
+        "user 1 (late_delivery_in_mins >= 15) should have received at least one message",
+      ).toBeGreaterThanOrEqual(1);
+
+      // Check that user 2 (who does not satisfy the segment) received no messages
+      const user2Messages = senderMock.mock.calls.filter(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (call) => call[0].userId === String(userId2),
+      );
+      expect(
+        user2Messages.length,
+        "user 2 (late_delivery_in_mins < 15) should not have received any messages",
+      ).toBe(0);
     });
   });
 });

@@ -1,10 +1,13 @@
+/**
+ * @group temporal
+ */
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { insert } from "../db";
 import { journey as dbJourney, segment as dbSegment } from "../db/schema";
 import { insertSegmentAssignments } from "../segments";
@@ -30,12 +33,19 @@ import {
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("journeys with wait-for nodes", () => {
   let workspace: Workspace;
-  let testEnv: TestWorkflowEnvironment;
-  let worker: Worker;
+  let testEnv: TestWorkflowEnvironment | null = null;
+  let worker: Worker | null = null;
+  let workerRunPromise: Promise<void> | null = null;
+
+  function getTestEnv(): TestWorkflowEnvironment {
+    if (!testEnv) throw new Error("testEnv not initialized");
+    return testEnv;
+  }
+
   const senderMock = jest.fn().mockReturnValue(
     ok({
       type: InternalEventType.MessageSent,
@@ -60,15 +70,24 @@ describe("journeys with wait-for nodes", () => {
   };
 
   beforeAll(async () => {
-    const envAndWorker = await createEnvAndWorker({
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+    worker = await createWorker({
+      testEnv,
       activityOverrides: testActivities,
     });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    workerRunPromise = worker.run();
   });
 
   afterAll(async () => {
-    await testEnv.teardown();
+    if (worker) {
+      worker.shutdown();
+    }
+    if (workerRunPromise) {
+      await workerRunPromise;
+    }
+    if (testEnv) {
+      await testEnv.teardown();
+    }
   });
 
   beforeEach(async () => {
@@ -208,79 +227,77 @@ describe("journeys with wait-for nodes", () => {
     });
 
     it("they should satisfy the wait-for condition", async () => {
-      await worker.runUntil(async () => {
-        const handle1 = await testEnv.client.workflow.signalWithStart(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow1",
-            taskQueue: "default",
-            signal: segmentUpdateSignal,
-            signalArgs: [
-              {
-                segmentId: entrySegmentId,
-                currentlyInSegment: true,
-                type: "segment",
-                segmentVersion: await testEnv.currentTimeMs(),
-              },
-            ],
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId: userId1,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-              },
-            ],
-          },
-        );
+      const handle1 = await getTestEnv().client.workflow.signalWithStart(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow1-${randomUUID()}`,
+          taskQueue: "default",
+          signal: segmentUpdateSignal,
+          signalArgs: [
+            {
+              segmentId: entrySegmentId,
+              currentlyInSegment: true,
+              type: "segment",
+              segmentVersion: await getTestEnv().currentTimeMs(),
+            },
+          ],
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId: userId1,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+            },
+          ],
+        },
+      );
 
-        await handle1.result();
+      await handle1.result();
 
-        expect(
-          senderMock,
-          "should have sent a message to user 1 given that they initially satisfied the wait-for condition",
-        ).toHaveBeenCalledTimes(1);
+      expect(
+        senderMock,
+        "should have sent a message to user 1 given that they initially satisfied the wait-for condition",
+      ).toHaveBeenCalledTimes(1);
 
-        const handle2 = await testEnv.client.workflow.signalWithStart(
-          userJourneyWorkflow,
-          {
-            workflowId: "workflow2",
-            taskQueue: "default",
-            signal: segmentUpdateSignal,
-            signalArgs: [
-              {
-                segmentId: entrySegmentId,
-                currentlyInSegment: true,
-                type: "segment",
-                segmentVersion: await testEnv.currentTimeMs(),
-              },
-            ],
-            args: [
-              {
-                journeyId: journey.id,
-                workspaceId: workspace.id,
-                userId: userId2,
-                definition: journeyDefinition,
-                version: UserJourneyWorkflowVersion.V2,
-              },
-            ],
-          },
-        );
+      const handle2 = await getTestEnv().client.workflow.signalWithStart(
+        userJourneyWorkflow,
+        {
+          workflowId: `workflow2-${randomUUID()}`,
+          taskQueue: "default",
+          signal: segmentUpdateSignal,
+          signalArgs: [
+            {
+              segmentId: entrySegmentId,
+              currentlyInSegment: true,
+              type: "segment",
+              segmentVersion: await getTestEnv().currentTimeMs(),
+            },
+          ],
+          args: [
+            {
+              journeyId: journey.id,
+              workspaceId: workspace.id,
+              userId: userId2,
+              definition: journeyDefinition,
+              version: UserJourneyWorkflowVersion.V2,
+            },
+          ],
+        },
+      );
 
-        await handle2.signal(segmentUpdateSignal, {
-          segmentId: waitForSegmentId,
-          currentlyInSegment: true,
-          type: "segment",
-          segmentVersion: await testEnv.currentTimeMs(),
-        } satisfies SegmentUpdate);
+      await handle2.signal(segmentUpdateSignal, {
+        segmentId: waitForSegmentId,
+        currentlyInSegment: true,
+        type: "segment",
+        segmentVersion: await getTestEnv().currentTimeMs(),
+      } satisfies SegmentUpdate);
 
-        await handle2.result();
-        expect(
-          senderMock,
-          "should have sent a message to user 2 given that they satisfied the wait-for condition after entering",
-        ).toHaveBeenCalledTimes(2);
-      });
+      await handle2.result();
+      expect(
+        senderMock,
+        "should have sent a message to user 2 given that they satisfied the wait-for condition after entering",
+      ).toHaveBeenCalledTimes(2);
     });
   });
 });

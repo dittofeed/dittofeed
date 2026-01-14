@@ -13,6 +13,7 @@ const config = {
   projects: [
     {
       ...BASE_CONFIG,
+      runner: "groups",
       globalTeardown: "<rootDir>/packages/backend-lib/test/globalTeardown.ts",
       globalSetup: "<rootDir>/packages/backend-lib/test/globalSetup.ts",
       setupFilesAfterEnv: [

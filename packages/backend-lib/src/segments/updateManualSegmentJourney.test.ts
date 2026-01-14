@@ -1,3 +1,6 @@
+/**
+ * @group temporal
+ */
 /* eslint-disable no-await-in-loop */
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
@@ -6,7 +9,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
 import { sleep } from "isomorphic-lib/src/time";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { submitBatch } from "../apps/batch";
 import { searchDeliveries } from "../deliveries";
 import { upsertJourney } from "../journeys";
@@ -42,13 +45,12 @@ describe.skip("when a segment entry journey has a manual segment", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  let workerRunPromise: Promise<void> | null = null;
   let journey: JourneyResource;
   let segment: SegmentResource;
 
   beforeAll(async () => {
-    const envAndWorker = await createEnvAndWorker();
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
   });
 
   afterAll(async () => {
@@ -61,6 +63,20 @@ describe.skip("when a segment entry journey has a manual segment", () => {
         name: randomUUID(),
       }),
     );
+    worker = await createWorker({
+      testEnv,
+      buildId: workspace.id,
+    });
+    workerRunPromise = worker.run();
+  });
+
+  afterEach(async () => {
+    if (worker) {
+      worker.shutdown();
+    }
+    if (workerRunPromise) {
+      await workerRunPromise;
+    }
   });
 
   describe("and a user is added to the segment", () => {
@@ -175,50 +191,48 @@ describe.skip("when a segment entry journey has a manual segment", () => {
       });
     });
     it("they should be messaged", async () => {
-      await worker.runUntil(async () => {
-        const handle1 = await testEnv.client.workflow.signalWithStart(
-          manualSegmentWorkflow,
-          {
-            workflowId: randomUUID(),
-            taskQueue: "default",
-            signal: enqueueManualSegmentOperation,
-            args: [
-              {
-                workspaceId: workspace.id,
-                segmentId: segment.id,
-              },
-            ],
-            signalArgs: [
-              {
-                type: ManualSegmentOperationTypeEnum.Append,
-                userIds: ["1"],
-              },
-            ],
-          },
-        );
-        await handle1.result();
-        let deliveries: SearchDeliveriesResponse["items"] = [];
-        for (let i = 0; i < 10; i++) {
-          deliveries = (
-            await searchDeliveries({
+      const handle1 = await testEnv.client.workflow.signalWithStart(
+        manualSegmentWorkflow,
+        {
+          workflowId: randomUUID(),
+          taskQueue: "default",
+          signal: enqueueManualSegmentOperation,
+          args: [
+            {
               workspaceId: workspace.id,
-            })
-          ).items;
-          await sleep(1000);
-          if (deliveries.length > 0) {
-            break;
-          }
-        }
-        if (!deliveries.length) {
-          const events = await findManyEventsWithCount({
+              segmentId: segment.id,
+            },
+          ],
+          signalArgs: [
+            {
+              type: ManualSegmentOperationTypeEnum.Append,
+              userIds: ["1"],
+            },
+          ],
+        },
+      );
+      await handle1.result();
+      let deliveries: SearchDeliveriesResponse["items"] = [];
+      for (let i = 0; i < 10; i++) {
+        deliveries = (
+          await searchDeliveries({
             workspaceId: workspace.id,
-          });
-          logger().error({ events }, "events after not finding deliveries");
-          throw new Error("Deliveries not found");
+          })
+        ).items;
+        await sleep(1000);
+        if (deliveries.length > 0) {
+          break;
         }
-        expect(deliveries[0]?.userId).toBe("1");
-        expect(deliveries[0]?.journeyId).toBe(journey.id);
-      });
+      }
+      if (!deliveries.length) {
+        const events = await findManyEventsWithCount({
+          workspaceId: workspace.id,
+        });
+        logger().error({ events }, "events after not finding deliveries");
+        throw new Error("Deliveries not found");
+      }
+      expect(deliveries[0]?.userId).toBe("1");
+      expect(deliveries[0]?.journeyId).toBe(journey.id);
     });
   });
 });

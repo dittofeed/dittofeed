@@ -11,6 +11,7 @@ import {
 // Only import the activity types
 import type * as activities from "../temporal/activities";
 import { BroadcastV2Status, DBWorkspaceOccupantType } from "../types";
+import type { SendMessagesResponse } from "./activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -30,14 +31,6 @@ const {
 
 const { config } = proxyActivities<typeof activities>({
   startToCloseTimeout: "1 minutes",
-});
-
-const { sendMessages } = proxyActivities<typeof activities>({
-  startToCloseTimeout: "5 minutes",
-  retry: {
-    initialInterval: "1 second",
-    maximumAttempts: 5,
-  },
 });
 
 export function generateBroadcastWorkflowV2Id({
@@ -150,9 +143,22 @@ export async function broadcastWorkflowV2({
       batchSize: number;
     }) {
       let cursor: string | null = null;
-      const { computedPropertiesActivityTaskQueue } = await config([
+      const {
+        computedPropertiesActivityTaskQueue,
+        broadcastSendMessagesMaxAttempts,
+      } = await config([
         "computedPropertiesActivityTaskQueue",
+        "broadcastSendMessagesMaxAttempts",
       ]);
+
+      const { sendMessages } = proxyActivities<typeof activities>({
+        startToCloseTimeout: "5 minutes",
+        retry: {
+          initialInterval: "1 second",
+          maximumAttempts: broadcastSendMessagesMaxAttempts,
+        },
+      });
+
       const { recomputeBroadcastSegment } = proxyActivities<typeof activities>({
         startToCloseTimeout: "5 minutes",
         taskQueue: computedPropertiesActivityTaskQueue,
@@ -184,17 +190,20 @@ export async function broadcastWorkflowV2({
         }
         const activityStartTime = Date.now();
 
-        const { nextCursor, messagesSent, includesNonRetryableError } =
-          await sendMessages({
-            workspaceId,
-            broadcastId,
-            timezones,
-            limit: batchSize,
-            cursor: cursor ?? undefined,
-            now: activityStartTime,
-            workspaceOccupantId,
-            workspaceOccupantType,
-          });
+        const {
+          nextCursor,
+          messagesSent,
+          includesNonRetryableError,
+        }: SendMessagesResponse = await sendMessages({
+          workspaceId,
+          broadcastId,
+          timezones,
+          limit: batchSize,
+          cursor: cursor ?? undefined,
+          now: activityStartTime,
+          workspaceOccupantId,
+          workspaceOccupantType,
+        });
 
         const activityEndTime = Date.now();
         const activityDurationMillis = activityEndTime - activityStartTime;
@@ -202,7 +211,7 @@ export async function broadcastWorkflowV2({
         // Refactored logging
         logger.info("sendMessages activity completed.", {
           durationMs: activityDurationMillis,
-          messagesSent,
+          messagesSent: messagesSent ?? null,
           nextCursor: nextCursor ?? null,
         });
 

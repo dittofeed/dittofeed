@@ -536,7 +536,7 @@ export async function upsertSegment(
               workspaceId: params.workspaceId,
               segmentId: existingSegment.id,
             },
-            "segment not found",
+            "segment not found after update",
           );
           throw new Error("segment not found");
         }
@@ -569,7 +569,7 @@ export async function upsertSegment(
             workspaceId: params.workspaceId,
             name: params.name,
           },
-          "segment not found",
+          "segment not found after create",
         );
         throw new Error("segment not found");
       }

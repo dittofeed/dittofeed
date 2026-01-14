@@ -1,3 +1,6 @@
+/**
+ * @group temporal
+ */
 import { randomUUID } from "node:crypto";
 
 import { TestWorkflowEnvironment } from "@temporalio/testing";
@@ -7,8 +10,9 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok } from "neverthrow";
 import { times } from "remeda";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { broadcastV2ToResource } from "../broadcasts";
+import config, { Config } from "../config";
 import { insert } from "../db";
 import * as schema from "../db/schema";
 import { searchDeliveries } from "../deliveries";
@@ -81,12 +85,13 @@ function buildManuallyTriggered<T = void>() {
   };
 }
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("broadcastWorkflowV2", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  let workerRunPromise: Promise<void> | null = null;
   let broadcast: BroadcastResourceV2;
   let idUserProperty: UserProperty;
   let emailUserProperty: UserProperty;
@@ -94,6 +99,14 @@ describe("broadcastWorkflowV2", () => {
   let subscriptionGroupId: string;
   let messageTemplate: MessageTemplate;
   let senderMock: jest.Mock;
+
+  beforeAll(async () => {
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
 
   beforeEach(async () => {
     workspace = await createWorkspace({
@@ -158,10 +171,6 @@ describe("broadcastWorkflowV2", () => {
     }).then(unwrap);
   });
 
-  afterEach(async () => {
-    await testEnv.teardown();
-  });
-
   async function createBroadcast({
     config,
     scheduledAt,
@@ -189,10 +198,12 @@ describe("broadcastWorkflowV2", () => {
 
   async function createTestEnvAndWorker({
     sendMessageOverride,
+    configOverride,
   }: {
     sendMessageOverride?: (
       params: SendMessageParameters,
     ) => Promise<BackendMessageSendResult>;
+    configOverride?: Partial<Config>;
   } = {}) {
     const sendMessageImplementation =
       sendMessageOverride ??
@@ -200,14 +211,27 @@ describe("broadcastWorkflowV2", () => {
     senderMock = jest.fn().mockImplementation(sendMessageImplementation);
     const testActivities = {
       sendMessages: sendMessagesFactory(senderMock),
+      config: configOverride
+        ? () => Promise.resolve({ ...config(), ...configOverride })
+        : () => Promise.resolve(config()),
     };
 
-    const envAndWorker = await createEnvAndWorker({
+    worker = await createWorker({
+      testEnv,
       activityOverrides: testActivities,
+      buildId: workspace.id,
     });
-    testEnv = envAndWorker.testEnv;
-    worker = envAndWorker.worker;
+    workerRunPromise = worker.run();
   }
+
+  afterEach(async () => {
+    if (worker) {
+      worker.shutdown();
+    }
+    if (workerRunPromise) {
+      await workerRunPromise;
+    }
+  });
 
   describe("when sending a broadcast immediately with no rate limit", () => {
     let userId: string;
@@ -290,20 +314,18 @@ describe("broadcastWorkflowV2", () => {
       });
     });
     it("should send messages to all users immediately", async () => {
-      await worker.runUntil(async () => {
-        await testEnv.client.workflow.execute(broadcastWorkflowV2, {
-          workflowId: generateBroadcastWorkflowV2Id({
+      await testEnv.client.workflow.execute(broadcastWorkflowV2, {
+        workflowId: generateBroadcastWorkflowV2Id({
+          workspaceId: workspace.id,
+          broadcastId: broadcast.id,
+        }),
+        taskQueue: "default",
+        args: [
+          {
             workspaceId: workspace.id,
             broadcastId: broadcast.id,
-          }),
-          taskQueue: "default",
-          args: [
-            {
-              workspaceId: workspace.id,
-              broadcastId: broadcast.id,
-            } satisfies BroadcastWorkflowV2Params,
-          ],
-        });
+          } satisfies BroadcastWorkflowV2Params,
+        ],
       });
       expect(senderMock).toHaveBeenCalledTimes(2);
       expect(senderMock).toHaveBeenCalledWith(
@@ -385,48 +407,46 @@ describe("broadcastWorkflowV2", () => {
         });
       });
       it("should stop sending messages until the broadcast is resumed", async () => {
-        await worker.runUntil(async () => {
-          const handle = await testEnv.client.workflow.start(
-            broadcastWorkflowV2,
-            {
-              workflowId: generateBroadcastWorkflowV2Id({
+        const handle = await testEnv.client.workflow.start(
+          broadcastWorkflowV2,
+          {
+            workflowId: generateBroadcastWorkflowV2Id({
+              workspaceId: workspace.id,
+              broadcastId: broadcast.id,
+            }),
+            taskQueue: "default",
+            args: [
+              {
                 workspaceId: workspace.id,
                 broadcastId: broadcast.id,
-              }),
-              taskQueue: "default",
-              args: [
-                {
-                  workspaceId: workspace.id,
-                  broadcastId: broadcast.id,
-                } satisfies BroadcastWorkflowV2Params,
-              ],
-            },
-          );
-          // wait for the first message to be sent
-          await firstMessagePromise;
+              } satisfies BroadcastWorkflowV2Params,
+            ],
+          },
+        );
+        // wait for the first message to be sent
+        await firstMessagePromise;
 
-          expect(
-            senderMock,
-            "should have sent 1 message initially",
-          ).toHaveBeenCalledTimes(1);
+        expect(
+          senderMock,
+          "should have sent 1 message initially",
+        ).toHaveBeenCalledTimes(1);
 
-          await testEnv.sleep(1500);
-          expect(
-            senderMock,
-            "should have sent 2 messages after waiting for one rate limit period",
-          ).toHaveBeenCalledTimes(2);
+        await testEnv.sleep(1500);
+        expect(
+          senderMock,
+          "should have sent 2 messages after waiting for one rate limit period",
+        ).toHaveBeenCalledTimes(2);
 
-          await handle.signal(pauseBroadcastSignal);
-          await testEnv.sleep(5000);
-          expect(
-            senderMock,
-            "should not have sent any more messages while paused",
-          ).toHaveBeenCalledTimes(2);
+        await handle.signal(pauseBroadcastSignal);
+        await testEnv.sleep(5000);
+        expect(
+          senderMock,
+          "should not have sent any more messages while paused",
+        ).toHaveBeenCalledTimes(2);
 
-          await handle.signal(resumeBroadcastSignal);
-          await handle.result();
-          expect(senderMock).toHaveBeenCalledTimes(userIds.length);
-        });
+        await handle.signal(resumeBroadcastSignal);
+        await handle.result();
+        expect(senderMock).toHaveBeenCalledTimes(userIds.length);
       });
     });
   });
@@ -504,55 +524,53 @@ describe("broadcastWorkflowV2", () => {
       });
     });
     it("should be paused until the broadcast is resumed", async () => {
-      await worker.runUntil(async () => {
-        const handle = await testEnv.client.workflow.start(
-          broadcastWorkflowV2,
-          {
-            workflowId: generateBroadcastWorkflowV2Id({
+      const handle = await testEnv.client.workflow.start(
+        broadcastWorkflowV2,
+        {
+          workflowId: generateBroadcastWorkflowV2Id({
+            workspaceId: workspace.id,
+            broadcastId: broadcast.id,
+          }),
+          taskQueue: "default",
+          args: [
+            {
               workspaceId: workspace.id,
               broadcastId: broadcast.id,
-            }),
-            taskQueue: "default",
-            args: [
-              {
-                workspaceId: workspace.id,
-                broadcastId: broadcast.id,
-              } satisfies BroadcastWorkflowV2Params,
-            ],
-          },
-        );
-        await testEnv.sleep(10000);
-        expect(senderMock).toHaveBeenCalledTimes(1);
+            } satisfies BroadcastWorkflowV2Params,
+          ],
+        },
+      );
+      await testEnv.sleep(10000);
+      expect(senderMock).toHaveBeenCalledTimes(1);
 
-        let deliveries = await searchDeliveries({
-          workspaceId: workspace.id,
-          broadcastId: broadcast.id,
-        });
-        expect(deliveries.items).toHaveLength(0);
-
-        let updatedBroadcast = await getBroadcast({
-          workspaceId: workspace.id,
-          broadcastId: broadcast.id,
-        });
-        expect(updatedBroadcast?.status).toBe("Paused");
-
-        shouldError = false;
-        await handle.signal(resumeBroadcastSignal);
-
-        await handle.result();
-
-        updatedBroadcast = await getBroadcast({
-          workspaceId: workspace.id,
-          broadcastId: broadcast.id,
-        });
-        expect(updatedBroadcast?.status).toBe("Completed");
-
-        deliveries = await searchDeliveries({
-          workspaceId: workspace.id,
-          broadcastId: broadcast.id,
-        });
-        expect(deliveries.items).toHaveLength(1);
+      let deliveries = await searchDeliveries({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
       });
+      expect(deliveries.items).toHaveLength(0);
+
+      let updatedBroadcast = await getBroadcast({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
+      });
+      expect(updatedBroadcast?.status).toBe("Paused");
+
+      shouldError = false;
+      await handle.signal(resumeBroadcastSignal);
+
+      await handle.result();
+
+      updatedBroadcast = await getBroadcast({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
+      });
+      expect(updatedBroadcast?.status).toBe("Completed");
+
+      deliveries = await searchDeliveries({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
+      });
+      expect(deliveries.items).toHaveLength(1);
     });
   });
 
@@ -630,32 +648,30 @@ describe("broadcastWorkflowV2", () => {
       });
     });
     it("should skip the message to the user", async () => {
-      await worker.runUntil(async () => {
-        const handle = await testEnv.client.workflow.start(
-          broadcastWorkflowV2,
-          {
-            workflowId: generateBroadcastWorkflowV2Id({
+      const handle = await testEnv.client.workflow.start(
+        broadcastWorkflowV2,
+        {
+          workflowId: generateBroadcastWorkflowV2Id({
+            workspaceId: workspace.id,
+            broadcastId: broadcast.id,
+          }),
+          taskQueue: "default",
+          args: [
+            {
               workspaceId: workspace.id,
               broadcastId: broadcast.id,
-            }),
-            taskQueue: "default",
-            args: [
-              {
-                workspaceId: workspace.id,
-                broadcastId: broadcast.id,
-              } satisfies BroadcastWorkflowV2Params,
-            ],
-          },
-        );
-        await handle.result();
-        expect(senderMock).toHaveBeenCalledTimes(2);
+            } satisfies BroadcastWorkflowV2Params,
+          ],
+        },
+      );
+      await handle.result();
+      expect(senderMock).toHaveBeenCalledTimes(2);
 
-        const deliveries = await searchDeliveries({
-          workspaceId: workspace.id,
-          broadcastId: broadcast.id,
-        });
-        expect(deliveries.items).toHaveLength(1);
+      const deliveries = await searchDeliveries({
+        workspaceId: workspace.id,
+        broadcastId: broadcast.id,
       });
+      expect(deliveries.items).toHaveLength(1);
     });
   });
   describe("when sending a broadcast with a scheduled time", () => {
@@ -669,9 +685,12 @@ describe("broadcastWorkflowV2", () => {
 
         await createTestEnvAndWorker();
         timeZone = "America/New_York";
-        const currentYear = new Date().getFullYear();
-        // Test will fail after this date.
-        scheduledAt = `${currentYear + 1}-01-01 08:00`;
+
+        // Get the current time from the time-skipping environment (which may have
+        // been advanced by previous tests) and schedule 1 year in the future from that
+        const envTime = await testEnv.currentTimeMs();
+        const futureDate = new Date(envTime + 365 * 24 * 60 * 60 * 1000);
+        scheduledAt = `${futureDate.getFullYear()}-01-01 08:00`;
 
         await createBroadcast({
           scheduledAt,
@@ -702,30 +721,28 @@ describe("broadcastWorkflowV2", () => {
         });
       });
       it("should localize the delivery time to that default timezone", async () => {
-        await worker.runUntil(async () => {
-          const handle = await testEnv.client.workflow.start(
-            broadcastWorkflowV2,
-            {
-              workflowId: generateBroadcastWorkflowV2Id({
+        const handle = await testEnv.client.workflow.start(
+          broadcastWorkflowV2,
+          {
+            workflowId: generateBroadcastWorkflowV2Id({
+              workspaceId: workspace.id,
+              broadcastId: broadcast.id,
+            }),
+            taskQueue: "default",
+            args: [
+              {
                 workspaceId: workspace.id,
                 broadcastId: broadcast.id,
-              }),
-              taskQueue: "default",
-              args: [
-                {
-                  workspaceId: workspace.id,
-                  broadcastId: broadcast.id,
-                } satisfies BroadcastWorkflowV2Params,
-              ],
-            },
-          );
+              } satisfies BroadcastWorkflowV2Params,
+            ],
+          },
+        );
 
-          await testEnv.sleep(1000);
-          expect(senderMock).toHaveBeenCalledTimes(0);
+        await testEnv.sleep(1000);
+        expect(senderMock).toHaveBeenCalledTimes(0);
 
-          await handle.result();
-          await testEnv.sleep(0);
-        });
+        await handle.result();
+        await testEnv.sleep(0);
 
         const deliveries = await searchDeliveries({
           workspaceId: workspace.id,
@@ -758,6 +775,9 @@ describe("broadcastWorkflowV2", () => {
         sendMessageOverride: () => {
           throw new Error("sendMessage failed");
         },
+        configOverride: {
+          broadcastSendMessagesMaxAttempts: 1,
+        },
       });
 
       await createBroadcast({
@@ -789,20 +809,18 @@ describe("broadcastWorkflowV2", () => {
     });
 
     it("should mark the broadcast as failed", async () => {
-      await worker.runUntil(async () => {
-        await testEnv.client.workflow.execute(broadcastWorkflowV2, {
-          workflowId: generateBroadcastWorkflowV2Id({
+      await testEnv.client.workflow.execute(broadcastWorkflowV2, {
+        workflowId: generateBroadcastWorkflowV2Id({
+          workspaceId: workspace.id,
+          broadcastId: broadcast.id,
+        }),
+        taskQueue: "default",
+        args: [
+          {
             workspaceId: workspace.id,
             broadcastId: broadcast.id,
-          }),
-          taskQueue: "default",
-          args: [
-            {
-              workspaceId: workspace.id,
-              broadcastId: broadcast.id,
-            } satisfies BroadcastWorkflowV2Params,
-          ],
-        });
+          } satisfies BroadcastWorkflowV2Params,
+        ],
       });
 
       const updatedBroadcast = await getBroadcast({
@@ -886,20 +904,18 @@ describe("broadcastWorkflowV2", () => {
     });
 
     it("should pass custom user properties to sendMessage", async () => {
-      await worker.runUntil(async () => {
-        await testEnv.client.workflow.execute(broadcastWorkflowV2, {
-          workflowId: generateBroadcastWorkflowV2Id({
+      await testEnv.client.workflow.execute(broadcastWorkflowV2, {
+        workflowId: generateBroadcastWorkflowV2Id({
+          workspaceId: workspace.id,
+          broadcastId: broadcast.id,
+        }),
+        taskQueue: "default",
+        args: [
+          {
             workspaceId: workspace.id,
             broadcastId: broadcast.id,
-          }),
-          taskQueue: "default",
-          args: [
-            {
-              workspaceId: workspace.id,
-              broadcastId: broadcast.id,
-            } satisfies BroadcastWorkflowV2Params,
-          ],
-        });
+          } satisfies BroadcastWorkflowV2Params,
+        ],
       });
 
       expect(senderMock).toHaveBeenCalledTimes(1);

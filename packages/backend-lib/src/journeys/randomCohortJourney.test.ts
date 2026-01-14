@@ -1,10 +1,13 @@
+/**
+ * @group temporal
+ */
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ok } from "neverthrow";
 
-import { createEnvAndWorker } from "../../test/temporal";
+import { createWorker } from "../../test/temporal";
 import { insert } from "../db";
 import { journey as dbJourney } from "../db/schema";
 import {
@@ -23,12 +26,13 @@ import {
 } from "./userWorkflow";
 import { sendMessageFactory } from "./userWorkflow/activities";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 describe("randomCohortJourney", () => {
   let workspace: Workspace;
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
+  let workerRunPromise: Promise<void> | null = null;
   let journey: Journey;
   let journeyDefinition: JourneyDefinition;
   let templateId1: string;
@@ -53,6 +57,14 @@ describe("randomCohortJourney", () => {
       },
     }),
   );
+
+  beforeAll(async () => {
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+  });
+
+  afterAll(async () => {
+    await testEnv.teardown();
+  });
 
   beforeEach(async () => {
     workspace = unwrap(
@@ -142,8 +154,7 @@ describe("randomCohortJourney", () => {
     }).then(unwrap);
   });
 
-  afterEach(async () => {
-    await testEnv.teardown();
+  afterEach(() => {
     senderMock.mockClear();
   });
 
@@ -154,45 +165,53 @@ describe("randomCohortJourney", () => {
         getRandomNumber: jest.fn().mockResolvedValue(0.1),
       };
 
-      const envAndWorker = await createEnvAndWorker({
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
+        buildId: workspace.id,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
+      workerRunPromise = worker.run();
+    });
+
+    afterEach(async () => {
+      if (worker) {
+        worker.shutdown();
+      }
+      if (workerRunPromise) {
+        await workerRunPromise;
+      }
     });
 
     it("receives the first message", async () => {
-      await worker.runUntil(async () => {
-        const userId = randomUUID();
-        const messageId = randomUUID();
+      const userId = randomUUID();
+      const messageId = randomUUID();
 
-        await testEnv.client.workflow.execute(userJourneyWorkflow, {
-          workflowId: randomUUID(),
-          taskQueue: "default",
-          args: [
-            {
-              journeyId: journey.id,
-              workspaceId: workspace.id,
-              userId,
-              definition: journeyDefinition,
-              version: UserJourneyWorkflowVersion.V2,
-              event: {
-                event: "TestEvent",
-                properties: {},
-                messageId,
-                timestamp: new Date().toISOString(),
-              },
+      await testEnv.client.workflow.execute(userJourneyWorkflow, {
+        workflowId: randomUUID(),
+        taskQueue: "default",
+        args: [
+          {
+            journeyId: journey.id,
+            workspaceId: workspace.id,
+            userId,
+            definition: journeyDefinition,
+            version: UserJourneyWorkflowVersion.V2,
+            event: {
+              event: "TestEvent",
+              properties: {},
+              messageId,
+              timestamp: new Date().toISOString(),
             },
-          ],
-        });
-
-        expect(senderMock).toHaveBeenCalledTimes(1);
-        expect(senderMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            templateId: templateId1,
-          }),
-        );
+          },
+        ],
       });
+
+      expect(senderMock).toHaveBeenCalledTimes(1);
+      expect(senderMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateId: templateId1,
+        }),
+      );
     });
   });
 
@@ -203,45 +222,53 @@ describe("randomCohortJourney", () => {
         getRandomNumber: jest.fn().mockResolvedValue(0.5),
       };
 
-      const envAndWorker = await createEnvAndWorker({
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
+        buildId: workspace.id,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
+      workerRunPromise = worker.run();
+    });
+
+    afterEach(async () => {
+      if (worker) {
+        worker.shutdown();
+      }
+      if (workerRunPromise) {
+        await workerRunPromise;
+      }
     });
 
     it("receives the second message", async () => {
-      await worker.runUntil(async () => {
-        const userId = randomUUID();
-        const messageId = randomUUID();
+      const userId = randomUUID();
+      const messageId = randomUUID();
 
-        await testEnv.client.workflow.execute(userJourneyWorkflow, {
-          workflowId: randomUUID(),
-          taskQueue: "default",
-          args: [
-            {
-              journeyId: journey.id,
-              workspaceId: workspace.id,
-              userId,
-              definition: journeyDefinition,
-              version: UserJourneyWorkflowVersion.V2,
-              event: {
-                event: "TestEvent",
-                properties: {},
-                messageId,
-                timestamp: new Date().toISOString(),
-              },
+      await testEnv.client.workflow.execute(userJourneyWorkflow, {
+        workflowId: randomUUID(),
+        taskQueue: "default",
+        args: [
+          {
+            journeyId: journey.id,
+            workspaceId: workspace.id,
+            userId,
+            definition: journeyDefinition,
+            version: UserJourneyWorkflowVersion.V2,
+            event: {
+              event: "TestEvent",
+              properties: {},
+              messageId,
+              timestamp: new Date().toISOString(),
             },
-          ],
-        });
-
-        expect(senderMock).toHaveBeenCalledTimes(1);
-        expect(senderMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            templateId: templateId2,
-          }),
-        );
+          },
+        ],
       });
+
+      expect(senderMock).toHaveBeenCalledTimes(1);
+      expect(senderMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateId: templateId2,
+        }),
+      );
     });
   });
 
@@ -252,45 +279,53 @@ describe("randomCohortJourney", () => {
         getRandomNumber: jest.fn().mockResolvedValue(0.9),
       };
 
-      const envAndWorker = await createEnvAndWorker({
+      worker = await createWorker({
+        testEnv,
         activityOverrides: testActivities,
+        buildId: workspace.id,
       });
-      testEnv = envAndWorker.testEnv;
-      worker = envAndWorker.worker;
+      workerRunPromise = worker.run();
+    });
+
+    afterEach(async () => {
+      if (worker) {
+        worker.shutdown();
+      }
+      if (workerRunPromise) {
+        await workerRunPromise;
+      }
     });
 
     it("receives the third message", async () => {
-      await worker.runUntil(async () => {
-        const userId = randomUUID();
-        const messageId = randomUUID();
+      const userId = randomUUID();
+      const messageId = randomUUID();
 
-        await testEnv.client.workflow.execute(userJourneyWorkflow, {
-          workflowId: randomUUID(),
-          taskQueue: "default",
-          args: [
-            {
-              journeyId: journey.id,
-              workspaceId: workspace.id,
-              userId,
-              definition: journeyDefinition,
-              version: UserJourneyWorkflowVersion.V2,
-              event: {
-                event: "TestEvent",
-                properties: {},
-                messageId,
-                timestamp: new Date().toISOString(),
-              },
+      await testEnv.client.workflow.execute(userJourneyWorkflow, {
+        workflowId: randomUUID(),
+        taskQueue: "default",
+        args: [
+          {
+            journeyId: journey.id,
+            workspaceId: workspace.id,
+            userId,
+            definition: journeyDefinition,
+            version: UserJourneyWorkflowVersion.V2,
+            event: {
+              event: "TestEvent",
+              properties: {},
+              messageId,
+              timestamp: new Date().toISOString(),
             },
-          ],
-        });
-
-        expect(senderMock).toHaveBeenCalledTimes(1);
-        expect(senderMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            templateId: templateId3,
-          }),
-        );
+          },
+        ],
       });
+
+      expect(senderMock).toHaveBeenCalledTimes(1);
+      expect(senderMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateId: templateId3,
+        }),
+      );
     });
   });
 });
