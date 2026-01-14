@@ -114,7 +114,6 @@ export async function getEventsByIdWithRetry(
     // This keeps workflows responsive while still handling brief ClickHouse
     // visibility lag right after writing events.
     const events = await pRetry(() => getEventsById(params, metadata), {
-      retries: 10,
       minTimeout: 50,
       maxTimeout: 1000,
       maxRetryTime: 60_000,
