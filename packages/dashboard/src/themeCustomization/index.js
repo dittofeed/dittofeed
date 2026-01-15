@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 // material-ui
 import { CssBaseline } from "@mui/material";
@@ -9,17 +9,42 @@ import Palette from "./palette";
 import Typography from "./typography";
 import CustomShadows from "./shadows";
 import componentsOverride from "./overrides";
+import { useThemeMode } from "./ThemeContext";
 
-// ==============================|| DEFAULT THEME - MAIN  ||============================== //
-
+// ==============================|| THEME CUSTOMIZATION (WITH DARK/LIGHT/SYSTEM) ||============================== //
 export default function ThemeCustomization({ children }) {
-  const theme = Palette("light", "default");
+  // Get mode from context
+  const { mode: selectedMode } = useThemeMode();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Handle system theme detection
+  const isSystemDark =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+  // Resolve final theme considering system mode
+  const resolvedMode =
+    selectedMode === "system" ? (isSystemDark ? "dark" : "light") : selectedMode;
+
+  // Watch system theme changes in "system" mode
+  useEffect(() => {
+    if (selectedMode === "system") {
+      const listener = () => {
+        // Force re-render by updating a dummy state or just let the component re-render
+        window.dispatchEvent(new Event("theme-change"));
+      };
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      mediaQuery.addEventListener("change", listener);
+      return () => {
+        mediaQuery.removeEventListener("change", listener);
+      };
+    }
+  }, [selectedMode]);
+
+  // Generate palette based on resolved mode
+  const theme = Palette(resolvedMode, "default");
   const themeTypography = Typography(
-    "Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji",
+    "Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji"
   );
-
   const themeCustomShadows = useMemo(() => CustomShadows(theme), [theme]);
 
   const themeOptions = useMemo(
@@ -45,14 +70,14 @@ export default function ThemeCustomization({ children }) {
       customShadows: themeCustomShadows,
       typography: themeTypography,
     }),
-    [theme, themeTypography, themeCustomShadows],
+    [theme, themeTypography, themeCustomShadows]
   );
 
-  const themes = createTheme(themeOptions);
-  themes.components = componentsOverride(themes);
+  const muiTheme = createTheme(themeOptions);
+  muiTheme.components = componentsOverride(muiTheme);
 
   return (
-    <ThemeProvider theme={themes}>
+    <ThemeProvider theme={muiTheme}>
       <CssBaseline />
       {children}
     </ThemeProvider>
