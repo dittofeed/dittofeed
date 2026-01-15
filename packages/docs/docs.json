@@ -267,7 +267,10 @@
               "api-reference/auto/segments/get-apiadminsegmentsmanual-segmentstatus",
               "api-reference/auto/analysis/get-apiadminanalysischart-data",
               "api-reference/auto/analysis/get-apiadminanalysissummary",
-              "api-reference/auto/analysis/get-apiadminanalysisjourney-stats"
+              "api-reference/auto/analysis/get-apiadminanalysisjourney-stats",
+              "api-reference/auto/componentconfigurations/get-apiadmincomponent-configurations",
+              "api-reference/auto/componentconfigurations/put-apiadmincomponent-configurations",
+              "api-reference/auto/componentconfigurations/delete-apiadmincomponent-configurations"
             ]
           }
         ]

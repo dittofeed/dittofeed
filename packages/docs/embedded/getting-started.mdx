@@ -139,6 +139,68 @@ The broadcast editor allows you to create and edit broadcasts.
 ></iframe>
 ```
 
+#### Broadcast Configuration
+
+The broadcast editor supports configuration to customize which steps, providers, and UI elements are available.
+
+```typescript
+interface BroadcastConfiguration {
+  // Discriminator field - must be "Broadcast" for this configuration type
+  type: "Broadcast";
+
+  // Controls which steps/tabs are visible in the broadcast editor workflow.
+  // If not specified, all steps are shown.
+  // Options:
+  //   - "RECIPIENTS": The segment selection step where users choose who receives the broadcast
+  //   - "CONTENT": The message template editing step where users compose the broadcast content
+  //   - "CONFIGURATION": The settings step for scheduling, rate limiting, and provider selection
+  //   - "DELIVERIES": The deliveries table showing sent messages after the broadcast is triggered
+  //   - "EVENTS": The events log showing delivery events (opens, clicks, bounces, etc.)
+  stepsAllowList?: ("RECIPIENTS" | "CONTENT" | "CONFIGURATION" | "DELIVERIES" | "EVENTS")[];
+
+  // Restricts which email providers can be selected as overrides for this broadcast.
+  // If not specified, all configured workspace providers are available.
+  // Options: "SendGrid", "AmazonSes", "Resend", "PostMark", "Smtp", "Test", "MailChimp", "Gmail"
+  emailProviderOverrideAllowList?: ("SendGrid" | "AmazonSes" | "Resend" | "PostMark" | "Smtp" | "Test" | "MailChimp" | "Gmail")[];
+
+  // When true, hides the email provider override dropdown selector.
+  // Use this to force broadcasts to use the workspace default provider.
+  hideOverrideSelect?: boolean;
+
+  // When true, hides the scheduling options (send now vs. schedule for later).
+  // Use this to simplify the UI when scheduling is not needed.
+  hideScheduledSelect?: boolean;
+
+  // When true, hides the rate limiting configuration options.
+  // Rate limiting controls how many messages are sent per time period.
+  hideRateLimit?: boolean;
+
+  // When true, hides the side drawer that shows additional broadcast details.
+  // Use this for a more streamlined, focused editing experience.
+  hideDrawer?: boolean;
+
+  // When true, hides the user properties panel in the template editor.
+  // This panel shows available user properties for personalization (e.g., {{user.name}}).
+  hideTemplateUserPropertiesPanel?: boolean;
+
+  // When true, shows advanced error handling options for message delivery failures.
+  // Includes retry configuration and failure notification settings.
+  showErrorHandling?: boolean;
+
+  // Restricts which email editor types are available when creating/editing templates.
+  // Options:
+  //   - "Code": Raw HTML/MJML code editor for full control
+  //   - "LowCode": Visual drag-and-drop editor for easier template creation
+  allowedEmailContentsTypes?: ("Code" | "LowCode")[];
+
+  // Sets the default template type when creating new emails in the low-code editor.
+  // Options:
+  //   - "Informative": Starts with a pre-built informational email template
+  //   - "Empty": Starts with a blank canvas
+  lowCodeEmailDefaultType?: "Informative" | "Empty";
+}
+```
+
 ### Broadcasts Table
 
 The broadcasts table displays all of the broadcasts for the child workspace. It provides a way to create new broadcasts, view existing ones, and archive them.
@@ -190,6 +252,34 @@ The email editor allows you to create and edit email templates.
   width="100%"
   height="100%"
 ></iframe>
+```
+
+#### Template Editor Configuration
+
+The template editor supports configuration to customize which editor types are available.
+
+```typescript
+interface MessageTemplateConfiguration {
+  // Discriminator field - must be "MessageTemplate" for this configuration type
+  type: "MessageTemplate";
+
+  // Restricts which email editor types are available when creating/editing templates.
+  // Options:
+  //   - "Code": Raw HTML/MJML code editor for full control over email markup.
+  //             Best for developers who want precise control over the HTML structure.
+  //   - "LowCode": Visual drag-and-drop editor for easier template creation without coding.
+  //                Best for non-technical users who want to build emails visually.
+  // If not specified, both editor types are available.
+  allowedEmailContentsTypes?: ("Code" | "LowCode")[];
+
+  // Sets the default starting template when creating new emails in the low-code editor.
+  // Options:
+  //   - "Informative": Starts with a pre-built template containing example sections
+  //                    (header, content area, footer) - good for getting started quickly
+  //   - "Empty": Starts with a completely blank canvas - good for building from scratch
+  // If not specified, defaults to "Informative".
+  lowCodeEmailDefaultType?: "Informative" | "Empty";
+}
 ```
 
 ### Templates Table
@@ -256,6 +346,48 @@ The deliveries table displays all of the message deliveries for the child worksp
 ></iframe>
 ```
 
+#### Deliveries Table Configuration
+
+The deliveries table supports configuration to customize which columns are displayed and how to link to resources in your application.
+
+```typescript
+interface DeliveriesTableConfiguration {
+  // Discriminator field - must be "DeliveriesTable" for this configuration type
+  type: "DeliveriesTable";
+
+  // Controls which columns are visible in the deliveries table.
+  // If not specified, all columns are shown.
+  // Options:
+  //   - "preview": Shows a preview button to view the full message content
+  //   - "from": The sender address (email from address or SMS phone number)
+  //   - "to": The recipient address (email to address or SMS phone number)
+  //   - "userId": The Dittofeed user ID of the recipient
+  //   - "snippet": A short preview of the message content
+  //   - "channel": The delivery channel type (Email, SMS, etc.)
+  //   - "status": The delivery status (Sent, Delivered, Bounced, etc.)
+  //   - "origin": The source that triggered this delivery (journey name or broadcast name)
+  //   - "sentAt": Timestamp when the message was sent
+  //   - "template": The name of the message template used
+  //   - "updatedAt": Timestamp when the delivery record was last updated
+  columnAllowList?: ("preview" | "from" | "to" | "userId" | "snippet" | "channel" | "status" | "origin" | "sentAt" | "template" | "updatedAt")[];
+
+  // URI template for generating links to user detail pages in your application.
+  // Use {userId} as a placeholder that will be replaced with the actual user ID.
+  // Example: "/app/users/{userId}" would become "/app/users/abc123"
+  userUriTemplate?: string;
+
+  // URI template for generating links to template detail pages in your application.
+  // Use {templateId} as a placeholder that will be replaced with the actual template ID.
+  // Example: "/app/templates/{templateId}" would become "/app/templates/def456"
+  templateUriTemplate?: string;
+
+  // URI template for generating links to the origin resource (journey or broadcast) in your application.
+  // Use {originId} as a placeholder that will be replaced with the journey or broadcast ID.
+  // Example: "/app/campaigns/{originId}" would become "/app/campaigns/ghi789"
+  originUriTemplate?: string;
+}
+```
+
 ### Analysis Chart
 
 The analysis chart provides time-series insights into your messaging performance. It supports grouping (e.g., by journey, template, channel, provider, and message state), flexible date ranges, percentage view, quick downloads, and a summary panel.
@@ -275,3 +407,125 @@ The analysis chart provides time-series insights into your messaging performance
   height="100%"
 ></iframe>
 ```
+
+#### Analysis Chart Configuration
+
+The analysis chart supports extensive configuration to customize filters, grouping options, and how to link to resources in your application.
+
+```typescript
+interface AnalysisChartConfiguration {
+  // Discriminator field - must be "AnalysisChart" for this configuration type
+  type: "AnalysisChart";
+
+  // Pre-set filters that are always applied and cannot be changed by users.
+  // Use this to scope the analysis to specific resources (e.g., show only data for a specific journey).
+  hardcodedFilters?: {
+    // Filter to show only data from specific journeys (by journey ID)
+    journeyIds?: string[];
+    // Filter to show only data from specific broadcasts (by broadcast ID)
+    broadcastIds?: string[];
+    // Filter to show only data from specific channels: "Email", "Sms", "MobilePush", "Webhook"
+    channels?: string[];
+    // Filter to show only data from specific providers: "SendGrid", "AmazonSes", "Twilio", etc.
+    providers?: string[];
+    // Filter to show only specific message states: "Sent", "Delivered", "Opened", "Clicked", "Bounced", etc.
+    messageStates?: string[];
+    // Filter to show only data from specific templates (by template ID)
+    templateIds?: string[];
+    // Filter to show only data for specific users (by user ID)
+    userIds?: string[];
+  };
+
+  // Controls which filter dropdowns are available in the UI for users to modify.
+  // If not specified, all filters are available.
+  // Use this to simplify the UI by only showing relevant filters.
+  allowedFilters?: ("journeyIds" | "broadcastIds" | "channels" | "providers" | "messageStates" | "templateIds" | "userIds")[];
+
+  // Controls which grouping options are available in the chart.
+  // Grouping determines how data is segmented in the visualization.
+  // Options:
+  //   - "journey": Group metrics by journey
+  //   - "broadcast": Group metrics by broadcast campaign
+  //   - "messageTemplate": Group metrics by message template
+  //   - "provider": Group metrics by delivery provider
+  // Note: "channel" and "messageState" groupings are always available and cannot be disabled.
+  allowedGroupBy?: ("journey" | "broadcast" | "messageTemplate" | "provider")[];
+
+  // Restricts which channel types appear in channel-related filters and groupings.
+  // Options: "Email", "MobilePush", "Sms", "Webhook"
+  // Use this if your application only uses certain channels.
+  allowedChannels?: ("Email" | "MobilePush" | "Sms" | "Webhook")[];
+
+  // Controls which columns are visible in the deliveries drill-down table.
+  // This table appears when users click on a data point in the chart.
+  // Uses the same column options as DeliveriesTableConfiguration.
+  columnAllowList?: ("preview" | "from" | "to" | "userId" | "snippet" | "channel" | "status" | "origin" | "sentAt" | "template" | "updatedAt")[];
+
+  // URI template for generating links to template detail pages in your application.
+  // Use {templateId} as a placeholder that will be replaced with the actual template ID.
+  // Example: "/app/templates/{templateId}" would become "/app/templates/def456"
+  templateUriTemplate?: string;
+
+  // URI template for generating links to the origin resource (journey or broadcast) in your application.
+  // Use {originId} as a placeholder that will be replaced with the journey or broadcast ID.
+  // Example: "/app/campaigns/{originId}" would become "/app/campaigns/ghi789"
+  originUriTemplate?: string;
+}
+```
+
+## 5. Configure Your Embedded Components (Optional)
+
+You can customize the behavior and appearance of embedded components by creating **Component Configurations**. This allows you to tailor each component to your application's specific needs—for example, hiding certain UI elements, restricting available options, or linking to your own user/template detail pages.
+
+### Why Use Component Configurations?
+
+- **Simplify the UI**: Hide features your users don't need (e.g., scheduling options, rate limiting)
+- **Restrict options**: Limit which email providers, editor types, or workflow steps are available
+- **Integrate with your app**: Use URI templates to link users, templates, and campaigns back to pages in your application
+- **Pre-filter data**: Show only relevant data by hardcoding filters on analysis charts
+
+### How to Create a Configuration
+
+Use the [PUT /api/admin/component-configurations/](/api-reference/auto/componentconfigurations/put-apiadmincomponent-configurations) endpoint to create or update a configuration.
+
+**Important:** The `name` field must match the component type you want to configure. Each workspace can have one configuration per component type.
+
+| Component | Configuration Name |
+|-----------|-------------------|
+| Broadcast Editor | `Broadcast` |
+| Template Editor | `MessageTemplate` |
+| Deliveries Table | `DeliveriesTable` |
+| Analysis Chart | `AnalysisChart` |
+
+Example creating a Broadcast configuration:
+
+```bash
+curl -X PUT \
+  -H "Authorization: Bearer <admin-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspaceId": "<workspace-id>",
+    "name": "Broadcast",
+    "definition": {
+      "type": "Broadcast",
+      "hideScheduledSelect": true,
+      "hideRateLimit": true
+    }
+  }' \
+  https://app.dittofeed.com/api/admin/component-configurations/
+```
+
+### How Configurations Are Applied
+
+Configurations are automatically applied when loading an embedded component. When your server renders an embedded component page, it fetches the configuration matching the component type for that workspace.
+
+For example, when loading the Broadcast Editor for a workspace, the server will automatically fetch and apply the configuration named `"Broadcast"` for that workspace (if one exists).
+
+### Supported Components
+
+The following components support configurations. See the configuration options for each component in their respective sections above.
+
+- **Broadcast Editor** — `BroadcastConfiguration` (name: `"Broadcast"`)
+- **Template Editor** — `MessageTemplateConfiguration` (name: `"MessageTemplate"`)
+- **Deliveries Table** — `DeliveriesTableConfiguration` (name: `"DeliveriesTable"`)
+- **Analysis Chart** — `AnalysisChartConfiguration` (name: `"AnalysisChart"`)
