@@ -1084,13 +1084,6 @@ export async function migrateMessageIdIndexToBloomFilter() {
   );
 }
 
-export async function upgradeV024Pre() {
-  logger().info("Performing pre-upgrade steps for v0.24.0");
-  await createUserSortingIndexTables();
-  await migrateMessageIdIndexToBloomFilter();
-  logger().info("Pre-upgrade steps for v0.24.0 completed.");
-}
-
 export async function createUnsubscribedSegmentsForExistingSubscriptionGroups() {
   logger().info(
     "Creating unsubscribed segments for existing subscription groups",
@@ -1169,4 +1162,12 @@ export async function createUnsubscribedSegmentsForExistingSubscriptionGroups() 
     { created, skipped, total: subscriptionGroups.length },
     "Finished creating unsubscribed segments for existing subscription groups",
   );
+}
+
+export async function upgradeV024Pre() {
+  logger().info("Performing pre-upgrade steps for v0.24.0");
+  await createUserSortingIndexTables();
+  await migrateMessageIdIndexToBloomFilter();
+  await createUnsubscribedSegmentsForExistingSubscriptionGroups();
+  logger().info("Pre-upgrade steps for v0.24.0 completed.");
 }
