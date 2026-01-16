@@ -39,7 +39,6 @@ export default async function viewInBrowserController(
 
       if (result.isErr()) {
         switch (result.error) {
-          case "SecretNotFound":
           case "InvalidHash":
             return reply.status(401).send({
               message: "Unauthorized",

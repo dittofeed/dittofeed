@@ -1,13 +1,8 @@
-import { eq, and } from "drizzle-orm";
-import { SecretNames } from "isomorphic-lib/src/constants";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { err, ok, Result } from "neverthrow";
 
 import { getObject, putObject, storage } from "./blobStorage";
 import config from "./config";
-import { generateSecureHash, generateSecureKey } from "./crypto";
-import { db, insert } from "./db";
-import { secret as dbSecret } from "./db/schema";
+import { generateSecureHash } from "./crypto";
 
 export function generateViewInBrowserHash({
   workspaceId,
@@ -90,28 +85,7 @@ export async function getStoredEmailForViewInBrowser({
   }
 }
 
-export async function upsertViewInBrowserSecret({
-  workspaceId,
-}: {
-  workspaceId: string;
-}) {
-  return insert({
-    table: dbSecret,
-    doNothingOnConflict: true,
-    lookupExisting: and(
-      eq(dbSecret.workspaceId, workspaceId),
-      eq(dbSecret.name, SecretNames.ViewInBrowser),
-    )!,
-    values: {
-      workspaceId,
-      name: SecretNames.ViewInBrowser,
-      value: generateSecureKey(8),
-    },
-  }).then(unwrap);
-}
-
 export type GetEmailForViewInBrowserError =
-  | "SecretNotFound"
   | "InvalidHash"
   | "EmailNotFound"
   | "BlobStorageDisabled";
@@ -125,23 +99,16 @@ export async function getEmailForViewInBrowser({
   messageId: string;
   hash: string;
 }): Promise<Result<string, GetEmailForViewInBrowserError>> {
-  // Fetch the secret
-  const secretRecord = await db().query.secret.findFirst({
-    where: and(
-      eq(dbSecret.workspaceId, workspaceId),
-      eq(dbSecret.name, SecretNames.ViewInBrowser),
-    ),
-  });
-
-  if (!secretRecord?.value) {
-    return err("SecretNotFound");
+  // Verify the hash using the shared config secret
+  // secretKey always has a default value in config
+  const { secretKey } = config();
+  if (!secretKey) {
+    return err("InvalidHash");
   }
-
-  // Verify the hash
   const expectedHash = generateViewInBrowserHash({
     workspaceId,
     messageId,
-    secret: secretRecord.value,
+    secret: secretKey,
   });
 
   if (hash !== expectedHash) {

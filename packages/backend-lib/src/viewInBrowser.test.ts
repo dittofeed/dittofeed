@@ -1,20 +1,13 @@
 import { randomUUID } from "crypto";
-import { eq, and } from "drizzle-orm";
-import { SecretNames } from "isomorphic-lib/src/constants";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import config from "./config";
-import { db } from "./db";
-import { secret as dbSecret } from "./db/schema";
 import {
   generateViewInBrowserHash,
   getEmailForViewInBrowser,
   getStoredEmailForViewInBrowser,
   getViewInBrowserKey,
   storeEmailForViewInBrowser,
-  upsertViewInBrowserSecret,
 } from "./viewInBrowser";
-import { createWorkspace } from "./workspaces";
 
 describe("viewInBrowser", () => {
   describe("generateViewInBrowserHash", () => {
@@ -153,74 +146,10 @@ describe("viewInBrowser", () => {
     });
   });
 
-  describe("upsertViewInBrowserSecret", () => {
-    it("creates a secret and is idempotent", async () => {
-      const workspace = unwrap(
-        await createWorkspace({
-          id: randomUUID(),
-          name: `test-${randomUUID()}`,
-          updatedAt: new Date(),
-        }),
-      );
-
-      // First call should create the secret
-      await upsertViewInBrowserSecret({ workspaceId: workspace.id });
-
-      // Verify the secret was created
-      const secret1 = await db().query.secret.findFirst({
-        where: and(
-          eq(dbSecret.workspaceId, workspace.id),
-          eq(dbSecret.name, SecretNames.ViewInBrowser),
-        ),
-      });
-
-      expect(secret1).toBeDefined();
-      expect(secret1?.value).toBeTruthy();
-
-      // Second call should be idempotent (not throw, return same secret)
-      await upsertViewInBrowserSecret({ workspaceId: workspace.id });
-
-      const secret2 = await db().query.secret.findFirst({
-        where: and(
-          eq(dbSecret.workspaceId, workspace.id),
-          eq(dbSecret.name, SecretNames.ViewInBrowser),
-        ),
-      });
-
-      expect(secret2?.id).toBe(secret1?.id);
-      expect(secret2?.value).toBe(secret1?.value);
-    });
-  });
-
   describe("getEmailForViewInBrowser", () => {
-    it("returns SecretNotFound when no secret exists", async () => {
-      // Use a valid UUID that doesn't have a secret associated with it
+    it("returns InvalidHash when hash doesn't match", async () => {
       const result = await getEmailForViewInBrowser({
         workspaceId: randomUUID(),
-        messageId: "msg-123",
-        hash: "some-hash",
-      });
-
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error).toBe("SecretNotFound");
-      }
-    });
-
-    it("returns InvalidHash when hash doesn't match", async () => {
-      const workspace = unwrap(
-        await createWorkspace({
-          id: randomUUID(),
-          name: `test-${randomUUID()}`,
-          updatedAt: new Date(),
-        }),
-      );
-
-      // Create the secret
-      await upsertViewInBrowserSecret({ workspaceId: workspace.id });
-
-      const result = await getEmailForViewInBrowser({
-        workspaceId: workspace.id,
         messageId: "msg-123",
         hash: "wrong-hash",
       });
@@ -237,49 +166,32 @@ describe("viewInBrowser", () => {
         return;
       }
 
-      const workspace = unwrap(
-        await createWorkspace({
-          id: randomUUID(),
-          name: `test-${randomUUID()}`,
-          updatedAt: new Date(),
-        }),
-      );
+      const { secretKey } = config();
+      if (!secretKey) {
+        throw new Error("secretKey not configured");
+      }
 
+      const workspaceId = randomUUID();
       const messageId = `msg-${randomUUID()}`;
       const emailBody = "<html><body>Test email for view in browser</body></html>";
 
-      // Create the secret
-      await upsertViewInBrowserSecret({ workspaceId: workspace.id });
-
-      // Get the secret to generate the hash
-      const secretRecord = await db().query.secret.findFirst({
-        where: and(
-          eq(dbSecret.workspaceId, workspace.id),
-          eq(dbSecret.name, SecretNames.ViewInBrowser),
-        ),
-      });
-
       // Store the email
       await storeEmailForViewInBrowser({
-        workspaceId: workspace.id,
+        workspaceId,
         messageId,
         body: emailBody,
       });
 
-      if (!secretRecord?.value) {
-        throw new Error("Secret not found");
-      }
-
-      // Generate the correct hash
+      // Generate the correct hash using the shared config secret
       const hash = generateViewInBrowserHash({
-        workspaceId: workspace.id,
+        workspaceId,
         messageId,
-        secret: secretRecord.value,
+        secret: secretKey,
       });
 
       // Retrieve the email
       const result = await getEmailForViewInBrowser({
-        workspaceId: workspace.id,
+        workspaceId,
         messageId,
         hash,
       });
@@ -296,41 +208,24 @@ describe("viewInBrowser", () => {
         return;
       }
 
-      const workspace = unwrap(
-        await createWorkspace({
-          id: randomUUID(),
-          name: `test-${randomUUID()}`,
-          updatedAt: new Date(),
-        }),
-      );
-
-      const messageId = `msg-${randomUUID()}`;
-
-      // Create the secret
-      await upsertViewInBrowserSecret({ workspaceId: workspace.id });
-
-      // Get the secret to generate the hash
-      const secretRecord = await db().query.secret.findFirst({
-        where: and(
-          eq(dbSecret.workspaceId, workspace.id),
-          eq(dbSecret.name, SecretNames.ViewInBrowser),
-        ),
-      });
-
-      if (!secretRecord?.value) {
-        throw new Error("Secret not found");
+      const { secretKey } = config();
+      if (!secretKey) {
+        throw new Error("secretKey not configured");
       }
+
+      const workspaceId = randomUUID();
+      const messageId = `msg-${randomUUID()}`;
 
       // Generate the correct hash (but don't store the email)
       const hash = generateViewInBrowserHash({
-        workspaceId: workspace.id,
+        workspaceId,
         messageId,
-        secret: secretRecord.value,
+        secret: secretKey,
       });
 
       // Try to retrieve the email
       const result = await getEmailForViewInBrowser({
-        workspaceId: workspace.id,
+        workspaceId,
         messageId,
         hash,
       });
