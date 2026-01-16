@@ -1166,6 +1166,8 @@ export async function createUnsubscribedSegmentsForExistingSubscriptionGroups() 
 
 export async function upgradeV024Pre() {
   logger().info("Performing pre-upgrade steps for v0.24.0");
+  logger().info("Running postgres migrations");
+  await publicDrizzleMigrate();
   await createUserSortingIndexTables();
   await migrateMessageIdIndexToBloomFilter();
   await createUnsubscribedSegmentsForExistingSubscriptionGroups();
