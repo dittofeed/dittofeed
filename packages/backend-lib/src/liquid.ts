@@ -201,16 +201,15 @@ liquidEngine.registerTag("subscription_management_url", {
 
 function generateViewInBrowserUrl(scope: any): string {
   const allScope = scope.getAll() as Record<string, unknown>;
-  const secrets = allScope.secrets as Secrets | undefined;
   const workspaceId = allScope.workspace_id as string;
   const messageId = allScope.message_id as string | undefined;
 
-  const viewInBrowserSecret = secrets?.[SecretNames.ViewInBrowser];
-  if (!viewInBrowserSecret || !messageId) {
+  const { secretKey } = config();
+  if (!messageId || !secretKey) {
     logger().debug(
       {
-        hasViewInBrowserSecret: !!viewInBrowserSecret,
         messageId,
+        hasSecretKey: !!secretKey,
       },
       "View in browser URL not generating",
     );
@@ -220,7 +219,7 @@ function generateViewInBrowserUrl(scope: any): string {
   const hash = generateViewInBrowserHash({
     workspaceId,
     messageId,
-    secret: viewInBrowserSecret,
+    secret: secretKey,
   });
 
   const url = new URL(config().apiBase);
