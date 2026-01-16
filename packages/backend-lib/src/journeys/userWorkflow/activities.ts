@@ -632,8 +632,8 @@ export interface WaitForComputePropertiesParams {
 
 // Polls for the earliest compute-property period to advance beyond `after`.
 // By default this will run up to ~18 minutes (5 attempts with exponential
-// backoff starting at 10s), but the base delay and attempt count can be tuned
-// via config or per-call overrides.
+// backoff; base delay is 36s, first sleep is 72s), but the base delay and
+// attempt count can be tuned via config or per-call overrides.
 const HEARTBEAT_CHUNK_MS = 10_000;
 
 async function sleepWithHeartbeat({

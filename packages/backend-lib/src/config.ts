@@ -778,10 +778,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     waitForComputePropertiesBaseDelayMs:
       rawConfig.waitForComputePropertiesBaseDelayMs
         ? parseInt(rawConfig.waitForComputePropertiesBaseDelayMs)
-        : 10_000,
+        : 36_000,
     waitForComputePropertiesMaxAttempts: parseMaxAttempts(
       rawConfig.waitForComputePropertiesMaxAttempts,
-      nodeEnv === NodeEnvEnum.Test ? 1 : 3,
+      nodeEnv === NodeEnvEnum.Test ? 1 : 5,
     ),
     metricsExportIntervalMs: rawConfig.metricsExportIntervalMs
       ? parseInt(rawConfig.metricsExportIntervalMs)
