@@ -26,7 +26,7 @@ export const greyTextFieldStyles = {
 
 export const greyMenuItemStyles = {
   "& .MuiMenuItem-root": {
-    color: "grey.700",
+    color: "grey.500",
     fontWeight: "bold",
     "&:hover": { bgcolor: "grey.300" },
     "&:active": { bgcolor: "grey.300" },
