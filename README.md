@@ -71,9 +71,17 @@ Check out our [walkthrough video](https://youtu.be/kZbDvVCylVg?si=Gt7xbcQ-_hk6fq
 
 ## Quick Deployment
 
+### Render
+
 Click Deploy to Render below and follow the prompts to deploy Dittofeed on Render. See the "Self-Host with Render" [docs for more info](https://docs.dittofeed.com/deployment/self-hosted/render).
 
 <a href="https://render.com/deploy?repo=https://github.com/dittofeed/dittofeed" target="_blank" rel="nofollow"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy To Render"></a>
+
+### Railway
+
+Click **Deploy on Railway** below and follow the prompts to deploy Dittofeed on Railway in one-click.
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/dittofeed-1)
 
 ## Roadmap
 
