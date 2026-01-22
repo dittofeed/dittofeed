@@ -496,7 +496,7 @@ export function generateSubscriptionChangeUrl({
   if (showAllChannels) {
     params.showAllChannels = "true";
   }
-  const url = new URL(config().apiBase);
+  const url = new URL(config().apiBase || config().dashboardUrl);
   url.pathname = "/api/public/subscription-management/page";
   url.search = new URLSearchParams(params).toString();
   const urlString = url.toString();
