@@ -5,7 +5,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { Readable } from "stream";
 
 import { bootstrapPostgres } from "./bootstrap";
-import config from "./config";
+import config, { Config } from "./config";
 import { db } from "./db";
 import * as schema from "./db/schema";
 import { findAllSegmentAssignmentsByIds } from "./segments";
@@ -118,6 +118,49 @@ describe("subscriptionGroups", () => {
       expect(parsed.searchParams.get("i")).toEqual(email);
       expect(parsed.searchParams.get("ik")).toEqual("email");
       expect(parsed.searchParams.get("sub")).toEqual("0");
+    });
+  });
+  describe("generateSubscriptionChangeUrl with empty apiBase (production config)", () => {
+    it("should generate a valid URL even when apiBase is empty", () => {
+      // Use isolateModules to re-require with mocked config
+      jest.isolateModules(() => {
+        // Mock config to return empty apiBase (simulating production without API config)
+        jest.doMock("./config", () => ({
+          __esModule: true,
+          default: jest.fn(() => ({
+            ...jest.requireActual<{ default: () => Config }>("./config").default(),
+            apiBase: "", // Empty string - this is the bug trigger
+          })),
+        }));
+
+        // Re-require after mocking
+        const {
+          generateSubscriptionChangeUrl: generateUrl,
+        } = require("./subscriptionGroups") as typeof import("./subscriptionGroups");
+        const { SubscriptionChange: SubChange } =
+          require("./types") as typeof import("./types");
+
+        // This test expects the function to SUCCEED and return a valid URL.
+        // Currently it FAILS with:
+        //   TypeError: Invalid URL
+        //       at new URL (node:internal/url:806:29)
+        //       at generateSubscriptionChangeUrl
+        const url = generateUrl({
+          workspaceId: randomUUID(),
+          userId: randomUUID(),
+          subscriptionSecret: "test-secret",
+          identifier: "test@example.com",
+          identifierKey: "email",
+          changedSubscription: randomUUID(),
+          subscriptionChange: SubChange.Unsubscribe,
+        });
+
+        // Expect a valid URL to be returned
+        expect(url).toBeDefined();
+        expect(typeof url).toBe("string");
+        expect(() => new URL(url)).not.toThrow();
+        expect(url).toContain("/api/public/subscription-management/page");
+      });
     });
   });
   describe("getUserSubscriptions", () => {
