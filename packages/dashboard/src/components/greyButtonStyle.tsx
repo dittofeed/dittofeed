@@ -12,7 +12,7 @@ export const greyButtonStyle = {
   },
   "&.Mui-disabled": {
     bgcolor: "grey.100",
-    color: "grey.400",
+    color: "grey.500",
   },
 } as const;
 

@@ -7,6 +7,8 @@ import { useTheme } from "@mui/material/styles";
 // project import
 import AppBarStyled from "./header/appBarStyled";
 import HeaderContent from "./header/headerContent";
+import { useThemeMode } from "../../themeCustomization/ThemeContext";
+
 
 // ==============================|| MAIN LAYOUT - HEADER ||============================== //
 
@@ -18,6 +20,7 @@ function Header({
   handleDrawerToggle: () => void;
 }) {
   const theme = useTheme();
+  const { envTheme } = useThemeMode();
   const matchDownMD = useMediaQuery(theme.breakpoints.down("lg"));
 
   const iconBackColor = "grey.100";
@@ -34,9 +37,13 @@ function Header({
         color="secondary"
         sx={{
           color: "text.primary",
-          bgcolor: open ? iconBackColorOpen : iconBackColor,
-          ml: { xs: 0, lg: -2 },
+          "&:hover": { bgcolor: "secondary.lighter" },
+          ...(envTheme === "light" && {
+            bgcolor: open ? iconBackColorOpen : iconBackColor
+          }),
+          ml: { xs: 0, lg: -2 }
         }}
+
       >
         {!open ? <MenuOutlined /> : <MenuOpenOutlined />}
       </IconButton>

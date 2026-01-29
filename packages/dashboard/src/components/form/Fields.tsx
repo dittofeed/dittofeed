@@ -3,12 +3,16 @@ import React from "react";
 
 import FieldSection from "./FieldSection";
 import { FieldsProps } from "./types";
+import { useThemeMode } from "../../themeCustomization/ThemeContext";
 
 function Fields({ sections, children, disableChildStyling }: FieldsProps) {
+ 
+  const { envTheme, mode } = useThemeMode();
+  
   return (
     <Stack
       sx={{
-        backgroundColor: "white",
+        //backgroundColor: mode === "light" ? "white" : "",
         borderRadius: 3,
         px: 4,
         py: 2,
