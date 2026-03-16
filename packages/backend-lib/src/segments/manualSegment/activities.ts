@@ -16,6 +16,7 @@ import { v5 as uuidv5, validate as validateUuid } from "uuid";
 import { submitBatch } from "../../apps/batch";
 import { computePropertiesIncremental } from "../../computedProperties/computePropertiesWorkflow/activities";
 import { enqueueRecompute } from "../../computedProperties/computePropertiesWorkflow/lifecycle";
+import config from "../../config";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
 import { findAllIntegrationResources } from "../../integrations";
@@ -336,43 +337,44 @@ export async function replaceManualSegment({
     return false;
   }
   const [newEntry, updated] = newManualSegmentNode;
-  const batch: BatchItem[] = userIds.flatMap((userId) => {
-    return [
+
+  const { batchChunkSize } = config();
+  for (let i = 0; i < userIds.length; i += batchChunkSize) {
+    const chunk = userIds.slice(i, i + batchChunkSize);
+    const batch: BatchItem[] = chunk.map((userId) => ({
+      type: EventType.Track,
+      userId,
+      timestamp: new Date(now).toISOString(),
+      event: InternalEventType.ManualSegmentUpdate,
+      properties: {
+        segmentId,
+        version: newEntry.version,
+        inSegment: 1,
+      },
+      messageId: uuidv5(
+        `manual-update-${segmentId}-${newEntry.version}-${userId}`,
+        workspaceId,
+      ),
+    }));
+    await submitBatch(
       {
-        type: EventType.Track,
-        userId,
-        timestamp: new Date(now).toISOString(),
-        event: InternalEventType.ManualSegmentUpdate,
-        properties: {
-          segmentId,
-          version: newEntry.version,
-          inSegment: 1,
+        workspaceId,
+        data: {
+          batch,
         },
-        messageId: uuidv5(
-          `manual-update-${segmentId}-${newEntry.version}-${userId}`,
-          workspaceId,
-        ),
       },
-    ];
-  });
-  await submitBatch(
-    {
+      {
+        processingTime: now,
+        // Ensure producer-side processing_time is respected by forcing ch-sync
+        writeModeOverride: "ch-sync",
+      },
+    );
+    await waitForEventAvailability({
       workspaceId,
-      data: {
-        batch,
-      },
-    },
-    {
-      processingTime: now,
-      // Ensure producer-side processing_time is respected by forcing ch-sync
-      writeModeOverride: "ch-sync",
-    },
-  );
-  await waitForEventAvailability({
-    workspaceId,
-    segmentId,
-    messageIds: batch.map((b) => b.messageId),
-  });
+      segmentId,
+      messageIds: batch.map((b) => b.messageId),
+    });
+  }
   const segmentResource = toSegmentResource(updated);
   if (segmentResource.isErr()) {
     logger().error(

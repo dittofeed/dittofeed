@@ -21,7 +21,7 @@ import {
 import { insertUserPropertyAssignments } from "../../userProperties";
 import { getUsers } from "../../users";
 import { createWorkspace } from "../../workspaces/createWorkspace";
-import { appendToManualSegment } from "./activities";
+import { appendToManualSegment, replaceManualSegment } from "./activities";
 
 jest.mock("../../apps/batch");
 
@@ -197,4 +197,102 @@ describe("appendToManualSegment", () => {
     );
     expect(users).toHaveLength(3);
   });
+});
+
+describe("replaceManualSegment", () => {
+  let workspace: Workspace;
+  let segmentId: string;
+  let originalSubmitBatch: typeof submitBatch;
+  let testEnv: TestWorkflowEnvironment;
+  let activityEnv: MockActivityEnvironment;
+
+  beforeAll(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    originalSubmitBatch = jest.requireActual("../../apps/batch").submitBatch;
+  });
+
+  beforeEach(async () => {
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+    activityEnv = new MockActivityEnvironment(undefined, {
+      interceptors: [
+        (ctx) => ({
+          inbound: new CustomActivityInboundInterceptor(ctx, {
+            workflowClient: testEnv.client.workflow,
+          }),
+        }),
+      ],
+    });
+    await startQueueWorkflow({ client: testEnv.client.workflow });
+
+    mockSubmitBatch.mockImplementation(async (...args) => {
+      setTimeout(() => {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        void originalSubmitBatch(...args);
+      }, 3000);
+      return Promise.resolve();
+    });
+
+    workspace = unwrap(
+      await createWorkspace({
+        name: randomUUID(),
+      }),
+    );
+
+    const now = Date.now();
+    const manualSegmentNode: ManualSegmentNode = {
+      id: "1",
+      type: SegmentNodeType.Manual,
+      version: getNewManualSegmentVersion(now),
+    };
+
+    segmentId = randomUUID();
+    unwrap(
+      await insert({
+        table: schema.segment,
+        values: {
+          id: segmentId,
+          workspaceId: workspace.id,
+          name: randomUUID(),
+          definition: {
+            entryNode: manualSegmentNode,
+            nodes: [],
+          } satisfies SegmentDefinition,
+        },
+      }),
+    );
+
+    unwrap(
+      await insert({
+        table: schema.userProperty,
+        values: {
+          workspaceId: workspace.id,
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      }),
+    );
+  });
+
+  afterEach(async () => {
+    await testEnv.teardown();
+  });
+
+  it("should chunk submitBatch calls when user count exceeds 100", async () => {
+    const now = Date.now();
+    const userIds = Array.from({ length: 150 }, (_, i) => `user-${i}`);
+
+    mockSubmitBatch.mockClear();
+
+    const result = await activityEnv.run(replaceManualSegment, {
+      workspaceId: workspace.id,
+      segmentId,
+      userIds,
+      now,
+    });
+
+    expect(result).toBe(true);
+    expect(mockSubmitBatch.mock.calls.length).toBeGreaterThan(1);
+  }, 60000);
 });
