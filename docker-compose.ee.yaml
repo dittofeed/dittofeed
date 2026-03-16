@@ -34,8 +34,9 @@ services:
       - postgres
       - temporal
       - clickhouse-server
-    env_file:
-      - .env
+    # README: To add local env variables uncomment the following line and add a .env file in the root directory
+    # env_file:
+    #   - .env
     environment:
       <<: *backend-app-env
       DASHBOARD_API_BASE: "http://localhost:3000"
@@ -43,9 +44,6 @@ services:
       BOOTSTRAP: "true"
       PORT: "3000"
       HOST: "0.0.0.0"
-    # README: To add local env variables uncomment the following line and add a .env file in the root directory
-    # env_file:
-    #   - .env
     networks:
       - dittofeed-network-ee
   postgres:
