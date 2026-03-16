@@ -16,6 +16,7 @@ import { v5 as uuidv5, validate as validateUuid } from "uuid";
 import { submitBatch } from "../../apps/batch";
 import { computePropertiesIncremental } from "../../computedProperties/computePropertiesWorkflow/activities";
 import { enqueueRecompute } from "../../computedProperties/computePropertiesWorkflow/lifecycle";
+import config from "../../config";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
 import { findAllIntegrationResources } from "../../integrations";
@@ -336,9 +337,10 @@ export async function replaceManualSegment({
     return false;
   }
   const [newEntry, updated] = newManualSegmentNode;
-  const CHUNK_SIZE = 100;
-  for (let i = 0; i < userIds.length; i += CHUNK_SIZE) {
-    const chunk = userIds.slice(i, i + CHUNK_SIZE);
+
+  const { batchChunkSize } = config();
+  for (let i = 0; i < userIds.length; i += batchChunkSize) {
+    const chunk = userIds.slice(i, i + batchChunkSize);
     const batch: BatchItem[] = chunk.map((userId) => ({
       type: EventType.Track,
       userId,
