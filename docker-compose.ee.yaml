@@ -17,9 +17,10 @@ x-backend-app-env: &backend-app-env
   DASHBOARD_API_BASE: ${DASHBOARD_API_BASE:-http://localhost:3000}
   ONBOARDING_URL: "/dashboard-l/onboarding"
   SIGNOUT_URL: "/dashboard/signout"
+  # ENABLE_BLOB_STORAGE: true
 services:
   ee:
-    image: dittofeed/dittofeed-ee:v0.23.0-ee.1
+    image: dittofeed/dittofeed-ee:v0.24.0-alpha.15-ee.3
     command: node --max-old-space-size=${MEM_LIMIT:-824} ./packages/ee/dist/scripts/startLite.js
     deploy:
       resources:
@@ -77,7 +78,8 @@ services:
     environment:
       <<: *clickhouse-credentials
     volumes:
-      - ./packages/backend-lib/clickhouse_config.dev.xml:/etc/clickhouse-server/config.xml
+      # uncomment when using blob storage
+      # - ./packages/backend-lib/clickhouse_config.dev.xml:/etc/clickhouse-server/config.xml
       - clickhouse_lib:/var/lib/clickhouse
       - clickhouse_log:/var/log/clickhouse-server
     networks:
@@ -97,8 +99,8 @@ services:
     environment:
       <<: *backend-app-env
     # README: To add local env variables uncomment the following line and add a .env file in the root directory
-    # env_file:
-    #   - .env
+    env_file:
+      - .env
     networks:
       - dittofeed-network-ee
   temporal:
@@ -125,10 +127,25 @@ services:
       driver: "local"
     volumes:
       - ./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
+  blob-storage:
+    profiles: ["blob-storage"]
+    image: minio/minio
+    ports:
+      - "9010:9000"
+      - "9011:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    volumes:
+      - blob_storage:/data
+    command: server --console-address ":9001" /data
+    networks:
+      - dittofeed-network-ee
 volumes:
   postgres:
   clickhouse_lib:
   clickhouse_log:
+  blob_storage:
 
 networks:
   dittofeed-network-ee:
