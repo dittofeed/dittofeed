@@ -1500,8 +1500,8 @@ export async function sendEmail({
         bcc,
         tags: messageTags
           ? Object.entries(messageTags).map(([name, value]) => ({
-              name,
-              value,
+              name: name.replace(/[^a-zA-Z0-9_-]/g, "_"),
+              value: String(value).replace(/[^a-zA-Z0-9_-]/g, "_"),
             }))
           : [],
         attachments: resendAttachments,
