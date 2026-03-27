@@ -1,5 +1,5 @@
 import { SourceType } from "isomorphic-lib/src/constants";
-import { err, ok, Result, ResultAsync } from "neverthrow";
+import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
 import { ErrorResponse, Resend } from "resend";
 import { v5 as uuidv5 } from "uuid";
@@ -18,34 +18,8 @@ import {
   ResendEventType,
 } from "../types";
 
-function guardResponseError(payload: unknown): ErrorResponse {
-  const error = payload as Error;
-  return {
-    message: error.message,
-    name: error.cause as ErrorResponse["name"],
-  };
-}
-
 export type ResendRequiredData = Parameters<Resend["emails"]["send"]>["0"];
 export type ResendResponse = Awaited<ReturnType<Resend["emails"]["send"]>>;
-
-/* 
- Resend's client does not throw an error and instead returns a nullish error 
- object that's why we wrap it out in our wrapper function
- */
-const sendMailWrapper = async (
-  apiKey: string,
-  mailData: ResendRequiredData,
-) => {
-  const resend = new Resend(apiKey);
-  const response = await resend.emails.send(mailData);
-  if (response.error) {
-    throw new Error(response.error.message, {
-      cause: response.error.name,
-    });
-  }
-  return response;
-};
 
 export async function sendMail({
   apiKey,
@@ -53,11 +27,40 @@ export async function sendMail({
 }: {
   apiKey: string;
   mailData: ResendRequiredData;
-}): Promise<ResultAsync<ResendResponse, ErrorResponse>> {
-  return ResultAsync.fromPromise(
-    sendMailWrapper(apiKey, mailData),
-    guardResponseError,
-  ).map((resultArray) => resultArray);
+}): Promise<Result<ResendResponse, ErrorResponse>> {
+  try {
+    const resend = new Resend(apiKey);
+    const response = await resend.emails.send(mailData);
+    if (response.error) {
+      logger().error(
+        {
+          errorName: response.error.name,
+          errorMessage: response.error.message,
+          to: mailData.to,
+          from: mailData.from,
+          subject: mailData.subject,
+        },
+        "Resend API returned an error",
+      );
+      return err(response.error);
+    }
+    return ok(response);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    logger().error(
+      {
+        err: e,
+        to: mailData.to,
+        from: mailData.from,
+        subject: mailData.subject,
+      },
+      "Resend send threw an unexpected error",
+    );
+    return err({
+      message,
+      name: "application_error",
+    });
+  }
 }
 
 export function resendEventToDF({
