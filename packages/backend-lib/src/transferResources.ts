@@ -120,6 +120,20 @@ function mapUserPropertyOperator({
           subscriptionGroupMap,
         }),
       };
+    case UserPropertyOperatorType.Contains:
+      return {
+        ...operator,
+        value: mapProperty({
+          path,
+          value: operator.value,
+          templateMap,
+          segmentMap,
+          userPropertyMap,
+          subscriptionGroupMap,
+        }),
+      };
+    default:
+      assertUnreachable(operator);
   }
 }
 
@@ -196,6 +210,18 @@ function mapSegmentOperator({
       return operator;
     case SegmentOperatorType.AbsoluteTimestamp:
       return operator;
+    case SegmentOperatorType.Contains:
+      return {
+        ...operator,
+        value: mapProperty({
+          path,
+          value: operator.value,
+          templateMap,
+          segmentMap,
+          userPropertyMap,
+          subscriptionGroupMap,
+        }),
+      };
     default:
       assertUnreachable(operator);
   }

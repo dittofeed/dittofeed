@@ -10,6 +10,7 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   CursorDirectionEnum,
+  GetUsersUserPropertyMatchType,
   SortOrderEnum,
   UserPropertyDefinitionType,
 } from "isomorphic-lib/src/types";
@@ -343,6 +344,50 @@ describe("usersTableStore", () => {
       expect(params.segmentFilter).toBeUndefined();
       expect(params.subscriptionGroupFilter).toBeUndefined();
       expect(params.exclusiveCursor).toBe(true);
+    });
+
+    it("includes userPropertyFilter with exact match without match field", () => {
+      const propId = "prop-1";
+      store.setState({
+        userProperties: new Map([
+          [
+            propId,
+            {
+              match: GetUsersUserPropertyMatchType.Exact,
+              values: new Set(["a", "b"]),
+            },
+          ],
+        ]),
+      });
+
+      const params = store.getState().getQueryParams();
+      expect(params.userPropertyFilter).toEqual([
+        { id: propId, values: ["a", "b"] },
+      ]);
+    });
+
+    it("includes userPropertyFilter with contains match", () => {
+      const propId = "prop-1";
+      store.setState({
+        userProperties: new Map([
+          [
+            propId,
+            {
+              match: GetUsersUserPropertyMatchType.Contains,
+              values: new Set(["@x.com"]),
+            },
+          ],
+        ]),
+      });
+
+      const params = store.getState().getQueryParams();
+      expect(params.userPropertyFilter).toEqual([
+        {
+          id: propId,
+          values: ["@x.com"],
+          match: GetUsersUserPropertyMatchType.Contains,
+        },
+      ]);
     });
   });
 

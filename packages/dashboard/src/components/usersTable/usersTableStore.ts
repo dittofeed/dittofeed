@@ -4,6 +4,7 @@ import {
   GetUsersResponse,
   GetUsersResponseItem,
   GetUsersUserPropertyFilter,
+  GetUsersUserPropertyMatchType,
   SortOrderEnum,
 } from "isomorphic-lib/src/types";
 import { create } from "zustand";
@@ -15,9 +16,14 @@ import { createStoreContext } from "../../lib/createStoreContext";
 // Types
 // ============================================================================
 
+export interface UserPropertyFilterEntry {
+  match: GetUsersUserPropertyMatchType;
+  values: Set<string>;
+}
+
 export interface UserFilterState {
-  /** Map from user property id to set of property values */
-  userProperties: Map<string, Set<string>>;
+  /** Map from user property id to match mode and values */
+  userProperties: Map<string, UserPropertyFilterEntry>;
   /** Set of segment ids to filter by */
   segments: Set<string>;
   /** Segment ids that are fixed and cannot be removed by the user */
@@ -103,7 +109,11 @@ export interface UsersTableActions {
   removeSubscriptionGroup: (subscriptionGroupId: string) => void;
   addNegativeSubscriptionGroup: (subscriptionGroupId: string) => void;
   removeNegativeSubscriptionGroup: (subscriptionGroupId: string) => void;
-  addUserPropertyFilter: (propertyId: string, value: string) => void;
+  addUserPropertyFilter: (
+    propertyId: string,
+    value: string,
+    match?: GetUsersUserPropertyMatchType,
+  ) => void;
   removeUserPropertyFilter: (propertyId: string) => void;
 
   // Data actions
@@ -454,11 +464,17 @@ export function createUsersTableStore(
         });
       },
 
-      addUserPropertyFilter: (propertyId, value) => {
+      addUserPropertyFilter: (propertyId, value, match) => {
         set((state) => {
-          const values = state.userProperties.get(propertyId) ?? new Set();
-          values.add(value);
-          state.userProperties.set(propertyId, values);
+          const existing = state.userProperties.get(propertyId);
+          if (existing) {
+            existing.values.add(value);
+          } else {
+            state.userProperties.set(propertyId, {
+              match: match ?? GetUsersUserPropertyMatchType.Exact,
+              values: new Set([value]),
+            });
+          }
           // Reset pagination when filters change
           state.cursor = null;
           state.direction = null;
@@ -565,9 +581,12 @@ export function createUsersTableStore(
 
         const userPropertyFilter: GetUsersUserPropertyFilter | undefined =
           userProperties.size > 0
-            ? Array.from(userProperties).map(([id, values]) => ({
+            ? Array.from(userProperties).map(([id, entry]) => ({
                 id,
-                values: Array.from(values),
+                values: Array.from(entry.values),
+                ...(entry.match !== GetUsersUserPropertyMatchType.Exact
+                  ? { match: entry.match }
+                  : {}),
               }))
             : undefined;
 
@@ -612,9 +631,12 @@ export function createUsersTableStore(
 
         const userPropertyFilter: GetUsersUserPropertyFilter | undefined =
           userProperties.size > 0
-            ? Array.from(userProperties).map(([id, values]) => ({
+            ? Array.from(userProperties).map(([id, entry]) => ({
                 id,
-                values: Array.from(values),
+                values: Array.from(entry.values),
+                ...(entry.match !== GetUsersUserPropertyMatchType.Exact
+                  ? { match: entry.match }
+                  : {}),
               }))
             : undefined;
 

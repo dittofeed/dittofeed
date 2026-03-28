@@ -4,7 +4,6 @@ import { and, eq, inArray, not, or, SQL } from "drizzle-orm";
 import { toJsonPathParam } from "isomorphic-lib/src/jsonPath";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   fileUserPropertyToPerformed,
   parseUserProperty as parseUserPropertyAssignment,
@@ -24,6 +23,7 @@ import { assignmentSequentialConsistency } from "./config";
 import { db, QueryError, queryResult, upsert } from "./db";
 import { userProperty as dbUserProperty } from "./db/schema";
 import logger from "./logger";
+import { valueMatchesContains } from "./valueMatchesContains";
 import {
   DeleteUserPropertyRequest,
   EnrichedUserProperty,
@@ -235,8 +235,11 @@ function getPerformedAssignmentOverride({
             case UserPropertyOperatorType.Equals:
               matches = queriedForProperty === operator.value;
               break;
-            default:
-              assertUnreachable(operator.type);
+            case UserPropertyOperatorType.Contains:
+              matches =
+                queriedForProperty !== undefined &&
+                valueMatchesContains(operator.value, queriedForProperty);
+              break;
           }
 
           if (!matches) {

@@ -13,6 +13,7 @@ import {
   IconButton,
   MenuItem,
   Select,
+  SelectChangeEvent,
   Snackbar,
   Stack,
   TextField,
@@ -40,6 +41,7 @@ import {
   TraitUserPropertyDefinition,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
+  UserPropertyOperator,
   UserPropertyOperatorType,
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
@@ -47,6 +49,25 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React, { useCallback, useMemo, useState } from "react";
 import { v4 as uuidv4, validate } from "uuid";
+
+function userPropertyOperatorWithType(
+  prev: UserPropertyOperator,
+  nextType: UserPropertyOperatorType,
+): UserPropertyOperator {
+  const preserved =
+    prev.type === UserPropertyOperatorType.Equals ||
+    prev.type === UserPropertyOperatorType.Contains
+      ? prev.value
+      : "";
+  switch (nextType) {
+    case UserPropertyOperatorType.Equals:
+      return { type: UserPropertyOperatorType.Equals, value: preserved };
+    case UserPropertyOperatorType.Contains:
+      return { type: UserPropertyOperatorType.Contains, value: preserved };
+    default:
+      assertUnreachable(nextType);
+  }
+}
 
 import DashboardContent from "../../components/dashboardContent";
 import { EditableTitle } from "../../components/editableName/v2";
@@ -490,7 +511,28 @@ function KeyedPerformedUserPropertyDefinitionEditor({
           if (!existingProperty) {
             return current;
           }
-          existingProperty.operator.value = newValue;
+          if (
+            existingProperty.operator.type === UserPropertyOperatorType.Equals ||
+            existingProperty.operator.type === UserPropertyOperatorType.Contains
+          ) {
+            existingProperty.operator.value = newValue;
+          }
+          return current;
+        });
+      };
+      const handleOperatorTypeChange = (
+        e: SelectChangeEvent<UserPropertyOperatorType>,
+      ) => {
+        const nextType = e.target.value as UserPropertyOperatorType;
+        updatePerformedNode((current) => {
+          const existingProperty = current.properties?.[i];
+          if (!existingProperty) {
+            return current;
+          }
+          existingProperty.operator = userPropertyOperatorWithType(
+            existingProperty.operator,
+            nextType,
+          );
           return current;
         });
       };
@@ -502,6 +544,11 @@ function KeyedPerformedUserPropertyDefinitionEditor({
           return current;
         });
       };
+      const operatorValue =
+        property.operator.type === UserPropertyOperatorType.Equals ||
+        property.operator.type === UserPropertyOperatorType.Contains
+          ? property.operator.value
+          : "";
       return (
         <Stack
           direction="row"
@@ -524,14 +571,17 @@ function KeyedPerformedUserPropertyDefinitionEditor({
               <TextField label="Property Path" {...params} variant="outlined" />
             )}
           />
-          {/* hardcoded until support for multiple operators is added */}
-          <Select value={UserPropertyOperatorType.Equals}>
+          <Select
+            value={property.operator.type}
+            onChange={handleOperatorTypeChange}
+          >
             <MenuItem value={UserPropertyOperatorType.Equals}>Equals</MenuItem>
+            <MenuItem value={UserPropertyOperatorType.Contains}>Contains</MenuItem>
           </Select>
           <TextField
             label="Property Value"
             onChange={handlePropertyValueChange}
-            value={property.operator.value}
+            value={operatorValue}
           />
           <IconButton color="error" size="large" onClick={handleDelete}>
             <Delete />
@@ -724,7 +774,28 @@ function PerformedUserPropertyDefinitionEditor({
           if (!existingProperty) {
             return current;
           }
-          existingProperty.operator.value = newValue;
+          if (
+            existingProperty.operator.type === UserPropertyOperatorType.Equals ||
+            existingProperty.operator.type === UserPropertyOperatorType.Contains
+          ) {
+            existingProperty.operator.value = newValue;
+          }
+          return current;
+        });
+      };
+      const handleOperatorTypeChange = (
+        e: SelectChangeEvent<UserPropertyOperatorType>,
+      ) => {
+        const nextType = e.target.value as UserPropertyOperatorType;
+        updatePerformedNode((current) => {
+          const existingProperty = current.properties?.[i];
+          if (!existingProperty) {
+            return current;
+          }
+          existingProperty.operator = userPropertyOperatorWithType(
+            existingProperty.operator,
+            nextType,
+          );
           return current;
         });
       };
@@ -736,6 +807,11 @@ function PerformedUserPropertyDefinitionEditor({
           return current;
         });
       };
+      const operatorValue =
+        property.operator.type === UserPropertyOperatorType.Equals ||
+        property.operator.type === UserPropertyOperatorType.Contains
+          ? property.operator.value
+          : "";
       return (
         <Stack
           direction="row"
@@ -758,14 +834,17 @@ function PerformedUserPropertyDefinitionEditor({
               <TextField label="Property Path" {...params} variant="outlined" />
             )}
           />
-          {/* hardcoded until support for multiple operators is added */}
-          <Select value={UserPropertyOperatorType.Equals}>
+          <Select
+            value={property.operator.type}
+            onChange={handleOperatorTypeChange}
+          >
             <MenuItem value={UserPropertyOperatorType.Equals}>Equals</MenuItem>
+            <MenuItem value={UserPropertyOperatorType.Contains}>Contains</MenuItem>
           </Select>
           <TextField
             label="Property Value"
             onChange={handlePropertyValueChange}
-            value={property.operator.value}
+            value={operatorValue}
           />
           <IconButton color="error" size="large" onClick={handleDelete}>
             <Delete />

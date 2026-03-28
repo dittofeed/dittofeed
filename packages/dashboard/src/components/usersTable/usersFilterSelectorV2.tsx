@@ -3,8 +3,11 @@ import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import {
   Autocomplete,
   Box,
+  FormControl,
   IconButton,
+  InputLabel,
   Popover,
+  Select,
   TextField,
   Tooltip,
   Typography,
@@ -13,6 +16,7 @@ import {
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import { GetUsersUserPropertyMatchType } from "isomorphic-lib/src/types";
 import * as React from "react";
 
 import { useSegmentsQuery } from "../../lib/useSegmentResourcesQuery";
@@ -45,6 +49,7 @@ interface FilterUserPropertyValueStage {
   type: FilterStageType.UserPropertyValue;
   id: string;
   value: string;
+  match: GetUsersUserPropertyMatchType;
 }
 
 interface FilterSegmentStage {
@@ -75,7 +80,11 @@ type FilterStage =
 export interface UsersFilterSelectorV2Props {
   onAddSegment: (id: string) => void;
   onAddSubscriptionGroup: (id: string) => void;
-  onAddUserProperty: (propertyId: string, value: string) => void;
+  onAddUserProperty: (
+    propertyId: string,
+    value: string,
+    match?: GetUsersUserPropertyMatchType,
+  ) => void;
 }
 
 // ============================================================================
@@ -252,6 +261,7 @@ function UserPropertySelector({
           type: FilterStageType.UserPropertyValue,
           id,
           value: "",
+          match: GetUsersUserPropertyMatchType.Exact,
         });
       }}
       label="User Property"
@@ -267,47 +277,86 @@ function UserPropertyValueSelector({
 }: {
   stage: FilterUserPropertyValueStage;
   setStage: (stage: FilterStage | null) => void;
-  onAddUserProperty: (propertyId: string, value: string) => void;
+  onAddUserProperty: (
+    propertyId: string,
+    value: string,
+    match?: GetUsersUserPropertyMatchType,
+  ) => void;
   closeDropdown: () => void;
 }) {
   const theme = useTheme();
 
   const handleSubmit = () => {
     if (stage.value.trim()) {
-      onAddUserProperty(stage.id, stage.value);
+      onAddUserProperty(stage.id, stage.value, stage.match);
       closeDropdown();
     }
   };
 
   return (
-    <TextField
-      label="Value"
-      value={stage.value}
-      autoFocus
-      variant="filled"
-      InputProps={{
-        sx: {
-          borderRadius: 0,
-        },
-      }}
+    <Box
       sx={{
-        ...greyTextFieldStyles,
+        display: "flex",
+        flexDirection: "column",
+        gap: 1,
         width: theme.spacing(30),
+        p: 1,
       }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          handleSubmit();
-        }
-      }}
-      onChange={(e) => {
-        const { value } = e.target;
-        setStage({
-          type: FilterStageType.UserPropertyValue,
-          id: stage.id,
-          value,
-        });
-      }}
-    />
+    >
+      <FormControl variant="filled" sx={greyTextFieldStyles}>
+        <InputLabel id="user-prop-match-v2-label">Match</InputLabel>
+        <Select
+          labelId="user-prop-match-v2-label"
+          label="Match"
+          value={stage.match}
+          onChange={(e) => {
+            setStage({
+              type: FilterStageType.UserPropertyValue,
+              id: stage.id,
+              value: stage.value,
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+              match: e.target.value as GetUsersUserPropertyMatchType,
+            });
+          }}
+        >
+          <MenuItem value={GetUsersUserPropertyMatchType.Exact}>
+            Exact match
+          </MenuItem>
+          <MenuItem value={GetUsersUserPropertyMatchType.Contains}>
+            Contains
+          </MenuItem>
+        </Select>
+      </FormControl>
+      <TextField
+        label="Value"
+        value={stage.value}
+        autoFocus
+        variant="filled"
+        InputProps={{
+          sx: {
+            borderRadius: 0,
+          },
+        }}
+        sx={{
+          ...greyTextFieldStyles,
+          width: "100%",
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            handleSubmit();
+          }
+        }}
+        onChange={(e) => {
+          const { value } = e.target;
+          setStage({
+            type: FilterStageType.UserPropertyValue,
+            id: stage.id,
+            value,
+            match: stage.match,
+          });
+        }}
+      />
+    </Box>
   );
 }
 
@@ -371,7 +420,11 @@ function SelectorFooter({
 }: {
   stage: FilterStageWithBack;
   setStage: (stage: FilterStage | null) => void;
-  onAddUserProperty: (propertyId: string, value: string) => void;
+  onAddUserProperty: (
+    propertyId: string,
+    value: string,
+    match?: GetUsersUserPropertyMatchType,
+  ) => void;
 }) {
   const theme = useTheme();
 
@@ -407,7 +460,7 @@ function SelectorFooter({
       stage.type === FilterStageType.UserPropertyValue &&
       stage.value.trim()
     ) {
-      onAddUserProperty(stage.id, stage.value);
+      onAddUserProperty(stage.id, stage.value, stage.match);
     }
   };
 

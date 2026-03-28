@@ -24,6 +24,11 @@ LOG_LEVEL=debug yarn jest packages/backend-lib/src/resources.test.ts
 
 # Run type checking for the backend-lib package. A similar command can be used for other packages.
 yarn workspace backend-lib check
+
+# Docker lite (local stack): lite is built from packages/lite/Dockerfile so UI/backend match the repo.
+yarn docker:lite:up       # build if needed and start postgres, temporal, clickhouse, lite
+yarn docker:lite:rebuild  # force clean rebuild of the lite image and recreate the lite container
+yarn docker:lite:down     # stop stack
 ```
 
 ## Key Files and Directories

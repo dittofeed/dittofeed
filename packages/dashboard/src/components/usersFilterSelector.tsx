@@ -3,17 +3,23 @@ import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import {
   Autocomplete,
   Box,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
   Popover,
+  Select,
   TextField,
   Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
 import Button from "@mui/material/Button";
-import MenuItem from "@mui/material/MenuItem";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  GetUsersUserPropertyMatchType,
+} from "isomorphic-lib/src/types";
 import * as React from "react";
 
 import { useAppStorePick } from "../lib/appStore";
@@ -145,6 +151,7 @@ function UserPropertySelector() {
           type: FilterStageType.UserPropertyValue,
           id,
           value: "",
+          match: GetUsersUserPropertyMatchType.Exact,
         });
       }}
       label="User Property"
@@ -166,35 +173,70 @@ function UserPropertyValueSelector({
   const theme = useTheme();
 
   return (
-    <TextField
-      label="Value"
-      value={stage.value}
-      autoFocus
-      variant="filled"
-      InputProps={{
-        sx: {
-          borderRadius: 0,
-        },
-      }}
+    <Box
       sx={{
-        ...greyTextFieldStyles,
+        display: "flex",
+        flexDirection: "column",
+        gap: 1,
         width: theme.spacing(30),
+        p: 1,
       }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          addUserProperty();
-          closeDropdown();
-        }
-      }}
-      onChange={(e) => {
-        const { value } = e.target;
-        setStage({
-          type: FilterStageType.UserPropertyValue,
-          id: stage.id,
-          value,
-        });
-      }}
-    />
+    >
+      <FormControl variant="filled" sx={greyTextFieldStyles}>
+        <InputLabel id="user-prop-match-label">Match</InputLabel>
+        <Select
+          labelId="user-prop-match-label"
+          label="Match"
+          value={stage.match}
+          onChange={(e) => {
+            setStage({
+              type: FilterStageType.UserPropertyValue,
+              id: stage.id,
+              value: stage.value,
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+              match: e.target.value as GetUsersUserPropertyMatchType,
+            });
+          }}
+        >
+          <MenuItem value={GetUsersUserPropertyMatchType.Exact}>
+            Exact match
+          </MenuItem>
+          <MenuItem value={GetUsersUserPropertyMatchType.Contains}>
+            Contains
+          </MenuItem>
+        </Select>
+      </FormControl>
+      <TextField
+        label="Value"
+        value={stage.value}
+        autoFocus
+        variant="filled"
+        InputProps={{
+          sx: {
+            borderRadius: 0,
+          },
+        }}
+        sx={{
+          ...greyTextFieldStyles,
+          width: "100%",
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            addUserProperty();
+            closeDropdown();
+          }
+        }}
+        onChange={(e) => {
+          const { value } = e.target;
+          setStage({
+            type: FilterStageType.UserPropertyValue,
+            id: stage.id,
+            value,
+            match: stage.match,
+          });
+        }}
+      />
+    </Box>
   );
 }
 

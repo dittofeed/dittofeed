@@ -1,3 +1,4 @@
+import { GetUsersUserPropertyMatchType } from "isomorphic-lib/src/types";
 import React from "react";
 import { Updater, useImmer } from "use-immer";
 
@@ -21,6 +22,7 @@ export interface FilterUserPropertyValueStage {
   type: FilterStageType.UserPropertyValue;
   id: string;
   value: string;
+  match: GetUsersUserPropertyMatchType;
 }
 
 export interface FilterSegmentStage {
@@ -44,9 +46,13 @@ export type FilterStage =
   | FilterSubscriptionGroupStage
   | FilterComputedPropertyTypeStage;
 
+export interface UserPropertyFilterEntry {
+  match: GetUsersUserPropertyMatchType;
+  values: Set<string>;
+}
+
 export interface UserFilterState {
-  // map from user property id to user property value
-  userProperties: Map<string, Set<string>>;
+  userProperties: Map<string, UserPropertyFilterEntry>;
   // set of segment ids
   segments: Set<string>;
   staticSegments: Set<string>;
@@ -95,10 +101,16 @@ export function addUserProperty(updater: Updater<UserFilterState>) {
     if (state.stage?.type !== FilterStageType.UserPropertyValue) {
       return state;
     }
-    const { id, value } = state.stage;
-    const values = state.userProperties.get(id) ?? new Set();
-    values.add(value);
-    state.userProperties.set(id, values);
+    const { id, value, match } = state.stage;
+    const existing = state.userProperties.get(id);
+    if (existing) {
+      existing.values.add(value);
+    } else {
+      state.userProperties.set(id, {
+        match,
+        values: new Set([value]),
+      });
+    }
     return state;
   });
 }

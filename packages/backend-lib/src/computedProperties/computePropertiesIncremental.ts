@@ -1258,6 +1258,22 @@ function segmentToResolvedState({
             }),
           ];
         }
+        case SegmentOperatorType.Contains: {
+          return [
+            buildRecentUpdateSegmentQuery({
+              workspaceId,
+              stateId,
+              expression: `positionCaseInsensitiveUTF8(toString(argMaxMerge(last_value)), ${qb.addQueryValue(
+                operator.value,
+                "String",
+              )}) > 0`,
+              segmentId: segment.id,
+              now,
+              periodBound,
+              qb,
+            }),
+          ];
+        }
         case SegmentOperatorType.Exists: {
           return [
             buildRecentUpdateSegmentQuery({
@@ -1418,6 +1434,12 @@ function segmentToResolvedState({
                 String(property.operator.value),
                 "String",
               )}`;
+            }
+            case SegmentOperatorType.Contains: {
+              return `positionCaseInsensitiveUTF8(toString(${indexedReference}), ${qb.addQueryValue(
+                property.operator.value,
+                "String",
+              )}) > 0`;
             }
             case SegmentOperatorType.GreaterThanOrEqual: {
               const operatorVarName = qb.getVariableName();
@@ -1914,6 +1936,12 @@ export function segmentNodeToStateSubQuery({
               "String",
             )}`;
           }
+          case SegmentOperatorType.Contains: {
+            return `positionCaseInsensitiveUTF8(toString(JSON_VALUE(properties, ${path})), ${qb.addQueryValue(
+              operator.value,
+              "String",
+            )}) > 0`;
+          }
           case SegmentOperatorType.HasBeen: {
             throw new Error(
               `Unimplemented segment operator for performed node ${operator.type} for segment: ${segment.id} and node: ${node.id}`,
@@ -2047,6 +2075,12 @@ export function segmentNodeToStateSubQuery({
           }
           case SegmentOperatorType.NotExists: {
             return `${propertyValue} == ''`;
+          }
+          case SegmentOperatorType.Contains: {
+            return `positionCaseInsensitiveUTF8(toString(${propertyValue}), ${qb.addQueryValue(
+              property.operator.value,
+              "String",
+            )}) > 0`;
           }
           default:
             throw new Error(
@@ -2250,6 +2284,21 @@ function leafUserPropertyToSubQuery({
                   "String",
                 )}`;
               }
+              case UserPropertyOperatorType.Contains: {
+                const propertyPath = toJsonPathParamCh({
+                  path: property.path,
+                  qb,
+                });
+                if (!propertyPath) {
+                  return [];
+                }
+                return `positionCaseInsensitiveUTF8(toString(JSON_VALUE(properties, ${propertyPath})), ${qb.addQueryValue(
+                  property.operator.value,
+                  "String",
+                )}) > 0`;
+              }
+              default:
+                assertUnreachable(property.operator);
             }
           })
           .join(" and ");
@@ -4527,6 +4576,7 @@ function segmentNodeToPruned({
       switch (node.operator.type) {
         case SegmentOperatorType.Equals:
         case SegmentOperatorType.NotEquals:
+        case SegmentOperatorType.Contains:
         case SegmentOperatorType.Exists:
         case SegmentOperatorType.GreaterThanOrEqual:
         case SegmentOperatorType.LessThan: {

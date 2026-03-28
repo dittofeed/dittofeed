@@ -1,4 +1,3 @@
-version: "3.9"
 x-database-credentials: &database-credentials
   DATABASE_USER: ${DATABASE_USER:-postgres}
   DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
@@ -18,8 +17,16 @@ x-backend-app-env: &backend-app-env
   PASSWORD: ${PASSWORD:-password}
   DASHBOARD_API_BASE: ${DASHBOARD_API_BASE:-http://localhost:3000}
 services:
+  # Built from ./packages/lite/Dockerfile (dashboard + api + worker + lite). Rebuild to pick up UI/code changes:
+  #   yarn docker:lite:up          # build if needed and start
+  #   yarn docker:lite:rebuild     # clean rebuild lite image + recreate container
   lite:
-    image: ${IMAGE_REPOSITORY:-dittofeed/dittofeed-lite}:${IMAGE_TAG:-v0.23.0}
+    build:
+      context: .
+      dockerfile: ./packages/lite/Dockerfile
+      args:
+        APP_VERSION: ${LITE_APP_VERSION:-local}
+    image: ${LITE_IMAGE:-zora-dittofeed-lite:local}
     restart: always
     command: node --max-old-space-size=${LITE_MEM_LIMIT:-824} ./packages/lite/dist/scripts/startLite.js --workspace-name=${WORKSPACE_NAME:-Default}
     logging:

@@ -15,6 +15,7 @@ import {
   GetUsersResponse,
   GetUsersResponseItem,
   GetUsersUserPropertyFilter,
+  GetUsersUserPropertyMatchType,
 } from "isomorphic-lib/src/types";
 import { NextRouter, useRouter } from "next/router";
 import React, { useMemo } from "react";
@@ -225,10 +226,16 @@ export default function UsersTable({
 
     const requestUserPropertyFilter: GetUsersUserPropertyFilter | undefined =
       filterUserProperties.size > 0
-        ? Array.from(filterUserProperties).map((up) => ({
-            id: up[0],
-            values: Array.from(up[1]),
-          }))
+        ? Array.from(filterUserProperties).map((up) => {
+            const entry = up[1];
+            return {
+              id: up[0],
+              values: Array.from(entry.values),
+              ...(entry.match !== GetUsersUserPropertyMatchType.Exact
+                ? { match: entry.match }
+                : {}),
+            };
+          })
         : undefined;
 
     const allFilterSegments = new Set<string>(filterSegments);

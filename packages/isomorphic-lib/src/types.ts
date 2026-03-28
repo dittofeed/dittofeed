@@ -227,6 +227,7 @@ export type ComputedPropertyUpdate = SegmentUpdate | UserPropertyUpdate;
 
 export enum UserPropertyOperatorType {
   Equals = "Equals",
+  Contains = "Contains",
 }
 
 export enum SegmentOperatorType {
@@ -239,6 +240,7 @@ export enum SegmentOperatorType {
   GreaterThanOrEqual = "GreaterThanOrEqual",
   LessThan = "LessThan",
   AbsoluteTimestamp = "AbsoluteTimestamp",
+  Contains = "Contains",
 }
 
 export enum SegmentHasBeenOperatorComparator {
@@ -298,6 +300,13 @@ export const SegmentNotEqualsOperator = Type.Object({
 
 export type SegmentNotEqualsOperator = Static<typeof SegmentNotEqualsOperator>;
 
+export const SegmentContainsOperator = Type.Object({
+  type: Type.Literal(SegmentOperatorType.Contains),
+  value: Type.String(),
+});
+
+export type SegmentContainsOperator = Static<typeof SegmentContainsOperator>;
+
 export const SegmentGreaterThanOrEqualOperator = Type.Object({
   type: Type.Literal(SegmentOperatorType.GreaterThanOrEqual),
   value: Type.Number(),
@@ -319,6 +328,7 @@ export const SegmentOperator = Type.Union([
   SegmentAbsoluteTimestampOperator,
   SegmentEqualsOperator,
   SegmentNotEqualsOperator,
+  SegmentContainsOperator,
   SegmentHasBeenOperator,
   ExistsOperator,
   NotExistsOperator,
@@ -535,6 +545,7 @@ export type IncludesSegmentNode = Static<typeof IncludesSegmentNode>;
 export const KeyedPerformedPropertiesOperator = Type.Union([
   SegmentEqualsOperator,
   SegmentNotEqualsOperator,
+  SegmentContainsOperator,
   ExistsOperator,
   SegmentGreaterThanOrEqualOperator,
   SegmentLessThanOperator,
@@ -664,7 +675,19 @@ export type UserPropertyEqualsOperator = Static<
   typeof UserPropertyEqualsOperator
 >;
 
-export const UserPropertyOperator = Type.Union([UserPropertyEqualsOperator]);
+const UserPropertyContainsOperator = Type.Object({
+  type: Type.Literal(UserPropertyOperatorType.Contains),
+  value: Type.String(),
+});
+
+export type UserPropertyContainsOperator = Static<
+  typeof UserPropertyContainsOperator
+>;
+
+export const UserPropertyOperator = Type.Union([
+  UserPropertyEqualsOperator,
+  UserPropertyContainsOperator,
+]);
 
 export type UserPropertyOperator = Static<typeof UserPropertyOperator>;
 
@@ -2732,10 +2755,20 @@ export type ReadAllUserPropertiesResponse = Static<
 
 export const CursorDirection = Type.Enum(CursorDirectionEnum);
 
+export enum GetUsersUserPropertyMatchType {
+  Exact = "Exact",
+  Contains = "Contains",
+}
+
+export const GetUsersUserPropertyMatch = Type.Enum(
+  GetUsersUserPropertyMatchType,
+);
+
 export const GetUsersUserPropertyFilter = Type.Array(
   Type.Object({
     id: Type.String(),
     values: Type.Array(Type.String()),
+    match: Type.Optional(GetUsersUserPropertyMatch),
   }),
 );
 

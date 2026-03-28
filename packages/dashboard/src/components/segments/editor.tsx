@@ -46,6 +46,7 @@ import {
   RelationalOperators,
   SegmentAbsoluteTimestampOperator,
   SegmentDefinition,
+  SegmentContainsOperator,
   SegmentEqualsOperator,
   SegmentGreaterThanOrEqualOperator,
   SegmentHasBeenOperator,
@@ -103,6 +104,16 @@ type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 const selectorWidth = "192px";
 const secondarySelectorWidth = "128px";
 
+/** Operators offered on performed / last-performed event property rows */
+type SegmentPropertyRowOperatorType =
+  | SegmentOperatorType.Equals
+  | SegmentOperatorType.NotEquals
+  | SegmentOperatorType.Contains
+  | SegmentOperatorType.Exists
+  | SegmentOperatorType.NotExists
+  | SegmentOperatorType.GreaterThanOrEqual
+  | SegmentOperatorType.LessThan;
+
 interface SegmentEditorState {
   disabled?: boolean;
   editedSegment: SegmentResource;
@@ -116,6 +127,46 @@ interface SegmentEditorContextType {
 const SegmentEditorContext = React.createContext<
   SegmentEditorContextType | undefined
 >(undefined);
+
+function defaultSegmentOperatorForPropertyRow(
+  operatorType: SegmentPropertyRowOperatorType,
+): SegmentOperator {
+  switch (operatorType) {
+    case SegmentOperatorType.Equals:
+      return { type: SegmentOperatorType.Equals, value: "" };
+    case SegmentOperatorType.NotEquals:
+      return { type: SegmentOperatorType.NotEquals, value: "" };
+    case SegmentOperatorType.Contains:
+      return { type: SegmentOperatorType.Contains, value: "" };
+    case SegmentOperatorType.Exists:
+      return { type: SegmentOperatorType.Exists };
+    case SegmentOperatorType.NotExists:
+      return { type: SegmentOperatorType.NotExists };
+    case SegmentOperatorType.GreaterThanOrEqual:
+      return { type: SegmentOperatorType.GreaterThanOrEqual, value: 0 };
+    case SegmentOperatorType.LessThan:
+      return { type: SegmentOperatorType.LessThan, value: 0 };
+  }
+}
+
+function defaultKeyedPerformedPropertyOperator(
+  operatorType: KeyedPerformedPropertiesOperator["type"],
+): KeyedPerformedPropertiesOperator {
+  switch (operatorType) {
+    case SegmentOperatorType.Equals:
+      return { type: SegmentOperatorType.Equals, value: "" };
+    case SegmentOperatorType.NotEquals:
+      return { type: SegmentOperatorType.NotEquals, value: "" };
+    case SegmentOperatorType.Contains:
+      return { type: SegmentOperatorType.Contains, value: "" };
+    case SegmentOperatorType.Exists:
+      return { type: SegmentOperatorType.Exists };
+    case SegmentOperatorType.GreaterThanOrEqual:
+      return { type: SegmentOperatorType.GreaterThanOrEqual, value: 0 };
+    case SegmentOperatorType.LessThan:
+      return { type: SegmentOperatorType.LessThan, value: 0 };
+  }
+}
 
 function updateEditableSegmentNodeData(
   setState: Updater<SegmentEditorState>,
@@ -634,6 +685,11 @@ const notEqualsOperatorOption = {
   label: "Not Equals",
 };
 
+const containsOperatorOption = {
+  id: SegmentOperatorType.Contains,
+  label: "Contains",
+};
+
 const lessThanOperatorOption = {
   id: SegmentOperatorType.LessThan,
   label: "Less Than",
@@ -657,6 +713,7 @@ const notExistsOperatorOption = {
 const traitOperatorOptions: Option[] = [
   equalsOperatorOption,
   notEqualsOperatorOption,
+  containsOperatorOption,
   withinOperatorOption,
   hasBeenOperatorOption,
   existsOperatorOption,
@@ -673,6 +730,7 @@ const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
   [SegmentOperatorType.HasBeen]: hasBeenOperatorOption,
   [SegmentOperatorType.Exists]: existsOperatorOption,
   [SegmentOperatorType.NotEquals]: notEqualsOperatorOption,
+  [SegmentOperatorType.Contains]: containsOperatorOption,
   [SegmentOperatorType.LessThan]: lessThanOperatorOption,
   [SegmentOperatorType.GreaterThanOrEqual]: greaterThanOrEqualOperatorOption,
   [SegmentOperatorType.AbsoluteTimestamp]: absoluteTimestampOperatorOption,
@@ -726,7 +784,8 @@ function ValueSelect({
   operator:
     | SegmentEqualsOperator
     | SegmentHasBeenOperator
-    | SegmentNotEqualsOperator;
+    | SegmentNotEqualsOperator
+    | SegmentContainsOperator;
 }) {
   const { value } = operator;
   const { state, setState } = useSegmentEditorContext();
@@ -738,7 +797,8 @@ function ValueSelect({
         node.type === SegmentNodeType.Trait &&
         (node.operator.type === SegmentOperatorType.Equals ||
           node.operator.type === SegmentOperatorType.NotEquals ||
-          node.operator.type === SegmentOperatorType.HasBeen)
+          node.operator.type === SegmentOperatorType.HasBeen ||
+          node.operator.type === SegmentOperatorType.Contains)
       ) {
         node.operator.value = e.target.value;
       }
@@ -933,12 +993,14 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
       updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          const newOperator = e.target.value as SegmentOperatorType;
+          const newOperator = e.target
+            .value as SegmentPropertyRowOperatorType;
           const existingProperty = n.hasProperties?.[i];
           if (!existingProperty) {
             return;
           }
-          existingProperty.operator.type = newOperator;
+          existingProperty.operator =
+            defaultSegmentOperatorForPropertyRow(newOperator);
         }
       });
     };
@@ -989,6 +1051,37 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
               if (
                 !existingProperty ||
                 existingProperty.operator.type !== SegmentOperatorType.NotEquals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            disabled={disabled}
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.Contains: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
+            if (n.type === SegmentNodeType.LastPerformed) {
+              const newValue = e.target.value;
+              const existingProperty = n.hasProperties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.Contains
               ) {
                 return;
               }
@@ -1122,6 +1215,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           <MenuItem value={SegmentOperatorType.NotEquals}>
             {keyedOperatorOptions[SegmentOperatorType.NotEquals].label}
           </MenuItem>
+          <MenuItem value={SegmentOperatorType.Contains}>
+            {keyedOperatorOptions[SegmentOperatorType.Contains].label}
+          </MenuItem>
           <MenuItem value={SegmentOperatorType.GreaterThanOrEqual}>
             {keyedOperatorOptions[SegmentOperatorType.GreaterThanOrEqual].label}
           </MenuItem>
@@ -1180,12 +1276,14 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
       updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          const newOperator = e.target.value as SegmentOperatorType;
+          const newOperator = e.target
+            .value as SegmentPropertyRowOperatorType;
           const existingProperty = n.whereProperties?.[i];
           if (!existingProperty) {
             return;
           }
-          existingProperty.operator.type = newOperator;
+          existingProperty.operator =
+            defaultSegmentOperatorForPropertyRow(newOperator);
         }
       });
     };
@@ -1256,6 +1354,37 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         );
         break;
       }
+      case SegmentOperatorType.Contains: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
+            if (n.type === SegmentNodeType.LastPerformed) {
+              const newValue = e.target.value;
+              const existingProperty = n.whereProperties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.Contains
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            disabled={disabled}
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+        );
+        break;
+      }
       case SegmentOperatorType.Exists: {
         operatorEl = null;
         break;
@@ -1296,6 +1425,9 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           </MenuItem>
           <MenuItem value={SegmentOperatorType.NotEquals}>
             {keyedOperatorOptions[SegmentOperatorType.NotEquals].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.Contains}>
+            {keyedOperatorOptions[SegmentOperatorType.Contains].label}
           </MenuItem>
           <MenuItem value={SegmentOperatorType.Exists}>
             {keyedOperatorOptions[SegmentOperatorType.Exists].label}
@@ -1449,12 +1581,14 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
       updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          const newOperator = e.target.value as SegmentOperatorType;
+          const newOperator = e.target
+            .value as SegmentPropertyRowOperatorType;
           const existingProperty = n.properties?.[i];
           if (!existingProperty) {
             return;
           }
-          existingProperty.operator.type = newOperator;
+          existingProperty.operator =
+            defaultSegmentOperatorForPropertyRow(newOperator);
         }
       });
     };
@@ -1474,6 +1608,37 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
               if (
                 !existingProperty ||
                 existingProperty.operator.type !== SegmentOperatorType.Equals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            disabled={disabled}
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.Contains: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
+            if (n.type === SegmentNodeType.Performed) {
+              const newValue = e.target.value;
+              const existingProperty = n.properties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.Contains
               ) {
                 return;
               }
@@ -1570,6 +1735,41 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         operatorEl = null;
         break;
       }
+      case SegmentOperatorType.NotEquals: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
+            if (n.type === SegmentNodeType.Performed) {
+              const newValue = e.target.value;
+              const existingProperty = n.properties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.NotEquals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            disabled={disabled}
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={property.operator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.NotExists: {
+        operatorEl = null;
+        break;
+      }
       default: {
         throw new Error(`Unsupported operator type: ${property.operator.type}`);
       }
@@ -1600,8 +1800,17 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           <MenuItem value={SegmentOperatorType.Equals}>
             {keyedOperatorOptions[SegmentOperatorType.Equals].label}
           </MenuItem>
+          <MenuItem value={SegmentOperatorType.NotEquals}>
+            {keyedOperatorOptions[SegmentOperatorType.NotEquals].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.Contains}>
+            {keyedOperatorOptions[SegmentOperatorType.Contains].label}
+          </MenuItem>
           <MenuItem value={SegmentOperatorType.Exists}>
             {keyedOperatorOptions[SegmentOperatorType.Exists].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.NotExists}>
+            {keyedOperatorOptions[SegmentOperatorType.NotExists].label}
           </MenuItem>
           <MenuItem value={SegmentOperatorType.GreaterThanOrEqual}>
             {keyedOperatorOptions[SegmentOperatorType.GreaterThanOrEqual].label}
@@ -1802,7 +2011,8 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
           if (!existingProperty) {
             return;
           }
-          existingProperty.operator.type = newOperator;
+          existingProperty.operator =
+            defaultKeyedPerformedPropertyOperator(newOperator);
         }
       });
     };
@@ -1854,6 +2064,37 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
               if (
                 !existingProperty ||
                 existingProperty.operator.type !== SegmentOperatorType.NotEquals
+              ) {
+                return;
+              }
+              existingProperty.operator.value = newValue;
+            }
+          });
+        };
+        operatorEl = (
+          <TextField
+            disabled={disabled}
+            label="Property Value"
+            onChange={handlePropertyValueChange}
+            value={propertyOperator.value}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+        );
+        break;
+      }
+      case SegmentOperatorType.Contains: {
+        const handlePropertyValueChange = (
+          e: React.ChangeEvent<HTMLInputElement>,
+        ) => {
+          updateEditableSegmentNodeData(setState, node.id, (n) => {
+            if (n.type === SegmentNodeType.KeyedPerformed) {
+              const newValue = e.target.value;
+              const existingProperty = n.properties?.[i];
+              if (
+                !existingProperty ||
+                existingProperty.operator.type !== SegmentOperatorType.Contains
               ) {
                 return;
               }
@@ -1982,6 +2223,9 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
           </MenuItem>
           <MenuItem value={SegmentOperatorType.NotEquals}>
             {keyedOperatorOptions[SegmentOperatorType.NotEquals].label}
+          </MenuItem>
+          <MenuItem value={SegmentOperatorType.Contains}>
+            {keyedOperatorOptions[SegmentOperatorType.Contains].label}
           </MenuItem>
           <MenuItem value={SegmentOperatorType.Exists}>
             {keyedOperatorOptions[SegmentOperatorType.Exists].label}
@@ -2463,6 +2707,10 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       valueSelect = <ValueSelect nodeId={node.id} operator={node.operator} />;
       break;
     }
+    case SegmentOperatorType.Contains: {
+      valueSelect = <ValueSelect nodeId={node.id} operator={node.operator} />;
+      break;
+    }
     case SegmentOperatorType.Exists: {
       valueSelect = null;
       break;
@@ -2564,6 +2812,13 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                   case SegmentOperatorType.NotEquals: {
                     nodeOperator = {
                       type: SegmentOperatorType.NotEquals,
+                      value: "",
+                    };
+                    break;
+                  }
+                  case SegmentOperatorType.Contains: {
+                    nodeOperator = {
+                      type: SegmentOperatorType.Contains,
                       value: "",
                     };
                     break;

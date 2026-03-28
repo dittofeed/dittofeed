@@ -515,6 +515,76 @@ describe("segments", () => {
         });
       });
     });
+
+    describe("when using a contains operator on a string property", () => {
+      it("returns true when the substring matches", () => {
+        const result = calculateKeyedSegment({
+          keyValue: "order-1",
+          definition: {
+            id: randomUUID(),
+            type: SegmentNodeType.KeyedPerformed,
+            event: "order:*",
+            key: "orderId",
+            times: 1,
+            timesOperator: RelationalOperators.GreaterThanOrEqual,
+            properties: [
+              {
+                path: "email",
+                operator: {
+                  type: SegmentOperatorType.Contains,
+                  value: "@example.com",
+                },
+              },
+            ],
+          },
+          events: [
+            {
+              event: "order:submitted",
+              properties: {
+                orderId: "order-1",
+                email: "user@example.com",
+              },
+              messageId: randomUUID(),
+            },
+          ],
+        });
+        expect(result).toBe(true);
+      });
+
+      it("returns false when the substring does not match", () => {
+        const result = calculateKeyedSegment({
+          keyValue: "order-1",
+          definition: {
+            id: randomUUID(),
+            type: SegmentNodeType.KeyedPerformed,
+            event: "order:*",
+            key: "orderId",
+            times: 1,
+            timesOperator: RelationalOperators.GreaterThanOrEqual,
+            properties: [
+              {
+                path: "email",
+                operator: {
+                  type: SegmentOperatorType.Contains,
+                  value: "@other.org",
+                },
+              },
+            ],
+          },
+          events: [
+            {
+              event: "order:submitted",
+              properties: {
+                orderId: "order-1",
+                email: "user@example.com",
+              },
+              messageId: randomUUID(),
+            },
+          ],
+        });
+        expect(result).toBe(false);
+      });
+    });
   });
 
   describe("findAllSegmentAssignmentsByIdsForUsers", () => {

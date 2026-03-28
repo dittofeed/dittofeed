@@ -3,7 +3,10 @@ import { IconButton, useTheme } from "@mui/material";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  GetUsersUserPropertyMatchType,
+} from "isomorphic-lib/src/types";
 import React from "react";
 
 import { useAppStorePick } from "../lib/appStore";
@@ -88,6 +91,7 @@ export function UsersFilter() {
     id: string;
     name: string;
     values: string[];
+    match: GetUsersUserPropertyMatchType;
   }[] = React.useMemo(() => {
     if (userPropertiesResult.type !== CompletionStatus.Successful) {
       return [];
@@ -97,12 +101,17 @@ export function UsersFilter() {
       return acc;
     }, new Map<string, string>());
 
-    return Array.from(filterUserProperties).flatMap(([id, values]) => {
+    return Array.from(filterUserProperties).flatMap(([id, entry]) => {
       const name = userPropertyNames.get(id);
       if (!name) {
         return [];
       }
-      return { id, name, values: Array.from(values) };
+      return {
+        id,
+        name,
+        values: Array.from(entry.values),
+        match: entry.match,
+      };
     });
   }, [filterUserProperties, userPropertiesResult]);
 
@@ -113,16 +122,22 @@ export function UsersFilter() {
       justifyItems="center"
       alignItems="center"
     >
-      {joinedUserPropertyFilters.flatMap((property) => (
-        <AppliedFilter
-          key={property.id}
-          name={property.values
-            .map((value) => `${property.name} = "${value}"`)
-            .join(" OR ")}
-          label="User Property"
-          remove={() => removeUserPropertyFilter(property.id)}
-        />
-      ))}
+      {joinedUserPropertyFilters.flatMap((property) => {
+        const op =
+          property.match === GetUsersUserPropertyMatchType.Contains
+            ? "contains"
+            : "=";
+        return (
+          <AppliedFilter
+            key={property.id}
+            name={property.values
+              .map((value) => `${property.name} ${op} "${value}"`)
+              .join(" OR ")}
+            label="User Property"
+            remove={() => removeUserPropertyFilter(property.id)}
+          />
+        );
+      })}
       {joinedFilterSegments.map((segment) => (
         <AppliedFilter
           key={segment.id}

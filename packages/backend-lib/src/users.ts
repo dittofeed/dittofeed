@@ -41,6 +41,7 @@ import {
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
+  GetUsersUserPropertyMatchType,
   Segment,
   SortOrderEnum,
   SubscriptionGroupType,
@@ -67,6 +68,28 @@ const Cursor = Type.Object({
 });
 
 type Cursor = Static<typeof Cursor>;
+
+function userPropertyHavingClause(
+  property: {
+    values: string[];
+    match?: GetUsersUserPropertyMatchType;
+  },
+  varName: string,
+  qb: ClickHouseQueryBuilder,
+): string {
+  const match = property.match ?? GetUsersUserPropertyMatchType.Exact;
+  if (match === GetUsersUserPropertyMatchType.Contains) {
+    if (property.values.length === 0) {
+      return "0";
+    }
+    const parts = property.values.map(
+      (v) =>
+        `positionCaseInsensitiveUTF8(toString(${varName}), ${qb.addQueryValue(v, "String")}) > 0`,
+    );
+    return `(${parts.join(" OR ")})`;
+  }
+  return `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`;
+}
 
 function serializeUserCursor(cursor: Cursor): string {
   return serializeCursor(cursor);
@@ -187,9 +210,7 @@ export async function buildGetUsersQueriesForDebug(
       selectUserIdColumns.push(
         `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
       );
-      havingSubClauses.push(
-        `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
-      );
+      havingSubClauses.push(userPropertyHavingClause(property, varName, qb));
     }
 
     if (segmentFilter && segmentFilter.length > 0) {
@@ -702,9 +723,7 @@ export async function getUsers(
         selectUserIdColumns.push(
           `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
         );
-        havingSubClauses.push(
-          `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
-        );
+        havingSubClauses.push(userPropertyHavingClause(property, varName, qb));
       }
 
       if (segmentFilter && segmentFilter.length > 0) {
@@ -1651,9 +1670,7 @@ export async function getUsersCount({
     selectUserIdColumns.push(
       `argMax(if(computed_property_id = ${qb.addQueryValue(property.id, "String")}, user_property_value, null), assigned_at) as ${varName}`,
     );
-    havingSubClauses.push(
-      `${varName} IN (${qb.addQueryValue(property.values, "Array(String)")})`,
-    );
+    havingSubClauses.push(userPropertyHavingClause(property, varName, qb));
   }
 
   if (segmentFilter && segmentFilter.length > 0) {

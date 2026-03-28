@@ -1,14 +1,16 @@
 import { Chip, Stack, SxProps, Theme, useTheme } from "@mui/material";
+import { GetUsersUserPropertyMatchType } from "isomorphic-lib/src/types";
 import React from "react";
 
 import { useSegmentsQuery } from "../../lib/useSegmentResourcesQuery";
 import { useSubscriptionGroupsResourcesQuery } from "../../lib/useSubscriptionGroupsResourcesQuery";
 import { useUserPropertyResourcesQuery } from "../../lib/useUserPropertyResourcesQuery";
+import { UserPropertyFilterEntry } from "./usersTableStore";
 import { UsersFilterSelectorV2 } from "./usersFilterSelectorV2";
 
 export interface UsersFilterV2Props {
   // State (read-only)
-  userProperties: Map<string, Set<string>>;
+  userProperties: Map<string, UserPropertyFilterEntry>;
   segments: Set<string>;
   staticSegments: Set<string>;
   negativeSegments: Set<string>;
@@ -29,7 +31,11 @@ export interface UsersFilterV2Props {
   onRemoveUserProperty: (id: string) => void;
   onAddSegment: (id: string) => void;
   onAddSubscriptionGroup: (id: string) => void;
-  onAddUserProperty: (propertyId: string, value: string) => void;
+  onAddUserProperty: (
+    propertyId: string,
+    value: string,
+    match?: GetUsersUserPropertyMatchType,
+  ) => void;
 }
 
 export function UsersFilterV2({
@@ -105,6 +111,7 @@ export function UsersFilterV2({
     id: string;
     name: string;
     values: string[];
+    match: GetUsersUserPropertyMatchType;
   }[] = React.useMemo(() => {
     if (userPropertiesQuery.status !== "success") {
       return [];
@@ -119,12 +126,17 @@ export function UsersFilterV2({
       new Map<string, string>(),
     );
 
-    return Array.from(userProperties).flatMap(([id, values]) => {
+    return Array.from(userProperties).flatMap(([id, entry]) => {
       const name = userPropertyNames.get(id);
       if (!name) {
         return [];
       }
-      return { id, name, values: Array.from(values) };
+      return {
+        id,
+        name,
+        values: Array.from(entry.values),
+        match: entry.match,
+      };
     });
   }, [userProperties, userPropertiesQuery]);
 
@@ -188,16 +200,22 @@ export function UsersFilterV2({
 
   return (
     <Stack spacing={1} direction="row" alignItems="center" flexWrap="wrap">
-      {joinedUserPropertyFilters.flatMap((property) => (
-        <Chip
-          key={property.id}
-          sx={chipSx}
-          label={`${property.name} = ${property.values
-            .map((value) => `"${value}"`)
-            .join(" OR ")}`}
-          onDelete={() => onRemoveUserProperty(property.id)}
-        />
-      ))}
+      {joinedUserPropertyFilters.flatMap((property) => {
+        const op =
+          property.match === GetUsersUserPropertyMatchType.Contains
+            ? "contains"
+            : "=";
+        return (
+          <Chip
+            key={property.id}
+            sx={chipSx}
+            label={`${property.name} ${op} ${property.values
+              .map((value) => `"${value}"`)
+              .join(" OR ")}`}
+            onDelete={() => onRemoveUserProperty(property.id)}
+          />
+        );
+      })}
       {joinedFilterSegments.map((segment) => (
         <Chip
           key={segment.id}

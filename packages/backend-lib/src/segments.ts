@@ -55,6 +55,7 @@ import {
   UserWorkflowTrackEvent,
 } from "./types";
 import { findAllUserPropertyAssignmentsForWorkspace } from "./userProperties";
+import { valueMatchesContains } from "./valueMatchesContains";
 
 export function enrichSegment(
   segment: InferSelectModel<typeof dbSegment>,
@@ -906,6 +907,10 @@ function filterEvent(
       }
       case SegmentOperatorType.NotEquals: {
         mismatched = value === operator.value;
+        break;
+      }
+      case SegmentOperatorType.Contains: {
+        mismatched = !valueMatchesContains(operator.value, value);
         break;
       }
       default:

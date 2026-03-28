@@ -10,6 +10,9 @@
   ],
   "scripts": {
     "admin": "yarn workspace admin-cli cli \"$@\"",
+    "docker:lite:up": "docker compose -f docker-compose.lite.yaml up -d --build",
+    "docker:lite:rebuild": "docker compose -f docker-compose.lite.yaml build --no-cache lite && docker compose -f docker-compose.lite.yaml up -d --force-recreate lite",
+    "docker:lite:down": "docker compose -f docker-compose.lite.yaml down",
     "test:file": "./scripts/test-to-file.sh",
     "test:temporal": "jest --selectProjects backend-lib --group=temporal"
   },
