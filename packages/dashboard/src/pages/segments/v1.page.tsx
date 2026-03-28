@@ -16,7 +16,17 @@ export default function NewSegment() {
   }
   return (
     <DashboardContent>
-      <Stack sx={{ padding: theme.spacing(3) }}>
+      <Stack
+        sx={{
+          flex: 1,
+          alignSelf: "stretch",
+          width: "100%",
+          maxWidth: "100%",
+          minHeight: 0,
+          boxSizing: "border-box",
+          padding: theme.spacing(3),
+        }}
+      >
         <SegmentEditorV2 id={id} />
       </Stack>
     </DashboardContent>

@@ -345,12 +345,34 @@ export function SegmentEditorV2({
     return null;
   }
   return (
-    <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
-      <Stack spacing={1} sx={sx}>
+    <Box
+      sx={{
+        position: "relative",
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignSelf: "stretch",
+        width: "100%",
+        minWidth: 0,
+        minHeight: 0,
+        height: "100%",
+      }}
+    >
+      <Stack
+        spacing={1}
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          width: "100%",
+          minWidth: 0,
+          ...sx,
+        }}
+      >
         <Stack
           direction="row"
           justifyContent="space-between"
           alignItems="center"
+          sx={{ flexShrink: 0, width: "100%", minWidth: 0 }}
         >
           <EditableTitle text={segment.name} onSubmit={handleNameSave} />
           <Stack direction="row" spacing={1} alignItems="center">
@@ -369,10 +391,12 @@ export function SegmentEditorV2({
             <SettingsMenu commands={commands} />
           </Stack>
         </Stack>
-        <SegmentEditor
-          segmentId={id}
-          onSegmentChange={handleDefinitionUpdate}
-        />
+        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, width: "100%" }}>
+          <SegmentEditor
+            segmentId={id}
+            onSegmentChange={handleDefinitionUpdate}
+          />
+        </Box>
       </Stack>
       <InlineDrawer
         open={state.isDrawerOpen}

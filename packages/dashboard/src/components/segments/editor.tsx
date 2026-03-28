@@ -45,8 +45,8 @@ import {
   RandomBucketSegmentNode,
   RelationalOperators,
   SegmentAbsoluteTimestampOperator,
-  SegmentDefinition,
   SegmentContainsOperator,
+  SegmentDefinition,
   SegmentEqualsOperator,
   SegmentGreaterThanOrEqualOperator,
   SegmentHasBeenOperator,
@@ -103,6 +103,18 @@ type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
 const selectorWidth = "192px";
 const secondarySelectorWidth = "128px";
+
+/** Horizontal rows with many controls (operators, traits, property filters) wrap instead of overflowing. */
+const flexRowWrapCenterSx = {
+  flexWrap: "wrap" as const,
+  alignItems: "center" as const,
+};
+
+/** Segment definition rows with tall / multi-line controls (trait, performed, …) */
+const segmentConditionRowSx = {
+  flexWrap: "wrap" as const,
+  alignItems: "flex-start" as const,
+};
 
 /** Operators offered on performed / last-performed event property rows */
 type SegmentPropertyRowOperatorType =
@@ -993,8 +1005,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
       updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          const newOperator = e.target
-            .value as SegmentPropertyRowOperatorType;
+          const newOperator = e.target.value as SegmentPropertyRowOperatorType;
           const existingProperty = n.hasProperties?.[i];
           if (!existingProperty) {
             return;
@@ -1193,9 +1204,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         key={i}
         direction="row"
         spacing={1}
-        sx={{
-          alignItems: "center",
-        }}
+        sx={flexRowWrapCenterSx}
       >
         <PropertiesAutocomplete
           disabled={disabled}
@@ -1208,6 +1217,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           disabled={disabled}
           value={operator.id}
           onChange={handleOperatorChange}
+          sx={{ minWidth: secondarySelectorWidth }}
         >
           <MenuItem value={SegmentOperatorType.Equals}>
             {keyedOperatorOptions[SegmentOperatorType.Equals].label}
@@ -1276,8 +1286,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
       updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.LastPerformed) {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          const newOperator = e.target
-            .value as SegmentPropertyRowOperatorType;
+          const newOperator = e.target.value as SegmentPropertyRowOperatorType;
           const existingProperty = n.whereProperties?.[i];
           if (!existingProperty) {
             return;
@@ -1404,9 +1413,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
         key={i}
         direction="row"
         spacing={1}
-        sx={{
-          alignItems: "center",
-        }}
+        sx={flexRowWrapCenterSx}
       >
         <PropertiesAutocomplete
           disabled={disabled}
@@ -1419,6 +1426,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
           disabled={disabled}
           value={operator.id}
           onChange={handleOperatorChange}
+          sx={{ minWidth: secondarySelectorWidth }}
         >
           <MenuItem value={SegmentOperatorType.Equals}>
             {keyedOperatorOptions[SegmentOperatorType.Equals].label}
@@ -1451,7 +1459,7 @@ function LastPerformedSelect({ node }: { node: LastPerformedSegmentNode }) {
 
   return (
     <Stack direction="column" spacing={2}>
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
         <EventNamesAutocomplete
           disabled={disabled}
           event={node.event}
@@ -1581,8 +1589,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
       updateEditableSegmentNodeData(setState, node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          const newOperator = e.target
-            .value as SegmentPropertyRowOperatorType;
+          const newOperator = e.target.value as SegmentPropertyRowOperatorType;
           const existingProperty = n.properties?.[i];
           if (!existingProperty) {
             return;
@@ -1781,9 +1788,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         key={i}
         direction="row"
         spacing={1}
-        sx={{
-          alignItems: "center",
-        }}
+        sx={flexRowWrapCenterSx}
       >
         <PropertiesAutocomplete
           disabled={disabled}
@@ -1796,6 +1801,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           disabled={disabled}
           value={operator.id}
           onChange={handleOperatorChange}
+          sx={{ minWidth: secondarySelectorWidth }}
         >
           <MenuItem value={SegmentOperatorType.Equals}>
             {keyedOperatorOptions[SegmentOperatorType.Equals].label}
@@ -1836,7 +1842,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     node.withinSeconds !== undefined ? (
       <>
         <SubtleHeader>Time Window</SubtleHeader>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
           <DurationSelect
             disabled={disabled}
             value={node.withinSeconds}
@@ -1869,7 +1875,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
 
   return (
     <Stack direction="column" spacing={2}>
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
         <EventNamesAutocomplete
           disabled={disabled}
           event={node.event}
@@ -1880,6 +1886,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           onChange={handleTimesOperatorChange}
           disabled={disabled}
           value={node.timesOperator ?? RelationalOperators.Equals}
+          sx={{ minWidth: secondarySelectorWidth }}
         >
           {relationalOperatorNames.map(([operator, label]) => (
             <MenuItem key={operator} value={operator}>
@@ -2202,9 +2209,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
         key={i}
         direction="row"
         spacing={1}
-        sx={{
-          alignItems: "center",
-        }}
+        sx={flexRowWrapCenterSx}
       >
         <PropertiesAutocomplete
           disabled={disabled}
@@ -2217,6 +2222,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
           disabled={disabled}
           value={operator.id}
           onChange={handleOperatorChange}
+          sx={{ minWidth: secondarySelectorWidth }}
         >
           <MenuItem value={SegmentOperatorType.Equals}>
             {keyedOperatorOptions[SegmentOperatorType.Equals].label}
@@ -2270,7 +2276,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
 
   return (
     <Stack direction="column" spacing={2}>
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
         <EventNamesAutocomplete
           disabled={disabled}
           event={node.event}
@@ -2282,6 +2288,7 @@ function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
           onChange={handleTimesOperatorChange}
           disabled={disabled}
           value={node.timesOperator ?? RelationalOperators.Equals}
+          sx={{ minWidth: secondarySelectorWidth }}
         >
           {relationalOperatorNames.map(([operator, label]) => (
             <MenuItem key={operator} value={operator}>
@@ -2366,7 +2373,7 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
 
   const eventLabelId = `email-event-label-${node.id}`;
   return (
-    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+    <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
       <FormControl>
         <InputLabel id={eventLabelId}>Email Event</InputLabel>
         <Select
@@ -2753,8 +2760,16 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
     });
   };
   return (
-    <>
-      <Box sx={{ width: selectorWidth }}>
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{
+        minWidth: 0,
+        maxWidth: "100%",
+        ...flexRowWrapCenterSx,
+      }}
+    >
+      <Box sx={{ width: selectorWidth, flexShrink: 0 }}>
         <TraitAutocomplete
           traitPath={traitPath}
           traitOnChange={traitOnChange}
@@ -2762,7 +2777,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           sx={{ width: selectorWidth }}
         />
       </Box>
-      <Box sx={{ width: secondarySelectorWidth }}>
+      <Box sx={{ width: secondarySelectorWidth, flexShrink: 0 }}>
         <Autocomplete
           value={operator}
           disabled={disabled}
@@ -2872,7 +2887,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
         />
       </Box>
       {valueSelect}
-    </>
+    </Stack>
   );
 }
 
@@ -2941,7 +2956,7 @@ function IncludesSelect({ node }: { node: IncludesSegmentNode }) {
   };
 
   return (
-    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+    <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
       <Box sx={{ width: selectorWidth }}>
         <TraitAutocomplete
           traitPath={node.path}
@@ -3140,7 +3155,7 @@ function SegmentNodeComponent({
     });
     el = (
       <Stack spacing={3}>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
           {labelEl}
           {conditionSelect}
           <IconButton
@@ -3160,7 +3175,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Trait) {
     el = (
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} sx={segmentConditionRowSx}>
         {labelEl}
         {conditionSelect}
         <TraitSelect node={node} />
@@ -3169,7 +3184,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.SubscriptionGroup) {
     el = (
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
         {labelEl}
         {conditionSelect}
         <SubscriptionGroupSelect node={node} />
@@ -3178,7 +3193,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Performed) {
     el = (
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} sx={segmentConditionRowSx}>
         {labelEl}
         {conditionSelect}
         <PerformedSelect node={node} />
@@ -3187,7 +3202,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.LastPerformed) {
     el = (
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} sx={segmentConditionRowSx}>
         {labelEl}
         {conditionSelect}
         <LastPerformedSelect node={node} />
@@ -3196,7 +3211,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Manual) {
     el = (
-      <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+      <Stack direction="row" spacing={2} sx={segmentConditionRowSx}>
         {labelEl}
         {conditionSelect}
         <ManualNodeComponent node={node} />
@@ -3204,7 +3219,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.RandomBucket) {
     el = (
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
         {labelEl}
         {conditionSelect}
         <RandomBucketSelect node={node} />
@@ -3213,7 +3228,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.KeyedPerformed) {
     el = (
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} sx={segmentConditionRowSx}>
         {labelEl}
         {conditionSelect}
         <KeyedPerformedSelect node={node} />
@@ -3222,7 +3237,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Email) {
     el = (
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
         {labelEl}
         {conditionSelect}
         <EmailSelect node={node} />
@@ -3231,7 +3246,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Includes) {
     el = (
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
         {labelEl}
         {conditionSelect}
         <IncludesSelect node={node} />
@@ -3240,7 +3255,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Everyone) {
     el = (
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} sx={flexRowWrapCenterSx}>
         {labelEl}
         {conditionSelect}
       </Stack>
@@ -3344,6 +3359,9 @@ export default function SegmentEditor({
     <SegmentEditorContext.Provider value={contextValue}>
       <Box
         sx={{
+          width: "100%",
+          maxWidth: "100%",
+          boxSizing: "border-box",
           paddingTop: 3,
           paddingBottom: 3,
           borderRadius: 1,
