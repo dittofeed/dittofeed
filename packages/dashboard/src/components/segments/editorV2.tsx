@@ -187,7 +187,7 @@ function UsersDrawerHeader({
         alignItems="center"
         sx={{
           p: 1,
-          borderBottom: 1,
+          borderTop: 1,
           borderColor: "divider",
           backgroundColor: "background.paper",
           height: DRAWER_HEADER_HEIGHT,
@@ -216,7 +216,15 @@ function UsersDrawerHeader({
 
 function UsersDrawerContent({ segmentId }: { segmentId: string }) {
   return (
-    <Box sx={{ flex: 1, overflow: "auto" }}>
+    <Box
+      sx={{
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "auto",
+      }}
+    >
       <UsersTableV2 limit={5} segmentFilter={[segmentId]} hideControls />
     </Box>
   );
@@ -349,24 +357,17 @@ export function SegmentEditorV2({
       sx={{
         position: "relative",
         flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignSelf: "stretch",
+        minHeight: 0,
         width: "100%",
         minWidth: 0,
-        minHeight: 0,
-        height: "100%",
+        alignSelf: "stretch",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <Stack
         spacing={1}
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          width: "100%",
-          minWidth: 0,
-          ...sx,
-        }}
+        sx={{ width: "100%", minWidth: 0, flexShrink: 0, ...sx }}
       >
         <Stack
           direction="row"
@@ -391,26 +392,35 @@ export function SegmentEditorV2({
             <SettingsMenu commands={commands} />
           </Stack>
         </Stack>
-        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, width: "100%" }}>
-          <SegmentEditor
-            segmentId={id}
-            onSegmentChange={handleDefinitionUpdate}
-          />
-        </Box>
+        <SegmentEditor
+          segmentId={id}
+          onSegmentChange={handleDefinitionUpdate}
+        />
       </Stack>
-      <InlineDrawer
-        open={state.isDrawerOpen}
-        header={
-          <UsersDrawerHeader
-            segmentId={id}
-            isDrawerOpen={state.isDrawerOpen}
-            setIsDrawerOpen={handleIsDrawerOpenChange}
-          />
-        }
-        maxHeight={MAX_DRAWER_HEIGHT}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
       >
-        <UsersDrawerContent segmentId={id} />
-      </InlineDrawer>
+        <InlineDrawer
+          placement="inline"
+          open={state.isDrawerOpen}
+          header={
+            <UsersDrawerHeader
+              segmentId={id}
+              isDrawerOpen={state.isDrawerOpen}
+              setIsDrawerOpen={handleIsDrawerOpenChange}
+            />
+          }
+          maxHeight={MAX_DRAWER_HEIGHT}
+        >
+          <UsersDrawerContent segmentId={id} />
+        </InlineDrawer>
+      </Box>
       <Snackbar
         open={state.snackbarOpen}
         autoHideDuration={6000}
