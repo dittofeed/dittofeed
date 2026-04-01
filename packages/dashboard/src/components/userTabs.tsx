@@ -90,6 +90,12 @@ export function UserTabs({ userId }: UserTabsProps) {
           component={Link}
           href={`/users/deliveries/${userId}`}
         />
+        <Tab
+          label="Aliases"
+          value="aliases"
+          component={Link}
+          href={`/users/aliases/${userId}`}
+        />
       </Tabs>
       <Box sx={{ p: 2 }}>
         <DeleteDialog

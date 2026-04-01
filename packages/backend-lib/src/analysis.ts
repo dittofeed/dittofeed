@@ -11,6 +11,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { ClickHouseQueryBuilder, query as chQuery } from "./clickhouse";
+import { expandKnownUserIdsPredicateSql } from "./identityLinks";
 import logger from "./logger";
 import { InternalEventType } from "./types";
 
@@ -166,8 +167,12 @@ export async function getChartData({
     }
 
     if (filters.userIds && filters.userIds.length > 0) {
+      const userIdsParam = qb.addQueryValue(filters.userIds, "Array(String)");
       sentConditions.push(
-        `user_or_anonymous_id IN ${qb.addQueryValue(filters.userIds, "Array(String)")}`,
+        expandKnownUserIdsPredicateSql(
+          `workspace_id = ${workspaceIdParam}`,
+          userIdsParam,
+        ),
       );
     }
 
@@ -440,8 +445,12 @@ export async function getSummarizedData({
     }
 
     if (filters.userIds && filters.userIds.length > 0) {
+      const userIdsParam = qb.addQueryValue(filters.userIds, "Array(String)");
       conditions.push(
-        `user_or_anonymous_id IN ${qb.addQueryValue(filters.userIds, "Array(String)")}`,
+        expandKnownUserIdsPredicateSql(
+          `workspace_id = ${workspaceIdParam}`,
+          userIdsParam,
+        ),
       );
     }
 

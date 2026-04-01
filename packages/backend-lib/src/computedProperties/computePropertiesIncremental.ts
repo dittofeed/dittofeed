@@ -18,6 +18,11 @@ import {
 } from "../clickhouse";
 import config from "../config";
 import { HUBSPOT_INTEGRATION } from "../constants";
+import {
+  canonicalUserKeyFromJoinedIdentitySql,
+  identityLinksLatestLeftJoinSql,
+  reconcileLinkedAnonymousUserTablesThrottled,
+} from "../identityLinks";
 import { startHubspotUserIntegrationWorkflow } from "../integrations/hubspot/signalUtils";
 import { getSubscribedSegments, triggerSegmentEntryJourney } from "../journeys";
 import logger from "../logger";
@@ -64,6 +69,11 @@ import {
   PeriodByComputedPropertyId,
 } from "./periods";
 
+// user_events_v2 / per-user key audit: assignPerformedManyUserPropertiesQuery (FROM ue, canonical GROUP BY);
+// assignStandardUserPropertiesQuery (assignments from state only—state user_id already canonical where built from ue);
+// segment assignment INSERT (resolved_segment_state); prune probe (workspace-wide, no user filter);
+// main state INSERT (canonical user_id + joinedPrior on resolved_user_id).
+
 type AsyncWrapper = <T>(fn: () => Promise<T>) => Promise<T>;
 
 let READ_LIMIT: AsyncWrapper | null = null;
@@ -95,10 +105,10 @@ function toJsonPathParamCh({
 }
 
 // A set of state ids for user property or segment nodes that should not be recomputed
-export type PrunedComputedProperties = {
+export interface PrunedComputedProperties {
   segments: Set<string>;
   userProperties: Set<string>;
-};
+}
 
 function readLimit(): AsyncWrapper {
   if (!READ_LIMIT) {
@@ -383,7 +393,7 @@ function getSegmentNodeVersion(
   }
   if (
     node.type === SegmentNodeType.Trait &&
-    node.operator?.type === SegmentOperatorType.NotExists
+    node.operator.type === SegmentOperatorType.NotExists
   ) {
     // Version 1 for Trait + NotExists semantics fix
     return 1;
@@ -1705,10 +1715,10 @@ function resolvedSegmentToAssignment({
       if (children.length === 1 && child) {
         return child;
       }
-      const stateIds = children.flatMap((c) => c?.stateIds ?? []);
+      const stateIds = children.flatMap((c) => c.stateIds ?? []);
       return {
         stateIds,
-        expression: `(${children.flatMap((c) => c?.expression ?? []).join(" or ")})`,
+        expression: `(${children.flatMap((c) => c.expression ?? []).join(" or ")})`,
       };
     }
     case SegmentNodeType.Broadcast: {
@@ -2527,6 +2537,7 @@ function userPropertyToSubQuery({
           condition: "True",
           type: "user_property",
           computedPropertyId: userProperty.id,
+          // Raw column only: CH disallows correlated subqueries (canonical key) inside argMaxState's value expr.
           argMaxValue: "user_or_anonymous_id",
           stateId,
         },
@@ -2570,6 +2581,7 @@ type UserPropertyAssignmentConfig =
   | StandardUserPropertyAssignmentConfig
   | PerformedManyUserPropertyAssignmentConfig;
 
+// Reads `computed_property_state_v3`; `user_id` there matches state inserts (canonical where events came from user_events_v2).
 function assignStandardUserPropertiesQuery({
   workspaceId,
   config: ac,
@@ -2706,13 +2718,14 @@ function assignPerformedManyUserPropertiesQuery({
       and computed_at <= toDateTime64(${nowSeconds}, 3)
       ${lowerBoundClause}
   `;
+  const canonicalUe = canonicalUserKeyFromJoinedIdentitySql("ue", "il");
   const query = `
     INSERT INTO computed_property_assignments_v2
     SELECT
       workspace_id,
       'user_property' AS type,
       ${computedPropertyIdParam} AS computed_property_id,
-      user_id,
+      ${canonicalUe} AS user_id,
       False AS segment_value,
       toJSONString(
         arrayMap(
@@ -2737,6 +2750,7 @@ function assignPerformedManyUserPropertiesQuery({
       toDateTime64(${nowSeconds}, 3) AS assigned_at
     FROM
       user_events_v2 AS ue
+    ${identityLinksLatestLeftJoinSql("ue", "il")}
     WHERE
       workspace_id = ${workspaceIdParam}
       AND message_id IN (
@@ -2755,7 +2769,7 @@ function assignPerformedManyUserPropertiesQuery({
       )
     GROUP BY
       workspace_id,
-      user_id;
+      ${canonicalUe};
   `;
   return query;
 }
@@ -3062,6 +3076,8 @@ export async function computeState({
   return withSpan({ name: "compute-state" }, async (span) => {
     span.setAttribute("workspaceId", workspaceId);
 
+    await reconcileLinkedAnonymousUserTablesThrottled(workspaceId);
+
     const qb = new ClickHouseQueryBuilder();
     let subQueryData: FullSubQueryData[] = [];
 
@@ -3146,6 +3162,8 @@ export async function computeState({
             : ``;
 
         return periodSubQueries.map(async (subQuery) => {
+          const canonicalUserKey = canonicalUserKeyFromJoinedIdentitySql("ue", "il");
+          // joinedPrior: prior state may still be keyed by anonymous id; resolve via identity_links_latest_v1 so NOT IN matches canonical inserts.
           const joinedPrior = !subQuery.joinPriorStateValue
             ? ""
             : `
@@ -3154,16 +3172,23 @@ export async function computeState({
               last_value
             ) NOT IN (
               SELECT
-                user_id,
-                argMaxMerge(last_value) as last_value
-              FROM computed_property_state_v3
+                if(il.user_id != '', il.user_id, cps.user_id) AS resolved_user_id,
+                argMaxMerge(cps.last_value) AS last_value
+              FROM computed_property_state_v3 AS cps
+              LEFT JOIN (
+                SELECT workspace_id, anonymous_id, user_id
+                FROM identity_links_latest_v1
+                FINAL
+              ) AS il
+                ON il.workspace_id = cps.workspace_id
+                AND il.anonymous_id = cps.user_id
               WHERE
-                workspace_id = ${workspaceIdClause}
-                AND type = '${subQuery.type}'
-                AND computed_property_id = '${subQuery.computedPropertyId}'
-                AND state_id = '${subQuery.stateId}'
+                cps.workspace_id = ${workspaceIdClause}
+                AND cps.type = '${subQuery.type}'
+                AND cps.computed_property_id = '${subQuery.computedPropertyId}'
+                AND cps.state_id = '${subQuery.stateId}'
               GROUP BY
-                user_id
+                resolved_user_id
             )
           `;
 
@@ -3174,13 +3199,14 @@ export async function computeState({
               '${subQuery.type}' as type,
               '${subQuery.computedPropertyId}' as computed_property_id,
               '${subQuery.stateId}' as state_id,
-              ue.user_or_anonymous_id,
+              ${canonicalUserKey} AS user_id,
               argMaxState(${subQuery.argMaxValue ?? "''"} as last_value, ue.event_time),
               uniqState(${subQuery.uniqValue ?? "''"} as unique_value),
               ${subQuery.eventTimeExpression ?? "toDateTime64('0000-00-00 00:00:00', 3)"} as truncated_event_time,
               groupArrayState(${subQuery.recordMessageId ? "message_id" : "''"}  as grouped_message_id),
               toDateTime64(${nowSeconds}, 3) as computed_at
             from user_events_v2 ue
+            ${identityLinksLatestLeftJoinSql("ue", "il")}
             where
               workspace_id = ${workspaceIdClause}
               and processing_time <= toDateTime64(${nowSeconds}, 3)
@@ -3193,7 +3219,7 @@ export async function computeState({
               ${lowerBoundClause}
             group by
               ue.workspace_id,
-              ue.user_or_anonymous_id,
+              ${canonicalUserKey},
               ue.event_time
           `;
 
@@ -4822,6 +4848,7 @@ export async function pruneComputedProperties({
       ? `and processing_time >= toDateTime64(${minPeriodBound.maxTo.getTime() / 1000}, 3)`
       : "";
 
+    // Workspace-level presence probe (no per-user filter): definitions already encode conditions.
     const query = `
     select ${computedPropertiesValuesQueryFragment}
     from user_events_v2

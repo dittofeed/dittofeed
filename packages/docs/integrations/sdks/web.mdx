@@ -101,6 +101,22 @@ You can also reset the anonymous ID using the `resetAnonymousId` method.
 DittofeedSdk.resetAnonymousId();
 ```
 
+### Linking anonymous activity to a known user (alias)
+
+When a user logs in, send an `alias` message via the public batch ingestion API so anonymous events can be attributed to their stable `userId`. Use the Segment-style `previousId` (anonymous) and `userId` (known).
+
+```json
+{
+  "type": "alias",
+  "userId": "known-user-id",
+  "previousId": "anonymous-id-from-sdk",
+  "messageId": "unique-message-id"
+}
+```
+
+Dittofeed stores this link in ClickHouse (`identity_links_v1` / `identity_links_latest_v1`) for segment computation and user list deduplication. Alias rows written via the HTTP batch (or `POST /api/public/apps/alias`) hit `user_events_v2` and are copied into those tables by materialized views. In **Kafka** write mode, the same MVs run when ClickHouse ingests into `user_events_v2`, so identity tables stay in sync without a separate app insert.
+
+Reads that need the latest link per anonymous id use `SELECT … FROM identity_links_latest_v1 FINAL` (or rely on merges); use `OPTIMIZE TABLE … FINAL` only if your deployment requires forcing merges for operational queries.
 
 ### Install the Snippet
 

@@ -1,14 +1,23 @@
 import * as R from "remeda";
 
-import { submitBatch, SubmitBatchOptions } from "./apps/batch";
+import {
+  buildIdentifyMessageRaw,
+  submitBatch,
+  SubmitBatchOptions,
+} from "./apps/batch";
 import { persistFiles } from "./apps/files";
 import { splitGroupEvents } from "./apps/group";
 import { submitTrack } from "./apps/track";
+import {
+  identifyMessageCreatesIdentityLink,
+  reconcileLinkedAnonymousUserTables,
+} from "./identityLinks";
 import {
   triggerEventEntryJourneys,
   TriggerEventEntryJourneysOptions,
 } from "./journeys";
 import {
+  BatchAliasData,
   BatchItem,
   EventType,
   GroupData,
@@ -19,6 +28,20 @@ import {
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 
+/** Single alias message; same ingest path as batch (MVs populate identity tables). */
+export async function submitAlias({
+  workspaceId,
+  data,
+}: {
+  workspaceId: string;
+  data: BatchAliasData;
+}) {
+  await submitBatch({
+    workspaceId,
+    data: { context: {}, batch: [data] },
+  });
+}
+
 export async function submitIdentify({
   workspaceId,
   data,
@@ -26,23 +49,18 @@ export async function submitIdentify({
   workspaceId: string;
   data: IdentifyData;
 }) {
-  const rest = R.omit(data, ["timestamp", "traits"]);
-  const traits = data.traits ?? {};
-  const timestamp = data.timestamp ?? new Date().toISOString();
-
   const userEvent: InsertUserEvent = {
-    messageRaw: JSON.stringify({
-      type: "identify",
-      traits,
-      timestamp,
-      ...rest,
-    }),
+    messageRaw: JSON.stringify(buildIdentifyMessageRaw(data)),
     messageId: data.messageId,
   };
   await insertUserEvents({
     workspaceId,
     userEvents: [userEvent],
   });
+  const asBatchItem = { type: EventType.Identify as const, ...data };
+  if (identifyMessageCreatesIdentityLink(asBatchItem)) {
+    await reconcileLinkedAnonymousUserTables(workspaceId);
+  }
 }
 
 export async function submitTrackWithTriggers({

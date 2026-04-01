@@ -77,6 +77,8 @@ COPY --from=builder /service/packages/admin-cli/package.json ./packages/admin-cl
 
 COPY --from=builder /service/packages/backend-lib/dist ./packages/backend-lib/dist
 COPY --from=builder /service/packages/backend-lib/drizzle ./packages/backend-lib/drizzle
+# So findDrizzleFolder(__dirname) resolves ../drizzle from dist/src (see backend-lib migrate.ts)
+COPY --from=builder /service/packages/backend-lib/drizzle ./packages/backend-lib/dist/drizzle
 COPY --from=builder /service/packages/backend-lib/package.json ./packages/backend-lib/package.json
 
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist

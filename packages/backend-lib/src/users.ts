@@ -23,6 +23,7 @@ import {
   userPropertyIndex as dbUserPropertyIndex,
   workspace as dbWorkspace,
 } from "./db/schema";
+import { excludeLinkedAnonymousUserIdsSql } from "./identityLinks";
 import logger from "./logger";
 import { withSpan } from "./openTelemetry";
 import { deserializeCursor, serializeCursor } from "./pagination";
@@ -95,6 +96,54 @@ function serializeUserCursor(cursor: Cursor): string {
   return serializeCursor(cursor);
 }
 
+/** By-id profile fetch with no list filters; skips excluding linked anonymous ids so profiles stay addressable. */
+function isDirectUserIdsProfileLookup({
+  userIds,
+  cursor,
+  segmentFilter,
+  negativeSegmentFilter,
+  userPropertyFilter,
+  subscriptionGroupFilter,
+  negativeSubscriptionGroupFilter,
+  unsubscribedFromFilter,
+}: Pick<
+  GetUsersRequest,
+  | "userIds"
+  | "cursor"
+  | "segmentFilter"
+  | "negativeSegmentFilter"
+  | "userPropertyFilter"
+  | "subscriptionGroupFilter"
+  | "negativeSubscriptionGroupFilter"
+  | "unsubscribedFromFilter"
+>): boolean {
+  if (!userIds?.length) {
+    return false;
+  }
+  if (cursor) {
+    return false;
+  }
+  if (segmentFilter?.length) {
+    return false;
+  }
+  if (negativeSegmentFilter?.length) {
+    return false;
+  }
+  if (userPropertyFilter?.length) {
+    return false;
+  }
+  if (subscriptionGroupFilter?.length) {
+    return false;
+  }
+  if (negativeSubscriptionGroupFilter?.length) {
+    return false;
+  }
+  if (unsubscribedFromFilter?.length) {
+    return false;
+  }
+  return true;
+}
+
 export async function buildGetUsersQueriesForDebug(
   request: GetUsersRequest,
 ): Promise<string[]> {
@@ -109,6 +158,8 @@ export async function buildGetUsersQueriesForDebug(
     direction = CursorDirectionEnum.After,
     limit = 10,
     subscriptionGroupFilter,
+    negativeSubscriptionGroupFilter,
+    unsubscribedFromFilter,
     sortBy,
   } = request;
 
@@ -133,6 +184,17 @@ export async function buildGetUsersQueriesForDebug(
       );
     }
   }
+
+  const directUserProfileLookupDebug = isDirectUserIdsProfileLookup({
+    userIds,
+    cursor: unparsedCursor,
+    segmentFilter,
+    negativeSegmentFilter,
+    userPropertyFilter,
+    subscriptionGroupFilter,
+    negativeSubscriptionGroupFilter,
+    unsubscribedFromFilter,
+  });
 
   let subscriptionGroups = new Map<
     string,
@@ -317,6 +379,9 @@ export async function buildGetUsersQueriesForDebug(
       workspaceIdClause,
       typeClause,
       computedPropertyIdsClause,
+      excludeLinkedAnonymousClause: directUserProfileLookupDebug
+        ? ""
+        : excludeLinkedAnonymousUserIdsSql(workspaceIdClause),
     };
   };
 
@@ -340,6 +405,7 @@ export async function buildGetUsersQueriesForDebug(
       workspaceIdClause,
       typeClause,
       computedPropertyIdsClause,
+      excludeLinkedAnonymousClause,
     } = await buildFilterClausesDebug(qb);
 
     const cursorClause = cursor
@@ -377,6 +443,7 @@ export async function buildGetUsersQueriesForDebug(
             FROM computed_property_assignments_v2
             WHERE
               ${workspaceIdClause}
+              ${excludeLinkedAnonymousClause}
               ${cursorClause}
               ${userIdsClause}
               ${typeClause}
@@ -434,6 +501,7 @@ export async function buildGetUsersQueriesForDebug(
     workspaceIdClause,
     typeClause: idxTypeClause,
     computedPropertyIdsClause: idxComputedPropertyIdsClause,
+    excludeLinkedAnonymousClause: idxExcludeLinkedAnonymousClause,
   } = await buildFilterClausesDebug(qbIndex);
   const workspaceIdClauseWithAlias = workspaceIdClause.replace(
     /workspace_id/g,
@@ -447,6 +515,7 @@ export async function buildGetUsersQueriesForDebug(
       FROM computed_property_assignments_v2
       WHERE
         ${workspaceIdClause}
+        ${idxExcludeLinkedAnonymousClause}
         ${userIdsClause}
         ${idxTypeClause}
         ${idxComputedPropertyIdsClause}
@@ -511,6 +580,7 @@ export async function buildGetUsersQueriesForDebug(
     workspaceIdClause: remWorkspaceIdClause,
     typeClause: remTypeClause,
     computedPropertyIdsClause: remComputedPropertyIdsClause,
+    excludeLinkedAnonymousClause: remExcludeLinkedAnonymousClause,
   } = await buildFilterClausesDebug(qbRemainder);
   const cursorClause =
     cursor?.[CursorKey.PhaseKey] === "remainder"
@@ -536,6 +606,7 @@ export async function buildGetUsersQueriesForDebug(
     FROM computed_property_assignments_v2
     WHERE
       ${remWorkspaceIdClause}
+      ${remExcludeLinkedAnonymousClause}
       ${remUserIdsClause}
       ${cursorClause}
       ${remTypeClause}
@@ -696,6 +767,17 @@ export async function getUsers(
         }
       }
     }
+
+    const directUserProfileLookup = isDirectUserIdsProfileLookup({
+      userIds,
+      cursor: unparsedCursor,
+      segmentFilter,
+      negativeSegmentFilter,
+      userPropertyFilter,
+      subscriptionGroupFilter,
+      negativeSubscriptionGroupFilter,
+      unsubscribedFromFilter,
+    });
 
     const buildWorkspaceIdClause = (qb: ClickHouseQueryBuilder) =>
       childWorkspaceIds.length > 0
@@ -923,6 +1005,9 @@ export async function getUsers(
         workspaceIdClause,
         typeClause,
         computedPropertyIdsClause,
+        excludeLinkedAnonymousClause: directUserProfileLookup
+          ? ""
+          : excludeLinkedAnonymousUserIdsSql(workspaceIdClause),
       };
     };
 
@@ -1010,6 +1095,7 @@ export async function getUsers(
         workspaceIdClause,
         typeClause,
         computedPropertyIdsClause,
+        excludeLinkedAnonymousClause,
       } = await buildFilterClauses(qb);
 
       const cursorClause = cursor
@@ -1045,6 +1131,7 @@ export async function getUsers(
             FROM computed_property_assignments_v2
             WHERE
               ${workspaceIdClause}
+              ${excludeLinkedAnonymousClause}
               ${cursorClause}
               ${userIdsClause}
               ${typeClause}
@@ -1112,6 +1199,7 @@ export async function getUsers(
           workspaceIdClause,
           typeClause,
           computedPropertyIdsClause,
+          excludeLinkedAnonymousClause: idxExcludeLinkedAnonymousClause,
         } = await buildFilterClauses(qbIndex);
         const workspaceIdClauseWithAlias = workspaceIdClause.replace(
           /workspace_id/g,
@@ -1125,6 +1213,7 @@ export async function getUsers(
           FROM computed_property_assignments_v2
           WHERE
             ${workspaceIdClause}
+            ${idxExcludeLinkedAnonymousClause}
             ${userIdsClause}
             ${typeClause}
             ${computedPropertyIdsClause}
@@ -1196,6 +1285,7 @@ export async function getUsers(
           workspaceIdClause,
           typeClause: remTypeClause,
           computedPropertyIdsClause: remComputedPropertyIdsClause,
+          excludeLinkedAnonymousClause: remExcludeLinkedAnonymousClause,
         } = await buildFilterClauses(qbRemainder);
         const remainderCursorClause =
           cursor?.[CursorKey.PhaseKey] === "remainder"
@@ -1217,6 +1307,7 @@ export async function getUsers(
         FROM computed_property_assignments_v2
         WHERE
           ${workspaceIdClause}
+          ${remExcludeLinkedAnonymousClause}
           ${userIdsClause}
           ${remainderCursorClause}
           ${remTypeClause}
@@ -1608,6 +1699,12 @@ export async function deleteAllUsers({
     // Delete from resolved_segment_state
     `DELETE FROM resolved_segment_state WHERE workspace_id = ${workspaceIdParam}
      settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+
+    `DELETE FROM identity_links_v1 WHERE workspace_id = ${workspaceIdParam}
+     settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+
+    `DELETE FROM identity_links_latest_v1 WHERE workspace_id = ${workspaceIdParam}
+     settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
   ];
 
   await Promise.all([
@@ -1631,6 +1728,7 @@ export async function deleteAllUsers({
 export async function getUsersCount({
   workspaceId,
   segmentFilter,
+  negativeSegmentFilter,
   userIds,
   userPropertyFilter,
   subscriptionGroupFilter,
@@ -1639,6 +1737,17 @@ export async function getUsersCount({
 }: Omit<GetUsersRequest, "cursor" | "direction" | "limit">): Promise<
   Result<GetUsersCountResponse, Error>
 > {
+  const directUserProfileLookup = isDirectUserIdsProfileLookup({
+    userIds,
+    cursor: undefined,
+    segmentFilter,
+    negativeSegmentFilter,
+    userPropertyFilter,
+    subscriptionGroupFilter,
+    negativeSubscriptionGroupFilter,
+    unsubscribedFromFilter,
+  });
+
   const childWorkspaceIds = (
     await db()
       .select({ id: dbWorkspace.id })
@@ -1890,6 +1999,10 @@ export async function getUsersCount({
       ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
       : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
 
+  const excludeLinkedAnonymousClause = directUserProfileLookup
+    ? ""
+    : excludeLinkedAnonymousUserIdsSql(workspaceIdClause);
+
   // Using a similar nested query approach as getUsers
   const query = `
     SELECT
@@ -1900,6 +2013,7 @@ export async function getUsersCount({
       FROM computed_property_assignments_v2
       WHERE
         ${workspaceIdClause}
+        ${excludeLinkedAnonymousClause}
         ${userIdsClause}
         ${typeClause}
         ${computedPropertyIdsClause}

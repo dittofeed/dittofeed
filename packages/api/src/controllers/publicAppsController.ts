@@ -1,6 +1,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import {
+  submitAlias,
   submitBatchWithTriggers,
   submitGroup,
   submitIdentify,
@@ -9,10 +10,10 @@ import {
   submitTrackWithTriggers,
 } from "backend-lib/src/apps";
 import { validateWriteKey } from "backend-lib/src/auth";
-import logger from "backend-lib/src/logger";
 import { FastifyInstance } from "fastify";
 import {
   BaseMessageResponse,
+  BatchAliasData,
   BatchAppData,
   EmptyResponse,
   GroupData,
@@ -22,6 +23,9 @@ import {
   ScreenData,
   TrackData,
 } from "isomorphic-lib/src/types";
+
+// Public OpenAPI/Mintlify surface: request bodies use TypeBox schemas from isomorphic-lib (`BatchAppData`,
+// `BatchAliasData`). Regenerate doc pages from the running API when contracts change.
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function publicAppsController(fastify: FastifyInstance) {
@@ -35,7 +39,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
           },
         ],
         description:
-          "The Identify call lets you tie a user to their actions and record traits about them. It includes a unique User ID and any optional traits you know about the user, like their email, name, and more.",
+          "The Identify call lets you tie a user to their actions and record traits about them. It includes a unique User ID and any optional traits you know about the user, like their email, name, and more. When you send a User ID together with anonymousId (top-level or inside traits as anonymousId / anonymous_id), the same anonymous→known link is created as with the dedicated Alias call.",
         tags: ["Public Apps"],
         body: IdentifyData,
         headers: Type.Object({
@@ -235,15 +239,35 @@ export default async function publicAppsController(fastify: FastifyInstance) {
             publicWriteKey: [],
           },
         ],
+        description:
+          "Link a prior anonymous or temporary id to a known userId (same as an `alias` item in POST /batch).",
         tags: ["Public Apps"],
+        body: BatchAliasData,
+        headers: Type.Object({
+          authorization: PublicWriteKey,
+        }),
+        response: {
+          204: EmptyResponse,
+          401: BaseMessageResponse,
+        },
       },
     },
     async (request, reply) => {
-      logger().warn("Client is calling unimplemented endpoint /alias");
-
-      return reply.status(400).send({
-        message: "Not yet implemented.",
+      const workspaceIdFromWriteKey = await validateWriteKey({
+        writeKey: request.headers.authorization,
       });
+
+      if (workspaceIdFromWriteKey.isErr()) {
+        return reply.status(401).send({
+          message: workspaceIdFromWriteKey.error,
+        });
+      }
+
+      await submitAlias({
+        workspaceId: workspaceIdFromWriteKey.value,
+        data: request.body,
+      });
+      return reply.status(204).send();
     },
   );
 
@@ -257,7 +281,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
           },
         ],
         description:
-          "The batch method lets you send a series of identify, group, track, page and screen requests in a single batch, saving on outbound requests.",
+          "The batch method lets you send a series of identify, group, track, page, screen, and alias requests in a single batch, saving on outbound requests.",
         tags: ["Public Apps"],
         body: BatchAppData,
         headers: Type.Object({

@@ -2862,6 +2862,26 @@ export const GetUsersCountRequest = Type.Omit(GetUsersRequest, [
 
 export type GetUsersCountRequest = Static<typeof GetUsersCountRequest>;
 
+export const GetUserIdentityAliasesRequest = Type.Object({
+  workspaceId: Type.String(),
+  profileUserId: Type.String(),
+});
+
+export type GetUserIdentityAliasesRequest = Static<
+  typeof GetUserIdentityAliasesRequest
+>;
+
+export const GetUserIdentityAliasesResponse = Type.Object({
+  workspaceId: Type.String(),
+  profileUserId: Type.String(),
+  linkedAnonymousIds: Type.Array(Type.String()),
+  canonicalUserId: Type.Union([Type.String(), Type.Null()]),
+});
+
+export type GetUserIdentityAliasesResponse = Static<
+  typeof GetUserIdentityAliasesResponse
+>;
+
 export const BaseMessageResponse = Type.Object({
   message: Type.String(),
 });
@@ -3300,6 +3320,8 @@ export const BaseBatchIdentifyData = {
 const KnownIdentifyData = Type.Object({
   ...BaseIdentifyData,
   userId: UserId,
+  /** When set with userId, establishes the same anonymous→known link as an alias event. */
+  anonymousId: Type.Optional(AnonymousId),
 });
 
 export type KnownIdentifyData = Static<typeof KnownIdentifyData>;
@@ -3321,6 +3343,8 @@ export type IdentifyData = Static<typeof IdentifyData>;
 export const KnownBatchIdentifyData = Type.Object({
   ...BaseBatchIdentifyData,
   userId: UserId,
+  /** When set with userId, establishes the same anonymous→known link as an alias event. */
+  anonymousId: Type.Optional(AnonymousId),
 });
 
 export type KnownBatchIdentifyData = Static<typeof KnownBatchIdentifyData>;
@@ -3610,12 +3634,30 @@ export const BatchScreenData = Type.Union([
 
 export type BatchScreenData = Static<typeof BatchScreenData>;
 
+export const BaseBatchAliasData = {
+  ...BaseAppData,
+  type: Type.Literal(EventType.Alias),
+  context: AppDataContext,
+};
+
+export const BatchAliasData = Type.Object({
+  ...BaseBatchAliasData,
+  userId: UserId,
+  previousId: Type.String({
+    description:
+      "The prior anonymous or temporary identifier to merge into userId (Segment-style alias previousId).",
+  }),
+});
+
+export type BatchAliasData = Static<typeof BatchAliasData>;
+
 const BatchItem = Type.Union([
   BatchIdentifyData,
   BatchTrackData,
   BatchPageData,
   BatchScreenData,
   BatchGroupData,
+  BatchAliasData,
 ]);
 
 export type BatchItem = Static<typeof BatchItem>;
@@ -3645,6 +3687,12 @@ export const BatchAppData = Type.Object(
               email: "john@email.com",
             },
             messageId: "6f5f436d-8534-4070-8023-d18f8b78ed39",
+          },
+          {
+            type: "alias",
+            userId: "532",
+            previousId: "anon-session-id",
+            messageId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
           },
         ],
       },

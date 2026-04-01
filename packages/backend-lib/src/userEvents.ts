@@ -17,6 +17,7 @@ import {
   userProperty as dbUserProperty,
   workspace as dbWorkspace,
 } from "./db/schema";
+import { expandKnownUserIdsPredicateSql } from "./identityLinks";
 import { kafkaProducer } from "./kafka";
 import logger from "./logger";
 import {
@@ -311,6 +312,7 @@ export type UserIdsByPropertyValue = Record<string, string[]>;
 function buildUserEventQueryClauses(
   params: GetEventsRequest,
   qb: ClickHouseQueryBuilder,
+  workspaceIdClause: string,
 ) {
   const {
     workspaceId,
@@ -325,8 +327,6 @@ function buildUserEventQueryClauses(
     messageId,
   } = params;
 
-  const workspaceIdClause = `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
-
   const startDateClause = startDate
     ? `AND processing_time >= ${qb.addQueryValue(startDate, "DateTime64(3)")}`
     : "";
@@ -336,7 +336,10 @@ function buildUserEventQueryClauses(
     : "";
 
   const userIdClause = userId
-    ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
+    ? `AND ${expandKnownUserIdsPredicateSql(
+        workspaceIdClause,
+        qb.addQueryValue([userId], "Array(String)"),
+      )}`
     : "";
 
   let messageIdClause = "";
@@ -594,7 +597,11 @@ export async function buildUserEventsQuery(
   const { workspaceId, limit = 100, offset = 0 } = params;
 
   const workspaceIdClause = await buildWorkspaceIdClause(workspaceId, qb);
-  const queryClauses = buildUserEventQueryClauses(params, qb);
+  const queryClauses = buildUserEventQueryClauses(
+    params,
+    qb,
+    workspaceIdClause,
+  );
 
   const paginationClause = limit
     ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
@@ -720,6 +727,7 @@ export async function findUserEventCount({
       includeContext,
     },
     qb,
+    workspaceIdClause,
   );
 
   const innerQuery = buildUserEventInnerQuery(
@@ -854,6 +862,7 @@ export async function findUserIdsByUserProperty({
 
   for await (const rows of queryResults.stream()) {
     await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- stream chunk typing
       (rows as Row[]).forEach((row) => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { user_id, user_property_value } = row.json<{
