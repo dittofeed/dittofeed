@@ -1494,7 +1494,7 @@ export async function sendEmail({
         from: fromWithName,
         subject,
         html: body,
-        reply_to: replyTo,
+        replyTo,
         headers,
         cc,
         bcc,
