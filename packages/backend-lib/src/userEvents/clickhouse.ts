@@ -68,6 +68,113 @@ export const CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY = `
   WHERE event_type = 'track' AND startsWith(event, 'DF');
 `;
 
+/** Append-only log of anonymous → known user links (alias). Audit / replay. */
+export const CREATE_IDENTITY_LINKS_V1_TABLE_QUERY = `
+  CREATE TABLE IF NOT EXISTS identity_links_v1 (
+    workspace_id LowCardinality(String),
+    anonymous_id String,
+    user_id String,
+    linked_at DateTime64(3),
+    message_id String
+  )
+  ENGINE = MergeTree()
+  ORDER BY (workspace_id, anonymous_id, linked_at, message_id);
+`;
+
+/**
+ * One row per (workspace_id, anonymous_id); ReplacingMergeTree(linked_at) keeps latest user_id.
+ * Hot reads use FINAL or periodic OPTIMIZE.
+ */
+export const CREATE_IDENTITY_LINKS_LATEST_V1_TABLE_QUERY = `
+  CREATE TABLE IF NOT EXISTS identity_links_latest_v1 (
+    workspace_id LowCardinality(String),
+    anonymous_id String,
+    user_id String,
+    linked_at DateTime64(3),
+    message_id String
+  )
+  ENGINE = ReplacingMergeTree(linked_at)
+  ORDER BY (workspace_id, anonymous_id);
+`;
+
+/** Fills identity_links_v1 whenever an alias row lands in user_events_v2 (all write modes). */
+export const CREATE_IDENTITY_LINKS_V1_FROM_ALIAS_MV_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS identity_links_v1_from_alias_mv TO identity_links_v1 AS
+  SELECT
+    workspace_id,
+    assumeNotNull(JSONExtractString(message_raw, 'previousId')) AS anonymous_id,
+    assumeNotNull(JSONExtractString(message_raw, 'userId')) AS user_id,
+    event_time AS linked_at,
+    message_id
+  FROM user_events_v2
+  WHERE
+    event_type = 'alias'
+    AND length(JSONExtractString(message_raw, 'previousId')) > 0
+    AND length(JSONExtractString(message_raw, 'userId')) > 0
+`;
+
+/** Keeps identity_links_latest_v1 in sync (ReplacingMergeTree resolves latest by linked_at). */
+export const CREATE_IDENTITY_LINKS_LATEST_V1_FROM_ALIAS_MV_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS identity_links_latest_v1_from_alias_mv TO identity_links_latest_v1 AS
+  SELECT
+    workspace_id,
+    assumeNotNull(JSONExtractString(message_raw, 'previousId')) AS anonymous_id,
+    assumeNotNull(JSONExtractString(message_raw, 'userId')) AS user_id,
+    event_time AS linked_at,
+    message_id
+  FROM user_events_v2
+  WHERE
+    event_type = 'alias'
+    AND length(JSONExtractString(message_raw, 'previousId')) > 0
+    AND length(JSONExtractString(message_raw, 'userId')) > 0
+`;
+
+export const IDENTITY_LINKS_FROM_ALIAS_MATERIALIZED_VIEWS = [
+  CREATE_IDENTITY_LINKS_V1_FROM_ALIAS_MV_QUERY,
+  CREATE_IDENTITY_LINKS_LATEST_V1_FROM_ALIAS_MV_QUERY,
+];
+
+/** Same as batch `buildBatchUserEvents` / `buildIdentifyMessageRaw` normalization for anonymous id. */
+const identityIdentifyAnonymousIdExpr =
+  "coalesce(nullIf(JSONExtractString(message_raw, 'anonymousId'), ''), nullIf(JSONExtractString(message_raw, 'traits', 'anonymousId'), ''), nullIf(JSONExtractString(message_raw, 'traits', 'anonymous_id'), ''))";
+
+/** Fills identity_links_v1 from identify rows with userId + anonymous id (root or traits). */
+export const CREATE_IDENTITY_LINKS_V1_FROM_IDENTIFY_MV_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS identity_links_v1_from_identify_mv TO identity_links_v1 AS
+  SELECT
+    workspace_id,
+    assumeNotNull(${identityIdentifyAnonymousIdExpr}) AS anonymous_id,
+    assumeNotNull(JSONExtractString(message_raw, 'userId')) AS user_id,
+    event_time AS linked_at,
+    message_id
+  FROM user_events_v2
+  WHERE
+    event_type = 'identify'
+    AND length(JSONExtractString(message_raw, 'userId')) > 0
+    AND length(${identityIdentifyAnonymousIdExpr}) > 0
+`;
+
+export const CREATE_IDENTITY_LINKS_LATEST_V1_FROM_IDENTIFY_MV_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS identity_links_latest_v1_from_identify_mv TO identity_links_latest_v1 AS
+  SELECT
+    workspace_id,
+    assumeNotNull(${identityIdentifyAnonymousIdExpr}) AS anonymous_id,
+    assumeNotNull(JSONExtractString(message_raw, 'userId')) AS user_id,
+    event_time AS linked_at,
+    message_id
+  FROM user_events_v2
+  WHERE
+    event_type = 'identify'
+    AND length(JSONExtractString(message_raw, 'userId')) > 0
+    AND length(${identityIdentifyAnonymousIdExpr}) > 0
+`;
+
+/** Existing ClickHouse DBs: run bootstrap again or execute these CREATEs once; IF NOT EXISTS skips if already applied. */
+export const IDENTITY_LINKS_FROM_IDENTIFY_MATERIALIZED_VIEWS = [
+  CREATE_IDENTITY_LINKS_V1_FROM_IDENTIFY_MV_QUERY,
+  CREATE_IDENTITY_LINKS_LATEST_V1_FROM_IDENTIFY_MV_QUERY,
+];
+
 export const GROUP_TABLES = [
   `
     CREATE TABLE IF NOT EXISTS group_user_assignments (
@@ -363,6 +470,8 @@ export async function createUserEventsTables() {
           message_id
       );
       `,
+    CREATE_IDENTITY_LINKS_V1_TABLE_QUERY,
+    CREATE_IDENTITY_LINKS_LATEST_V1_TABLE_QUERY,
     // This table stores the intermediate state for computed properties, which
     // allows us to efficiently re-compute them incrementally, rather than
     // re-computing the entire segment or user property from scratch with each
@@ -565,6 +674,8 @@ export async function createUserEventsTables() {
     CREATE_USER_PROPERTY_IDX_NUM_MV_QUERY,
     CREATE_USER_PROPERTY_IDX_STR_MV_QUERY,
     CREATE_USER_PROPERTY_IDX_DATE_MV_QUERY,
+    ...IDENTITY_LINKS_FROM_ALIAS_MATERIALIZED_VIEWS,
+    ...IDENTITY_LINKS_FROM_IDENTIFY_MATERIALIZED_VIEWS,
   ];
 
   await Promise.all(

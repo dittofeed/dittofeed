@@ -3,7 +3,11 @@ import { v4 as uuid } from "uuid";
 import { query } from "../clickhouse";
 import { EventType } from "../types";
 import { findUserEvents } from "../userEvents";
-import { buildBatchUserEvents, submitBatch } from "./batch";
+import {
+  buildBatchUserEvents,
+  buildIdentifyMessageRaw,
+  submitBatch,
+} from "./batch";
 
 let testWorkspaceId: string;
 
@@ -207,6 +211,45 @@ describe("batch", () => {
         } else {
           throw new Error("Expected messageRaw to be a string");
         }
+      });
+
+      it("hoists traits anonymous_id to top-level anonymousId for known identify", () => {
+        const batchData = {
+          batch: [
+            {
+              type: EventType.Identify as const,
+              userId: "known-u",
+              messageId: uuid(),
+              traits: {
+                anonymous_id: "anon-from-traits",
+                email: "e@x.com",
+              },
+            },
+          ],
+        };
+        const userEvents = buildBatchUserEvents(batchData);
+        const first = userEvents[0];
+        if (!first) {
+          throw new Error("Expected event");
+        }
+        const raw = JSON.parse(String(first.messageRaw));
+        expect(raw.anonymousId).toBe("anon-from-traits");
+        expect(raw.userId).toBe("known-u");
+      });
+    });
+
+    describe("buildIdentifyMessageRaw", () => {
+      it("copies traits anonymousId to root when userId present", () => {
+        const raw = buildIdentifyMessageRaw({
+          messageId: "m",
+          userId: "u",
+          traits: { anonymousId: "a" },
+        });
+        expect(raw).toMatchObject({
+          type: "identify",
+          userId: "u",
+          anonymousId: "a",
+        });
       });
     });
 

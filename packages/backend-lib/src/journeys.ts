@@ -32,6 +32,10 @@ import { QUEUE_ITEM_PRIORITIES } from "./constants";
 import { Db, db, insert, QueryError, queryResult } from "./db";
 import * as schema from "./db/schema";
 import {
+  keyedJourneyRunningForLinkedAnonymous,
+  segmentEntryJourneyRunningForLinkedAnonymous,
+} from "./journeys/journeyIdentityDedupe";
+import {
   segmentUpdateSignal,
   userJourneyWorkflow,
 } from "./journeys/userWorkflow";
@@ -798,19 +802,48 @@ export function triggerEventEntryJourneysFactory({
           journeyName,
           entryType: definition.entryNode.type,
         });
-        return startKeyedJourneyImpl({
-          workspaceId,
-          userId,
-          journeyId,
-          event: triggerEvent,
-          definition,
-        });
+        return (async () => {
+          const duplicateForLinkedIdentity =
+            await keyedJourneyRunningForLinkedAnonymous({
+              workspaceId,
+              knownUserId: userId,
+              journeyId,
+              definition,
+              event: triggerEvent,
+            });
+          if (duplicateForLinkedIdentity) {
+            logger().debug(
+              {
+                workspaceId,
+                journeyId,
+                userId,
+              },
+              "Skipping keyed journey start: already running for linked anonymous user",
+            );
+            return;
+          }
+          await startKeyedJourneyImpl({
+            workspaceId,
+            userId,
+            journeyId,
+            event: triggerEvent,
+            definition,
+          });
+        })();
       },
     );
     await Promise.all(starts);
   };
 }
 
+/**
+ * Segment-entry journeys: when the user becomes eligible, signals the per-user journey workflow.
+ *
+ * **Linked identity:** if `segmentAssignment.user_id` is a known id but a **linked anonymous** id
+ * still has the same journey **RUNNING** under the anonymous workflow id, we **skip** signaling
+ * under the known id (avoids duplicate entry after alias). We do **not** signal the anonymous
+ * workflow; full anonymous→known handoff would need workflow-id migration or explicit signals (backlog).
+ */
 export async function triggerSegmentEntryJourney({
   workspaceId,
   segmentId,
@@ -859,12 +892,29 @@ export async function triggerSegmentEntryJourney({
   const { workflowClient } = getContext();
   const { id: journeyId, definition } = journey;
 
+  const userId = segmentAssignment.user_id;
+  const duplicateForLinkedIdentity =
+    await segmentEntryJourneyRunningForLinkedAnonymous({
+      workspaceId,
+      knownUserId: userId,
+      journeyId,
+    });
+  if (duplicateForLinkedIdentity) {
+    logger().debug(
+      {
+        workspaceId,
+        journeyId,
+        userId,
+      },
+      "Skipping segment-entry signal: journey still RUNNING for linked anonymous user",
+    );
+    return;
+  }
+
   const workflowId = getUserJourneyWorkflowId({
     journeyId,
-    userId: segmentAssignment.user_id,
+    userId,
   });
-
-  const userId = segmentAssignment.user_id;
   const counter = journeyTriggerCounter();
   counter.add(1, {
     workspaceId,
@@ -890,6 +940,9 @@ export async function triggerSegmentEntryJourney({
     signalArgs: [segmentUpdate],
   });
 }
+
+// Future: migrate or signal handoff so an anonymous user's in-flight journey continues as the
+// known user without relying on skip-when-RUNNING dedupe above.
 
 export async function updateJourney({
   set,

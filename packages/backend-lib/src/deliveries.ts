@@ -22,6 +22,7 @@ import {
   query as chQuery,
   streamClickhouseQuery,
 } from "./clickhouse";
+import { expandKnownUserIdsPredicateSql } from "./identityLinks";
 import logger from "./logger";
 import { withSpan } from "./openTelemetry";
 import { deserializeCursor, serializeCursor } from "./pagination";
@@ -107,6 +108,13 @@ interface BuildDeliverySearchQueryBodyArgs {
   qb: ClickHouseQueryBuilder;
 }
 
+/**
+ * Delivery search identity behavior:
+ * - **userId filter** (message_sends CTE): {@link expandKnownUserIdsPredicateSql} so known ids match linked anonymous sends.
+ * - **getDeliveryBody**: same expand on `user_events_v2`.
+ * - **Joins** `ms.user_or_anonymous_id = se.user_or_anonymous_id` / `uev`: same row identity across CTEs—do not expand (would break correlation).
+ * - **groupId filter**: uses `group_user_assignments.user_id` only; not expanded here (exception).
+ */
 export function buildDeliverySearchQueryBody({
   params,
   qb,
@@ -184,15 +192,15 @@ export function buildDeliverySearchQueryBody({
     );
   }
   if (userId) {
-    if (Array.isArray(userId)) {
-      messageSendsConditions.push(
-        `user_or_anonymous_id IN ${qb.addQueryValue(userId, "Array(String)")}`,
-      );
-    } else {
-      messageSendsConditions.push(
-        `user_or_anonymous_id = ${qb.addQueryValue(userId, "String")}`,
-      );
-    }
+    const userIdsParam = Array.isArray(userId)
+      ? qb.addQueryValue(userId, "Array(String)")
+      : qb.addQueryValue([userId], "Array(String)");
+    messageSendsConditions.push(
+      expandKnownUserIdsPredicateSql(
+        `workspace_id = ${workspaceIdParam}`,
+        userIdsParam,
+      ),
+    );
   }
   if (groupId) {
     const groupIdArray = Array.isArray(groupId) ? groupId : [groupId];
@@ -703,7 +711,6 @@ export async function getDeliveryBody({
 }: GetDeliveryBodyRequest): Promise<MessageSendSuccessVariant | null> {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-  const userIdParam = qb.addQueryValue(userId, "String");
   let templateClause = "";
   let journeyClause = "";
   let triggeringMessageIdClause = "";
@@ -753,6 +760,11 @@ export async function getDeliveryBody({
 
   const orCondition =
     conditions.length > 0 ? `AND (${conditions.join(" OR ")})` : "";
+  const userIdsForExpand = qb.addQueryValue([userId], "Array(String)");
+  const userPredicate = expandKnownUserIdsPredicateSql(
+    `workspace_id = ${workspaceIdParam}`,
+    userIdsForExpand,
+  );
   const query = `
     SELECT
       properties
@@ -761,7 +773,7 @@ export async function getDeliveryBody({
       event = '${InternalEventType.MessageSent}'
       AND workspace_id = ${workspaceIdParam}
       AND event_type = 'track'
-      AND user_or_anonymous_id = ${userIdParam}
+      AND ${userPredicate}
       ${orCondition}
     ORDER BY processing_time DESC
     LIMIT 1

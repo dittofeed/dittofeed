@@ -793,6 +793,70 @@ describe("deliveries", () => {
       });
     });
 
+    describe("known userId filter includes sends under linked anonymous id", () => {
+      it("returns message sent as anonymous when searching by known userId after alias", async () => {
+        const anonymousId = randomUUID();
+        const knownUserId = randomUUID();
+        const sentMessageId = randomUUID();
+        const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body",
+            subject: "subject",
+            provider: {
+              type: EmailProviderType.SendGrid,
+            },
+          },
+        };
+        await submitBatch({
+          workspaceId,
+          data: {
+            batch: [
+              {
+                anonymousId,
+                timestamp: new Date().toISOString(),
+                type: EventType.Track,
+                messageId: sentMessageId,
+                event: InternalEventType.MessageSent,
+                properties: {
+                  workspaceId,
+                  journeyId: randomUUID(),
+                  nodeId: randomUUID(),
+                  runId: randomUUID(),
+                  templateId: randomUUID(),
+                  messageId: randomUUID(),
+                  ...messageSentEvent,
+                },
+              },
+              {
+                type: EventType.Alias,
+                userId: knownUserId,
+                previousId: anonymousId,
+                messageId: randomUUID(),
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          },
+        });
+
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          userId: knownUserId,
+          limit: 10,
+        });
+
+        expect(deliveries.items).toHaveLength(1);
+        expect(deliveries.items[0]).toEqual(
+          expect.objectContaining({
+            userId: anonymousId,
+            originMessageId: sentMessageId,
+          }),
+        );
+      });
+    });
+
     describe("with two different messages from the same journey", () => {
       beforeEach(async () => {
         const userId = randomUUID();

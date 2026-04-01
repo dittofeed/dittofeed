@@ -1909,4 +1909,88 @@ describe("analysis", () => {
       expect(nodeStats.bounced).toBe(0);
     });
   });
+
+  describe("getChartData identity expansion for linked anonymous", () => {
+    let workspaceId: string;
+
+    beforeEach(async () => {
+      const workspace = unwrap(
+        await createWorkspace({
+          name: `test-workspace-${randomUUID()}`,
+        }),
+      );
+      workspaceId = workspace.id;
+    });
+
+    it("includes message sent as anonymous when filters.userIds uses known userId after alias", async () => {
+      const anonymousId = randomUUID();
+      const knownUserId = randomUUID();
+      const journeyId = randomUUID();
+      const templateId = randomUUID();
+      const sentMessageId = randomUUID();
+      const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+        variant: {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body",
+          subject: "subject",
+          provider: {
+            type: EmailProviderType.SendGrid,
+          },
+        },
+      };
+      const ts = new Date(Date.now() - 3_600_000);
+      await submitBatch(
+        {
+          workspaceId,
+          data: {
+            batch: [
+              {
+                anonymousId,
+                timestamp: ts.toISOString(),
+                type: EventType.Track,
+                messageId: sentMessageId,
+                event: InternalEventType.MessageSent,
+                properties: {
+                  workspaceId,
+                  journeyId,
+                  nodeId: randomUUID(),
+                  runId: randomUUID(),
+                  templateId,
+                  messageId: randomUUID(),
+                  ...messageSentEvent,
+                },
+              },
+              {
+                type: EventType.Alias,
+                userId: knownUserId,
+                previousId: anonymousId,
+                messageId: randomUUID(),
+                timestamp: ts.toISOString(),
+              },
+            ],
+          },
+        },
+        {
+          processingTime: ts.getTime(),
+        },
+      );
+
+      const startDate = new Date(Date.now() - 7_200_000).toISOString();
+      const endDate = new Date().toISOString();
+
+      const result = await getChartData({
+        workspaceId,
+        startDate,
+        endDate,
+        granularity: "1hour",
+        filters: {
+          userIds: [knownUserId],
+        },
+      });
+      const totalCount = result.data.reduce((sum, point) => sum + point.count, 0);
+      expect(totalCount).toBe(1);
+    });
+  });
 });

@@ -1,9 +1,12 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { getUserSubscriptions } from "backend-lib/src/subscriptionGroups";
+import { getUserIdentityAliasesForProfile } from "backend-lib/src/identityLinks";
 import {
   BadRequestResponse,
   DeleteUsersRequest,
   EmptyResponse,
+  GetUserIdentityAliasesRequest,
+  GetUserIdentityAliasesResponse,
   GetUsersCountResponse,
   GetUsersRequest,
   GetUsersResponse,
@@ -66,6 +69,32 @@ export default async function usersController(fastify: FastifyInstance) {
         });
       }
       return reply.status(200).send(result.value);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/identity-aliases",
+    {
+      schema: {
+        description:
+          "Linked anonymous ids for a known profile, or canonical user id when the profile is a linked anonymous id.",
+        tags: ["Users"],
+        querystring: GetUserIdentityAliasesRequest,
+        response: {
+          200: GetUserIdentityAliasesResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, profileUserId } = request.query;
+      const { linkedAnonymousIds, canonicalUserId } =
+        await getUserIdentityAliasesForProfile(workspaceId, profileUserId);
+      return reply.status(200).send({
+        workspaceId,
+        profileUserId,
+        linkedAnonymousIds,
+        canonicalUserId,
+      });
     },
   );
 
