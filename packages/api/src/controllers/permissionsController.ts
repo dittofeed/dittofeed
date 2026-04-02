@@ -1,11 +1,12 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import backendConfig from "backend-lib/src/config";
 import {
   createWorkspaceMemberRole,
   deleteWorkspaceMemberRole,
   getWorkspaceMemberRoles,
   updateWorkspaceMemberRole,
 } from "backend-lib/src/rbac";
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   CreateWorkspaceMemberRoleRequest,
   DeleteWorkspaceMemberRoleRequest,
@@ -15,6 +16,23 @@ import {
   UpdateWorkspaceMemberRoleRequest,
   WorkspaceMemberRoleResource,
 } from "isomorphic-lib/src/types";
+import { requireWorkspaceAdmin } from "isomorphic-lib/src/workspaceRoles";
+
+function denyUnlessWorkspaceAdmin(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  workspaceId: string,
+): boolean {
+  if (backendConfig().authMode !== "multi-tenant") {
+    return false;
+  }
+  const memberRoles = request.requestContext.get("memberRoles") ?? [];
+  if (requireWorkspaceAdmin({ memberRoles, workspaceId }).isErr()) {
+    void reply.status(403).send();
+    return true;
+  }
+  return false;
+}
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function permissionsController(fastify: FastifyInstance) {
@@ -46,11 +64,15 @@ export default async function permissionsController(fastify: FastifyInstance) {
         response: {
           201: WorkspaceMemberRoleResource,
           400: EmptyResponse,
+          403: EmptyResponse,
           404: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (denyUnlessWorkspaceAdmin(request, reply, request.body.workspaceId)) {
+        return;
+      }
       try {
         const role = await createWorkspaceMemberRole(request.body);
         return reply.status(201).send(role);
@@ -77,11 +99,15 @@ export default async function permissionsController(fastify: FastifyInstance) {
         body: UpdateWorkspaceMemberRoleRequest,
         response: {
           200: WorkspaceMemberRoleResource,
+          403: EmptyResponse,
           404: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (denyUnlessWorkspaceAdmin(request, reply, request.body.workspaceId)) {
+        return;
+      }
       try {
         const role = await updateWorkspaceMemberRole(request.body);
         return reply.status(200).send(role);
@@ -103,11 +129,15 @@ export default async function permissionsController(fastify: FastifyInstance) {
         body: DeleteWorkspaceMemberRoleRequest,
         response: {
           204: EmptyResponse,
+          403: EmptyResponse,
           404: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (denyUnlessWorkspaceAdmin(request, reply, request.body.workspaceId)) {
+        return;
+      }
       const success = await deleteWorkspaceMemberRole(request.body);
       if (!success) {
         return reply.status(404).send();

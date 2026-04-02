@@ -31,6 +31,7 @@ import userPropertyIndexController from "../controllers/userPropertyIndexControl
 import usersController from "../controllers/usersController";
 import viewInBrowserController from "../controllers/viewInBrowserController";
 import webhooksController from "../controllers/webhooksController";
+import workspacesController from "../controllers/workspacesController";
 import { BuildAppOpts } from "../types";
 import adminAuth from "./adminAuth";
 import requestContext from "./requestContext";
@@ -60,6 +61,7 @@ export default async function router(
         f.register(settingsController, { prefix: "/settings" }),
         f.register(integrationsController, { prefix: "/integrations" }),
         f.register(permissionsController, { prefix: "/permissions" }),
+        f.register(workspacesController, { prefix: "/workspaces" }),
         f.register(subscriptionGroupsController, {
           prefix: "/subscription-groups",
         }),

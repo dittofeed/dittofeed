@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormHelperText,
   IconButton,
   InputLabel,
   Menu,
@@ -52,8 +53,12 @@ import {
   RoleEnum,
   WorkspaceMemberWithRoles,
 } from "isomorphic-lib/src/types";
+import {
+  orderedWorkspaceRoles,
+  WORKSPACE_ROLE_INFO,
+} from "isomorphic-lib/src/workspaceRoles";
 import { enqueueSnackbar } from "notistack";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useImmer } from "use-immer";
 
 import { noticeAnchorOrigin } from "../lib/notices";
@@ -78,10 +83,18 @@ function PermissionDialog({
   memberWithRole,
   isEdit = false,
 }: PermissionDialogProps) {
-  const [email, setEmail] = useState(memberWithRole?.member.email || "");
+  const [email, setEmail] = useState(memberWithRole?.member.email ?? "");
   const [role, setRole] = useState<Role>(
-    memberWithRole?.roles[0]?.role || RoleEnum.Admin,
+    memberWithRole?.roles[0]?.role ?? RoleEnum.Viewer,
   );
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    setEmail(memberWithRole?.member.email ?? "");
+    setRole(memberWithRole?.roles[0]?.role ?? RoleEnum.Viewer);
+  }, [open, memberWithRole]);
 
   const createMutation = useCreatePermissionMutation({
     onSuccess: () => {
@@ -91,7 +104,7 @@ function PermissionDialog({
       });
       onClose();
       setEmail("");
-      setRole(RoleEnum.Admin);
+      setRole(RoleEnum.Viewer);
     },
     onError: (error) => {
       enqueueSnackbar(
@@ -157,8 +170,27 @@ function PermissionDialog({
               // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               onChange={(e) => setRole(e.target.value as Role)}
             >
-              <MenuItem value={RoleEnum.Admin}>Admin</MenuItem>
+              {orderedWorkspaceRoles().map((roleKey) => {
+                const info = WORKSPACE_ROLE_INFO[roleKey];
+                return (
+                  <MenuItem key={roleKey} value={roleKey}>
+                    <Stack spacing={0.25} alignItems="flex-start">
+                      <Typography variant="body2">{info.label}</Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ whiteSpace: "normal", lineHeight: 1.3 }}
+                      >
+                        {info.summary}
+                      </Typography>
+                    </Stack>
+                  </MenuItem>
+                );
+              })}
             </Select>
+            <FormHelperText sx={{ mt: 1 }}>
+              {WORKSPACE_ROLE_INFO[role].summary}
+            </FormHelperText>
           </FormControl>
         </Box>
       </DialogContent>
@@ -290,7 +322,7 @@ function RoleCell({ roles }: RoleCellProps) {
         display: "inline-block",
       }}
     >
-      {roles.map((role) => role.role).join(", ")}
+      {roles.map((r) => WORKSPACE_ROLE_INFO[r.role].label).join(", ")}
     </Box>
   );
 }

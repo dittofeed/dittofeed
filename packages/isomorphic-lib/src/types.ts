@@ -3010,6 +3010,20 @@ export type GetWorkspaceMemberRolesResponse = Static<
   typeof GetWorkspaceMemberRolesResponse
 >;
 
+export const CreateWorkspaceRequest = Type.Object({
+  name: Type.String({ minLength: 1 }),
+  domain: Type.Optional(Type.String()),
+});
+
+export type CreateWorkspaceRequest = Static<typeof CreateWorkspaceRequest>;
+
+export const CreateWorkspaceResponse = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+});
+
+export type CreateWorkspaceResponse = Static<typeof CreateWorkspaceResponse>;
+
 export interface DFRequestContext {
   workspace: WorkspaceResource & {
     type: WorkspaceTypeApp;

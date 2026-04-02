@@ -513,6 +513,22 @@ export interface BootstrapWorkspaceParams {
   features?: Features;
 }
 
+/** After `bootstrapPostgres` for a non-Parent workspace: default events + compute/cron when enabled. */
+export async function bootstrapWorkspaceAfterPostgres({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<void> {
+  if (config().bootstrapEvents) {
+    await insertDefaultEvents({ workspaceId });
+  }
+
+  if (config().bootstrapWorker) {
+    await bootstrapComputeProperties({ workspaceId });
+    await startGlobalCron();
+  }
+}
+
 export async function bootstrapWorkspace({
   workspaceName,
   workspaceType,
@@ -537,14 +553,7 @@ export async function bootstrapWorkspace({
   }
   const workspaceId = workspace.value.id;
 
-  if (config().bootstrapEvents) {
-    await insertDefaultEvents({ workspaceId });
-  }
-
-  if (config().bootstrapWorker) {
-    await bootstrapComputeProperties({ workspaceId });
-    await startGlobalCron();
-  }
+  await bootstrapWorkspaceAfterPostgres({ workspaceId });
   return { workspaceId };
 }
 

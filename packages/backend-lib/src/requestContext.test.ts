@@ -124,5 +124,59 @@ describe("requestContext", () => {
         expect(childRole?.role).toEqual(RoleEnum.Admin);
       });
     });
+
+    describe("when workspace matches member email domain", () => {
+      let sharedDomain: string;
+      let workspace: Workspace;
+
+      beforeEach(async () => {
+        sharedDomain = `${randomUUID()}.com`;
+        const [ws] = await db()
+          .insert(dbWorkspace)
+          .values({
+            name: randomUUID(),
+            domain: sharedDomain,
+          })
+          .returning();
+        if (!ws) {
+          throw new Error("expected workspace");
+        }
+        workspace = ws;
+      });
+
+      it("assigns Admin to the first domain-matched member and Viewer to the second", async () => {
+        const [firstMember] = await db()
+          .insert(dbWorkspaceMember)
+          .values({
+            email: `first-${randomUUID()}@${sharedDomain}`,
+            emailVerified: true,
+          })
+          .returning();
+        if (!firstMember) {
+          throw new Error("expected first member");
+        }
+        const firstResult = await findAndCreateRoles(firstMember);
+        const firstRole = firstResult.memberRoles.find(
+          (r) => r.workspaceId === workspace.id,
+        );
+        expect(firstRole?.role).toEqual(RoleEnum.Admin);
+
+        const [secondMember] = await db()
+          .insert(dbWorkspaceMember)
+          .values({
+            email: `second-${randomUUID()}@${sharedDomain}`,
+            emailVerified: true,
+          })
+          .returning();
+        if (!secondMember) {
+          throw new Error("expected second member");
+        }
+        const secondResult = await findAndCreateRoles(secondMember);
+        const secondRole = secondResult.memberRoles.find(
+          (r) => r.workspaceId === workspace.id,
+        );
+        expect(secondRole?.role).toEqual(RoleEnum.Viewer);
+      });
+    });
   });
 });

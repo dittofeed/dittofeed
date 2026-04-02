@@ -65,11 +65,13 @@ import {
   SyncIntegration,
   UpsertIntegrationResource,
 } from "isomorphic-lib/src/types";
+import { requireWorkspaceAdmin } from "isomorphic-lib/src/workspaceRoles";
 import {
   GetServerSideProps,
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
+import { useRouter } from "next/router";
 import { enqueueSnackbar } from "notistack";
 import { useEffect, useMemo, useState } from "react";
 import { pick } from "remeda";
@@ -100,6 +102,7 @@ import { getOrCreateEmailProviders } from "../lib/email";
 import { noticeAnchorOrigin } from "../lib/notices";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
+import { useCreateWorkspaceMutation } from "../lib/useCreateWorkspaceMutation";
 
 function useSecretAvailability(): AppState["secretAvailability"] | undefined {
   const { secretAvailability, inTransition } = useAppStorePick([
@@ -2273,6 +2276,97 @@ function SubscriptionManagementSettings() {
   );
 }
 
+function CreateWorkspaceFromSettings({ workspaceId }: { workspaceId: string }) {
+  const router = useRouter();
+  const { authMode, memberRoles } = useAppStorePick([
+    "authMode",
+    "memberRoles",
+  ]);
+  const [name, setName] = useState("");
+  const [domain, setDomain] = useState("");
+
+  const canCreate =
+    authMode === "multi-tenant" &&
+    requireWorkspaceAdmin({ memberRoles, workspaceId }).isOk();
+
+  const createWorkspaceMutation = useCreateWorkspaceMutation();
+
+  if (!canCreate) {
+    return null;
+  }
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Stack spacing={2}>
+        <Typography variant="subtitle1">Create workspace</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Add a new Root workspace. You will be granted Admin and switched into
+          it. Workspace names must be unique among root workspaces.
+        </Typography>
+        <TextField
+          label="Workspace name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          fullWidth
+          size="small"
+        />
+        <TextField
+          label="Email domain (optional)"
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          fullWidth
+          size="small"
+          helperText="If set, the first user whose email domain matches gets Admin on first sign-in; additional users from that domain get Viewer by default."
+        />
+        <LoadingButton
+          variant="contained"
+          loading={createWorkspaceMutation.isPending}
+          disabled={!name.trim()}
+          onClick={() => {
+            const trimmedDomain = domain.trim();
+            createWorkspaceMutation.mutate(
+              {
+                name: name.trim(),
+                domain: trimmedDomain.length > 0 ? trimmedDomain : undefined,
+              },
+              {
+                onSuccess: (data) => {
+                  enqueueSnackbar("Workspace created.", {
+                    variant: "success",
+                    anchorOrigin: noticeAnchorOrigin,
+                  });
+                  setName("");
+                  setDomain("");
+                  router.push(
+                    `/select-workspace?workspaceId=${encodeURIComponent(data.id)}&redirectTo=${encodeURIComponent("/")}`,
+                  );
+                },
+                onError: (err) => {
+                  const status = err.response?.status;
+                  let { message } = err;
+                  if (status === 409) {
+                    message = "A workspace with this name already exists.";
+                  } else if (status === 403) {
+                    message =
+                      "You must be a workspace Admin to create workspaces.";
+                  }
+                  enqueueSnackbar(`Could not create workspace: ${message}`, {
+                    variant: "error",
+                    anchorOrigin: noticeAnchorOrigin,
+                  });
+                },
+              },
+            );
+          }}
+        >
+          Create workspace
+        </LoadingButton>
+      </Stack>
+    </Paper>
+  );
+}
+
 function Metadata() {
   const { workspace: workspaceResult } = useAppStorePick(["workspace"]);
   const workspace =
@@ -2311,6 +2405,7 @@ function Metadata() {
           },
         ]}
       />
+      <CreateWorkspaceFromSettings workspaceId={workspace.id} />
     </Stack>
   );
 }
