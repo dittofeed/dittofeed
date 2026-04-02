@@ -15,6 +15,8 @@ interface WaitingRoomProps {
   refreshUrl: string;
   emailVerified: boolean;
   signOutUrl?: string;
+  /** Show admin CLI hint for self-hosted multi-tenant (no workspace role yet). */
+  multiTenantSelfHostHint?: boolean;
 }
 
 export const getServerSideProps: GetServerSideProps<
@@ -33,7 +35,7 @@ export const getServerSideProps: GetServerSideProps<
   }
   logger().info(rc.error, "waiting room onboarding incomplete");
 
-  const { oauthStartUrl, signoutUrl } = backendConfig();
+  const { oauthStartUrl, signoutUrl, authMode } = backendConfig();
 
   const emailVerified =
     rc.error.type !== RequestContextErrorType.EmailNotVerified;
@@ -41,6 +43,7 @@ export const getServerSideProps: GetServerSideProps<
   const props: WaitingRoomProps = {
     refreshUrl: oauthStartUrl ?? "/login",
     emailVerified,
+    multiTenantSelfHostHint: authMode === "multi-tenant",
   };
   if (signoutUrl) {
     props.signOutUrl = signoutUrl;
@@ -57,6 +60,7 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
   refreshUrl,
   emailVerified,
   signOutUrl,
+  multiTenantSelfHostHint,
 }) {
   const theme = useTheme();
   return (
@@ -89,10 +93,36 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
                 Please check your email to verify your email address.
               </Typography>
             ) : null}
-            <Typography sx={{ fontSize: "1rem" }}>
-              Get in touch and we will finish setting up your workspace. When we
-              are done click the <b>Refresh</b> button.
-            </Typography>
+            {emailVerified && multiTenantSelfHostHint ? (
+              <>
+                <Typography sx={{ fontSize: "1rem" }}>
+                  You are signed in, but your account does not have a workspace
+                  role yet. An administrator can grant access from the repo
+                  (Postgres must be reachable):
+                </Typography>
+                <Typography
+                  component="pre"
+                  sx={{
+                    fontSize: "0.85rem",
+                    fontFamily: "monospace",
+                    whiteSpace: "pre-wrap",
+                    margin: 0,
+                  }}
+                >
+                  yarn admin onboard-user --email YOUR_EMAIL --workspace-name
+                  WORKSPACE_NAME
+                </Typography>
+                <Typography sx={{ fontSize: "1rem" }}>
+                  After your workspace is assigned, click <b>Refresh</b>.
+                </Typography>
+              </>
+            ) : null}
+            {emailVerified && !multiTenantSelfHostHint ? (
+              <Typography sx={{ fontSize: "1rem" }}>
+                Get in touch and we will finish setting up your workspace. When
+                we are done click the <b>Refresh</b> button.
+              </Typography>
+            ) : null}
             <Box>
               <Button href={refreshUrl} LinkComponent={Link} variant="outlined">
                 Refresh
@@ -108,7 +138,11 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
             </Stack>
             {signOutUrl ? (
               <Box>
-                <Button href={signOutUrl} variant="outlined">
+                <Button
+                  href={signOutUrl}
+                  LinkComponent={Link}
+                  variant="outlined"
+                >
                   Sign Out
                 </Button>
               </Box>

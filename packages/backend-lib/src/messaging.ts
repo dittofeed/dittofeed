@@ -1489,12 +1489,13 @@ export async function sendEmail({
           content: attachment.data,
         }));
       const fromWithName = emailName ? `${emailName} <${from}>` : from;
-      const mailData: ResendRequiredData = {
+      // Resend 4.x types use reply_to; cast keeps Docker/local tsc aligned if hoisted resend differs.
+      const mailData = {
         to,
         from: fromWithName,
         subject,
         html: body,
-        replyTo,
+        ...(replyTo ? { reply_to: replyTo } : {}),
         headers,
         cc,
         bcc,
@@ -1505,7 +1506,7 @@ export async function sendEmail({
             }))
           : [],
         attachments: resendAttachments,
-      };
+      } as ResendRequiredData;
 
       if (!emailProvider.apiKey) {
         return err({

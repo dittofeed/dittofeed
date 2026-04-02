@@ -119,5 +119,8 @@ export const DEFAULT_SEGMENT_DEFINITION: SegmentDefinition = {
 
 export const OAUTH_COOKIE_NAME = "oauth_csrf_token";
 
+/** HttpOnly cookie holding OIDC id_token JWT for multi-tenant dashboard SSO (lite / OSS). */
+export const OIDC_ID_TOKEN_COOKIE_NAME = "df_oidc_id_token";
+
 export const DEFAULT_USER_PROPERTY_DELAY_OFFSET_DIRECTION =
   CursorDirectionEnum.After;

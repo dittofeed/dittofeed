@@ -49,6 +49,22 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       };
     }
 
+    const hasRole = dfContext.memberRoles.some(
+      (r) => r.workspaceId === workspaceId,
+    );
+    if (!hasRole) {
+      logger().warn(
+        { workspaceId, memberId: dfContext.member.id },
+        "select-workspace: member has no role in workspace; ignoring",
+      );
+      return {
+        redirect: {
+          permanent: false,
+          destination: getValidatedRedirectPath(redirectTo),
+        },
+      };
+    }
+
     await db()
       .update(schema.workspaceMember)
       .set({

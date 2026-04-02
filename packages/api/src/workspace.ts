@@ -77,6 +77,19 @@ export async function getWorkspaceId(
   }
 
   if (backendConfig().authMode === "multi-tenant") {
+    // Authenticated dashboard/API calls: preHandler has set workspace on the request.
+    // Webhooks and unauthenticated routes have no member; keep null so callers require a header/body id.
+    const member = req.requestContext.get("member");
+    const ctxWorkspace = req.requestContext.get("workspace");
+    if (
+      member &&
+      ctxWorkspace &&
+      typeof ctxWorkspace === "object" &&
+      "id" in ctxWorkspace &&
+      typeof ctxWorkspace.id === "string"
+    ) {
+      return ok(ctxWorkspace.id);
+    }
     return ok(null);
   }
 

@@ -67,7 +67,7 @@ import {
   tombstoneWorkspace,
 } from "backend-lib/src/workspaces";
 import { randomUUID } from "crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import fs from "fs/promises";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { parseInt as parseIntStrict } from "isomorphic-lib/src/numbers";
@@ -544,6 +544,77 @@ export function createCommands(yargs: Argv): Argv {
       }) {
         const onboardUserResult = await onboardUser({ workspaceName, email });
         unwrap(onboardUserResult);
+      },
+    )
+    .command(
+      "list-workspaces",
+      "Lists all workspaces (id, name, status). Use workspace names with onboard-user to grant access.",
+      (y) => y,
+      async () => {
+        const rows = await db().query.workspace.findMany({
+          columns: {
+            id: true,
+            name: true,
+            status: true,
+            type: true,
+          },
+          orderBy: [asc(dbWorkspace.name)],
+        });
+        // eslint-disable-next-line no-console
+        console.table(
+          rows.map((w) => ({
+            id: w.id,
+            name: w.name,
+            status: w.status,
+            type: w.type,
+          })),
+        );
+        logger().info({ count: rows.length }, "list-workspaces done");
+      },
+    )
+    .command(
+      "list-member-workspaces",
+      "Lists workspace roles for a member by email (debug access / switcher issues).",
+      (cmd) =>
+        cmd.option("email", {
+          type: "string",
+          demandOption: true,
+          describe: "Workspace member email (e.g. gaurav@driffle.com).",
+        }),
+      // eslint-disable-next-line prefer-arrow-callback
+      async function listMemberWorkspacesHandler({ email }: { email: string }) {
+        const member = await db().query.workspaceMember.findFirst({
+          where: eq(schema.workspaceMember.email, email),
+          with: {
+            workspaceMemberRoles: {
+              with: { workspace: true },
+            },
+          },
+        });
+        if (!member) {
+          logger().info({ email }, "list-member-workspaces: no member with this email");
+          return;
+        }
+        const roles = member.workspaceMemberRoles;
+        if (roles.length === 0) {
+          logger().info(
+            { email, memberId: member.id },
+            "list-member-workspaces: member has no workspace roles",
+          );
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.table(
+          roles.map((r) => ({
+            workspaceId: r.workspaceId,
+            workspaceName: r.workspace.name,
+            role: r.role,
+          })),
+        );
+        logger().info(
+          { email, memberId: member.id, count: roles.length },
+          "list-member-workspaces done",
+        );
       },
     )
     .command(

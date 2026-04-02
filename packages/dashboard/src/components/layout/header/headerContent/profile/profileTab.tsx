@@ -56,7 +56,7 @@ function ProfileTab() {
         </ListItemButton>
       ) : null}
       {signoutUrl ? (
-        <ListItemButton href={signoutUrl}>
+        <ListItemButton LinkComponent={Link} href={signoutUrl}>
           <ListItemIcon>
             <Logout />
           </ListItemIcon>

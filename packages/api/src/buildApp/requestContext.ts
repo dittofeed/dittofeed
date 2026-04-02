@@ -76,7 +76,12 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
 
     const { workspace, member, memberRoles } = rc.value;
     const workspaceId = requestWorkspaceIdResult.value;
-    if (workspaceId !== workspace.id) {
+    // Multi-tenant requests often omit workspace id (use JWT/session workspace). Only reject when an explicit id conflicts.
+    if (
+      workspaceId != null &&
+      workspaceId !== "" &&
+      workspaceId !== workspace.id
+    ) {
       logger().error(
         {
           workspaceId,

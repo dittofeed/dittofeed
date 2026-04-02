@@ -36,6 +36,7 @@ import { upsertMessageTemplate } from "./messaging";
 import { getOrCreateEmailProviders } from "./messaging/email";
 import { getOrCreateSmsProviders } from "./messaging/sms";
 import { drizzleMigrate } from "./migrate";
+import { onboardUser } from "./onboarding";
 import {
   upsertSubscriptionGroup,
   upsertSubscriptionSecret,
@@ -667,11 +668,37 @@ export async function bootstrapDependencies(): Promise<void> {
   await Promise.all(promises);
 }
 
+async function maybeBootstrapOnboardAdmin({
+  workspaceName,
+}: {
+  workspaceName: string;
+}): Promise<void> {
+  const { authMode, bootstrapOnboardEmail } = config();
+  if (authMode !== "multi-tenant") {
+    return;
+  }
+  const email = bootstrapOnboardEmail?.trim();
+  if (!email) {
+    return;
+  }
+  const result = await onboardUser({ workspaceName, email });
+  if (result.isErr()) {
+    logger().warn(
+      { err: result.error, email, workspaceName },
+      "bootstrap onboard-user failed; run admin onboard-user manually",
+    );
+    return;
+  }
+  logger().info({ email, workspaceName }, "bootstrap onboarded workspace admin");
+}
+
 export default async function bootstrap(
   params: BootstrapWorkspaceParams,
 ): Promise<{ workspaceId: string }> {
   await bootstrapDependencies();
-  return bootstrapWorkspace(params);
+  const { workspaceId } = await bootstrapWorkspace(params);
+  await maybeBootstrapOnboardAdmin({ workspaceName: params.workspaceName });
+  return { workspaceId };
 }
 
 export interface BootstrapWithoutDefaultsParams {

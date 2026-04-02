@@ -37,7 +37,9 @@ const BaseRawConfigProps = {
   clickhouseDatabase: Type.Optional(Type.String()),
   clickhouseUser: Type.String(),
   clickhousePassword: Type.String(),
-  defaultUserJourneyMaxAttempts: Type.Optional(Type.String({ format: "naturalNumber" })),
+  defaultUserJourneyMaxAttempts: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   kafkaBrokers: Type.Optional(Type.String()),
   kafkaUsername: Type.Optional(Type.String()),
   kafkaPassword: Type.Optional(Type.String()),
@@ -53,6 +55,7 @@ const BaseRawConfigProps = {
   bootstrapEvents: Type.Optional(BoolStr),
   bootstrapWorker: Type.Optional(BoolStr),
   bootstrapSafe: Type.Optional(BoolStr),
+  bootstrapOnboardEmail: Type.Optional(Type.String()),
   defaultIdUserPropertyId: Type.Optional(Type.String()),
   defaultAnonymousIdIdUserPropertyId: Type.Optional(Type.String()),
   defaultEmailUserPropertyId: Type.Optional(Type.String()),
@@ -112,6 +115,13 @@ const BaseRawConfigProps = {
   sessionCookieSecure: Type.Optional(BoolStr),
   openIdClientId: Type.Optional(Type.String()),
   openIdClientSecret: Type.Optional(Type.String()),
+  openIdIssuer: Type.Optional(Type.String()),
+  openIdAuthorizationUrl: Type.Optional(Type.String()),
+  openIdTokenUrl: Type.Optional(Type.String()),
+  openIdUserInfoUrl: Type.Optional(Type.String()),
+  openIdEndSessionEndpoint: Type.Optional(Type.String()),
+  openIdReturnToQueryParam: Type.Optional(Type.String()),
+  enablePkce: Type.Optional(BoolStr),
   allowedOrigins: Type.Optional(Type.String()),
   blobStorageEndpoint: Type.Optional(Type.String()),
   blobStorageInternalEndpoint: Type.Optional(Type.String()),
@@ -598,6 +608,16 @@ function parseRawConfig(rawConfig: RawConfig): Config {
 
   const blobStorageBucket = rawConfig.blobStorageBucket ?? "dittofeed";
   const enableColdStorage = rawConfig.enableColdStorage === "true";
+  const oauthStartUrlDefault =
+    authMode === "multi-tenant" ? "/login" : undefined;
+  let defaultUserJourneyMaxAttemptsValue: number | undefined;
+  if (rawConfig.defaultUserJourneyMaxAttempts !== undefined) {
+    defaultUserJourneyMaxAttemptsValue = parseInt(
+      rawConfig.defaultUserJourneyMaxAttempts,
+    );
+  } else if (nodeEnv === NodeEnvEnum.Test) {
+    defaultUserJourneyMaxAttemptsValue = 1;
+  }
   const parsedConfig: Config = {
     ...rawConfig,
     bootstrap: rawConfig.bootstrap === "true",
@@ -686,8 +706,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     signoutUrl:
       authMode === "single-tenant"
         ? "/api/public/single-tenant/signout"
-        : rawConfig.signoutUrl,
+        : rawConfig.signoutUrl ?? "/signout",
     signoutRedirectUrl: rawConfig.signoutRedirectUrl ?? dashboardUrl,
+    oauthStartUrl: rawConfig.oauthStartUrl ?? oauthStartUrlDefault,
     secretKey,
     password: rawConfig.password ?? DEFAULT_BACKEND_CONFIG.password,
     // ms
@@ -794,9 +815,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.broadcastSendMessagesMaxAttempts,
       5,
     ),
-    defaultUserJourneyMaxAttempts: rawConfig.defaultUserJourneyMaxAttempts !== undefined ? parseInt(
-      rawConfig.defaultUserJourneyMaxAttempts,
-    ) : (nodeEnv === NodeEnvEnum.Test ? 1 : undefined),
+    defaultUserJourneyMaxAttempts: defaultUserJourneyMaxAttemptsValue,
     defaultGetSegmentAndEventDetailsMaxAttempts: parseMaxAttempts(
       rawConfig.defaultGetSegmentAndEventDetailsMaxAttempts,
       nodeEnv === NodeEnvEnum.Test ? 1 : 10,

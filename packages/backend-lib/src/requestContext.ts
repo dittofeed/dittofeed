@@ -1,6 +1,7 @@
 import { SpanStatusCode } from "@opentelemetry/api";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { IncomingHttpHeaders } from "http";
+import { OIDC_ID_TOKEN_COOKIE_NAME } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
 import { sortBy } from "remeda";
@@ -15,6 +16,7 @@ import {
   workspaceMemberRole as dbWorkspaceMemberRole,
 } from "./db/schema";
 import logger from "./logger";
+import { isProfileEmailVerified } from "./openIdProfile";
 import { withSpan } from "./openTelemetry";
 import { requestContextPostProcessor } from "./requestContextPostProcessor";
 import {
@@ -33,7 +35,6 @@ import {
   WorkspaceTypeApp,
   WorkspaceTypeAppEnum,
 } from "./types";
-import { isProfileEmailVerified } from "./openIdProfile";
 
 export const SESSION_KEY = "df-session-key";
 
@@ -265,14 +266,6 @@ export async function getMultiTenantRequestContext({
   let [existingMember, account] = await Promise.all([
     db().query.workspaceMember.findFirst({
       where: eq(dbWorkspaceMember.email, email),
-      with: {
-        workspaceMemberRoles: {
-          limit: 1,
-          with: {
-            workspace: true,
-          },
-        },
-      },
     }),
     db().query.workspaceMembeAccount.findFirst({
       where: and(
@@ -415,6 +408,36 @@ async function getAnonymousRequestContext(): Promise<RequestContextResult> {
   });
 }
 
+function readOidcIdTokenFromCookieHeader(
+  cookieHeader: IncomingHttpHeaders["cookie"],
+): string | null {
+  if (!cookieHeader) {
+    return null;
+  }
+  let combined: string | null = null;
+  if (typeof cookieHeader === "string") {
+    combined = cookieHeader;
+  } else if (Array.isArray(cookieHeader)) {
+    combined = [...cookieHeader].join("; ");
+  }
+  if (!combined) {
+    return null;
+  }
+  const name = `${OIDC_ID_TOKEN_COOKIE_NAME}=`;
+  const parts = combined.split(";").map((c) => c.trim());
+  for (const part of parts) {
+    if (part.startsWith(name)) {
+      const raw = part.slice(name.length);
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return raw;
+      }
+    }
+  }
+  return null;
+}
+
 export async function getRequestContext(
   headers: IncomingHttpHeaders,
   profile?: OpenIdProfile,
@@ -437,10 +460,19 @@ export async function getRequestContext(
         break;
       }
       case "multi-tenant": {
-        const authorizationToken =
+        let authorizationToken: string | null =
           headers.authorization && typeof headers.authorization === "string"
             ? headers.authorization
             : null;
+
+        if (!authorizationToken) {
+          const idToken = readOidcIdTokenFromCookieHeader(headers.cookie);
+          if (idToken) {
+            authorizationToken = idToken.startsWith("Bearer ")
+              ? idToken
+              : `Bearer ${idToken}`;
+          }
+        }
 
         result = await getMultiTenantRequestContext({
           authorizationToken,

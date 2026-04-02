@@ -89,6 +89,14 @@ export const requestContext: <T>(
               },
             };
           }
+          if (backendConfig().authMode === "multi-tenant") {
+            return {
+              redirect: {
+                destination: "/login",
+                permanent: false,
+              },
+            };
+          }
           return {
             redirect: {
               destination: UNAUTHORIZED_PAGE,

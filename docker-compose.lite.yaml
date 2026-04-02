@@ -13,9 +13,22 @@ x-backend-app-env: &backend-app-env
   TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
   WORKSPACE_NAME: ${WORKSPACE_NAME:-Default}
   AUTH_MODE: ${AUTH_MODE:-single-tenant}
+  AUTH_PROVIDER: ${AUTH_PROVIDER:-}
   SECRET_KEY: ${SECRET_KEY:-GEGL1RHjFVOxIO80Dp8+ODlZPOjm2IDBJB/UunHlf3c=}
   PASSWORD: ${PASSWORD:-password}
   DASHBOARD_API_BASE: ${DASHBOARD_API_BASE:-http://localhost:3000}
+  DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:3000}
+  OPEN_ID_CLIENT_ID: ${OPEN_ID_CLIENT_ID:-}
+  OPEN_ID_CLIENT_SECRET: ${OPEN_ID_CLIENT_SECRET:-}
+  OPEN_ID_ISSUER: ${OPEN_ID_ISSUER:-}
+  OPEN_ID_AUTHORIZATION_URL: ${OPEN_ID_AUTHORIZATION_URL:-}
+  OPEN_ID_TOKEN_URL: ${OPEN_ID_TOKEN_URL:-}
+  OPEN_ID_USER_INFO_URL: ${OPEN_ID_USER_INFO_URL:-}
+  OPEN_ID_END_SESSION_ENDPOINT: ${OPEN_ID_END_SESSION_ENDPOINT:-}
+  OPEN_ID_RETURN_TO_QUERY_PARAM: ${OPEN_ID_RETURN_TO_QUERY_PARAM:-}
+  SIGNOUT_URL: ${SIGNOUT_URL:-}
+  ENABLE_PKCE: ${ENABLE_PKCE:-false}
+  BOOTSTRAP_ONBOARD_EMAIL: ${BOOTSTRAP_ONBOARD_EMAIL:-}
 services:
   # Built from ./packages/lite/Dockerfile (dashboard + api + worker + lite). Rebuild to pick up UI/code changes:
   #   yarn docker:lite:up          # build if needed and start
@@ -45,9 +58,8 @@ services:
       <<: *backend-app-env
       # comment out after initial setup
       BOOTSTRAP: "true"
-    # README: To add local env variables uncomment the following line and add a .env file in the root directory
-    # env_file:
-    #   - .env
+    env_file:
+      - .env
     networks:
       - dittofeed-network-lite
   # useful for upgrading dittofeed
