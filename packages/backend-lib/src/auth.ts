@@ -1,10 +1,11 @@
 import { randomUUID } from "crypto";
 import { and, eq } from "drizzle-orm";
-import { createDecoder } from "fast-jwt";
+import { createDecoder, createSigner, createVerifier } from "fast-jwt";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { validate } from "uuid";
 
+import config from "./config";
 import { generateSecureKey } from "./crypto";
 import { db } from "./db";
 import {
@@ -22,8 +23,94 @@ import {
 
 const decoder = createDecoder();
 
+const PASSWORD_SESSION_EXP_SEC = 60 * 60 * 24 * 7;
+
+/** Prefix for JWT `sub` on password-based sessions; must not collide with IdP subs. */
+export const PASSWORD_JWT_SUB_PREFIX = "dfpwd:";
+
+export function signPasswordSessionJwt({
+  memberId,
+  email,
+  emailVerified,
+}: {
+  memberId: string;
+  email: string;
+  emailVerified: boolean;
+}): string {
+  const cfg = config();
+  const signer = createSigner({
+    algorithm: "HS256",
+    key: cfg.secretKey,
+  });
+  const sub = `${PASSWORD_JWT_SUB_PREFIX}${memberId}`;
+  const now = Math.floor(Date.now() / 1000);
+  return signer({
+    iss: cfg.passwordJwtIssuer,
+    sub,
+    email,
+    email_verified: emailVerified,
+    iat: now,
+    exp: now + PASSWORD_SESSION_EXP_SEC,
+  });
+}
+
+function openIdProfileFromPasswordPayload(
+  decoded: Record<string, unknown>,
+): OpenIdProfile | null {
+  const emailVerifiedRaw = decoded.email_verified;
+  const emailVerified =
+    emailVerifiedRaw === true ||
+    emailVerifiedRaw === "true" ||
+    emailVerifiedRaw === "True";
+  const profile = {
+    sub: String(decoded.sub ?? ""),
+    email: String(decoded.email ?? ""),
+    email_verified: emailVerified,
+    picture:
+      decoded.picture !== undefined ? String(decoded.picture) : undefined,
+    name: decoded.name !== undefined ? String(decoded.name) : undefined,
+    nickname:
+      decoded.nickname !== undefined ? String(decoded.nickname) : undefined,
+  };
+  const result = schemaValidate(profile, OpenIdProfile);
+  return result.isOk() ? result.value : null;
+}
+
+/**
+ * Decode Bearer token for multi-tenant: verify HS256 password-issuer JWTs first, else OIDC-style decode.
+ */
+export function decodeMultiTenantAuthToken(header: string): OpenIdProfile | null {
+  const bearerToken = header.replace(/^Bearer\s+/i, "").trim();
+  if (!bearerToken) {
+    return null;
+  }
+  const cfg = config();
+  if (
+    cfg.authMode === "multi-tenant" &&
+    cfg.enablePasswordLogin &&
+    cfg.secretKey
+  ) {
+    try {
+      const verifySync = createVerifier({
+        key: cfg.secretKey,
+        algorithms: ["HS256"],
+      });
+      const decoded = verifySync(bearerToken) as Record<string, unknown>;
+      if (decoded.iss === cfg.passwordJwtIssuer) {
+        const profile = openIdProfileFromPasswordPayload(decoded);
+        if (profile) {
+          return profile;
+        }
+      }
+    } catch {
+      // fall through to OIDC decode
+    }
+  }
+  return decodeJwtHeader(header);
+}
+
 export function decodeJwtHeader(header: string): OpenIdProfile | null {
-  const bearerToken = header.replace("Bearer ", "");
+  const bearerToken = header.replace(/^Bearer\s+/i, "").trim();
   const decoded: unknown | null = bearerToken ? decoder(bearerToken) : null;
 
   if (!decoded) {

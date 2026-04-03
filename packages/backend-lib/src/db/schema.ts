@@ -717,6 +717,7 @@ export const workspaceMember = pgTable(
     name: text(),
     nickname: text(),
     lastWorkspaceId: uuid(),
+    passwordHash: text(),
   },
   (table) => [
     uniqueIndex("WorkspaceMember_email_key").using(

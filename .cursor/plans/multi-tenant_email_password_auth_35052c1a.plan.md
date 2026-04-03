@@ -4,19 +4,19 @@ overview: "Add optional per-member password credentials for multi-tenant mode: n
 todos:
   - id: schema-migration
     content: Add WorkspaceMember.passwordHash (nullable) + Drizzle migration
-    status: pending
+    status: completed
   - id: argon-jwt
     content: "backend-lib: argon2 hash/verify + sign/verify internal session JWT (OpenIdProfile shape, iss/sub dfpwd:)"
-    status: pending
+    status: completed
   - id: api-auth-routes
     content: "API: POST login-methods, POST password-login (cookie), rate limits; PUT auth/me/password; GET auth/me/profile (email + workspaces + roles)"
-    status: pending
+    status: completed
   - id: api-admin-password
     content: "API: admin PUT member-password; extend POST create role with optional initial password hash"
-    status: pending
+    status: completed
   - id: dashboard-login-ui
     content: "Login page: email step, conditional password vs SSO-only messaging"
-    status: pending
+    status: completed
   - id: dashboard-my-profile
     content: New My Profile page + profile dropdown link; password section; workspace access list (multi-tenant)
     status: pending
@@ -25,7 +25,7 @@ todos:
     status: pending
   - id: tests
     content: Unit/integration tests for login and permission boundaries
-    status: pending
+    status: completed
 isProject: false
 ---
 

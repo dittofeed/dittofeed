@@ -1,6 +1,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import backendConfig from "backend-lib/src/config";
 import {
+  adminSetWorkspaceMemberPassword,
   createWorkspaceMemberRole,
   deleteWorkspaceMemberRole,
   getWorkspaceMemberRoles,
@@ -8,6 +9,7 @@ import {
 } from "backend-lib/src/rbac";
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
+  AdminWorkspaceMemberPasswordRequest,
   CreateWorkspaceMemberRoleRequest,
   DeleteWorkspaceMemberRoleRequest,
   EmptyResponse,
@@ -141,6 +143,51 @@ export default async function permissionsController(fastify: FastifyInstance) {
       const success = await deleteWorkspaceMemberRole(request.body);
       if (!success) {
         return reply.status(404).send();
+      }
+      return reply.status(204).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/member-password",
+    {
+      schema: {
+        description: "Set or reset password for a member in the workspace.",
+        tags: ["Permissions"],
+        body: AdminWorkspaceMemberPasswordRequest,
+        response: {
+          204: EmptyResponse,
+          400: EmptyResponse,
+          403: EmptyResponse,
+          404: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      if (denyUnlessWorkspaceAdmin(request, reply, request.body.workspaceId)) {
+        return;
+      }
+      if (request.body.newPassword !== request.body.newPasswordConfirm) {
+        return reply.status(400).send();
+      }
+      try {
+        await adminSetWorkspaceMemberPassword({
+          workspaceId: request.body.workspaceId,
+          email: request.body.email,
+          newPassword: request.body.newPassword,
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("not found")) {
+          return reply.status(404).send();
+        }
+        if (
+          error instanceof Error &&
+          (error.message.includes("at least") ||
+            error.message.includes("too long"))
+        ) {
+          return reply.status(400).send();
+        }
+        throw error;
       }
       return reply.status(204).send();
     },

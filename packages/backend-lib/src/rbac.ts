@@ -12,6 +12,12 @@ import {
 
 import { db, insert } from "./db";
 import * as schema from "./db/schema";
+import {
+  assertPasswordPolicy,
+  hasStoredPasswordHash,
+  hashMemberPassword,
+  verifyMemberPassword,
+} from "./memberPassword";
 import { WorkspaceMember } from "./types";
 
 export async function getWorkspaceMemberRoles({
@@ -82,6 +88,7 @@ export async function createWorkspaceMemberRole({
   workspaceId,
   email: providedEmail,
   role,
+  initialPassword,
 }: CreateWorkspaceMemberRoleRequest): Promise<WorkspaceMemberRoleResource> {
   const email = providedEmail.trim();
   const workspace = await db().query.workspace.findFirst({
@@ -131,12 +138,130 @@ export async function createWorkspaceMemberRole({
     role,
   });
 
+  if (initialPassword !== undefined && initialPassword.length > 0) {
+    assertPasswordPolicy(initialPassword);
+    const passwordHash = await hashMemberPassword(initialPassword);
+    await db()
+      .update(schema.workspaceMember)
+      .set({ passwordHash })
+      .where(eq(schema.workspaceMember.id, workspaceMember.id));
+  }
+
   return {
     role,
     workspaceMemberId: workspaceMember.id,
     workspaceId,
     workspaceName: workspace.name,
   };
+}
+
+export type MemberProfileWorkspaceRow = {
+  workspaceId: string;
+  workspaceName: string;
+  role: string;
+};
+
+export async function getMemberProfileWorkspaces(
+  memberId: string,
+): Promise<{
+  email: string;
+  hasPassword: boolean;
+  workspaces: MemberProfileWorkspaceRow[];
+}> {
+  const member = await db().query.workspaceMember.findFirst({
+    where: eq(schema.workspaceMember.id, memberId),
+  });
+  if (!member?.email) {
+    throw new Error("Workspace member not found");
+  }
+  const rows = await db()
+    .select({
+      workspaceId: schema.workspaceMemberRole.workspaceId,
+      workspaceName: schema.workspace.name,
+      role: schema.workspaceMemberRole.role,
+    })
+    .from(schema.workspaceMemberRole)
+    .innerJoin(
+      schema.workspace,
+      eq(schema.workspaceMemberRole.workspaceId, schema.workspace.id),
+    )
+    .where(eq(schema.workspaceMemberRole.workspaceMemberId, memberId));
+
+  return {
+    email: member.email,
+    hasPassword: hasStoredPasswordHash(member.passwordHash),
+    workspaces: rows.map((r) => ({
+      workspaceId: r.workspaceId,
+      workspaceName: r.workspaceName,
+      role: r.role,
+    })),
+  };
+}
+
+export async function setOwnWorkspaceMemberPassword({
+  memberId,
+  currentPassword,
+  newPassword,
+}: {
+  memberId: string;
+  currentPassword?: string;
+  newPassword: string;
+}): Promise<void> {
+  assertPasswordPolicy(newPassword);
+  const member = await db().query.workspaceMember.findFirst({
+    where: eq(schema.workspaceMember.id, memberId),
+  });
+  if (!member) {
+    throw new Error("Workspace member not found");
+  }
+  if (hasStoredPasswordHash(member.passwordHash)) {
+    const cur = currentPassword?.trim();
+    if (!cur) {
+      throw new Error("Current password is required");
+    }
+    const ok = await verifyMemberPassword(member.passwordHash, cur);
+    if (!ok) {
+      throw new Error("Current password is incorrect");
+    }
+  }
+  const passwordHash = await hashMemberPassword(newPassword);
+  await db()
+    .update(schema.workspaceMember)
+    .set({ passwordHash })
+    .where(eq(schema.workspaceMember.id, memberId));
+}
+
+export async function adminSetWorkspaceMemberPassword({
+  workspaceId,
+  email: providedEmail,
+  newPassword,
+}: {
+  workspaceId: string;
+  email: string;
+  newPassword: string;
+}): Promise<void> {
+  assertPasswordPolicy(newPassword);
+  const email = providedEmail.trim();
+  const workspaceMember = await db().query.workspaceMember.findFirst({
+    where: eq(schema.workspaceMember.email, email),
+  });
+  if (!workspaceMember) {
+    throw new Error("Workspace member not found");
+  }
+  const existingRole = await db().query.workspaceMemberRole.findFirst({
+    where: and(
+      eq(schema.workspaceMemberRole.workspaceId, workspaceId),
+      eq(schema.workspaceMemberRole.workspaceMemberId, workspaceMember.id),
+    ),
+  });
+  if (!existingRole) {
+    throw new Error("Member role not found");
+  }
+  const passwordHash = await hashMemberPassword(newPassword);
+  await db()
+    .update(schema.workspaceMember)
+    .set({ passwordHash })
+    .where(eq(schema.workspaceMember.id, workspaceMember.id));
 }
 
 export async function updateWorkspaceMemberRole({

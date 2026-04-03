@@ -75,6 +75,10 @@ const BaseRawConfigProps = {
   oidcTokenPublicKey: Type.Optional(Type.String()),
   authMode: Type.Optional(AuthMode),
   authProvider: Type.Optional(Type.String()),
+  /** When not "false", password login and password JWT sessions are enabled in multi-tenant mode. */
+  enablePasswordLogin: Type.Optional(BoolStr),
+  /** `iss` claim for HS256 password session JWTs. */
+  passwordJwtIssuer: Type.Optional(Type.String()),
   oauthStartUrl: Type.Optional(Type.String()),
   signoutUrl: Type.Optional(Type.String()),
   signoutRedirectUrl: Type.Optional(Type.String()),
@@ -357,6 +361,8 @@ export type Config = Overwrite<
     clickhouseColdStorageMaxExecutionTime?: number;
     broadcastSendMessagesMaxAttempts: number;
     defaultGetSegmentAndEventDetailsMaxAttempts: number;
+    enablePasswordLogin: boolean;
+    passwordJwtIssuer: string;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -820,6 +826,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.defaultGetSegmentAndEventDetailsMaxAttempts,
       nodeEnv === NodeEnvEnum.Test ? 1 : 10,
     ),
+    enablePasswordLogin: rawConfig.enablePasswordLogin !== "false",
+    passwordJwtIssuer: rawConfig.passwordJwtIssuer ?? "dittofeed-password",
   };
 
   return parsedConfig;

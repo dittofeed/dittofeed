@@ -2962,6 +2962,9 @@ export const CreateWorkspaceMemberRoleRequest = Type.Object({
   workspaceId: Type.String(),
   email: Type.String(),
   role: Role,
+  initialPassword: Type.Optional(
+    Type.String({ minLength: 8, maxLength: 256 }),
+  ),
 });
 
 export type CreateWorkspaceMemberRoleRequest = Static<
@@ -3008,6 +3011,62 @@ export const GetWorkspaceMemberRolesResponse = Type.Object({
 
 export type GetWorkspaceMemberRolesResponse = Static<
   typeof GetWorkspaceMemberRolesResponse
+>;
+
+export const AuthLoginMethodsRequest = Type.Object({
+  email: Type.String({ minLength: 1 }),
+});
+
+export type AuthLoginMethodsRequest = Static<typeof AuthLoginMethodsRequest>;
+
+export const AuthLoginMethodsResponse = Type.Object({
+  passwordEnabled: Type.Boolean(),
+  oidcEnabled: Type.Boolean(),
+});
+
+export type AuthLoginMethodsResponse = Static<typeof AuthLoginMethodsResponse>;
+
+export const AuthPasswordLoginRequest = Type.Object({
+  email: Type.String({ minLength: 1 }),
+  password: Type.String({ minLength: 1 }),
+});
+
+export type AuthPasswordLoginRequest = Static<typeof AuthPasswordLoginRequest>;
+
+export const AuthMeProfileWorkspace = Type.Object({
+  workspaceId: Type.String(),
+  workspaceName: Type.String(),
+  role: Type.String(),
+});
+
+export type AuthMeProfileWorkspace = Static<typeof AuthMeProfileWorkspace>;
+
+export const AuthMeProfileResponse = Type.Object({
+  email: Type.String(),
+  hasPassword: Type.Boolean(),
+  workspaces: Type.Array(AuthMeProfileWorkspace),
+});
+
+export type AuthMeProfileResponse = Static<typeof AuthMeProfileResponse>;
+
+export const AuthMePasswordRequest = Type.Object({
+  newPassword: Type.String({ minLength: 8, maxLength: 256 }),
+  newPasswordConfirm: Type.String({ minLength: 8, maxLength: 256 }),
+  /** Omit, send empty string, or null when setting an initial password (SSO-only member). */
+  currentPassword: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+});
+
+export type AuthMePasswordRequest = Static<typeof AuthMePasswordRequest>;
+
+export const AdminWorkspaceMemberPasswordRequest = Type.Object({
+  workspaceId: Type.String(),
+  email: Type.String({ minLength: 1 }),
+  newPassword: Type.String({ minLength: 8, maxLength: 256 }),
+  newPasswordConfirm: Type.String({ minLength: 8, maxLength: 256 }),
+});
+
+export type AdminWorkspaceMemberPasswordRequest = Static<
+  typeof AdminWorkspaceMemberPasswordRequest
 >;
 
 export const CreateWorkspaceRequest = Type.Object({

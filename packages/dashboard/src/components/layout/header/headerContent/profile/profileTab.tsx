@@ -1,5 +1,10 @@
 // assets
-import { Logout, Settings, SettingsApplications } from "@mui/icons-material";
+import {
+  Logout,
+  Person,
+  Settings,
+  SettingsApplications,
+} from "@mui/icons-material";
 import {
   List,
   ListItemButton,
@@ -21,11 +26,13 @@ function ProfileTab() {
     enableAdditionalDashboardSettings,
     additionalDashboardSettingsPath,
     additionalDashboardSettingsTitle,
+    authMode,
   } = useAppStorePick([
     "signoutUrl",
     "enableAdditionalDashboardSettings",
     "additionalDashboardSettingsPath",
     "additionalDashboardSettingsTitle",
+    "authMode",
   ]);
 
   return (
@@ -39,6 +46,14 @@ function ProfileTab() {
         },
       }}
     >
+      {authMode === "multi-tenant" ? (
+        <ListItemButton LinkComponent={Link} href="/profile">
+          <ListItemIcon>
+            <Person />
+          </ListItemIcon>
+          <ListItemText primary="My Profile" />
+        </ListItemButton>
+      ) : null}
       <ListItemButton LinkComponent={Link} href="/settings">
         <ListItemIcon>
           <Settings />

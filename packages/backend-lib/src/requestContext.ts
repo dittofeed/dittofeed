@@ -6,7 +6,7 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
 import { sortBy } from "remeda";
 
-import { decodeJwtHeader } from "./auth";
+import { decodeMultiTenantAuthToken } from "./auth";
 import config from "./config";
 import { type Db, db } from "./db";
 import {
@@ -319,7 +319,7 @@ export async function getMultiTenantRequestContext({
         message: "authorizationToken is missing",
       });
     }
-    const decodedJwt = decodeJwtHeader(authorizationToken);
+    const decodedJwt = decodeMultiTenantAuthToken(authorizationToken);
 
     if (!decodedJwt) {
       return err({

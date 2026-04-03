@@ -78,6 +78,13 @@
       "when": 1767720758408,
       "tag": "0010_subscription_management_template",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1768000000000,
+      "tag": "0011_workspace_member_password_hash",
+      "breakpoints": true
     }
   ]
 }

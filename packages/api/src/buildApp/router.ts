@@ -16,6 +16,8 @@ import groupsController from "../controllers/groupsController";
 import indexController from "../controllers/indexController";
 import integrationsController from "../controllers/integrationsController";
 import journeysController from "../controllers/journeysController";
+import multiTenantAuthController from "../controllers/multiTenantAuthController";
+import multiTenantAuthPublicController from "../controllers/multiTenantAuthPublicController";
 import permissionsController from "../controllers/permissionsController";
 import publicAppsController from "../controllers/publicAppsController";
 import resourcesController from "../controllers/resourcesController";
@@ -61,6 +63,7 @@ export default async function router(
         f.register(settingsController, { prefix: "/settings" }),
         f.register(integrationsController, { prefix: "/integrations" }),
         f.register(permissionsController, { prefix: "/permissions" }),
+        f.register(multiTenantAuthController, { prefix: "/auth" }),
         f.register(workspacesController, { prefix: "/workspaces" }),
         f.register(subscriptionGroupsController, {
           prefix: "/subscription-groups",
@@ -107,6 +110,9 @@ export default async function router(
         f.register(viewInBrowserController, { prefix: "/view-in-browser" }),
         backendConfig().authMode === "single-tenant"
           ? f.register(authController, { prefix: "/single-tenant" })
+          : null,
+        backendConfig().authMode === "multi-tenant"
+          ? f.register(multiTenantAuthPublicController, { prefix: "/auth" })
           : null,
       ]);
     },

@@ -4319,6 +4319,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fastify/rate-limit@npm:^9.1.0":
+  version: 9.1.0
+  resolution: "@fastify/rate-limit@npm:9.1.0"
+  dependencies:
+    "@lukeed/ms": "npm:^2.0.1"
+    fastify-plugin: "npm:^4.0.0"
+    toad-cache: "npm:^3.3.1"
+  checksum: 10/ffae0e4c9c69ff5f1d8b289327202b7cdbb21f91f51ae4d3dff4d97b200581ca9162b503a18449eb0b68945b56e15f22b9073d246665f0d024ae3b9874c8cce7
+  languageName: node
+  linkType: hard
+
 "@fastify/request-context@npm:^4.2.0":
   version: 4.2.0
   resolution: "@fastify/request-context@npm:4.2.0"
@@ -5655,6 +5666,13 @@ __metadata:
   dependencies:
     "@lezer/common": "npm:^1.0.0"
   checksum: 10/25f4e8fcf3dae1a68b77ce3f682fd211a765db2b8b5fd92c0a06902c3b2e4992cd7df4ea5968dd0199dea04ba65c8b7a92d7d4c45a6925be56a7f0901f37bad4
+  languageName: node
+  linkType: hard
+
+"@lukeed/ms@npm:^2.0.1":
+  version: 2.0.2
+  resolution: "@lukeed/ms@npm:2.0.2"
+  checksum: 10/6ae47ed3ebc857ffc0283cfe46129947209c770d0974eb86626138b6c194a760d08863ec593ec75a645aec133b3237b37af500739b030293e4d9a81130f4e2ae
   languageName: node
   linkType: hard
 
@@ -7549,6 +7567,13 @@ __metadata:
   peerDependencies:
     "@opentelemetry/api": ^1.1.0
   checksum: 10/3c9c8d55e03ef170f10bbea11175bed75cb80fb57ae97b01056fd13e97fd928b50f16e88ef9f10d832b56cf7d5074e82696702f487c2c2ede231fe216406fa37
+  languageName: node
+  linkType: hard
+
+"@phc/format@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "@phc/format@npm:1.0.0"
+  checksum: 10/26c4feccdc766e4ebf0d2b46a99ded027b8fd9b013529d5728870e0683dfd1f606177b475ceb656d163519443d734abeba6b1d8ea5c9d2748e723059cc1c0c39
   languageName: node
   linkType: hard
 
@@ -14573,6 +14598,7 @@ __metadata:
     "@fastify/cors": "npm:^8.1.0"
     "@fastify/formbody": "npm:^7.4.0"
     "@fastify/multipart": "npm:^7.6.0"
+    "@fastify/rate-limit": "npm:^9.1.0"
     "@fastify/request-context": "npm:^4.2.0"
     "@fastify/secure-session": "npm:7.1.0"
     "@fastify/swagger": "npm:^8.1.0"
@@ -14675,6 +14701,18 @@ __metadata:
   version: 5.0.2
   resolution: "arg@npm:5.0.2"
   checksum: 10/92fe7de222054a060fd2329e92e867410b3ea260328147ee3fb7855f78efae005f4087e698d4e688a856893c56bb09951588c40f2c901cf6996cd8cd7bcfef2c
+  languageName: node
+  linkType: hard
+
+"argon2@npm:^0.41.1":
+  version: 0.41.1
+  resolution: "argon2@npm:0.41.1"
+  dependencies:
+    "@phc/format": "npm:^1.0.0"
+    node-addon-api: "npm:^8.1.0"
+    node-gyp: "npm:latest"
+    node-gyp-build: "npm:^4.8.1"
+  checksum: 10/123e53d30f23e1ef513feff55c4569b851b09d3bed7bf9d0f9c7e76107e7027e454813d1a2f3fab405d623f798c6da0ad4b465b1a2d0855a8e1b191688e41b94
   languageName: node
   linkType: hard
 
@@ -15201,6 +15239,7 @@ __metadata:
     "@types/uuid": "npm:^9.0.1"
     "@typescript-eslint/eslint-plugin": "npm:^5.60.0"
     "@typescript-eslint/parser": "npm:^5.60.0"
+    argon2: "npm:^0.41.1"
     axios: "npm:^1.4.0"
     change-case: "npm:^4.1.2"
     cross-spawn: "npm:^7.0.3"
@@ -25492,6 +25531,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-addon-api@npm:^8.1.0":
+  version: 8.7.0
+  resolution: "node-addon-api@npm:8.7.0"
+  dependencies:
+    node-gyp: "npm:latest"
+  checksum: 10/a384774d04f019fc32745b9168fab8d4b91df2d7558a57c91e6d87e00acab3c9a08292c074a3c0efb5d4f4adaf1b79cb65c002a3fbcafd8d3d5b3dc91d0ac495
+  languageName: node
+  linkType: hard
+
 "node-cache@npm:*, node-cache@npm:^5.1.2":
   version: 5.1.2
   resolution: "node-cache@npm:5.1.2"
@@ -25593,6 +25641,17 @@ __metadata:
     node-gyp-build-optional: optional.js
     node-gyp-build-test: build-test.js
   checksum: 10/79b948377492ae8e1aa1c18071661e6020c11f8847d5ce822abd67ec02bee5b21715b1b4861041d2b40d16633824476735bc9a60e81c82c49e715d55ee29b206
+  languageName: node
+  linkType: hard
+
+"node-gyp-build@npm:^4.8.1":
+  version: 4.8.4
+  resolution: "node-gyp-build@npm:4.8.4"
+  bin:
+    node-gyp-build: bin.js
+    node-gyp-build-optional: optional.js
+    node-gyp-build-test: build-test.js
+  checksum: 10/6a7d62289d1afc419fc8fc9bd00aa4e554369e50ca0acbc215cb91446148b75ff7e2a3b53c2c5b2c09a39d416d69f3d3237937860373104b5fe429bf30ad9ac5
   languageName: node
   linkType: hard
 
@@ -30324,7 +30383,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"toad-cache@npm:^3.2.0":
+"toad-cache@npm:^3.2.0, toad-cache@npm:^3.3.1":
   version: 3.7.0
   resolution: "toad-cache@npm:3.7.0"
   checksum: 10/cdc62aacc047e94eab21697943e117bbb1938168a03e5e85fdba28ab6ea66f4796ff16b219019a64d2115048378f9dd1f4e62c78c1f1d4961d0b3d23f9a9374d

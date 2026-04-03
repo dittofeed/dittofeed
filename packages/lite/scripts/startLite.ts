@@ -12,6 +12,7 @@ import path from "path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
+import { registerDashboardAuthApiRoutes } from "../src/dashboardAuthApiRoutes";
 import liteConfig from "../src/config";
 import { initLiteOpenTelemetry } from "../src/openTelemetry";
 
@@ -88,6 +89,8 @@ async function startLite() {
   });
   await nextApp.prepare();
   const nextHandler = nextApp.getRequestHandler();
+
+  await registerDashboardAuthApiRoutes(app);
 
   app.route({
     // Exclude 'OPTIONS to avoid conflict with cors plugin'

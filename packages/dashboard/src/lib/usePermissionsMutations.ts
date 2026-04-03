@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 import {
+  AdminWorkspaceMemberPasswordRequest,
   CompletionStatus,
   CreateWorkspaceMemberRoleRequest,
   DeleteWorkspaceMemberRoleRequest,
@@ -82,6 +83,57 @@ export function useCreatePermissionMutation(
   });
 
   return mutation;
+}
+
+export function useAdminMemberPasswordMutation(
+  options?: Omit<
+    UseMutationOptions<
+      void,
+      AxiosError,
+      Omit<AdminWorkspaceMemberPasswordRequest, "workspaceId">
+    >,
+    "mutationFn"
+  >,
+): UseMutationResult<
+  void,
+  AxiosError,
+  Omit<AdminWorkspaceMemberPasswordRequest, "workspaceId">
+> {
+  const { workspace } = useAppStorePick(["workspace"]);
+  const authHeaders = useAuthHeaders();
+  const baseApiUrl = useBaseApiUrl();
+
+  const mutationFn = async (
+    data: Omit<AdminWorkspaceMemberPasswordRequest, "workspaceId">,
+  ): Promise<void> => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      throw new Error("Workspace not available");
+    }
+    const workspaceId = workspace.value.id;
+
+    await axios.put(
+      `${baseApiUrl}/permissions/member-password`,
+      {
+        ...data,
+        workspaceId,
+      } satisfies AdminWorkspaceMemberPasswordRequest,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders,
+        },
+      },
+    );
+  };
+
+  return useMutation<
+    void,
+    AxiosError,
+    Omit<AdminWorkspaceMemberPasswordRequest, "workspaceId">
+  >({
+    mutationFn,
+    ...options,
+  });
 }
 
 export function useUpdatePermissionMutation(
