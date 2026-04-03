@@ -62,8 +62,8 @@ import { enqueueSnackbar } from "notistack";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useImmer } from "use-immer";
 
+import { formatForbiddenActionNotice } from "../lib/forbiddenActionNotice";
 import { noticeAnchorOrigin } from "../lib/notices";
-import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import {
   useAdminMemberPasswordMutation,
   useCreatePermissionMutation,
@@ -71,6 +71,7 @@ import {
   useUpdatePermissionMutation,
 } from "../lib/usePermissionsMutations";
 import { usePermissionsQuery } from "../lib/usePermissionsQuery";
+import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import { GreyButton } from "./greyButtonStyle";
 
 interface PermissionDialogProps {
@@ -94,6 +95,7 @@ function PermissionDialog({
   );
   const [initialPassword, setInitialPassword] = useState("");
   const [initialPasswordConfirm, setInitialPasswordConfirm] = useState("");
+  const { workspaceRoleLabel } = useWorkspaceCapabilities();
 
   useEffect(() => {
     if (!open) {
@@ -118,8 +120,14 @@ function PermissionDialog({
       setInitialPasswordConfirm("");
     },
     onError: (error) => {
+      const forbidden = formatForbiddenActionNotice(
+        error,
+        "Add user",
+        workspaceRoleLabel,
+      );
       enqueueSnackbar(
-        `Failed to add user: ${error.response?.status === 400 ? "Member already has a role" : error.message}`,
+        forbidden ??
+          `Failed to add user: ${error.response?.status === 400 ? "Member already has a role" : error.message}`,
         {
           variant: "error",
           anchorOrigin: noticeAnchorOrigin,
@@ -137,7 +145,12 @@ function PermissionDialog({
       onClose();
     },
     onError: (err) => {
-      enqueueSnackbar(`Failed to update user: ${err.message}`, {
+      const forbidden = formatForbiddenActionNotice(
+        err,
+        "Update user role",
+        workspaceRoleLabel,
+      );
+      enqueueSnackbar(forbidden ?? `Failed to update user: ${err.message}`, {
         variant: "error",
         anchorOrigin: noticeAnchorOrigin,
       });
@@ -273,9 +286,14 @@ interface ResetPasswordDialogProps {
   email: string;
 }
 
-function ResetPasswordDialog({ open, onClose, email }: ResetPasswordDialogProps) {
+function ResetPasswordDialog({
+  open,
+  onClose,
+  email,
+}: ResetPasswordDialogProps) {
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const { workspaceRoleLabel } = useWorkspaceCapabilities();
 
   useEffect(() => {
     if (!open) {
@@ -294,7 +312,12 @@ function ResetPasswordDialog({ open, onClose, email }: ResetPasswordDialogProps)
       onClose();
     },
     onError: (err) => {
-      enqueueSnackbar(`Failed to reset password: ${err.message}`, {
+      const forbidden = formatForbiddenActionNotice(
+        err,
+        "Reset member password",
+        workspaceRoleLabel,
+      );
+      enqueueSnackbar(forbidden ?? `Failed to reset password: ${err.message}`, {
         variant: "error",
         anchorOrigin: noticeAnchorOrigin,
       });
@@ -354,9 +377,7 @@ function ResetPasswordDialog({ open, onClose, email }: ResetPasswordDialogProps)
           onClick={handleSubmit}
           variant="contained"
           disabled={
-            !newPassword ||
-            !newPasswordConfirm ||
-            resetMutation.isPending
+            !newPassword || !newPasswordConfirm || resetMutation.isPending
           }
         >
           Reset password
@@ -494,7 +515,8 @@ function ActionsCell({
   const onResetPassword = table.options.meta?.onResetPassword;
   const onDelete = table.options.meta?.onDelete;
   const isDeleting = table.options.meta?.isDeleting ?? false;
-  const canManagePermissions = table.options.meta?.canManagePermissions ?? false;
+  const canManagePermissions =
+    table.options.meta?.canManagePermissions ?? false;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -583,7 +605,7 @@ function ActionsCell({
 }
 
 export function PermissionsTable() {
-  const { isAdmin } = useWorkspaceCapabilities();
+  const { isAdmin, workspaceRoleLabel } = useWorkspaceCapabilities();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -605,7 +627,12 @@ export function PermissionsTable() {
       });
     },
     onError: (err) => {
-      enqueueSnackbar(`Failed to remove user: ${err.message}`, {
+      const forbidden = formatForbiddenActionNotice(
+        err,
+        "Remove user",
+        workspaceRoleLabel,
+      );
+      enqueueSnackbar(forbidden ?? `Failed to remove user: ${err.message}`, {
         variant: "error",
         anchorOrigin: noticeAnchorOrigin,
       });

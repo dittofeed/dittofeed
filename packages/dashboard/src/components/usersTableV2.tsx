@@ -67,11 +67,13 @@ import React, {
 } from "react";
 
 import { useAppStore } from "../lib/appStore";
+import { formatForbiddenActionNotice } from "../lib/forbiddenActionNotice";
 import { useDeleteUserMutation } from "../lib/useDeleteUserMutation";
 import { useUpdateSubscriptionAssignmentMutation } from "../lib/useUpdateSubscriptionAssignmentMutation";
 import { useUserPropertyResourcesQuery } from "../lib/useUserPropertyResourcesQuery";
 import { useUsersCountQuery } from "../lib/useUsersCountQuery";
 import { useUsersQuery } from "../lib/useUsersQuery";
+import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import { GreyButton } from "./greyButtonStyle";
 import { greyTextFieldStyles } from "./greyScaleStyles";
 import { SquarePaper } from "./squarePaper";
@@ -452,6 +454,7 @@ function ActionsCell({
 
   const deleteUserMutation = useDeleteUserMutation();
   const subscriptionMutation = useUpdateSubscriptionAssignmentMutation();
+  const { isAuthorOrAbove, workspaceRoleLabel } = useWorkspaceCapabilities();
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -477,6 +480,15 @@ function ActionsCell({
       },
       onError: (error) => {
         setDeleteError(true);
+        const forbidden = formatForbiddenActionNotice(
+          error,
+          "Delete user",
+          workspaceRoleLabel,
+        );
+        if (forbidden) {
+          setErrorMessage(forbidden);
+          return;
+        }
         if (axios.isAxiosError(error) && error.response?.data) {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const errorData = error.response.data as { message?: string };
@@ -508,6 +520,16 @@ function ActionsCell({
         },
         onError: (error) => {
           setSubscriptionError(true);
+          const action = isSubscribe ? "Subscribe user" : "Unsubscribe user";
+          const forbidden = formatForbiddenActionNotice(
+            error,
+            action,
+            workspaceRoleLabel,
+          );
+          if (forbidden) {
+            setErrorMessage(forbidden);
+            return;
+          }
           if (axios.isAxiosError(error) && error.response?.data) {
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             const errorData = error.response.data as { message?: string };
@@ -530,6 +552,10 @@ function ActionsCell({
   const subscriptionSuccessMessage = isSubscribe
     ? "User successfully subscribed"
     : "User successfully unsubscribed";
+
+  if (!isAuthorOrAbove) {
+    return null;
+  }
 
   return (
     <>

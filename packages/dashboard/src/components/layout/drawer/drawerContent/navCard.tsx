@@ -24,15 +24,16 @@ function NavCard() {
     return result.value;
   }, [features.WhiteLabel]);
 
-  if (whiteLabelConfig && !whiteLabelConfig.navCardTitle) {
+  if (!whiteLabelConfig) {
     return null;
   }
-  const title = whiteLabelConfig?.navCardTitle || "Dittofeed";
-  const description = whiteLabelConfig
-    ? whiteLabelConfig.navCardDescription ?? null
-    : "Customer Engagement";
+  if (!whiteLabelConfig.navCardTitle) {
+    return null;
+  }
+  const title = whiteLabelConfig.navCardTitle;
+  const description = whiteLabelConfig.navCardDescription ?? null;
 
-  const icon = whiteLabelConfig?.navCardIcon ? (
+  const icon = whiteLabelConfig.navCardIcon ? (
     <img
       style={{
         height: "2rem",
@@ -58,20 +59,22 @@ function NavCard() {
         >
           {title}
         </Typography>
-        <Typography
-          variant="h6"
-          color="secondary"
-          sx={{
-            overflowWrap: "break-word",
-            wordBreak: "break-word",
-            hyphens: "auto",
-            width: "100%",
-            textAlign: "center",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {description}
-        </Typography>
+        {description ? (
+          <Typography
+            variant="h6"
+            color="secondary"
+            sx={{
+              overflowWrap: "break-word",
+              wordBreak: "break-word",
+              hyphens: "auto",
+              width: "100%",
+              textAlign: "center",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {description}
+          </Typography>
+        ) : null}
       </Stack>
     </MainCard>
   );

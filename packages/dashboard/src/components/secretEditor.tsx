@@ -20,6 +20,7 @@ import { Overwrite } from "utility-types";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
+import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import SimpleTextField, { TEXT_FIELD_HEIGHT } from "./form/SimpleTextField";
 
 export enum SecretStateType {
@@ -74,6 +75,8 @@ export interface SecretEditorProps {
   // used to describe the secret in the UI
   label?: string;
   helperText?: string;
+  /** When true, show read-only UI (e.g. Viewer / below WorkspaceManager). */
+  disabled?: boolean;
 }
 
 function initialState(saved: boolean): SecretState {
@@ -182,6 +185,7 @@ function SecretEditorLoaded({
   helperText,
   handleDelete,
   handleUpdate,
+  disabled: readOnly,
 }: Overwrite<SecretEditorProps, { saved: boolean }> & SecretEditorUpdateProps) {
   const { workspace: workspaceResult, patchSecretAvailability } =
     useAppStorePick(["workspace", "patchSecretAvailability"]);
@@ -191,6 +195,24 @@ function SecretEditorLoaded({
 
   if (workspaceResult.type !== CompletionStatus.Successful) {
     return null;
+  }
+  if (readOnly) {
+    return (
+      <Stack
+        direction="row"
+        className="secret-editor"
+        spacing={1}
+        sx={{ width: "100%" }}
+      >
+        <SimpleTextField
+          disabled
+          value={saved ? "**********" : ""}
+          sx={{ flex: 1 }}
+          helperText={helperText}
+          label={label}
+        />
+      </Stack>
+    );
   }
   let field: React.ReactNode;
   switch (editingState.type) {
@@ -365,7 +387,7 @@ function SecretEditorLoaded({
 export function SecretEditorBase(
   props: SecretEditorProps & SecretEditorUpdateProps,
 ) {
-  const { saved, label, helperText } = props;
+  const { saved, label, helperText, disabled: readOnly } = props;
   if (saved === undefined) {
     return (
       <Stack
@@ -380,7 +402,7 @@ export function SecretEditorBase(
           helperText={helperText}
           label={label}
         />
-        <SecretButton loading />
+        {readOnly ? null : <SecretButton loading />}
       </Stack>
     );
   }
@@ -398,12 +420,16 @@ export function KeyedSecretEditor({
   name,
   label,
   type,
+  secretKey,
+  disabled: readOnly,
   ...rest
 }: SecretEditorKeyedProps) {
   const { workspace: workspaceResult, apiBase } = useAppStorePick([
     "workspace",
     "apiBase",
   ]);
+  const { workspaceRoleLabel } = useWorkspaceCapabilities();
+  const fieldLabel = label ?? secretKey;
 
   const handleUpdate: HandleUpdate = useCallback(
     ({
@@ -420,8 +446,10 @@ export function KeyedSecretEditor({
         request,
         setRequest: setUpdateRequest,
         responseSchema: EmptyResponse,
-        onSuccessNotice: `Successfully saved ${label}`,
-        onFailureNoticeHandler: () => `API Error: Failed to save ${label}`,
+        onSuccessNotice: `Successfully saved ${fieldLabel}`,
+        onFailureNoticeHandler: () => `API Error: Failed to save ${fieldLabel}`,
+        forbiddenAction: `Save ${fieldLabel}`,
+        workspaceRoleLabel,
         setResponse: onResponse,
         requestConfig: {
           method: "PUT",
@@ -440,7 +468,7 @@ export function KeyedSecretEditor({
         },
       })();
     },
-    [workspaceResult, label, apiBase, name, type],
+    [workspaceResult, fieldLabel, apiBase, name, type, workspaceRoleLabel],
   );
 
   const handleDelete: HandleDelete = useCallback(
@@ -457,8 +485,11 @@ export function KeyedSecretEditor({
         request,
         setRequest: setUpdateRequest,
         responseSchema: EmptyResponse,
-        onSuccessNotice: `Successfully deleted ${label}`,
-        onFailureNoticeHandler: () => `API Error: Failed to delete ${label}`,
+        onSuccessNotice: `Successfully deleted ${fieldLabel}`,
+        onFailureNoticeHandler: () =>
+          `API Error: Failed to delete ${fieldLabel}`,
+        forbiddenAction: `Delete ${fieldLabel}`,
+        workspaceRoleLabel,
         setResponse: onResponse,
         requestConfig: {
           method: "PUT",
@@ -476,7 +507,7 @@ export function KeyedSecretEditor({
         },
       })();
     },
-    [workspaceResult, label, apiBase, name],
+    [workspaceResult, fieldLabel, apiBase, name, workspaceRoleLabel],
   );
   return (
     <SecretEditorBase
@@ -484,6 +515,8 @@ export function KeyedSecretEditor({
       handleDelete={handleDelete}
       label={label}
       name={name}
+      secretKey={secretKey}
+      disabled={readOnly}
       {...rest}
     />
   );

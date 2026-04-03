@@ -27,11 +27,13 @@ import { useDebouncedCallback } from "use-debounce";
 import { useImmer } from "use-immer";
 
 import { copyToClipboard } from "../../lib/copyToClipboard";
+import { formatForbiddenActionNotice } from "../../lib/forbiddenActionNotice";
 import formatCurl from "../../lib/formatCurl";
 import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPeriodsQuery";
 import { useDuplicateResourceMutation } from "../../lib/useDuplicateResourceMutation";
 import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
+import { useWorkspaceCapabilities } from "../../lib/useWorkspaceCapabilities";
 import { EditableNameProps, EditableTitle } from "../editableName/v2";
 import { GreyButton } from "../greyButtonStyle";
 import { InlineDrawer } from "../inlineDrawer";
@@ -120,22 +122,19 @@ export function formatSegmentCurl(segment: SegmentResource) {
 export function getSegmentCommands(
   segment: SegmentResource,
   onDuplicate: () => void,
+  canMutateSegment = true,
 ): SettingsCommand[] {
   return [
     {
       label: "Duplicate segment",
       icon: <ContentCopyOutlined />,
-      disabled: !segment,
+      disabled: !canMutateSegment,
       action: onDuplicate,
     },
     {
       label: "Copy segment definition as JSON",
       icon: <ContentCopyOutlined />,
-      disabled: !segment,
       action: () => {
-        if (!segment) {
-          return;
-        }
         copyToClipboard({
           value: JSON.stringify(segment.definition),
           successNotice: "Segment definition copied to clipboard as JSON.",
@@ -146,11 +145,7 @@ export function getSegmentCommands(
     {
       label: "Copy segment definition as CURL",
       icon: <ContentCopyTwoTone />,
-      disabled: !segment,
       action: () => {
-        if (!segment) {
-          return;
-        }
         const curl = formatSegmentCurl(segment);
         copyToClipboard({
           value: curl,
@@ -244,6 +239,7 @@ export function SegmentEditorV2({
   sx?: SxProps<Theme>;
 }) {
   const { data: segment } = useSegmentQuery(id);
+  const { isAuthorOrAbove, workspaceRoleLabel } = useWorkspaceCapabilities();
 
   const [state, setState] = useImmer<SegmentEditorV2State>({
     isDrawerOpen: true,
@@ -269,6 +265,17 @@ export function SegmentEditorV2({
         draft.snackbarMessage = "Segment saved successfully!";
       });
     },
+    onError: (error) => {
+      const forbidden = formatForbiddenActionNotice(
+        error,
+        "Save segment",
+        workspaceRoleLabel,
+      );
+      setState((draft) => {
+        draft.snackbarOpen = true;
+        draft.snackbarMessage = forbidden ?? "Failed to save segment.";
+      });
+    },
   });
 
   const duplicateSegmentMutation = useDuplicateResourceMutation({
@@ -278,10 +285,15 @@ export function SegmentEditorV2({
         draft.snackbarMessage = `Segment duplicated as "${data.name}"!`;
       });
     },
-    onError: () => {
+    onError: (error) => {
+      const forbidden = formatForbiddenActionNotice(
+        error,
+        "Duplicate segment",
+        workspaceRoleLabel,
+      );
       setState((draft) => {
         draft.snackbarOpen = true;
-        draft.snackbarMessage = "Failed to duplicate segment.";
+        draft.snackbarMessage = forbidden ?? "Failed to duplicate segment.";
       });
     },
   });
@@ -308,8 +320,11 @@ export function SegmentEditorV2({
   }, [segment, duplicateSegmentMutation]);
 
   const commands = useMemo(
-    () => (segment ? getSegmentCommands(segment, handleDuplicate) : []),
-    [segment, handleDuplicate],
+    () =>
+      segment
+        ? getSegmentCommands(segment, handleDuplicate, isAuthorOrAbove)
+        : [],
+    [segment, handleDuplicate, isAuthorOrAbove],
   );
 
   const handleNameSave: EditableNameProps["onSubmit"] = useDebouncedCallback(
@@ -375,7 +390,11 @@ export function SegmentEditorV2({
           alignItems="center"
           sx={{ flexShrink: 0, width: "100%", minWidth: 0 }}
         >
-          <EditableTitle text={segment.name} onSubmit={handleNameSave} />
+          <EditableTitle
+            text={segment.name}
+            onSubmit={handleNameSave}
+            disabled={!isAuthorOrAbove}
+          />
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography
               sx={{
@@ -386,7 +405,11 @@ export function SegmentEditorV2({
             >
               Unsaved Changes
             </Typography>
-            <GreyButton variant="contained" onClick={handleDefinitionSave}>
+            <GreyButton
+              variant="contained"
+              onClick={handleDefinitionSave}
+              disabled={!isAuthorOrAbove}
+            >
               Save
             </GreyButton>
             <SettingsMenu commands={commands} />
@@ -395,6 +418,7 @@ export function SegmentEditorV2({
         <SegmentEditor
           segmentId={id}
           onSegmentChange={handleDefinitionUpdate}
+          disabled={!isAuthorOrAbove}
         />
       </Stack>
       <Box

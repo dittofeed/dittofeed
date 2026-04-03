@@ -8,6 +8,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { enqueueSnackbar } from "notistack";
 
+import { formatForbiddenActionNotice } from "./forbiddenActionNotice";
 import { noticeAnchorOrigin } from "./notices";
 
 /**
@@ -21,12 +22,16 @@ export function downloadFileFactory<D>({
   setRequest,
   onFailureNoticeHandler,
   onSuccessNotice,
+  forbiddenAction,
+  workspaceRoleLabel,
 }: {
   requestConfig: AxiosRequestConfig<D>;
   request: EphemeralRequestStatus<Error>;
   onSuccessNotice?: string;
   onFailureNoticeHandler?: (e: Error) => string;
   setRequest: (request: EphemeralRequestStatus<Error>) => void;
+  forbiddenAction?: string;
+  workspaceRoleLabel?: string | null;
 }) {
   return async function apiRequestHandler() {
     if (request.type === CompletionStatus.InProgress) {
@@ -61,7 +66,21 @@ export function downloadFileFactory<D>({
         error,
       });
 
-      if (onFailureNoticeHandler) {
+      const forbiddenMsg =
+        forbiddenAction !== undefined
+          ? formatForbiddenActionNotice(
+              error,
+              forbiddenAction,
+              workspaceRoleLabel ?? null,
+            )
+          : undefined;
+      if (forbiddenMsg) {
+        enqueueSnackbar(forbiddenMsg, {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
+      } else if (onFailureNoticeHandler) {
         enqueueSnackbar(onFailureNoticeHandler(error), {
           variant: "error",
           autoHideDuration: 10000,
@@ -93,6 +112,8 @@ export default function apiRequestHandlerFactory<D, S extends TSchema>({
   onFailureNoticeHandler,
   onSuccessNotice,
   onFailure,
+  forbiddenAction,
+  workspaceRoleLabel,
 }: {
   requestConfig: AxiosRequestConfig<D>;
   request: EphemeralRequestStatus<Error>;
@@ -102,6 +123,8 @@ export default function apiRequestHandlerFactory<D, S extends TSchema>({
   responseSchema: S;
   setRequest: (request: EphemeralRequestStatus<Error>) => void;
   onFailure?: (e: Error) => void;
+  forbiddenAction?: string;
+  workspaceRoleLabel?: string | null;
 }) {
   return async function apiRequestHandler() {
     if (request.type === CompletionStatus.InProgress) {
@@ -124,7 +147,21 @@ export default function apiRequestHandlerFactory<D, S extends TSchema>({
         error,
       });
 
-      if (onFailureNoticeHandler) {
+      const forbiddenMsg =
+        forbiddenAction !== undefined
+          ? formatForbiddenActionNotice(
+              error,
+              forbiddenAction,
+              workspaceRoleLabel ?? null,
+            )
+          : undefined;
+      if (forbiddenMsg) {
+        enqueueSnackbar(forbiddenMsg, {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
+      } else if (onFailureNoticeHandler) {
         enqueueSnackbar(onFailureNoticeHandler(error), {
           variant: "error",
           autoHideDuration: 10000,

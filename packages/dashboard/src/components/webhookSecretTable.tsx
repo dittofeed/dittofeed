@@ -17,10 +17,12 @@ import { useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
+import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import { KeyedSecretEditor, SecretButton } from "./secretEditor";
 
 export default function WebhookSecretTable() {
   const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+  const { isWorkspaceManagerOrAbove } = useWorkspaceCapabilities();
   const [{ newSecretValues, newSecretName }, setState] = useImmer<{
     newSecretName: string | null;
     newSecretValues: Set<string>;
@@ -88,6 +90,7 @@ export default function WebhookSecretTable() {
       >
         <Button
           variant="outlined"
+          disabled={!isWorkspaceManagerOrAbove}
           onClick={() => {
             setState((draft) => {
               draft.newSecretName = "";
@@ -155,9 +158,11 @@ export default function WebhookSecretTable() {
                     saved={params.row.saved}
                     label={params.row.name}
                     secretKey={params.row.name}
+                    disabled={!isWorkspaceManagerOrAbove}
                   />
                   {params.row.saved ? null : (
                     <SecretButton
+                      disabled={!isWorkspaceManagerOrAbove}
                       onClick={() => {
                         setState((draft) => {
                           draft.newSecretValues.delete(params.row.name);
@@ -179,6 +184,7 @@ export default function WebhookSecretTable() {
         <DialogContent>
           <TextField
             value={newSecretName ?? ""}
+            disabled={!isWorkspaceManagerOrAbove}
             onChange={(e) => {
               setState((draft) => {
                 draft.newSecretName = e.target.value;
@@ -194,7 +200,9 @@ export default function WebhookSecretTable() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeDialog}>Cancel</Button>
-          <Button onClick={addNewSecret}>Create</Button>
+          <Button disabled={!isWorkspaceManagerOrAbove} onClick={addNewSecret}>
+            Create
+          </Button>
         </DialogActions>
       </Dialog>
     </>

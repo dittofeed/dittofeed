@@ -3,7 +3,6 @@ import {
   BoltOutlined,
   BookOutlined,
   CampaignOutlined,
-  ContactSupportOutlined,
   GroupsOutlined,
   InboxOutlined,
   LanOutlined,
@@ -135,14 +134,6 @@ const menuItems: { items: MenuItemGroup[] } = {
           external: true,
           description:
             "Documentation with instructions and guidelines on how to use Dittofeed.",
-        },
-        {
-          id: "contact",
-          title: "Contact Us",
-          type: "item",
-          url: "/contact",
-          icon: ContactSupportOutlined,
-          description: "Contact details.",
         },
       ],
     },

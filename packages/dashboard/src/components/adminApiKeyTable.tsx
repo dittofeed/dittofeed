@@ -26,8 +26,8 @@ import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
-import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import { copyInputProps } from "../lib/copyToClipboard";
+import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import DeleteDialog from "./confirmDeleteDialog";
 
 enum ModalStateType {
@@ -56,7 +56,8 @@ interface TableState {
 
 export default function AdminApiKeyTable() {
   const theme = useTheme();
-  const { isWorkspaceManagerOrAbove } = useWorkspaceCapabilities();
+  const { isWorkspaceManagerOrAbove, workspaceRoleLabel } =
+    useWorkspaceCapabilities();
   const {
     adminApiKeys,
     apiBase,
@@ -103,6 +104,8 @@ export default function AdminApiKeyTable() {
       request: modalState.createRequest,
       onFailureNoticeHandler: () =>
         `Failed to create API key: ${modalState.newName}`,
+      forbiddenAction: "Create admin API key",
+      workspaceRoleLabel,
       requestConfig: {
         method: "POST",
         url: `${apiBase}/api/admin-keys`,
@@ -143,10 +146,14 @@ export default function AdminApiKeyTable() {
     workspace,
     upsertAdminApiKey,
     apiBase,
+    workspaceRoleLabel,
   ]);
   const deleteKey = useCallback(
     (id: string) => {
-      if (!isWorkspaceManagerOrAbove || workspace.type !== CompletionStatus.Successful) {
+      if (
+        !isWorkspaceManagerOrAbove ||
+        workspace.type !== CompletionStatus.Successful
+      ) {
         return;
       }
       const deleteRequest = deleteRequests.get(id) ?? {
@@ -155,6 +162,8 @@ export default function AdminApiKeyTable() {
       apiRequestHandlerFactory({
         request: deleteRequest,
         onFailureNoticeHandler: () => "Failed to delete API key.",
+        forbiddenAction: "Delete admin API key",
+        workspaceRoleLabel,
         responseSchema: EmptyResponse,
         requestConfig: {
           method: "DELETE",
@@ -184,6 +193,7 @@ export default function AdminApiKeyTable() {
       setState,
       workspace,
       apiBase,
+      workspaceRoleLabel,
     ],
   );
 

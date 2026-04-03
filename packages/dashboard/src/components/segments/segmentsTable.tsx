@@ -75,6 +75,7 @@ import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
 import { useUniversalRouter } from "../../lib/authModeProvider";
+import { formatForbiddenActionNotice } from "../../lib/forbiddenActionNotice";
 import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPeriodsQuery";
 import { useDeleteSegmentMutation } from "../../lib/useDeleteSegmentMutation";
 import { useDownloadSegmentsMutation } from "../../lib/useDownloadSegmentsMutation";
@@ -86,6 +87,7 @@ import {
 } from "../../lib/useSegmentsQuery";
 import { useSegmentStatusMutation } from "../../lib/useSegmentStatusMutation";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
+import { useWorkspaceCapabilities } from "../../lib/useWorkspaceCapabilities";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { RelatedResourceSelect } from "../resourceTable";
 
@@ -186,6 +188,7 @@ function StatusCell({ getValue }: CellContext<Row, unknown>) {
 // Cell renderer for Actions column
 function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   const theme = useTheme();
+  const { isAuthorOrAbove } = useWorkspaceCapabilities();
   const rowId = row.original.id;
   const rowName = row.original.name;
   const rowStatus = row.original.status;
@@ -234,6 +237,10 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
     deleteSegment(rowId);
     handleClose();
   };
+
+  if (!isAuthorOrAbove) {
+    return null;
+  }
 
   return (
     <>
@@ -361,6 +368,7 @@ export function SegmentsTable({
   const universalRouter = useUniversalRouter();
   const queryClient = useQueryClient();
   const { workspace } = useAppStorePick(["apiBase", "workspace"]);
+  const { isAuthorOrAbove, workspaceRoleLabel } = useWorkspaceCapabilities();
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -427,8 +435,13 @@ export function SegmentsTable({
       setSnackbarMessage("Segment deleted successfully!");
       setSnackbarOpen(true);
     },
-    onError: () => {
-      setSnackbarMessage("Failed to delete segment.");
+    onError: (error) => {
+      const forbidden = formatForbiddenActionNotice(
+        error,
+        "Delete segment",
+        workspaceRoleLabel,
+      );
+      setSnackbarMessage(forbidden ?? "Failed to delete segment.");
       setSnackbarOpen(true);
     },
   });
@@ -440,6 +453,16 @@ export function SegmentsTable({
     },
     onError: (error) => {
       console.error("Failed to duplicate segment:", error);
+      const forbidden = formatForbiddenActionNotice(
+        error,
+        "Duplicate segment",
+        workspaceRoleLabel,
+      );
+      if (forbidden) {
+        setSnackbarMessage(forbidden);
+        setSnackbarOpen(true);
+        return;
+      }
       const errorMsg =
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         (error as AxiosError<{ message?: string }>).response?.data.message ??
@@ -462,8 +485,13 @@ export function SegmentsTable({
           setSnackbarMessage("Segment status updated successfully!");
           setSnackbarOpen(true);
         },
-        onError: () => {
-          setSnackbarMessage("Failed to update segment status.");
+        onError: (error) => {
+          const forbidden = formatForbiddenActionNotice(
+            error,
+            "Update segment status",
+            workspaceRoleLabel,
+          );
+          setSnackbarMessage(forbidden ?? "Failed to update segment status.");
           setSnackbarOpen(true);
         },
       },
@@ -483,6 +511,16 @@ export function SegmentsTable({
     },
     onError: (error) => {
       console.error("Failed to create segment:", error);
+      const forbidden = formatForbiddenActionNotice(
+        error,
+        "Create segment",
+        workspaceRoleLabel,
+      );
+      if (forbidden) {
+        setSnackbarMessage(forbidden);
+        setSnackbarOpen(true);
+        return;
+      }
       const errorMsg = error.response?.data.message ?? "API Error";
       setSnackbarMessage(`Failed to create segment: ${errorMsg}`);
       setSnackbarOpen(true);
@@ -634,6 +672,7 @@ export function SegmentsTable({
               onClick={() => setDialogOpen(true)}
               startIcon={<AddIcon />}
               sx={greyButtonStyle}
+              disabled={!isAuthorOrAbove}
             >
               New Segment
             </Button>
@@ -723,13 +762,15 @@ export function SegmentsTable({
                 <TableRow>
                   <TableCell colSpan={columns.length} align="center">
                     No segments found.{" "}
-                    <Button
-                      size="small"
-                      onClick={() => setDialogOpen(true)}
-                      sx={greyButtonStyle}
-                    >
-                      Create One
-                    </Button>
+                    {isAuthorOrAbove ? (
+                      <Button
+                        size="small"
+                        onClick={() => setDialogOpen(true)}
+                        sx={greyButtonStyle}
+                      >
+                        Create One
+                      </Button>
+                    ) : null}
                   </TableCell>
                 </TableRow>
               )}
@@ -836,6 +877,7 @@ export function SegmentsTable({
             fullWidth
             variant="standard"
             value={segmentName}
+            disabled={!isAuthorOrAbove}
             onChange={(e) => setSegmentName(e.target.value)}
             inputRef={nameInputRef}
             onKeyPress={(e) => {
@@ -849,7 +891,11 @@ export function SegmentsTable({
           <Button onClick={closeDialog}>Cancel</Button>
           <Button
             onClick={handleCreateSegment}
-            disabled={!segmentName.trim() || createSegmentMutation.isPending}
+            disabled={
+              !segmentName.trim() ||
+              createSegmentMutation.isPending ||
+              !isAuthorOrAbove
+            }
           >
             {createSegmentMutation.isPending ? "Creating..." : "Create"}
           </Button>

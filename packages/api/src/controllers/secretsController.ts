@@ -74,6 +74,9 @@ export default async function secretsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.WorkspaceManager)) {
+        return;
+      }
       const { workspaceId, name, value, configValue } = request.body;
       await db().transaction(async (pTx) => {
         const secret = await pTx.query.secret.findFirst({

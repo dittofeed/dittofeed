@@ -14,6 +14,7 @@ export interface SelectFieldProps {
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   helperText?: string;
+  disabled?: boolean;
 }
 
 export function SelectField({

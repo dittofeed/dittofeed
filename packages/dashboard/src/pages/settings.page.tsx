@@ -97,13 +97,13 @@ import WebhookSecretTable from "../components/webhookSecretTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
-import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import { copyInputProps } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
 import { noticeAnchorOrigin } from "../lib/notices";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PreloadedState, PropsWithInitialState } from "../lib/types";
 import { useCreateWorkspaceMutation } from "../lib/useCreateWorkspaceMutation";
+import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 
 function useSecretAvailability(): AppState["secretAvailability"] | undefined {
   const { secretAvailability, inTransition } = useAppStorePick([
@@ -127,6 +127,12 @@ function isSecretSaved(
   return (
     secretAvailability.find((s) => s.name === name)?.configValue?.[key] ?? false
   );
+}
+
+/** Message channel secrets and defaults require WorkspaceManager+. */
+function useMessagingChannelFieldsDisabled(): boolean {
+  const { isWorkspaceManagerOrAbove } = useWorkspaceCapabilities();
+  return !isWorkspaceManagerOrAbove;
 }
 
 function copyToClipboardField({
@@ -731,6 +737,7 @@ function SegmentIoConfig() {
 
 function SendGridConfig() {
   const secretAvailability = useSecretAvailability();
+  const channelFieldsDisabled = useMessagingChannelFieldsDisabled();
 
   return (
     <Fields
@@ -752,6 +759,7 @@ function SendGridConfig() {
                     helperText:
                       "API key, used internally to send emails via sendgrid.",
                     type: EmailProviderType.SendGrid,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.SendGrid,
                       "apiKey",
@@ -769,6 +777,7 @@ function SendGridConfig() {
                     helperText:
                       "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
                     type: EmailProviderType.SendGrid,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.SendGrid,
                       "webhookKey",
@@ -787,6 +796,7 @@ function SendGridConfig() {
 
 function AmazonSesConfig() {
   const secretAvailability = useSecretAvailability();
+  const channelFieldsDisabled = useMessagingChannelFieldsDisabled();
 
   return (
     <Fields
@@ -807,6 +817,7 @@ function AmazonSesConfig() {
                     label: "Access Key Id",
                     helperText: "IAM user access key",
                     type: EmailProviderType.AmazonSes,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.AmazonSes,
                       "accessKeyId",
@@ -823,6 +834,7 @@ function AmazonSesConfig() {
                     label: "Secret Access Key",
                     helperText: "Secret access key for IAM user.",
                     type: EmailProviderType.AmazonSes,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.AmazonSes,
                       "secretAccessKey",
@@ -839,6 +851,7 @@ function AmazonSesConfig() {
                     label: "AWS Region",
                     helperText: "The AWS region to route requests to.",
                     type: EmailProviderType.AmazonSes,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.AmazonSes,
                       "region",
@@ -856,6 +869,7 @@ function AmazonSesConfig() {
                     helperText:
                       "Custom SES endpoint URL. Leave empty to use the default AWS endpoint.",
                     type: EmailProviderType.AmazonSes,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.AmazonSes,
                       "endpoint",
@@ -874,6 +888,7 @@ function AmazonSesConfig() {
 
 function MailChimpConfig() {
   const secretAvailability = useSecretAvailability();
+  const channelFieldsDisabled = useMessagingChannelFieldsDisabled();
 
   return (
     <Fields
@@ -894,6 +909,7 @@ function MailChimpConfig() {
                     label: "MailChimp API Key",
                     helperText: "API key used to send emails via MailChimp.",
                     type: EmailProviderType.MailChimp,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.MailChimp,
                       "apiKey",
@@ -911,6 +927,7 @@ function MailChimpConfig() {
                     helperText:
                       "MailChimp webhook verification key, used to authenticate webhook requests.",
                     type: EmailProviderType.MailChimp,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.MailChimp,
                       "webhookKey",
@@ -929,6 +946,7 @@ function MailChimpConfig() {
 
 function ResendConfig() {
   const secretAvailability = useSecretAvailability();
+  const channelFieldsDisabled = useMessagingChannelFieldsDisabled();
 
   return (
     <Fields
@@ -950,6 +968,7 @@ function ResendConfig() {
                     helperText:
                       "API key, used internally to send emails via resend.",
                     type: EmailProviderType.Resend,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.Resend,
                       "apiKey",
@@ -967,6 +986,7 @@ function ResendConfig() {
                     helperText:
                       "Resend webhook verification key, used to authenticate resend webhook requests.",
                     type: EmailProviderType.Resend,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.Resend,
                       "webhookKey",
@@ -985,6 +1005,7 @@ function ResendConfig() {
 
 function PostMarkConfig() {
   const secretAvailability = useSecretAvailability();
+  const channelFieldsDisabled = useMessagingChannelFieldsDisabled();
 
   return (
     <Fields
@@ -1006,6 +1027,7 @@ function PostMarkConfig() {
                     helperText:
                       "API key, used internally to send emails via Postmark.",
                     type: EmailProviderType.PostMark,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.Postmark,
                       "apiKey",
@@ -1023,6 +1045,7 @@ function PostMarkConfig() {
                     helperText:
                       "Auth header value (x-postmark-secret), used to authenticate PostMark webhook requests. Use a secure random string generator.",
                     type: EmailProviderType.PostMark,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.Postmark,
                       "webhookKey",
@@ -1040,6 +1063,7 @@ function PostMarkConfig() {
                     helperText:
                       "Message stream to use for sending emails. Usually 'broadcast'.",
                     type: EmailProviderType.PostMark,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.Postmark,
                       "messageStream",
@@ -1085,6 +1109,7 @@ const SMTP_SECRET_FIELDS: {
 
 function SmtpConfig() {
   const secretAvailability = useSecretAvailability();
+  const channelFieldsDisabled = useMessagingChannelFieldsDisabled();
   const fields: SecretField[] = SMTP_SECRET_FIELDS.map((field) => ({
     id: `smtp-${field.key}`,
     type: "secret",
@@ -1094,6 +1119,7 @@ function SmtpConfig() {
       label: field.label,
       helperText: field.helperText,
       type: EmailProviderType.Smtp,
+      disabled: channelFieldsDisabled,
       saved: isSecretSaved(SecretNames.Smtp, field.key, secretAvailability),
     },
   }));
@@ -1131,6 +1157,8 @@ function DefaultEmailConfig() {
     "defaultEmailProvider",
     "setDefaultEmailProvider",
   ]);
+  const { workspaceRoleLabel } = useWorkspaceCapabilities();
+  const channelFieldsDisabled = useMessagingChannelFieldsDisabled();
   const [
     { defaultProvider, defaultFromAddress, defaultProviderRequest },
     setState,
@@ -1161,6 +1189,8 @@ function DefaultEmailConfig() {
       onSuccessNotice: "Set default email configuration.",
       onFailureNoticeHandler: () =>
         `API Error: Failed to set default email configuration.`,
+      forbiddenAction: "Save default email configuration",
+      workspaceRoleLabel,
       setResponse: () => {
         if (!defaultProvider) {
           return;
@@ -1210,6 +1240,7 @@ function DefaultEmailConfig() {
                   fieldProps: {
                     label: "Default Email Provider",
                     value: defaultProvider ?? "",
+                    disabled: channelFieldsDisabled,
                     onChange: (value) => {
                       setState((state) => {
                         state.defaultProvider = value;
@@ -1226,6 +1257,7 @@ function DefaultEmailConfig() {
                   fieldProps: {
                     label: 'Default "From" Address',
                     value: defaultFromAddress ?? "",
+                    disabled: channelFieldsDisabled,
                     onChange: ({ target: { value } }) => {
                       setState((state) => {
                         state.defaultFromAddress = value;
@@ -1243,7 +1275,7 @@ function DefaultEmailConfig() {
     >
       <Button
         variant="contained"
-        disabled={!defaultProvider}
+        disabled={!defaultProvider || channelFieldsDisabled}
         sx={{
           alignSelf: {
             xs: "start",
@@ -1289,6 +1321,8 @@ function DefaultSmsConfig() {
     "defaultSmsProvider",
     "setDefaultSmsProvider",
   ]);
+  const { workspaceRoleLabel } = useWorkspaceCapabilities();
+  const channelFieldsDisabled = useMessagingChannelFieldsDisabled();
   const [{ defaultProvider, defaultProviderRequest }, setState] = useImmer<{
     defaultProvider: string | null;
     defaultProviderRequest: EphemeralRequestStatus<Error>;
@@ -1314,6 +1348,8 @@ function DefaultSmsConfig() {
       onSuccessNotice: "Set default SMS configuration.",
       onFailureNoticeHandler: () =>
         `API Error: Failed to set default SMS configuration.`,
+      forbiddenAction: "Save default SMS configuration",
+      workspaceRoleLabel,
       setResponse: () => {
         if (!defaultProvider) {
           return;
@@ -1376,6 +1412,7 @@ function DefaultSmsConfig() {
                   fieldProps: {
                     label: "Default SMS Provider",
                     value: defaultProvider ?? "",
+                    disabled: channelFieldsDisabled,
                     onChange: (value) => {
                       setState((state) => {
                         state.defaultProvider = value;
@@ -1394,7 +1431,7 @@ function DefaultSmsConfig() {
     >
       <Button
         variant="contained"
-        disabled={!defaultProvider}
+        disabled={!defaultProvider || channelFieldsDisabled}
         sx={{
           alignSelf: {
             xs: "start",
@@ -1411,6 +1448,7 @@ function DefaultSmsConfig() {
 
 function Twilios() {
   const secretAvailability = useSecretAvailability();
+  const channelFieldsDisabled = useMessagingChannelFieldsDisabled();
   return (
     <Fields
       sections={[
@@ -1430,6 +1468,7 @@ function Twilios() {
                     label: "Account SID",
                     helperText: "Twilio Account SID",
                     type: SmsProviderType.Twilio,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.Twilio,
                       "accountSid",
@@ -1446,6 +1485,7 @@ function Twilios() {
                     label: "Messaging Service SID",
                     helperText: "Twilio messaging service SID",
                     type: SmsProviderType.Twilio,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.Twilio,
                       "messagingServiceSid",
@@ -1463,6 +1503,7 @@ function Twilios() {
                     helperText:
                       "Twilio auth token used to authenticate requests.",
                     type: SmsProviderType.Twilio,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.Twilio,
                       "authToken",
@@ -1480,6 +1521,7 @@ function Twilios() {
                     helperText:
                       "Twilio API Key SID used to authenticate requests. Used with the API key secret to authenticate requests as an alternative to the auth token.",
                     type: SmsProviderType.Twilio,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.Twilio,
                       "apiKeySid",
@@ -1497,6 +1539,7 @@ function Twilios() {
                     helperText:
                       "Twilio API Key Secret used to authenticate requests. Used with the API key SID to authenticate requests as an alternative to the auth token.",
                     type: SmsProviderType.Twilio,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.Twilio,
                       "apiKeySecret",
@@ -1515,6 +1558,7 @@ function Twilios() {
 
 function SignalWireConfig() {
   const secretAvailability = useSecretAvailability();
+  const channelFieldsDisabled = useMessagingChannelFieldsDisabled();
   return (
     <Fields
       sections={[
@@ -1534,6 +1578,7 @@ function SignalWireConfig() {
                     label: "Project ID",
                     helperText: "SignalWire Project ID",
                     type: SmsProviderType.SignalWire,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.SignalWire,
                       "project",
@@ -1551,6 +1596,7 @@ function SignalWireConfig() {
                     helperText:
                       "SignalWire API token used to authenticate requests",
                     type: SmsProviderType.SignalWire,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.SignalWire,
                       "token",
@@ -1568,6 +1614,7 @@ function SignalWireConfig() {
                     helperText:
                       "SignalWire Space URL (e.g., https://yourspace.signalwire.com)",
                     type: SmsProviderType.SignalWire,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.SignalWire,
                       "spaceUrl",
@@ -1585,6 +1632,7 @@ function SignalWireConfig() {
                     helperText:
                       "Default phone number for sending SMS (optional, can be overridden per message)",
                     type: SmsProviderType.SignalWire,
+                    disabled: channelFieldsDisabled,
                     saved: isSecretSaved(
                       SecretNames.SignalWire,
                       "phone",
@@ -1856,9 +1904,7 @@ function HubspotIntegration() {
               saveSyncedSegments();
             }}
             loading={inProgress === "segments"}
-            disabled={
-              !isWorkspaceManagerOrAbove || inProgress === "enabled"
-            }
+            disabled={!isWorkspaceManagerOrAbove || inProgress === "enabled"}
           >
             Save Synced Segments
           </LoadingButton>
@@ -1872,9 +1918,7 @@ function HubspotIntegration() {
               handleDisable();
             }}
             loading={inProgress === "enabled"}
-            disabled={
-              !isWorkspaceManagerOrAbove || inProgress === "segments"
-            }
+            disabled={!isWorkspaceManagerOrAbove || inProgress === "segments"}
           >
             Disable Hubspot
           </LoadingButton>
