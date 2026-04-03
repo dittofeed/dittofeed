@@ -1,11 +1,8 @@
 import { randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
 import { RoleEnum } from "isomorphic-lib/src/types";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import config from "./config";
-import { db } from "./db";
-import * as schema from "./db/schema";
 import {
   loginWithEmailPassword,
   LoginWithEmailPasswordErrorType,
@@ -58,14 +55,6 @@ describe("memberPasswordAuth", () => {
         role: RoleEnum.Viewer,
         initialPassword: "goodsecret123",
       });
-      const member = await db().query.workspaceMember.findFirst({
-        where: eq(schema.workspaceMember.email, email),
-      });
-      expect(member).toBeTruthy();
-      await db()
-        .update(schema.workspaceMember)
-        .set({ emailVerified: true })
-        .where(eq(schema.workspaceMember.id, member!.id));
 
       const result = await loginWithEmailPassword({
         email,
@@ -93,10 +82,6 @@ describe("memberPasswordAuth", () => {
         role: RoleEnum.Viewer,
         initialPassword: "rightpassword1",
       });
-      await db()
-        .update(schema.workspaceMember)
-        .set({ emailVerified: true })
-        .where(eq(schema.workspaceMember.email, email));
 
       const result = await loginWithEmailPassword({
         email,

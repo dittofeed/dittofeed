@@ -84,19 +84,17 @@ export async function loginWithEmailPassword({
     return err({ type: LoginWithEmailPasswordErrorType.InvalidCredentials });
   }
 
-  if (!member.emailVerified) {
-    return err({ type: LoginWithEmailPasswordErrorType.EmailNotVerified });
-  }
-
   const { workspace } = await findAndCreateRoles(member);
   if (!workspace || !member.email) {
     return err({ type: LoginWithEmailPasswordErrorType.NotOnboarded });
   }
 
+  // Successful password check proves account control; session must satisfy
+  // getMultiTenantRequestContext email gate (OIDC uses IdP verification).
   const token = signPasswordSessionJwt({
     memberId: member.id,
     email: member.email,
-    emailVerified: member.emailVerified,
+    emailVerified: true,
   });
   return ok(token);
 }

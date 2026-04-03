@@ -35,6 +35,7 @@ describe("rbac member passwords", () => {
       where: eq(schema.workspaceMember.email, email),
     });
     expect(member?.passwordHash).toBeTruthy();
+    expect(member?.emailVerified).toBe(true);
     await expect(
       verifyMemberPassword(member!.passwordHash, "initialpass123"),
     ).resolves.toBe(true);
@@ -160,6 +161,7 @@ describe("rbac member passwords", () => {
     const member = await db().query.workspaceMember.findFirst({
       where: eq(schema.workspaceMember.email, email),
     });
+    expect(member?.emailVerified).toBe(true);
     await expect(
       verifyMemberPassword(member!.passwordHash, "adminreset123"),
     ).resolves.toBe(true);

@@ -143,7 +143,7 @@ export async function createWorkspaceMemberRole({
     const passwordHash = await hashMemberPassword(initialPassword);
     await db()
       .update(schema.workspaceMember)
-      .set({ passwordHash })
+      .set({ passwordHash, emailVerified: true })
       .where(eq(schema.workspaceMember.id, workspaceMember.id));
   }
 
@@ -260,7 +260,7 @@ export async function adminSetWorkspaceMemberPassword({
   const passwordHash = await hashMemberPassword(newPassword);
   await db()
     .update(schema.workspaceMember)
-    .set({ passwordHash })
+    .set({ passwordHash, emailVerified: true })
     .where(eq(schema.workspaceMember.id, workspaceMember.id));
 }
 
