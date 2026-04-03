@@ -97,6 +97,7 @@ import WebhookSecretTable from "../components/webhookSecretTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
+import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import { copyInputProps } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
 import { noticeAnchorOrigin } from "../lib/notices";
@@ -515,6 +516,7 @@ function SegmentIoConfig() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [sharedSecret, setSharedSecret] = useState("");
   const [secretExists, setSecretExists] = useState(false);
+  const { isWorkspaceManagerOrAbove } = useWorkspaceCapabilities();
   const { apiBase, workspace } = useAppStorePick(["apiBase", "workspace"]);
   const queryClient = useQueryClient();
 
@@ -629,6 +631,9 @@ function SegmentIoConfig() {
   });
 
   const handleSubmit = () => {
+    if (!isWorkspaceManagerOrAbove) {
+      return;
+    }
     if (isEnabled) {
       segmentConfigMutation.mutate();
     } else {
@@ -640,7 +645,9 @@ function SegmentIoConfig() {
     segmentConfigMutation.isPending || deleteSegmentConfigMutation.isPending;
 
   const saveButtonDisabled =
-    isPending || (isEnabled && !secretExists && !sharedSecret);
+    !isWorkspaceManagerOrAbove ||
+    isPending ||
+    (isEnabled && !secretExists && !sharedSecret);
 
   return (
     <Stack spacing={3}>
@@ -667,7 +674,9 @@ function SegmentIoConfig() {
                       },
                       switchProps: {
                         checked: isEnabled,
-                        disabled: segmentConfigQuery.isPending,
+                        disabled:
+                          !isWorkspaceManagerOrAbove ||
+                          segmentConfigQuery.isPending,
                         onChange: (_, checked) => {
                           setIsEnabled(checked);
                         },
@@ -683,6 +692,7 @@ function SegmentIoConfig() {
                           fieldProps: {
                             label: "Shared Secret",
                             placeholder: secretExists ? "••••••••••" : "",
+                            disabled: !isWorkspaceManagerOrAbove,
                             helperText:
                               secretExists && !sharedSecret
                                 ? "Secret is already configured. Enter a new value to change it."
@@ -1702,6 +1712,7 @@ function AuthenticationSettings() {
 }
 
 function HubspotIntegration() {
+  const { isWorkspaceManagerOrAbove } = useWorkspaceCapabilities();
   const {
     integrations,
     dashboardUrl,
@@ -1826,6 +1837,7 @@ function HubspotIntegration() {
 
         <Autocomplete
           multiple
+          disabled={!isWorkspaceManagerOrAbove}
           options={segments}
           value={subscribedSegments}
           onChange={(_event, newValue) => {
@@ -1844,7 +1856,9 @@ function HubspotIntegration() {
               saveSyncedSegments();
             }}
             loading={inProgress === "segments"}
-            disabled={inProgress === "enabled"}
+            disabled={
+              !isWorkspaceManagerOrAbove || inProgress === "enabled"
+            }
           >
             Save Synced Segments
           </LoadingButton>
@@ -1858,7 +1872,9 @@ function HubspotIntegration() {
               handleDisable();
             }}
             loading={inProgress === "enabled"}
-            disabled={inProgress === "segments"}
+            disabled={
+              !isWorkspaceManagerOrAbove || inProgress === "segments"
+            }
           >
             Disable Hubspot
           </LoadingButton>
@@ -1869,6 +1885,7 @@ function HubspotIntegration() {
     hubspotContents = (
       <Button
         variant="contained"
+        disabled={!isWorkspaceManagerOrAbove}
         sx={{
           alignSelf: {
             xs: "start",
@@ -1909,6 +1926,7 @@ function IntegrationSettings() {
 }
 
 function SubscriptionManagementSettings() {
+  const { isAuthorOrAbove } = useWorkspaceCapabilities();
   const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
   const { apiBase } = useAppStorePick(["apiBase"]);
   const [fromSubscriptionChange, setFromSubscriptionChange] =
@@ -2039,11 +2057,17 @@ function SubscriptionManagementSettings() {
   });
 
   const handleSaveTemplate = () => {
+    if (!isAuthorOrAbove) {
+      return;
+    }
     setIsSaving(true);
     saveTemplateMutation.mutate(templateContent);
   };
 
   const handleResetToDefault = () => {
+    if (!isAuthorOrAbove) {
+      return;
+    }
     setIsResetting(true);
     resetTemplateMutation.mutate();
   };
@@ -2239,6 +2263,7 @@ function SubscriptionManagementSettings() {
                   <CodeMirror
                     value={templateContent}
                     height="400px"
+                    editable={isAuthorOrAbove}
                     extensions={[html(), EditorView.lineWrapping]}
                     onChange={(value) => setTemplateContent(value)}
                   />
@@ -2248,7 +2273,7 @@ function SubscriptionManagementSettings() {
                     variant="contained"
                     onClick={handleSaveTemplate}
                     loading={isSaving}
-                    disabled={isResetting}
+                    disabled={!isAuthorOrAbove || isResetting}
                   >
                     Save Template
                   </LoadingButton>
@@ -2256,7 +2281,9 @@ function SubscriptionManagementSettings() {
                     variant="outlined"
                     onClick={handleResetToDefault}
                     loading={isResetting}
-                    disabled={isSaving || !hasCustomTemplate}
+                    disabled={
+                      !isAuthorOrAbove || isSaving || !hasCustomTemplate
+                    }
                   >
                     Reset to Default
                   </LoadingButton>

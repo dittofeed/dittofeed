@@ -50,6 +50,7 @@ import {
   RenderMessageTemplateResponseContent,
   RenderMessageTemplateType,
   ResetMessageTemplateResource,
+  RoleEnum,
   SmsProviderType,
   UpsertMessageTemplateResource,
   UpsertMessageTemplateValidationError,
@@ -57,6 +58,8 @@ import {
 } from "isomorphic-lib/src/types";
 import { DEFAULT_WEBHOOK_DEFINITION } from "isomorphic-lib/src/webhook";
 import * as R from "remeda";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function contentController(fastify: FastifyInstance) {
@@ -74,6 +77,9 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const {
         contents,
         workspaceId,
@@ -222,6 +228,9 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const resource = await upsertMessageTemplate(request.body);
       if (resource.isErr()) {
         return reply.status(400).send(resource.error);
@@ -244,6 +253,9 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       let definition: MessageTemplateResourceDefinition;
       const { workspaceId, emailContentsType } = request.body;
       switch (request.body.type) {
@@ -330,6 +342,9 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await testTemplate(request.body);
       if (result.isOk()) {
         return reply.status(200).send({
@@ -576,6 +591,9 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { id, workspaceId } = request.body;
 
       const result = await db()
@@ -609,6 +627,9 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const messageTemplate = await deleteMessageTemplate({
         id: request.query.id,
         workspaceId: request.query.workspaceId,
@@ -636,6 +657,9 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       try {
         const result = await batchMessageUsers(request.body);
         return reply.status(200).send(result);

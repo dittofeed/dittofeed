@@ -11,7 +11,10 @@ import {
   GetUserPropertyIndicesRequest,
   UpsertUserPropertyIndexRequest,
   UserPropertyIndexResource,
+  RoleEnum,
 } from "isomorphic-lib/src/types";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function userPropertyIndexController(
@@ -61,6 +64,9 @@ export default async function userPropertyIndexController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, userPropertyId, type } = request.body;
 
       await upsertUserPropertyIndex({
@@ -87,6 +93,9 @@ export default async function userPropertyIndexController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, userPropertyId } = request.body;
 
       await deleteUserPropertyIndex({

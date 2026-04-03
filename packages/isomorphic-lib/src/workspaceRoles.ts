@@ -86,3 +86,31 @@ export function requireWorkspaceAdmin({
     minimumRole: RoleEnum.Admin,
   });
 }
+
+export function requireWorkspaceManager({
+  memberRoles,
+  workspaceId,
+}: {
+  memberRoles: WorkspaceMemberRoleResource[];
+  workspaceId: string;
+}): Result<null, Error> {
+  return requireWorkspaceAtLeastRole({
+    memberRoles,
+    workspaceId,
+    minimumRole: RoleEnum.WorkspaceManager,
+  });
+}
+
+export function requireWorkspaceAuthor({
+  memberRoles,
+  workspaceId,
+}: {
+  memberRoles: WorkspaceMemberRoleResource[];
+  workspaceId: string;
+}): Result<null, Error> {
+  return requireWorkspaceAtLeastRole({
+    memberRoles,
+    workspaceId,
+    minimumRole: RoleEnum.Author,
+  });
+}

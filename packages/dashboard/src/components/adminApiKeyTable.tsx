@@ -26,6 +26,7 @@ import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
+import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import { copyInputProps } from "../lib/copyToClipboard";
 import DeleteDialog from "./confirmDeleteDialog";
 
@@ -55,6 +56,7 @@ interface TableState {
 
 export default function AdminApiKeyTable() {
   const theme = useTheme();
+  const { isWorkspaceManagerOrAbove } = useWorkspaceCapabilities();
   const {
     adminApiKeys,
     apiBase,
@@ -91,6 +93,7 @@ export default function AdminApiKeyTable() {
 
   const createKey = useCallback(() => {
     if (
+      !isWorkspaceManagerOrAbove ||
       workspace.type !== CompletionStatus.Successful ||
       modalState?.type !== ModalStateType.Naming
     ) {
@@ -133,10 +136,17 @@ export default function AdminApiKeyTable() {
         });
       },
     })();
-  }, [modalState, setState, workspace, upsertAdminApiKey, apiBase]);
+  }, [
+    isWorkspaceManagerOrAbove,
+    modalState,
+    setState,
+    workspace,
+    upsertAdminApiKey,
+    apiBase,
+  ]);
   const deleteKey = useCallback(
     (id: string) => {
-      if (workspace.type !== CompletionStatus.Successful) {
+      if (!isWorkspaceManagerOrAbove || workspace.type !== CompletionStatus.Successful) {
         return;
       }
       const deleteRequest = deleteRequests.get(id) ?? {
@@ -167,7 +177,14 @@ export default function AdminApiKeyTable() {
         },
       })();
     },
-    [deleteAdminApiKey, deleteRequests, setState, workspace, apiBase],
+    [
+      deleteAdminApiKey,
+      deleteRequests,
+      isWorkspaceManagerOrAbove,
+      setState,
+      workspace,
+      apiBase,
+    ],
   );
 
   let dialogContent: React.ReactNode = null;
@@ -249,6 +266,7 @@ export default function AdminApiKeyTable() {
       >
         <Button
           variant="outlined"
+          disabled={!isWorkspaceManagerOrAbove}
           onClick={() => {
             setState((draft) => {
               draft.modalState = {
@@ -314,8 +332,9 @@ export default function AdminApiKeyTable() {
               renderCell: (params) => (
                 <DeleteDialog
                   disabled={
+                    !isWorkspaceManagerOrAbove ||
                     deleteRequests.get(params.row.id)?.type ===
-                    CompletionStatus.InProgress
+                      CompletionStatus.InProgress
                   }
                   title={`Delete Admin API Key ${params.row.name}`}
                   message={`Are you sure you want to delete ${params.row.name}?`}

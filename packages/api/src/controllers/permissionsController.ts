@@ -1,5 +1,4 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import backendConfig from "backend-lib/src/config";
 import {
   adminSetWorkspaceMemberPassword,
   createWorkspaceMemberRole,
@@ -7,7 +6,7 @@ import {
   getWorkspaceMemberRoles,
   updateWorkspaceMemberRole,
 } from "backend-lib/src/rbac";
-import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { FastifyInstance } from "fastify";
 import {
   AdminWorkspaceMemberPasswordRequest,
   CreateWorkspaceMemberRoleRequest,
@@ -15,26 +14,12 @@ import {
   EmptyResponse,
   GetWorkspaceMemberRolesRequest,
   GetWorkspaceMemberRolesResponse,
+  RoleEnum,
   UpdateWorkspaceMemberRoleRequest,
   WorkspaceMemberRoleResource,
 } from "isomorphic-lib/src/types";
-import { requireWorkspaceAdmin } from "isomorphic-lib/src/workspaceRoles";
 
-function denyUnlessWorkspaceAdmin(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  workspaceId: string,
-): boolean {
-  if (backendConfig().authMode !== "multi-tenant") {
-    return false;
-  }
-  const memberRoles = request.requestContext.get("memberRoles") ?? [];
-  if (requireWorkspaceAdmin({ memberRoles, workspaceId }).isErr()) {
-    void reply.status(403).send();
-    return true;
-  }
-  return false;
-}
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function permissionsController(fastify: FastifyInstance) {
@@ -72,7 +57,7 @@ export default async function permissionsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (denyUnlessWorkspaceAdmin(request, reply, request.body.workspaceId)) {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Admin)) {
         return;
       }
       try {
@@ -107,7 +92,7 @@ export default async function permissionsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (denyUnlessWorkspaceAdmin(request, reply, request.body.workspaceId)) {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Admin)) {
         return;
       }
       try {
@@ -137,7 +122,7 @@ export default async function permissionsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (denyUnlessWorkspaceAdmin(request, reply, request.body.workspaceId)) {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Admin)) {
         return;
       }
       const success = await deleteWorkspaceMemberRole(request.body);
@@ -164,7 +149,7 @@ export default async function permissionsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (denyUnlessWorkspaceAdmin(request, reply, request.body.workspaceId)) {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Admin)) {
         return;
       }
       if (request.body.newPassword !== request.body.newPasswordConfirm) {

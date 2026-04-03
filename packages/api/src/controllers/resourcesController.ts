@@ -7,7 +7,10 @@ import {
   DuplicateResourceResponse,
   GetResourcesRequest,
   GetResourcesResponse,
+  RoleEnum,
 } from "isomorphic-lib/src/types";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function resourcesController(fastify: FastifyInstance) {
@@ -43,6 +46,9 @@ export default async function resourcesController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await duplicateResource(request.body);
       if (result.isErr()) {
         return reply.status(400).send(result.error);

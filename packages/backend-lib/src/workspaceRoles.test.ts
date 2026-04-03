@@ -7,6 +7,8 @@ import {
   orderedWorkspaceRoles,
   requireWorkspaceAdmin,
   requireWorkspaceAtLeastRole,
+  requireWorkspaceAuthor,
+  requireWorkspaceManager,
 } from "isomorphic-lib/src/workspaceRoles";
 
 describe("workspaceRoles (isomorphic-lib)", () => {
@@ -75,6 +77,48 @@ describe("workspaceRoles (isomorphic-lib)", () => {
         memberRoles: rolesFor("ws-1", RoleEnum.Viewer),
         workspaceId: "ws-1",
         minimumRole: RoleEnum.Author,
+      }).isErr(),
+    ).toBe(true);
+  });
+
+  it("requireWorkspaceManager allows WorkspaceManager and Admin", () => {
+    expect(
+      requireWorkspaceManager({
+        memberRoles: rolesFor("ws-1", RoleEnum.WorkspaceManager),
+        workspaceId: "ws-1",
+      }).isOk(),
+    ).toBe(true);
+    expect(
+      requireWorkspaceManager({
+        memberRoles: rolesFor("ws-1", RoleEnum.Admin),
+        workspaceId: "ws-1",
+      }).isOk(),
+    ).toBe(true);
+    expect(
+      requireWorkspaceManager({
+        memberRoles: rolesFor("ws-1", RoleEnum.Author),
+        workspaceId: "ws-1",
+      }).isErr(),
+    ).toBe(true);
+  });
+
+  it("requireWorkspaceAuthor allows Author and stronger roles", () => {
+    expect(
+      requireWorkspaceAuthor({
+        memberRoles: rolesFor("ws-1", RoleEnum.Author),
+        workspaceId: "ws-1",
+      }).isOk(),
+    ).toBe(true);
+    expect(
+      requireWorkspaceAuthor({
+        memberRoles: rolesFor("ws-1", RoleEnum.WorkspaceManager),
+        workspaceId: "ws-1",
+      }).isOk(),
+    ).toBe(true);
+    expect(
+      requireWorkspaceAuthor({
+        memberRoles: rolesFor("ws-1", RoleEnum.Viewer),
+        workspaceId: "ws-1",
       }).isErr(),
     ).toBe(true);
   });

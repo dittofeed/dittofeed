@@ -27,6 +27,9 @@ import {
   SUBSRIPTION_GROUP_ID_HEADER,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
+import { RoleEnum } from "isomorphic-lib/src/types";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function subscriptionGroupsController(
@@ -46,6 +49,9 @@ export default async function subscriptionGroupsController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await upsertSubscriptionGroup(request.body);
       if (result.isErr()) {
         return reply.status(400).send(result.error);
@@ -69,6 +75,9 @@ export default async function subscriptionGroupsController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       await updateUserSubscriptions(request.body);
       return reply.status(200).send();
     },
@@ -87,6 +96,9 @@ export default async function subscriptionGroupsController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const requestFile = await request.file();
       if (!requestFile) {
         return reply.status(400).send({
@@ -141,6 +153,9 @@ export default async function subscriptionGroupsController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await db()
         .delete(schema.subscriptionGroup)
         .where(eq(schema.subscriptionGroup.id, request.body.id))

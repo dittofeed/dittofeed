@@ -40,9 +40,11 @@ import {
 } from "backend-lib/src/types";
 import { eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
+import { RoleEnum } from "isomorphic-lib/src/types";
 import { v5 as uuidv5 } from "uuid";
 
 import { getOccupantFromRequest } from "../buildApp/requestContext";
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function broadcastsController(fastify: FastifyInstance) {
@@ -59,6 +61,9 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await archiveBroadcast(request.body);
       if (!result) {
         return reply.status(404).send({ message: "Broadcast not found" });
@@ -97,6 +102,9 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await upsertBroadcastV2(request.body);
       if (result.isErr()) {
         return reply.status(400).send(result.error);
@@ -118,6 +126,9 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const [broadcast] = await db()
         .update(schema.broadcast)
         .set({
@@ -147,6 +158,9 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, id: broadcastId } = request.body;
       const broadcast = await triggerBroadcast({
         broadcastId,
@@ -168,6 +182,9 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, broadcastId } = request.body;
       await startRecomputeBroadcastSegmentWorkflow({
         workspaceId,
@@ -192,6 +209,9 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, broadcastId } = request.body;
       const occupant = getOccupantFromRequest(request);
       await startBroadcastWorkflow({
@@ -217,6 +237,9 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, broadcastId } = request.body;
       await pauseBroadcast({
         workspaceId,
@@ -239,6 +262,9 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, broadcastId } = request.body;
       await resumeBroadcast({
         workspaceId,
@@ -261,6 +287,9 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, broadcastId } = request.body;
       await cancelBroadcast({
         workspaceId,
@@ -310,6 +339,9 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const broadcastId = uuidv5(
         request.body.broadcastName,
         request.body.workspaceId,

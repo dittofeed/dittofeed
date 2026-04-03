@@ -63,6 +63,7 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { useUniversalRouter } from "../../../lib/authModeProvider";
+import { useWorkspaceCapabilities } from "../../../lib/useWorkspaceCapabilities";
 import { useCreateJourneyMutation } from "../../../lib/useCreateJourneyMutation";
 import { useDeleteJourneyMutation } from "../../../lib/useDeleteJourneyMutation";
 import { useDuplicateResourceMutation } from "../../../lib/useDuplicateResourceMutation";
@@ -99,6 +100,7 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
 
   // Access functions from table meta
   const duplicateJourney = table.options.meta?.duplicateJourney;
+  const canMutateJourneys = table.options.meta?.canMutateJourneys ?? false;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -184,7 +186,7 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
           <OpenInNewIcon fontSize="small" sx={{ mr: 1 }} />
           Edit
         </MenuItem>
-        {(status === "Running" || status === "Paused") && (
+        {canMutateJourneys && (status === "Running" || status === "Paused") && (
           <MenuItem onClick={handleToggleStatus} disabled={isToggleInProgress}>
             {status === "Running" ? (
               <>
@@ -199,18 +201,22 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
             )}
           </MenuItem>
         )}
-        <MenuItem onClick={handleDuplicate}>
-          <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
-          Duplicate
-        </MenuItem>
-        <MenuItem
-          onClick={handleDelete}
-          sx={{ color: theme.palette.error.main }}
-          disabled={isDeleteInProgress}
-        >
-          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
-          Delete
-        </MenuItem>
+        {canMutateJourneys ? (
+          <MenuItem onClick={handleDuplicate}>
+            <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
+            Duplicate
+          </MenuItem>
+        ) : null}
+        {canMutateJourneys ? (
+          <MenuItem
+            onClick={handleDelete}
+            sx={{ color: theme.palette.error.main }}
+            disabled={isDeleteInProgress}
+          >
+            <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+            Delete
+          </MenuItem>
+        ) : null}
       </Menu>
     </>
   );
@@ -312,6 +318,7 @@ function TimeCell({ getValue }: CellContext<Row, unknown>) {
 }
 
 export default function JourneysTable() {
+  const { isAuthorOrAbove } = useWorkspaceCapabilities();
   const router = useUniversalRouter();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -400,6 +407,7 @@ export default function JourneysTable() {
     },
     // Pass functions via meta
     meta: {
+      canMutateJourneys: isAuthorOrAbove,
       duplicateJourney: (name: string) => {
         if (duplicateJourneyMutation.isPending) return;
         duplicateJourneyMutation.mutate({
@@ -411,30 +419,35 @@ export default function JourneysTable() {
   });
 
   const handleCreateJourney = () => {
-    if (journeyName.trim() && !createJourneyMutation.isPending) {
-      const stateForDraft: JourneyStateForDraft = {
-        journeyNodes: DEFAULT_JOURNEY_NODES,
-        journeyEdges: DEFAULT_EDGES,
-      };
-      const draft = journeyStateToDraft(stateForDraft);
-
-      createJourneyMutation.mutate(
-        { name: journeyName.trim(), draft },
-        {
-          onSuccess: (data) => {
-            setSnackbarMessage("Journey created successfully!");
-            setSnackbarOpen(true);
-            setDialogOpen(false);
-            setJourneyName("");
-            router.push(`/journeys/v2`, { id: data.id });
-          },
-          onError: () => {
-            setSnackbarMessage("Failed to create journey.");
-            setSnackbarOpen(true);
-          },
-        },
-      );
+    if (
+      !isAuthorOrAbove ||
+      !journeyName.trim() ||
+      createJourneyMutation.isPending
+    ) {
+      return;
     }
+    const stateForDraft: JourneyStateForDraft = {
+      journeyNodes: DEFAULT_JOURNEY_NODES,
+      journeyEdges: DEFAULT_EDGES,
+    };
+    const draft = journeyStateToDraft(stateForDraft);
+
+    createJourneyMutation.mutate(
+      { name: journeyName.trim(), draft },
+      {
+        onSuccess: (data) => {
+          setSnackbarMessage("Journey created successfully!");
+          setSnackbarOpen(true);
+          setDialogOpen(false);
+          setJourneyName("");
+          router.push(`/journeys/v2`, { id: data.id });
+        },
+        onError: () => {
+          setSnackbarMessage("Failed to create journey.");
+          setSnackbarOpen(true);
+        },
+      },
+    );
   };
 
   const closeDialog = () => {
@@ -454,6 +467,7 @@ export default function JourneysTable() {
           <Button
             variant="contained"
             sx={greyButtonStyle}
+            disabled={!isAuthorOrAbove}
             onClick={() => setDialogOpen(true)}
             startIcon={<AddIcon />}
           >
@@ -666,6 +680,7 @@ export default function JourneysTable() {
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface TableMeta<TData = unknown> {
+    canMutateJourneys?: boolean;
     duplicateJourney?: (journeyName: string) => void;
   }
 }

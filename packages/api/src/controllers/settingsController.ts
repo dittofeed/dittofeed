@@ -23,6 +23,7 @@ import {
   ListWriteKeyRequest,
   ListWriteKeyResource,
   PersistedSmsProvider,
+  RoleEnum,
   UpsertDataSourceConfigurationResource,
   UpsertDefaultEmailProviderRequest,
   UpsertEmailProviderRequest,
@@ -30,6 +31,8 @@ import {
   UpsertWriteKeyResource,
   WriteKeyResource,
 } from "isomorphic-lib/src/types";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function settingsController(fastify: FastifyInstance) {
@@ -78,6 +81,9 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.WorkspaceManager)) {
+        return;
+      }
       const { workspaceId, variant } = request.body;
 
       let resource: DataSourceConfigurationResource;
@@ -129,6 +135,9 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.WorkspaceManager)) {
+        return;
+      }
       const { workspaceId, type } = request.query;
       switch (type) {
         case DataSourceVariantType.SegmentIO: {
@@ -155,6 +164,9 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.WorkspaceManager)) {
+        return;
+      }
       const { workspaceId, smsProviderId } = request.body;
 
       await upsert({
@@ -187,6 +199,9 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.WorkspaceManager)) {
+        return;
+      }
       await upsertEmailProvider(request.body);
       return reply.status(201).send();
     },
@@ -206,6 +221,9 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.WorkspaceManager)) {
+        return;
+      }
       await upsertSmsProvider(request.body);
       return reply.status(201).send();
     },
@@ -225,6 +243,9 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.WorkspaceManager)) {
+        return;
+      }
       const { workspaceId, fromAddress } = request.body;
       let resource: DefaultEmailProviderResource;
       if ("emailProviderId" in request.body) {
@@ -272,6 +293,9 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.WorkspaceManager)) {
+        return;
+      }
       const { workspaceId, writeKeyName } = request.body;
 
       await getOrCreateWriteKey({
@@ -315,6 +339,9 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.WorkspaceManager)) {
+        return;
+      }
       const { workspaceId, writeKeyName } = request.body;
       const result = await db()
         .delete(schema.secret)

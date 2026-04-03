@@ -11,9 +11,12 @@ import {
   EmptyResponse,
   GetComponentConfigurationsRequest,
   GetComponentConfigurationsResponse,
+  RoleEnum,
   UpsertComponentConfigurationRequest,
   UpsertComponentConfigurationValidationError,
 } from "isomorphic-lib/src/types";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function componentConfigurationsController(
@@ -74,6 +77,9 @@ export default async function componentConfigurationsController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       await deleteComponentConfiguration(request.query);
       return reply.status(204).send();
     },

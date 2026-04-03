@@ -7,7 +7,9 @@ import {
   upsertSubscriptionManagementTemplate,
 } from "backend-lib/src/subscriptionManagementTemplateCrud";
 import { FastifyInstance } from "fastify";
+import { RoleEnum } from "isomorphic-lib/src/types";
 
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 import { getWorkspaceId } from "../workspace";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -132,6 +134,9 @@ export default async function subscriptionManagementTemplateController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const workspaceIdResult = await getWorkspaceId(request);
       if (workspaceIdResult.isErr() || !workspaceIdResult.value) {
         return reply.status(401).send({ message: "Unauthorized" });

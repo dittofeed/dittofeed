@@ -63,6 +63,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useImmer } from "use-immer";
 
 import { noticeAnchorOrigin } from "../lib/notices";
+import { useWorkspaceCapabilities } from "../lib/useWorkspaceCapabilities";
 import {
   useAdminMemberPasswordMutation,
   useCreatePermissionMutation,
@@ -77,6 +78,7 @@ interface PermissionDialogProps {
   onClose: () => void;
   memberWithRole?: WorkspaceMemberWithRoles;
   isEdit?: boolean;
+  readOnly?: boolean;
 }
 
 function PermissionDialog({
@@ -84,6 +86,7 @@ function PermissionDialog({
   onClose,
   memberWithRole,
   isEdit = false,
+  readOnly = false,
 }: PermissionDialogProps) {
   const [email, setEmail] = useState(memberWithRole?.member.email ?? "");
   const [role, setRole] = useState<Role>(
@@ -142,6 +145,9 @@ function PermissionDialog({
   });
 
   const handleSubmit = () => {
+    if (readOnly) {
+      return;
+    }
     if (isEdit && memberWithRole) {
       updateMutation.mutate({
         email: memberWithRole.member.email,
@@ -185,7 +191,7 @@ function PermissionDialog({
             label="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            disabled={isEdit}
+            disabled={isEdit || readOnly}
             fullWidth
             required
           />
@@ -194,6 +200,7 @@ function PermissionDialog({
             <Select
               value={role}
               label="Role"
+              disabled={readOnly}
               // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               onChange={(e) => setRole(e.target.value as Role)}
             >
@@ -226,6 +233,7 @@ function PermissionDialog({
                 type="password"
                 value={initialPassword}
                 onChange={(e) => setInitialPassword(e.target.value)}
+                disabled={readOnly}
                 fullWidth
                 autoComplete="new-password"
                 helperText="Leave blank for SSO-only; the user can set a password from My Profile."
@@ -235,6 +243,7 @@ function PermissionDialog({
                 type="password"
                 value={initialPasswordConfirm}
                 onChange={(e) => setInitialPasswordConfirm(e.target.value)}
+                disabled={readOnly}
                 fullWidth
                 autoComplete="new-password"
               />
@@ -249,7 +258,7 @@ function PermissionDialog({
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={!email || isLoading}
+          disabled={readOnly || !email || isLoading}
         >
           {isEdit ? "Update" : "Add user"}
         </Button>
@@ -485,6 +494,7 @@ function ActionsCell({
   const onResetPassword = table.options.meta?.onResetPassword;
   const onDelete = table.options.meta?.onDelete;
   const isDeleting = table.options.meta?.isDeleting ?? false;
+  const canManagePermissions = table.options.meta?.canManagePermissions ?? false;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -517,6 +527,10 @@ function ActionsCell({
     }
     handleClose();
   };
+
+  if (!canManagePermissions) {
+    return null;
+  }
 
   return (
     <>
@@ -569,6 +583,7 @@ function ActionsCell({
 }
 
 export function PermissionsTable() {
+  const { isAdmin } = useWorkspaceCapabilities();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -693,6 +708,7 @@ export function PermissionsTable() {
       onResetPassword: handleResetPassword,
       onDelete: handleDelete,
       isDeleting: deleteMutation.isPending,
+      canManagePermissions: isAdmin,
     },
   });
 
@@ -723,6 +739,7 @@ export function PermissionsTable() {
         <Typography variant="h6">Workspace Permissions</Typography>
         <GreyButton
           startIcon={<Add />}
+          disabled={!isAdmin}
           onClick={() => {
             setEditingMember(undefined);
             setDialogOpen(true);
@@ -831,6 +848,7 @@ export function PermissionsTable() {
         onClose={handleCloseDialog}
         memberWithRole={editingMember}
         isEdit={!!editingMember}
+        readOnly={!isAdmin}
       />
       <ResetPasswordDialog
         open={resetDialogOpen}
@@ -852,5 +870,6 @@ declare module "@tanstack/react-table" {
     onResetPassword?: (memberWithRole: WorkspaceMemberWithRoles) => void;
     onDelete?: (memberWithRole: WorkspaceMemberWithRoles) => void;
     isDeleting?: boolean;
+    canManagePermissions?: boolean;
   }
 }

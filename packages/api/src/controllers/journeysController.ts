@@ -22,6 +22,9 @@ import {
 import { and, eq, inArray } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { RoleEnum } from "isomorphic-lib/src/types";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function journeysController(fastify: FastifyInstance) {
@@ -104,6 +107,9 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await upsertJourney(request.body);
       if (result.isErr()) {
         return reply.status(400).send(result.error);
@@ -126,6 +132,9 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await deleteJourney(request.body);
       if (!result) {
         return reply.status(404).send();
@@ -149,6 +158,9 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await deleteJourney(request.query);
       if (!result) {
         return reply.status(404).send();

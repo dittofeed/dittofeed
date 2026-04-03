@@ -15,6 +15,9 @@ import {
 } from "backend-lib/src/types";
 import { deleteUsers, getUsers, getUsersCount } from "backend-lib/src/users";
 import { FastifyInstance } from "fastify";
+import { RoleEnum } from "isomorphic-lib/src/types";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function usersController(fastify: FastifyInstance) {
@@ -138,6 +141,9 @@ export default async function usersController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       await deleteUsers(request.body);
       return reply.status(204).send();
     },
@@ -157,6 +163,9 @@ export default async function usersController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       await deleteUsers(request.query);
       return reply.status(204).send();
     },

@@ -32,6 +32,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAppStorePick } from "../../../lib/appStore";
+import { useWorkspaceCapabilities } from "../../../lib/useWorkspaceCapabilities";
 import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
 import { copyToClipboard } from "../../../lib/copyToClipboard";
 import formatCurl from "../../../lib/formatCurl";
@@ -176,6 +177,7 @@ function JourneyStepper() {
 }
 
 function JourneyStatusControl() {
+  const { isAuthorOrAbove } = useWorkspaceCapabilities();
   const { state } = useJourneyV2Context();
   const { data: journey } = useJourneyQuery(state.id);
   const { mutate: updateJourney, isPending: isUpdating } = useJourneyMutation(
@@ -242,6 +244,7 @@ function JourneyStatusControl() {
 
   const handleChangeStatus = useCallback(() => {
     if (
+      !isAuthorOrAbove ||
       !journey ||
       workspace.type !== CompletionStatus.Successful ||
       !statusValue.nextStatus
@@ -274,6 +277,7 @@ function JourneyStatusControl() {
       },
     );
   }, [
+    isAuthorOrAbove,
     journey,
     workspace,
     definitionFromState,
@@ -293,7 +297,9 @@ function JourneyStatusControl() {
         <Button
           variant="outlined"
           size="small"
-          disabled={statusValue.disabled || isUpdating}
+          disabled={
+            statusValue.disabled || isUpdating || !isAuthorOrAbove
+          }
           onClick={handleChangeStatus}
         >
           {statusValue.nextStatusLabel}
@@ -327,6 +333,7 @@ export default function JourneyV2Layout({
   children: React.ReactNode;
 }) {
   const theme = useTheme();
+  const { isAuthorOrAbove } = useWorkspaceCapabilities();
   const { state } = useJourneyV2Context();
   const { id } = state;
   const { isPending: isJourneyQueryPending, data: journey } =
@@ -425,6 +432,7 @@ export default function JourneyV2Layout({
       type: PublisherStatusType.OutOfDate,
       isUpdating: isJourneyMutationPending,
       disabled:
+        !isAuthorOrAbove ||
         globalJourneyErrors.size > 0 ||
         definitionFromState.isErr() ||
         !viewDraft,
@@ -501,6 +509,7 @@ export default function JourneyV2Layout({
     };
     return { publisher, draftToggle };
   }, [
+    isAuthorOrAbove,
     isJourneyMutationPending,
     journey,
     journeyEdges,
@@ -529,7 +538,7 @@ export default function JourneyV2Layout({
       {
         label: "Duplicate journey",
         icon: <ContentCopyOutlined />,
-        disabled: !journey,
+        disabled: !journey || !isAuthorOrAbove,
         action: handleDuplicate,
       },
       {
@@ -565,7 +574,7 @@ export default function JourneyV2Layout({
         },
       },
     ];
-  }, [journey, handleDuplicate]);
+  }, [journey, handleDuplicate, isAuthorOrAbove]);
 
   const handleOptionsDialogClose = useCallback(() => {
     setOptionsDialogOpen(false);
@@ -577,7 +586,11 @@ export default function JourneyV2Layout({
 
   const handleChangeRunMultiple = useCallback(
     (newValue: boolean) => {
-      if (!journey || workspace.type !== CompletionStatus.Successful) {
+      if (
+        !isAuthorOrAbove ||
+        !journey ||
+        workspace.type !== CompletionStatus.Successful
+      ) {
         return;
       }
 
@@ -596,7 +609,7 @@ export default function JourneyV2Layout({
         },
       );
     },
-    [journey, workspace, canRunMultiple, updateJourney],
+    [isAuthorOrAbove, journey, workspace, canRunMultiple, updateJourney],
   );
 
   const handleSnackbarClose = useCallback(() => {
@@ -656,6 +669,7 @@ export default function JourneyV2Layout({
           {journey && (
             <EditableTitle
               text={journey.name}
+              disabled={!isAuthorOrAbove}
               onSubmit={(val) => {
                 updateJourney({
                   name: val,
@@ -717,7 +731,7 @@ export default function JourneyV2Layout({
                 <Checkbox
                   checked={canRunMultiple}
                   onChange={(e) => handleChangeRunMultiple(e.target.checked)}
-                  disabled={isJourneyMutationPending}
+                  disabled={isJourneyMutationPending || !isAuthorOrAbove}
                 />
               }
               label="Allow journey to run multiple times per user"

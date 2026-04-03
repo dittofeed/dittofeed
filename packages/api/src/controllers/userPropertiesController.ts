@@ -11,12 +11,15 @@ import {
   EmptyResponse,
   ReadAllUserPropertiesRequest,
   ReadAllUserPropertiesResponse,
+  RoleEnum,
   SavedUserPropertyResource,
   UpdateUserPropertyStatusError,
   UpdateUserPropertyStatusRequest,
   UpsertUserPropertyError,
   UpsertUserPropertyResource,
 } from "isomorphic-lib/src/types";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function userPropertiesController(
@@ -36,6 +39,9 @@ export default async function userPropertiesController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await upsertUserProperty(request.body);
       if (result.isErr()) {
         return reply.status(400).send(result.error);
@@ -83,6 +89,9 @@ export default async function userPropertiesController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, id }: DeleteUserPropertyRequest = request.body;
 
       const deleted = await deleteUserProperty({ workspaceId, id });
@@ -109,6 +118,9 @@ export default async function userPropertiesController(
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, id, status }: UpdateUserPropertyStatusRequest =
         request.body;
 

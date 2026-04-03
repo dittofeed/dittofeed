@@ -47,6 +47,7 @@ import {
   GetSegmentsResponse,
   KnownBatchIdentifyData,
   ManualSegmentUploadCsvHeaders,
+  RoleEnum,
   SavedSegmentResource,
   SegmentDefinition,
   SegmentNodeType,
@@ -58,6 +59,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { err, ok } from "neverthrow";
 
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 import { CsvParseResult } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -104,6 +106,9 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       await updateManualSegmentUsers(request.body);
       return reply.status(200).send();
     },
@@ -119,6 +124,9 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       await clearManualSegment(request.body);
       return reply.status(200).send();
     },
@@ -159,6 +167,9 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await upsertSegment(request.body);
       if (result.isErr()) {
         return reply.status(400).send(result.error);
@@ -182,6 +193,9 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const { workspaceId, id, status }: UpdateSegmentStatusRequest =
         request.body;
 
@@ -217,6 +231,9 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await deleteSegment(request.body);
       if (!result) {
         return reply.status(404).send();
@@ -239,6 +256,9 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const result = await deleteSegment(request.query);
       if (!result) {
         return reply.status(404).send();
@@ -287,6 +307,9 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       const file = (await request.file())?.file;
       if (!file) {
         return reply.status(400).send({

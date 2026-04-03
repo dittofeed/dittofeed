@@ -9,8 +9,10 @@ import {
   CreateWorkspaceRequest,
   CreateWorkspaceResponse,
   EmptyResponse,
+  RoleEnum,
 } from "isomorphic-lib/src/types";
-import { requireWorkspaceAdmin } from "isomorphic-lib/src/workspaceRoles";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 function mapCreateWorkspaceErrorToStatus(error: CreateWorkspaceError): number {
   switch (error.type) {
@@ -49,19 +51,13 @@ export default async function workspacesController(fastify: FastifyInstance) {
 
       const workspace = request.requestContext.get("workspace");
       const member = request.requestContext.get("member");
-      const memberRoles = request.requestContext.get("memberRoles") ?? [];
 
       if (!workspace?.id || !member?.email) {
         return reply.status(403).send();
       }
 
-      if (
-        requireWorkspaceAdmin({
-          memberRoles,
-          workspaceId: workspace.id,
-        }).isErr()
-      ) {
-        return reply.status(403).send();
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Admin)) {
+        return;
       }
 
       const result = await createWorkspaceFromDashboard({

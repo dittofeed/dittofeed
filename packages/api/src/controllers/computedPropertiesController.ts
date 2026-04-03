@@ -8,8 +8,11 @@ import {
   EmptyResponse,
   GetComputedPropertyPeriodsRequest,
   GetComputedPropertyPeriodsResponse,
+  RoleEnum,
   TriggerRecomputeRequest,
 } from "isomorphic-lib/src/types";
+
+import { denyUnlessAtLeastRole } from "../buildApp/workspaceRoleGuard";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function computedPropertiesController(
@@ -42,6 +45,9 @@ export default async function computedPropertiesController(
       },
     },
     handler: async (request, reply) => {
+      if (denyUnlessAtLeastRole(request, reply, RoleEnum.Author)) {
+        return;
+      }
       await triggerWorkspaceRecompute({
         workspaceId: request.body.workspaceId,
       });
