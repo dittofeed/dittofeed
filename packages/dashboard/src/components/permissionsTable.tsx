@@ -551,6 +551,10 @@ function ActionsCell({
           <Edit fontSize="small" sx={{ mr: 1 }} />
           Edit
         </MenuItem>
+        <MenuItem onClick={handleResetPassword}>
+          <VpnKey fontSize="small" sx={{ mr: 1 }} />
+          Reset password
+        </MenuItem>
         <MenuItem
           onClick={handleDelete}
           disabled={isDeleting}
