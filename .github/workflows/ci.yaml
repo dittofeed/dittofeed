@@ -1,13 +1,8 @@
 name: Dittofeed CI/CD
 
 on:
-  workflow_dispatch:
-    inputs:
-      publish_images:
-        description: Build and push Docker images to Harbor
-        required: false
-        default: false
-        type: boolean
+  push:
+
 
 env:
   REGISTRY: harbor.hngcweywe.com
@@ -50,7 +45,7 @@ jobs:
 
   docker:
     name: Publish Docker image (${{ matrix.package }})
-    if: inputs.publish_images == true
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
