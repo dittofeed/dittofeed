@@ -43,15 +43,21 @@ export default async function subscriptionManagementController(
       },
     },
     async (request, reply) => {
-      const { workspaceId, identifier, identifierKey, hash, changes, userId } =
-        request.body;
+      const {
+        workspaceId,
+        identifier,
+        identifierKey,
+        hash,
+        changes,
+        userId: userIdParam,
+      } = request.body;
 
       const userLookupResult = await lookupUserForSubscriptions({
         workspaceId,
         identifier,
         identifierKey,
         hash,
-        userId,
+        userId: userIdParam,
       });
 
       if (userLookupResult.isErr()) {
