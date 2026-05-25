@@ -52,18 +52,6 @@ jobs:
     name: Publish Docker image (${{ matrix.package }})
     if: inputs.publish_images == true
     runs-on: ubuntu-latest
-    services:
-      docker:
-        image: docker:27-dind
-        options: >-
-          --privileged
-          --health-cmd "docker info"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DOCKER_HOST: tcp://docker:2375
-      DOCKER_TLS_CERTDIR: ""
     strategy:
       fail-fast: false
       matrix:
