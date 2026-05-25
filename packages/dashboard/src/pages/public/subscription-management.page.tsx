@@ -47,6 +47,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
     i,
     w,
     h,
+    u,
     sub,
     s,
     ik,
@@ -64,6 +65,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
           identifier: i,
           identifierKey: ik,
           hash: h,
+          userId: u,
         }),
     db().query.workspace.findFirst({
       where: eq(schema.workspace.id, w),

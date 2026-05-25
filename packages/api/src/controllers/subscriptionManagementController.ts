@@ -43,7 +43,7 @@ export default async function subscriptionManagementController(
       },
     },
     async (request, reply) => {
-      const { workspaceId, identifier, identifierKey, hash, changes } =
+      const { workspaceId, identifier, identifierKey, hash, changes, userId } =
         request.body;
 
       const userLookupResult = await lookupUserForSubscriptions({
@@ -51,6 +51,7 @@ export default async function subscriptionManagementController(
         identifier,
         identifierKey,
         hash,
+        userId,
       });
 
       if (userLookupResult.isErr()) {
@@ -97,6 +98,7 @@ export default async function subscriptionManagementController(
         i: identifier,
         ik: identifierKey,
         h: hash,
+        u: userIdParam,
         s: subscriptionGroupId,
         sub,
         isPreview: isPreviewParam,
@@ -119,6 +121,7 @@ export default async function subscriptionManagementController(
               identifier,
               identifierKey,
               hash,
+              userId: userIdParam,
             }),
         db().query.workspace.findFirst({
           where: eq(schema.workspace.id, workspaceId),
@@ -232,6 +235,7 @@ export default async function subscriptionManagementController(
         hash,
         identifier,
         identifierKey,
+        userId,
         isPreview,
         subscriptionChange,
         changedSubscriptionId: subscriptionGroupId,
@@ -269,6 +273,7 @@ export default async function subscriptionManagementController(
         h: hash,
         i: identifier,
         ik: identifierKey,
+        u: userIdParam,
         isPreview: isPreviewParam,
       } = typedBody;
 
@@ -281,6 +286,9 @@ export default async function subscriptionManagementController(
         i: identifier,
         ik: identifierKey,
       });
+      if (userIdParam) {
+        redirectParams.set("u", userIdParam);
+      }
       if (isPreview) {
         redirectParams.set("isPreview", "true");
       }
@@ -300,6 +308,7 @@ export default async function subscriptionManagementController(
         identifier,
         identifierKey,
         hash,
+        userId: userIdParam,
       });
 
       if (userLookupResult.isErr()) {

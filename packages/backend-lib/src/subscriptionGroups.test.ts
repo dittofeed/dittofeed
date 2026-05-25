@@ -15,6 +15,7 @@ import {
   getSubscriptionGroupUnsubscribedSegmentName,
   getUserSubscriptions,
   inSubscriptionGroup,
+  lookupUserForSubscriptions,
   parseSubscriptionGroupCsv,
   processSubscriptionGroupCsv,
   updateUserSubscriptions,
@@ -115,9 +116,45 @@ describe("subscriptionGroups", () => {
         `${config().apiBase}/api/public/subscription-management/page`,
       );
       expect(parsed.searchParams.get("w")).toEqual(workspaceId);
+      expect(parsed.searchParams.get("u")).toEqual(userId);
       expect(parsed.searchParams.get("i")).toEqual(email);
       expect(parsed.searchParams.get("ik")).toEqual("email");
       expect(parsed.searchParams.get("sub")).toEqual("0");
+    });
+
+    it("should verify subscription links immediately when user id is in the url", async () => {
+      const secret = await db().query.secret.findFirst({
+        where: and(
+          eq(schema.secret.workspaceId, workspaceId),
+          eq(schema.secret.name, SecretNames.Subscription),
+        ),
+      });
+      if (!secret?.value) {
+        throw new Error("No secret found");
+      }
+
+      const url = generateSubscriptionChangeUrl({
+        workspaceId,
+        userId,
+        subscriptionSecret: secret.value,
+        identifier: email,
+        identifierKey: "email",
+        changedSubscription: subscriptionGroup.id,
+        subscriptionChange: SubscriptionChange.Unsubscribe,
+      });
+      const parsed = new URL(url);
+      const lookupResult = await lookupUserForSubscriptions({
+        workspaceId,
+        identifier: email,
+        identifierKey: "email",
+        hash: parsed.searchParams.get("h") ?? "",
+        userId: parsed.searchParams.get("u") ?? undefined,
+      });
+
+      expect(lookupResult.isOk()).toBe(true);
+      if (lookupResult.isOk()) {
+        expect(lookupResult.value.userId).toEqual(userId);
+      }
     });
   });
   describe("generateSubscriptionChangeUrl with empty apiBase (production config)", () => {

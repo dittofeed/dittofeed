@@ -2988,6 +2988,12 @@ export const SubscriptionParams = Type.Object(
       description:
         "Subscription change hash, used to authenticate subscription changes.",
     }),
+    u: Type.Optional(
+      Type.String({
+        description:
+          "User Id included in subscription links for immediate hash verification without waiting for computed property assignments.",
+      }),
+    ),
     s: Type.Optional(
       Type.String({
         description: "Subscription group Id.",
@@ -3052,6 +3058,12 @@ export const UserSubscriptionLookup = Type.Object({
     description: "Identifier key for channel.",
     examples: ["email"],
   }),
+  userId: Type.Optional(
+    Type.String({
+      description:
+        "User Id when included in subscription link query parameters.",
+    }),
+  ),
 });
 
 export type UserSubscriptionLookup = Static<typeof UserSubscriptionLookup>;
@@ -6689,6 +6701,7 @@ export const SubscriptionManagementPageSubmissionRequest = Type.Intersect([
     h: Type.String({ description: "Hash for user verification" }),
     i: Type.String({ description: "User identifier" }),
     ik: Type.String({ description: "Identifier key" }),
+    u: Type.Optional(Type.String({ description: "User Id" })),
     isPreview: Type.Optional(Type.String()),
   }),
   Type.Record(Type.String(), Type.String()),

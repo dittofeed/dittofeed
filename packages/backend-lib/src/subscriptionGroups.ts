@@ -481,6 +481,7 @@ export function generateSubscriptionChangeUrl({
 
   const params: SubscriptionParams = {
     w: workspaceId,
+    u: userId,
     i: identifier,
     ik: identifierKey,
     h: hash,
@@ -599,20 +600,51 @@ export async function lookupUserForSubscriptions({
   identifier,
   identifierKey,
   hash,
+  userId,
 }: UserSubscriptionLookup): Promise<Result<{ userId: string }, Error>> {
-  const [subscriptionSecret, matchingUserIds] = await Promise.all([
-    db().query.secret.findFirst({
-      where: and(
-        eq(dbSecret.workspaceId, workspaceId),
-        eq(dbSecret.name, SecretNames.Subscription),
-      ),
-    }),
-    findUserIdsByUserPropertyValue({
+  const subscriptionSecret = await db().query.secret.findFirst({
+    where: and(
+      eq(dbSecret.workspaceId, workspaceId),
+      eq(dbSecret.name, SecretNames.Subscription),
+    ),
+  });
+
+  const secretValue = subscriptionSecret?.value;
+
+  // This is a programmatic error, should never happen
+  if (!secretValue) {
+    throw new Error("Subscription secret not found");
+  }
+
+  if (userId) {
+    const generatedHash = generateSubscriptionHash({
       workspaceId,
-      userPropertyName: identifierKey,
-      value: identifier,
-    }),
-  ]);
+      userId,
+      identifierKey,
+      identifier,
+      subscriptionSecret: secretValue,
+    });
+    if (hash === generatedHash) {
+      return ok({ userId });
+    }
+    logger().warn(
+      {
+        workspaceId,
+        identifier,
+        identifierKey,
+        hash,
+        userId,
+      },
+      "Invalid hash",
+    );
+    return err(new Error("Invalid hash"));
+  }
+
+  const matchingUserIds = await findUserIdsByUserPropertyValue({
+    workspaceId,
+    userPropertyName: identifierKey,
+    value: identifier,
+  });
 
   if (!matchingUserIds || matchingUserIds.length === 0) {
     logger().warn(
@@ -625,14 +657,7 @@ export async function lookupUserForSubscriptions({
     return err(new Error("User not found"));
   }
 
-  const secretValue = subscriptionSecret?.value;
-
-  // This is a programmatic error, should never happen
-  if (!secretValue) {
-    throw new Error("Subscription secret not found");
-  }
-
-  const userId = matchingUserIds.find((uId) => {
+  const matchedUserId = matchingUserIds.find((uId) => {
     const generatedHash = generateSubscriptionHash({
       workspaceId,
       userId: uId,
@@ -643,7 +668,7 @@ export async function lookupUserForSubscriptions({
     return hash === generatedHash;
   });
 
-  if (!userId) {
+  if (!matchedUserId) {
     logger().warn(
       {
         workspaceId,
@@ -655,7 +680,7 @@ export async function lookupUserForSubscriptions({
     );
     return err(new Error("Invalid hash"));
   }
-  return ok({ userId });
+  return ok({ userId: matchedUserId });
 }
 
 /**
