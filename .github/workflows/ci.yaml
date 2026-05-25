@@ -11,7 +11,7 @@ env:
 jobs:
   # lint:
   #   name: Lint (${{ matrix.package }})
-  #   runs-on: ubuntu-latest
+  #   runs-on: self-hosted
   #   strategy:
   #     fail-fast: false
   #     matrix:
@@ -46,7 +46,7 @@ jobs:
   docker:
     name: Publish Docker image (${{ matrix.package }})
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
