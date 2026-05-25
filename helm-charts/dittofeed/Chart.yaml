@@ -23,12 +23,3 @@ version: 0.3.3
 # It is recommended to use it with quotes.
 appVersion: "v0.23.0"
 
-dependencies:
-  - name: postgresql
-    version: 15.4.0
-    repository: https://charts.bitnami.com/bitnami
-    condition: postgresql.enabled
-  - name: clickhouse
-    version: 6.1.0
-    repository: https://charts.bitnami.com/bitnami
-    condition: clickhouse.enabled

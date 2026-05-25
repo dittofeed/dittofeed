@@ -72,8 +72,8 @@ spec:
             - name: AUTH_MODE
               value: "{{ if .Values.ee.enabled }}multi-tenant{{ else }}single-tenant{{ end }}"
             {{- end }}
-            - name: DASHBOARD_API_BASE
-              value: ""
+            - name: DASHBOARD_URL
+              value: "{{ .Values.ingress_public_api.dashboard_api_base }}"
             {{- if .Values.separateWorker.enabled }}
             - name: ENABLE_WORKER
               value: "false"

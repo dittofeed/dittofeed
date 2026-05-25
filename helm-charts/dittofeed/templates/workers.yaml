@@ -61,8 +61,8 @@ spec:
             - name: AUTH_MODE
               value: "{{ if $root.Values.ee.enabled }}multi-tenant{{ else }}single-tenant{{ end }}"
             {{- end }}
-            - name: DASHBOARD_API_BASE
-              value: ""
+            - name: DASHBOARD_URL
+              value: "{{ $root.Values.ingress_public_api.dashboard_api_base }}"
             - name: TASK_QUEUE
               value: {{ .name | quote }}
             - name: GLOBAL_CRON_TASK_QUEUE
