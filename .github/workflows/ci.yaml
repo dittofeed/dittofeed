@@ -93,13 +93,9 @@ jobs:
         run: echo "IMAGE_TAG=$(echo "${{ github.sha }}" | head -c7)" >> "$GITHUB_ENV"
 
       - name: Configure kubeconfig
-        env:
-          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
         run: |
-          mkdir -p "$HOME/.kube"
-          printf '%s' "$KUBE_CONFIG" > "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
-          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
 
       - name: Update image tags in values_dev.yaml
         run: |
