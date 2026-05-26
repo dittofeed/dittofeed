@@ -75,39 +75,4 @@ jobs:
             --push \
             .
 
-  # deploy:
-  #   name: Deploy to dittofeed-dev
-  #   if: github.event_name == 'push'
-  #   needs: docker
-  #   runs-on: self-hosted
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
 
-  #     - name: Install Helm
-  #       uses: azure/setup-helm@v4
-  #       with:
-  #         version: v3.16.4
-
-  #     - name: Set image tag from commit SHA
-  #       run: echo "IMAGE_TAG=$(echo "${{ github.sha }}" | head -c7)" >> "$GITHUB_ENV"
-
-  #     - name: Configure kubeconfig
-  #       run: |
-  #         mkdir -p $HOME/.kube
-  #         echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
-
-  #     - name: Update image tags in values_dev.yaml
-  #       run: |
-  #         for file in helm-charts/dittofeed/values_dev.yaml helm-charts/dittofeed-admin-cli/values_dev.yaml; do
-  #           sed -i.bak -E 's/^([[:space:]]*tag: )"[^"]*"/\1"'"$IMAGE_TAG"'"/' "$file"
-  #           rm -f "${file}.bak"
-  #         done
-
-  #     - name: Deploy dittofeed-app
-  #       run: helm upgrade --install -n dittofeed-dev -f values_dev.yaml dittofeed-app .
-  #       working-directory: helm-charts/dittofeed
-
-  #     - name: Deploy dittofeed-admin-cli
-  #       run: helm upgrade --install -n dittofeed-dev -f values_dev.yaml dittofeed-admin-cli .
-  #       working-directory: helm-charts/dittofeed-admin-cli
