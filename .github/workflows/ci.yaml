@@ -84,6 +84,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+
       - name: Set image tag from commit SHA
         run: echo "IMAGE_TAG=$(echo "${{ github.sha }}" | head -c7)" >> "$GITHUB_ENV"
 
