@@ -1,28 +1,27 @@
 {
-  "references": [
-    {
-      "path": "./packages/isomorphic-lib"
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@dittofeed/isomorphic-lib/*": ["packages/isomorphic-lib/*"]
     },
-    {
-      "path": "./packages/backend-lib"
-    },
-    {
-      "path": "./packages/api"
-    },
-    {
-      "path": "./packages/dashboard"
-    },
-    {
-      "path": "./packages/worker"
-    },
-    {
-      "path": "./packages/admin-cli"
-    },
-    {
-      "path": "./packages/lite"
-    },
-    {
-      "path": "./packages/emailo"
-    }
-  ]
+    "jsx": "react"
+  },
+  "include": [
+    "packages/**/*.ts",
+    "packages/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "dist"]
 }

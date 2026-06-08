@@ -1,15 +1,19 @@
 {
-  "extends": "./tsconfig.build.json",
-  "include": [
-    "src/**/*.ts",
-    "test/**/*.ts",
-    "scripts/**/*.ts",
-    "../../node_modules/jest-expect-message/types/index.d.ts"
-  ],
-  "exclude": ["dist", "node_modules"],
-  "references": [
-    {
-      "path": "../isomorphic-lib"
-    }
-  ]
-} 
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
