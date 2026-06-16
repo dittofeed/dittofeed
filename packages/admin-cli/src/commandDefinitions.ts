@@ -100,6 +100,7 @@ import { hubspotSync } from "./hubspot";
 import { resetWorkspaceData } from "./reset";
 import { spawnWithEnv } from "./spawn";
 import {
+  backfillIdentifyEvents,
   backfillInternalEvents,
   createUnsubscribedSegmentsForExistingSubscriptionGroups,
   createUserSortingIndexTables,
@@ -115,6 +116,7 @@ import {
   upgradeV023Post,
   upgradeV023Pre,
   upgradeV024Pre,
+  upgradeV025Pre,
 } from "./upgrades";
 
 function formatSqlParam(value: unknown): string {
@@ -1097,6 +1099,106 @@ export function createCommands(yargs: Argv): Argv {
         dryRun,
       }) => {
         await backfillInternalEvents({
+          intervalMinutes,
+          workspaceIds,
+          startDate,
+          endDate,
+          forceFullBackfill,
+          limit,
+          dryRun,
+        });
+      },
+    )
+    .command(
+      "upgrade-0-25-0-pre",
+      "Run the pre-upgrade steps for the 0.25.0 prior to updating your Dittofeed application version.",
+      (cmd) =>
+        cmd.options({
+          "identify-events-backfill-limit": {
+            type: "number",
+            default: 50000,
+            describe:
+              "Number of identify rows to process per batch during backfill",
+          },
+          "identify-events-backfill-interval-minutes": {
+            type: "number",
+            default: 1440,
+            describe:
+              "Interval in minutes for identify events backfill chunks",
+          },
+        }),
+      async ({
+        identifyEventsBackfillLimit,
+        identifyEventsBackfillIntervalMinutes,
+      }) => {
+        await upgradeV025Pre({
+          identifyEventsBackfillLimit,
+          identifyEventsBackfillIntervalMinutes,
+        });
+      },
+    )
+    .command(
+      "backfill-identify-events",
+      "Backfill identify_events_v2 table from user_events_v2 data.",
+      (cmd) =>
+        cmd.options({
+          "interval-minutes": {
+            type: "number",
+            alias: "i",
+            default: 1440,
+            describe:
+              "Interval in minutes for processing chunks (default: 1 day)",
+          },
+          "workspace-ids": {
+            type: "string",
+            alias: "w",
+            array: true,
+            describe:
+              "Optional list of workspace IDs to process (if not provided, processes all workspaces)",
+          },
+          "start-date": {
+            type: "string",
+            alias: "s",
+            describe:
+              "Manual start date override in ISO format (e.g., '2023-01-01T00:00:00Z')",
+          },
+          "end-date": {
+            type: "string",
+            alias: "e",
+            describe:
+              "Manual end date override in ISO format (e.g., '2023-12-31T23:59:59Z')",
+          },
+          "force-full-backfill": {
+            type: "boolean",
+            alias: "f",
+            default: false,
+            describe:
+              "Skip identify_events_v2 check and always start from earliest identify events",
+          },
+          limit: {
+            type: "number",
+            alias: "l",
+            default: 10000,
+            describe:
+              "Number of rows to process per batch within each time window (default: 10000)",
+          },
+          "dry-run": {
+            type: "boolean",
+            alias: "d",
+            default: false,
+            describe: "Only log the insert queries without executing them",
+          },
+        }),
+      async ({
+        intervalMinutes,
+        workspaceIds,
+        startDate,
+        endDate,
+        forceFullBackfill,
+        limit,
+        dryRun,
+      }) => {
+        await backfillIdentifyEvents({
           intervalMinutes,
           workspaceIds,
           startDate,
