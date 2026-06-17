@@ -7,6 +7,10 @@ import {
   InternalEventType,
   JSONValue,
 } from "../types";
+import {
+  getMergeTreeEngine,
+  resolveMergeTreeEngine,
+} from "./clickhouseEngines";
 
 export interface InsertValue {
   processingTime?: string;
@@ -42,9 +46,18 @@ export const CREATE_INTERNAL_EVENTS_TABLE_QUERY = `
   ORDER BY (workspace_id, processing_time, event, user_or_anonymous_id, message_id);
 `;
 
-export const IDENTIFY_EVENTS_TABLE = "identify_events_v2";
+export function buildInternalEventsTableQuery(engine: string): string {
+  return CREATE_INTERNAL_EVENTS_TABLE_QUERY.replace(
+    "ENGINE = MergeTree()",
+    `ENGINE = ${engine}`,
+  );
+}
 
-export const CREATE_IDENTIFY_EVENTS_TABLE_QUERY = `
+export const IDENTIFY_EVENTS_TABLE = "identify_events_v2";
+export const TRACK_EVENTS_TABLE = "track_events_v2";
+
+export function buildIdentifyEventsTableQuery(engine: string): string {
+  return `
   CREATE TABLE IF NOT EXISTS ${IDENTIFY_EVENTS_TABLE} (
     workspace_id LowCardinality(String),
     user_or_anonymous_id String,
@@ -56,7 +69,7 @@ export const CREATE_IDENTIFY_EVENTS_TABLE_QUERY = `
     processing_time DateTime64(3),
     hidden Boolean
   )
-  ENGINE = MergeTree()
+  ENGINE = ${engine}
   ORDER BY (
     workspace_id,
     processing_time,
@@ -65,6 +78,10 @@ export const CREATE_IDENTIFY_EVENTS_TABLE_QUERY = `
     message_id
   );
 `;
+}
+
+export const CREATE_IDENTIFY_EVENTS_TABLE_QUERY =
+  buildIdentifyEventsTableQuery(getMergeTreeEngine(IDENTIFY_EVENTS_TABLE));
 
 export const CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY = `
   CREATE MATERIALIZED VIEW IF NOT EXISTS identify_events_v2_mv
@@ -81,6 +98,54 @@ export const CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY = `
     hidden
   FROM user_events_v2
   WHERE event_type = 'identify';
+`;
+
+export function buildTrackEventsTableQuery(engine: string): string {
+  return `
+  CREATE TABLE IF NOT EXISTS ${TRACK_EVENTS_TABLE} (
+    workspace_id LowCardinality(String),
+    user_or_anonymous_id String,
+    user_id String,
+    anonymous_id String,
+    message_id String,
+    event String,
+    properties String,
+    event_time DateTime64(3),
+    processing_time DateTime64(3),
+    hidden Boolean
+  )
+  ENGINE = ${engine}
+  ORDER BY (
+    workspace_id,
+    event,
+    processing_time,
+    user_or_anonymous_id,
+    event_time,
+    message_id
+  );
+`;
+}
+
+export const CREATE_TRACK_EVENTS_TABLE_QUERY = buildTrackEventsTableQuery(
+  getMergeTreeEngine(TRACK_EVENTS_TABLE),
+);
+
+export const CREATE_TRACK_EVENTS_MATERIALIZED_VIEW_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS track_events_v2_mv
+  TO ${TRACK_EVENTS_TABLE}
+  AS SELECT
+    workspace_id,
+    user_or_anonymous_id,
+    user_id,
+    anonymous_id,
+    message_id,
+    event,
+    properties,
+    event_time,
+    processing_time,
+    hidden
+  FROM user_events_v2
+  WHERE event_type = 'track';
 `;
 
 export const CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY = `
@@ -334,6 +399,11 @@ export async function insertProcessedComputedProperties({
 export async function createUserEventsTables() {
   logger().info("Creating user events tables");
 
+  const identifyEventsEngine = await resolveMergeTreeEngine(
+    IDENTIFY_EVENTS_TABLE,
+  );
+  const trackEventsEngine = await resolveMergeTreeEngine(TRACK_EVENTS_TABLE);
+
   const queries = [
     // This is the primary table for user events, which serves as the source of truth for user traits and behaviors.
     `
@@ -414,7 +484,8 @@ export async function createUserEventsTables() {
     // example, a segment with N conditions joined with an "And" clause will
     // require N state id's.
     CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
-    CREATE_IDENTIFY_EVENTS_TABLE_QUERY,
+    buildIdentifyEventsTableQuery(identifyEventsEngine),
+    buildTrackEventsTableQuery(trackEventsEngine),
     // This table stores the assignments of computed properties to users, json
     // strings in the case of user properties or booleans in the case of
     // segments.
@@ -601,6 +672,7 @@ export async function createUserEventsTables() {
     `,
     CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
     CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY,
+    CREATE_TRACK_EVENTS_MATERIALIZED_VIEW_QUERY,
     // Materialized view that populates internal_events table with DF-prefixed track events
     CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
     ...GROUP_MATERIALIZED_VIEWS,

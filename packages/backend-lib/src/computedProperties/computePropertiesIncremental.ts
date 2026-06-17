@@ -59,6 +59,7 @@ import {
 import {
   IDENTIFY_EVENTS_TABLE,
   insertProcessedComputedProperties,
+  TRACK_EVENTS_TABLE,
 } from "../userEvents/clickhouse";
 import {
   createPeriods,
@@ -364,6 +365,7 @@ interface FullSubQueryData {
   recordMessageId?: boolean;
   joinPriorStateValue?: boolean;
   useIdentifyEventsTable?: boolean;
+  useTrackEventsTable?: boolean;
   groupByUserOnly?: boolean;
   traitPath?: string;
   segmentTraitOperator?: SegmentOperatorType;
@@ -413,6 +415,25 @@ function traitIdentifySubQueryBase(
     groupByUserOnly: isSimpleTraitSegmentOperator(operatorType),
     condition: "True",
   };
+}
+
+function performedSubQueryBase(node: {
+  withinSeconds?: number;
+}): Pick<SubQueryData, "useTrackEventsTable" | "groupByUserOnly"> {
+  return {
+    useTrackEventsTable: true,
+    groupByUserOnly: !node.withinSeconds,
+  };
+}
+
+function getEventsTableForSubQuery(subQuery: SubQueryData): string {
+  if (subQuery.useIdentifyEventsTable) {
+    return IDENTIFY_EVENTS_TABLE;
+  }
+  if (subQuery.useTrackEventsTable) {
+    return TRACK_EVENTS_TABLE;
+  }
+  return "user_events_v2";
 }
 
 export function findMatchingTraitUserProperty({
@@ -533,9 +554,7 @@ export function buildComputeStateInsertQuery({
   lowerBoundClause: string;
   joinedPrior: string;
 }): string {
-  const eventsTable = subQuery.useIdentifyEventsTable
-    ? IDENTIFY_EVENTS_TABLE
-    : "user_events_v2";
+  const eventsTable = getEventsTableForSubQuery(subQuery);
   const truncatedEventTimeExpression = subQuery.groupByUserOnly
     ? `max(${subQuery.eventTimeExpression ?? "ue.event_time"})`
     : (subQuery.eventTimeExpression ??
@@ -2156,7 +2175,7 @@ export function segmentNodeToStateSubQuery({
         value: node.event,
         qb,
       });
-      const conditions: string[] = ["event_type == 'track'"];
+      const conditions: string[] = ["True"];
       if (prefixCondition) {
         conditions.push(prefixCondition);
       }
@@ -2166,6 +2185,7 @@ export function segmentNodeToStateSubQuery({
 
       return [
         {
+          ...performedSubQueryBase(node),
           condition: conditions.join(" and "),
           type: "segment",
           eventTimeExpression,
@@ -2288,7 +2308,7 @@ export function segmentNodeToStateSubQuery({
         value: node.event,
         qb,
       });
-      const conditions: string[] = ["event_type == 'track'"];
+      const conditions: string[] = ["True"];
       if (prefixCondition) {
         conditions.push(prefixCondition);
       }
@@ -2298,9 +2318,11 @@ export function segmentNodeToStateSubQuery({
       const condition = conditions.join(" and ");
       return [
         {
+          ...performedSubQueryBase({}),
           condition,
           type: "segment",
           uniqValue: "''",
+          groupByUserOnly: true,
           argMaxValue: `toJSONString([${propertyValues.join(", ")}])`,
           computedPropertyId: segment.id,
           stateId,
@@ -2477,7 +2499,7 @@ function leafUserPropertyToSubQuery({
         value: child.event,
         qb,
       });
-      const conditions: string[] = ["event_type == 'track'"];
+      const conditions: string[] = ["True"];
       if (prefixCondition) {
         conditions.push(prefixCondition);
       }
@@ -2488,9 +2510,11 @@ function leafUserPropertyToSubQuery({
         conditions.push(`(${propertiesCondition})`);
       }
       return {
+        ...performedSubQueryBase({}),
         condition: conditions.join(" and "),
         type: "user_property",
         uniqValue: "''",
+        groupByUserOnly: true,
         argMaxValue: `JSON_VALUE(properties, ${path})`,
         computedPropertyId: userProperty.id,
         stateId,
@@ -4807,6 +4831,54 @@ function segmentNodeToPruned({
 
       const expression = `coalesce(any(nullIf(${conditions.join(" and ")}, 0)), 0) as ${varName}`;
       // TODO implement where condition
+      return [
+        {
+          type: PrunedType.ComputedPropertyQuery,
+          computedPropertyId: segment.id,
+          expression,
+          stateId,
+          varName,
+        },
+      ];
+    }
+    case SegmentNodeType.Performed: {
+      const varName = qb.getVariableName();
+      const conditions: string[] = ["event_type == 'track'"];
+      const prefixCondition = getPrefixCondition({
+        column: "event",
+        value: node.event,
+        qb,
+      });
+      if (prefixCondition) {
+        conditions.push(prefixCondition);
+      }
+      node.properties?.forEach((property) => {
+        const path = toJsonPathParamCh({
+          path: property.path,
+          qb,
+        });
+        if (!path) {
+          return;
+        }
+        switch (property.operator.type) {
+          case SegmentOperatorType.Equals: {
+            conditions.push(
+              `toString(JSON_VALUE(properties, ${path})) == ${qb.addQueryValue(
+                property.operator.value,
+                "String",
+              )}`,
+            );
+            break;
+          }
+          case SegmentOperatorType.Exists: {
+            conditions.push(`JSON_VALUE(properties, ${path}) != ''`);
+            break;
+          }
+          default:
+            break;
+        }
+      });
+      const expression = `coalesce(any(nullIf(${conditions.join(" and ")}, 0)), 0) as ${varName}`;
       return [
         {
           type: PrunedType.ComputedPropertyQuery,

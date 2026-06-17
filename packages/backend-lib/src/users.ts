@@ -25,7 +25,10 @@ import {
 } from "./db/schema";
 import logger from "./logger";
 import { withSpan } from "./openTelemetry";
-import { IDENTIFY_EVENTS_TABLE } from "./userEvents/clickhouse";
+import {
+  IDENTIFY_EVENTS_TABLE,
+  TRACK_EVENTS_TABLE,
+} from "./userEvents/clickhouse";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import {
   getSubscriptionGroupDetails,
@@ -1507,6 +1510,10 @@ export async function deleteUsers({
     `DELETE FROM ${IDENTIFY_EVENTS_TABLE} WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam}) settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
 
+    // Delete from track_events_v2
+    `DELETE FROM ${TRACK_EVENTS_TABLE} WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam}) settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+
     // Delete from computed_property_state_v3
     `DELETE FROM computed_property_state_v3 WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam}) settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
@@ -1577,6 +1584,10 @@ export async function deleteAllUsers({
 
     // Delete from identify_events_v2
     `DELETE FROM ${IDENTIFY_EVENTS_TABLE} WHERE workspace_id = ${workspaceIdParam}
+     settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+
+    // Delete from track_events_v2
+    `DELETE FROM ${TRACK_EVENTS_TABLE} WHERE workspace_id = ${workspaceIdParam}
      settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
 
     // Delete from computed_property_state_v3
