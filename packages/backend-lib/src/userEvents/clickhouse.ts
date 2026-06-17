@@ -55,6 +55,54 @@ export function buildInternalEventsTableQuery(engine: string): string {
 
 export const IDENTIFY_EVENTS_TABLE = "identify_events_v2";
 export const TRACK_EVENTS_TABLE = "track_events_v2";
+export const USER_TRAIT_VALUES_TABLE = "user_trait_values_v2";
+
+export function buildUserTraitValuesTableQuery(engine: string): string {
+  return `
+  CREATE TABLE IF NOT EXISTS ${USER_TRAIT_VALUES_TABLE} (
+    workspace_id LowCardinality(String),
+    user_or_anonymous_id String,
+    trait_path LowCardinality(String),
+    trait_value String,
+    event_time DateTime64(3),
+    processing_time DateTime64(3)
+  )
+  ENGINE = ${engine}
+  ORDER BY (
+    workspace_id,
+    trait_path,
+    user_or_anonymous_id
+  );
+`;
+}
+
+export const CREATE_USER_TRAIT_VALUES_TABLE_QUERY =
+  buildUserTraitValuesTableQuery(getMergeTreeEngine(USER_TRAIT_VALUES_TABLE));
+
+export const CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS user_trait_values_v2_mv
+  TO ${USER_TRAIT_VALUES_TABLE}
+  AS SELECT
+    workspace_id,
+    user_or_anonymous_id,
+    trait_path,
+    trait_value,
+    event_time,
+    processing_time
+  FROM (
+    SELECT
+      workspace_id,
+      user_or_anonymous_id,
+      trait_path,
+      JSONExtractString(properties, trait_path) AS trait_value,
+      event_time,
+      processing_time
+    FROM ${IDENTIFY_EVENTS_TABLE}
+    ARRAY JOIN JSONExtractKeys(assumeNotNull(properties)) AS trait_path
+    WHERE length(properties) > 2
+  )
+  WHERE trait_path != '' AND trait_value != '';
+`;
 
 export function buildIdentifyEventsTableQuery(engine: string): string {
   return `
@@ -80,8 +128,9 @@ export function buildIdentifyEventsTableQuery(engine: string): string {
 `;
 }
 
-export const CREATE_IDENTIFY_EVENTS_TABLE_QUERY =
-  buildIdentifyEventsTableQuery(getMergeTreeEngine(IDENTIFY_EVENTS_TABLE));
+export const CREATE_IDENTIFY_EVENTS_TABLE_QUERY = buildIdentifyEventsTableQuery(
+  getMergeTreeEngine(IDENTIFY_EVENTS_TABLE),
+);
 
 export const CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY = `
   CREATE MATERIALIZED VIEW IF NOT EXISTS identify_events_v2_mv

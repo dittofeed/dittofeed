@@ -756,7 +756,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     clickhouseComputePropertiesRequestTimeout:
       rawConfig.clickhouseComputePropertiesRequestTimeout
         ? parseInt(rawConfig.clickhouseComputePropertiesRequestTimeout)
-        : 180000,
+        : 5 * 60 * 1000,
     clickhouseComputePropertiesMaxExecutionTime:
       rawConfig.clickhouseComputePropertiesMaxExecutionTime
         ? parseInt(rawConfig.clickhouseComputePropertiesMaxExecutionTime)

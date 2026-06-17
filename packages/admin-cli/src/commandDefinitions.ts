@@ -33,6 +33,10 @@ import {
   findDueWorkspaceMaxTos,
   findDueWorkspaceMinTos,
 } from "backend-lib/src/computedProperties/periods";
+import {
+  resetSegmentComputedState,
+  resetUserPropertyComputedState,
+} from "backend-lib/src/computedProperties/resetComputedPropertyState";
 import backendConfig, { SECRETS } from "backend-lib/src/config";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
@@ -103,11 +107,13 @@ import {
   backfillIdentifyEvents,
   backfillInternalEvents,
   backfillTrackEvents,
+  backfillUserTraitValues,
   createUnsubscribedSegmentsForExistingSubscriptionGroups,
   createUserSortingIndexTables,
+  createUserTraitValuesTable,
   disentangleResendSendgrid,
-  migrateMessageIdIndexToBloomFilter,
   migrateEventTablesToReplicatedMergeTree,
+  migrateMessageIdIndexToBloomFilter,
   refreshNotExistsSegmentDefinitionUpdatedAt,
   transferComputedPropertyStateV2ToV3,
   transferComputedPropertyStateV2ToV3Query,
@@ -281,6 +287,66 @@ export function createCommands(yargs: Argv): Argv {
       (y) => y,
       async () => {
         await refreshNotExistsSegmentDefinitionUpdatedAt();
+      },
+    )
+    .command(
+      "reset-segment-computed-state",
+      "Delete stale ClickHouse state and assignments for a segment, then refresh definitionUpdatedAt to force a full recompute.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            demandOption: true,
+            describe: "Workspace ID",
+          },
+          "segment-id": {
+            type: "string",
+            demandOption: true,
+            describe: "Segment ID",
+          },
+          "skip-definition-refresh": {
+            type: "boolean",
+            default: false,
+            describe:
+              "Skip updating definitionUpdatedAt after clearing computed state",
+          },
+        }),
+      async ({ workspaceId, segmentId, skipDefinitionRefresh }) => {
+        await resetSegmentComputedState({
+          workspaceId,
+          segmentId,
+          refreshDefinitionUpdatedAt: !skipDefinitionRefresh,
+        });
+      },
+    )
+    .command(
+      "reset-user-property-computed-state",
+      "Delete stale ClickHouse state and assignments for a user property, then refresh definitionUpdatedAt to force a full recompute.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            demandOption: true,
+            describe: "Workspace ID",
+          },
+          "user-property-id": {
+            type: "string",
+            demandOption: true,
+            describe: "User property ID",
+          },
+          "skip-definition-refresh": {
+            type: "boolean",
+            default: false,
+            describe:
+              "Skip updating definitionUpdatedAt after clearing computed state",
+          },
+        }),
+      async ({ workspaceId, userPropertyId, skipDefinitionRefresh }) => {
+        await resetUserPropertyComputedState({
+          workspaceId,
+          userPropertyId,
+          refreshDefinitionUpdatedAt: !skipDefinitionRefresh,
+        });
       },
     )
     .command(
@@ -1303,6 +1369,103 @@ export function createCommands(yargs: Argv): Argv {
           forceFullBackfill,
           limit,
           dryRun,
+        });
+      },
+    )
+    .command(
+      "backfill-user-trait-values",
+      "Backfill user_trait_values_v2 table from identify_events_v2 data.",
+      (cmd) =>
+        cmd.options({
+          "interval-minutes": {
+            type: "number",
+            alias: "i",
+            default: 1440,
+            describe:
+              "Interval in minutes for processing chunks (default: 1 day)",
+          },
+          "workspace-ids": {
+            type: "string",
+            alias: "w",
+            array: true,
+            describe:
+              "Optional list of workspace IDs to process (if not provided, processes all workspaces)",
+          },
+          "start-date": {
+            type: "string",
+            alias: "s",
+            describe:
+              "Manual start date override in ISO format (e.g., '2023-01-01T00:00:00Z')",
+          },
+          "end-date": {
+            type: "string",
+            alias: "e",
+            describe:
+              "Manual end date override in ISO format (e.g., '2023-12-31T23:59:59Z')",
+          },
+          "force-full-backfill": {
+            type: "boolean",
+            alias: "f",
+            default: false,
+            describe:
+              "Skip user_trait_values_v2 check and always start from earliest identify events",
+          },
+          limit: {
+            type: "number",
+            alias: "l",
+            default: 10000,
+            describe: "Maximum rows to insert per batch",
+          },
+          "dry-run": {
+            type: "boolean",
+            alias: "d",
+            default: false,
+            describe: "Only log the insert queries without executing them",
+          },
+        }),
+      async ({
+        intervalMinutes,
+        workspaceIds,
+        startDate,
+        endDate,
+        forceFullBackfill,
+        limit,
+        dryRun,
+      }) => {
+        await backfillUserTraitValues({
+          intervalMinutes,
+          workspaceIds,
+          startDate,
+          endDate,
+          forceFullBackfill,
+          limit,
+          dryRun,
+        });
+      },
+    )
+    .command(
+      "create-user-trait-values-table",
+      "Create user_trait_values_v2 table, materialized view, and backfill from identify_events_v2.",
+      (cmd) =>
+        cmd.options({
+          "backfill-limit": {
+            type: "number",
+            alias: "l",
+            default: 50000,
+            describe: "Maximum rows to insert per backfill batch",
+          },
+          "interval-minutes": {
+            type: "number",
+            alias: "i",
+            default: 1440,
+            describe:
+              "Interval in minutes for processing backfill chunks (default: 1 day)",
+          },
+        }),
+      async ({ backfillLimit, intervalMinutes }) => {
+        await createUserTraitValuesTable({
+          backfillLimit,
+          intervalMinutes,
         });
       },
     )

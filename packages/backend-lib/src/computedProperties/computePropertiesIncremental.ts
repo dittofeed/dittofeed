@@ -13,6 +13,7 @@ import {
   ClickHouseQueryBuilder,
   command,
   createClickhouseClient,
+  createComputePropertiesClickhouseClient,
   getChCompatibleUuid,
   query as chQuery,
 } from "../clickhouse";
@@ -60,6 +61,7 @@ import {
   IDENTIFY_EVENTS_TABLE,
   insertProcessedComputedProperties,
   TRACK_EVENTS_TABLE,
+  USER_TRAIT_VALUES_TABLE,
 } from "../userEvents/clickhouse";
 import {
   createPeriods,
@@ -99,10 +101,10 @@ function toJsonPathParamCh({
 }
 
 // A set of state ids for user property or segment nodes that should not be recomputed
-export type PrunedComputedProperties = {
+export interface PrunedComputedProperties {
   segments: Set<string>;
   userProperties: Set<string>;
-};
+}
 
 function readLimit(): AsyncWrapper {
   if (!READ_LIMIT) {
@@ -365,6 +367,7 @@ interface FullSubQueryData {
   recordMessageId?: boolean;
   joinPriorStateValue?: boolean;
   useIdentifyEventsTable?: boolean;
+  useTraitValuesTable?: boolean;
   useTrackEventsTable?: boolean;
   groupByUserOnly?: boolean;
   traitPath?: string;
@@ -387,6 +390,7 @@ const SIMPLE_TRAIT_SEGMENT_OPERATORS: ReadonlySet<SegmentOperatorType> =
 const REUSABLE_TRAIT_SEGMENT_OPERATORS: ReadonlySet<SegmentOperatorType> =
   new Set([
     SegmentOperatorType.Equals,
+    SegmentOperatorType.NotEquals,
     SegmentOperatorType.GreaterThanOrEqual,
     SegmentOperatorType.LessThan,
     SegmentOperatorType.Exists,
@@ -404,14 +408,44 @@ function isReusableTraitSegmentOperator(
   return REUSABLE_TRAIT_SEGMENT_OPERATORS.has(operatorType);
 }
 
+export function canUseTraitValuesTableForPath(traitPath: string): boolean {
+  return (
+    traitPath.length > 0 && !traitPath.includes(".") && !traitPath.includes("[")
+  );
+}
+
+function traitValueExpression({
+  jsonPathParam,
+  qb,
+  useTraitValuesTable,
+}: {
+  jsonPathParam: string;
+  qb: ClickHouseQueryBuilder;
+  useTraitValuesTable: boolean;
+}): string {
+  if (useTraitValuesTable) {
+    return "tv.trait_value";
+  }
+  const varName = qb.getVariableName();
+  return `(JSON_VALUE(properties, ${jsonPathParam}) as ${varName})`;
+}
+
 function traitIdentifySubQueryBase(
   operatorType: SegmentOperatorType,
+  traitPath: string,
 ): Pick<
   SubQueryData,
-  "useIdentifyEventsTable" | "groupByUserOnly" | "condition"
+  | "useIdentifyEventsTable"
+  | "useTraitValuesTable"
+  | "groupByUserOnly"
+  | "condition"
 > {
+  const useTraitValuesTable =
+    canUseTraitValuesTableForPath(traitPath) &&
+    isSimpleTraitSegmentOperator(operatorType);
   return {
-    useIdentifyEventsTable: true,
+    useTraitValuesTable,
+    useIdentifyEventsTable: !useTraitValuesTable,
     groupByUserOnly: isSimpleTraitSegmentOperator(operatorType),
     condition: "True",
   };
@@ -427,6 +461,9 @@ function performedSubQueryBase(node: {
 }
 
 function getEventsTableForSubQuery(subQuery: SubQueryData): string {
+  if (subQuery.useTraitValuesTable) {
+    return USER_TRAIT_VALUES_TABLE;
+  }
   if (subQuery.useIdentifyEventsTable) {
     return IDENTIFY_EVENTS_TABLE;
   }
@@ -531,7 +568,8 @@ async function copyTraitStateFromUserProperty({
       query_params: qb.getQueries(),
       clickhouse_settings: {
         wait_end_of_query: 1,
-        max_execution_time: config().clickhouseComputePropertiesMaxExecutionTime,
+        max_execution_time:
+          config().clickhouseComputePropertiesMaxExecutionTime,
       },
     },
     {
@@ -555,32 +593,39 @@ export function buildComputeStateInsertQuery({
   joinedPrior: string;
 }): string {
   const eventsTable = getEventsTableForSubQuery(subQuery);
+  const useTraitValuesTable =
+    subQuery.useTraitValuesTable === true && Boolean(subQuery.traitPath);
+  const sourceAlias = useTraitValuesTable ? "tv" : "ue";
+  const traitPathClause =
+    useTraitValuesTable && subQuery.traitPath
+      ? `and trait_path = '${subQuery.traitPath}'`
+      : "";
   const truncatedEventTimeExpression = subQuery.groupByUserOnly
-    ? `max(${subQuery.eventTimeExpression ?? "ue.event_time"})`
-    : (subQuery.eventTimeExpression ??
-      "toDateTime64('0000-00-00 00:00:00', 3)");
+    ? `max(${subQuery.eventTimeExpression ?? `${sourceAlias}.event_time`})`
+    : subQuery.eventTimeExpression ?? "toDateTime64('0000-00-00 00:00:00', 3)";
   const groupByClause = subQuery.groupByUserOnly
-    ? "ue.workspace_id, ue.user_or_anonymous_id"
-    : "ue.workspace_id, ue.user_or_anonymous_id, ue.event_time";
+    ? `${sourceAlias}.workspace_id, ${sourceAlias}.user_or_anonymous_id`
+    : `${sourceAlias}.workspace_id, ${sourceAlias}.user_or_anonymous_id, ${sourceAlias}.event_time`;
 
   return `
     insert into computed_property_state_v3
     select
-      ue.workspace_id,
+      ${sourceAlias}.workspace_id,
       '${subQuery.type}' as type,
       '${subQuery.computedPropertyId}' as computed_property_id,
       '${subQuery.stateId}' as state_id,
-      ue.user_or_anonymous_id,
-      argMaxState(${subQuery.argMaxValue ?? "''"} as last_value, ue.event_time),
+      ${sourceAlias}.user_or_anonymous_id,
+      argMaxState(${subQuery.argMaxValue ?? "''"} as last_value, ${sourceAlias}.event_time),
       uniqState(${subQuery.uniqValue ?? "''"} as unique_value),
       ${truncatedEventTimeExpression} as truncated_event_time,
       groupArrayState(${subQuery.recordMessageId ? "message_id" : "''"}  as grouped_message_id),
       toDateTime64(${nowSeconds}, 3) as computed_at
-    from ${eventsTable} ue
+    from ${eventsTable} ${sourceAlias}
     where
       workspace_id = ${workspaceIdClause}
       and processing_time <= toDateTime64(${nowSeconds}, 3)
       and (${subQuery.condition})
+      ${traitPathClause}
       and (
         unique_value != ''
         or grouped_message_id != ''
@@ -590,6 +635,402 @@ export function buildComputeStateInsertQuery({
     group by
       ${groupByClause}
   `;
+}
+
+export function isCombinableTraitStateSubQuery(
+  subQuery: SubQueryData,
+): boolean {
+  return (
+    (subQuery.useTraitValuesTable === true ||
+      subQuery.useIdentifyEventsTable === true) &&
+    subQuery.groupByUserOnly === true &&
+    !subQuery.joinPriorStateValue &&
+    subQuery.condition === "True" &&
+    !subQuery.useTrackEventsTable
+  );
+}
+
+export type StateComputeTask =
+  | { kind: "single"; subQuery: SubQueryData }
+  | { kind: "combined"; subQueries: SubQueryData[] };
+
+export function groupTraitSubQueriesForCombinedScan(
+  subQueries: SubQueryData[],
+): StateComputeTask[] {
+  const tasks: StateComputeTask[] = [];
+  const combinableByKey = new Map<string, SubQueryData[]>();
+
+  for (const subQuery of subQueries) {
+    if (!isCombinableTraitStateSubQuery(subQuery)) {
+      tasks.push({ kind: "single", subQuery });
+      continue;
+    }
+    const key = `${subQuery.type}:${subQuery.computedPropertyId}`;
+    const group = combinableByKey.get(key) ?? [];
+    group.push(subQuery);
+    combinableByKey.set(key, group);
+  }
+
+  for (const group of combinableByKey.values()) {
+    if (group.length > 1) {
+      tasks.push({ kind: "combined", subQueries: group });
+    } else if (group[0]) {
+      tasks.push({ kind: "single", subQuery: group[0] });
+    }
+  }
+
+  return tasks;
+}
+
+export function buildCombinedTraitStateInsertQuery({
+  subQueries,
+  workspaceIdClause,
+  nowSeconds,
+  lowerBoundClause,
+}: {
+  subQueries: SubQueryData[];
+  workspaceIdClause: string;
+  nowSeconds: number;
+  lowerBoundClause: string;
+}): string {
+  if (subQueries.length < 2) {
+    throw new Error(
+      "combined trait state query requires at least 2 subqueries",
+    );
+  }
+
+  const firstSubQuery = subQueries[0];
+  if (!firstSubQuery) {
+    throw new Error(
+      "combined trait state query requires at least 2 subqueries",
+    );
+  }
+
+  const useTraitValuesTable = subQueries.every(
+    (subQuery) =>
+      subQuery.useTraitValuesTable === true && Boolean(subQuery.traitPath),
+  );
+  const eventsTable = getEventsTableForSubQuery(firstSubQuery);
+  const sourceAlias = useTraitValuesTable ? "tv" : "ue";
+  const traitPathInClause = useTraitValuesTable
+    ? `and trait_path in (${subQueries
+        .map((subQuery) => {
+          if (!subQuery.traitPath) {
+            throw new Error("trait path required for trait values table");
+          }
+          return `'${subQuery.traitPath}'`;
+        })
+        .join(", ")})`
+    : "";
+
+  if (useTraitValuesTable) {
+    const unionBranches = subQueries
+      .map((subQuery) => {
+        if (!subQuery.traitPath) {
+          throw new Error("trait path required for trait values table");
+        }
+        const { traitPath } = subQuery;
+        const argMaxValue = (subQuery.argMaxValue ?? "''").replace(
+          /tv\.trait_value/g,
+          "trait_value",
+        );
+        const uniqValue = subQuery.uniqValue ?? "''";
+        return `
+        select
+          workspace_id,
+          '${subQuery.type}' as type,
+          '${subQuery.computedPropertyId}' as computed_property_id,
+          '${subQuery.stateId}' as state_id,
+          user_or_anonymous_id,
+          argMaxState(${argMaxValue} as last_value, trait_event_time) as last_value,
+          uniqState(${uniqValue} as unique_value) as unique_value,
+          trait_event_time as truncated_event_time,
+          groupArrayState('' as grouped_message_id) as grouped_message_id,
+          toDateTime64(${nowSeconds}, 3) as computed_at
+        from per_trait
+        where trait_path = '${traitPath}'
+      `;
+      })
+      .join("\nunion all\n");
+
+    return `
+      insert into computed_property_state_v3
+      with per_trait as (
+        select
+          ${sourceAlias}.workspace_id,
+          ${sourceAlias}.user_or_anonymous_id,
+          ${sourceAlias}.trait_path,
+          argMax(${sourceAlias}.trait_value, ${sourceAlias}.processing_time) as trait_value,
+          argMax(${sourceAlias}.event_time, ${sourceAlias}.processing_time) as trait_event_time
+        from ${eventsTable} ${sourceAlias}
+        where
+          workspace_id = ${workspaceIdClause}
+          and processing_time <= toDateTime64(${nowSeconds}, 3)
+          and (${firstSubQuery.condition})
+          ${traitPathInClause}
+          ${lowerBoundClause}
+        group by
+          ${sourceAlias}.workspace_id,
+          ${sourceAlias}.user_or_anonymous_id,
+          ${sourceAlias}.trait_path
+      )
+      ${unionBranches}
+    `;
+  }
+
+  const traitAggregations = subQueries
+    .map((subQuery, index) => {
+      const argMaxValue = subQuery.argMaxValue ?? "''";
+      const uniqValue = subQuery.uniqValue ?? "''";
+      return `
+        argMaxState(${argMaxValue} as trait_${index}_last_value, ${sourceAlias}.event_time) as trait_${index}_last_value,
+        uniqState(${uniqValue} as trait_${index}_unique_value) as trait_${index}_unique_value
+      `;
+    })
+    .join(",");
+
+  const unionBranches = subQueries
+    .map((subQuery, index) => {
+      return `
+        select
+          workspace_id,
+          '${subQuery.type}' as type,
+          '${subQuery.computedPropertyId}' as computed_property_id,
+          '${subQuery.stateId}' as state_id,
+          user_or_anonymous_id,
+          trait_${index}_last_value as last_value,
+          trait_${index}_unique_value as unique_value,
+          max_event_time as truncated_event_time,
+          groupArrayState('' as grouped_message_id) as grouped_message_id,
+          toDateTime64(${nowSeconds}, 3) as computed_at
+        from per_user
+      `;
+    })
+    .join("\nunion all\n");
+
+  return `
+    insert into computed_property_state_v3
+    with per_user as (
+      select
+        ${sourceAlias}.workspace_id,
+        ${sourceAlias}.user_or_anonymous_id,
+        max(${sourceAlias}.event_time) as max_event_time,
+        ${traitAggregations}
+      from ${eventsTable} ${sourceAlias}
+      where
+        workspace_id = ${workspaceIdClause}
+        and processing_time <= toDateTime64(${nowSeconds}, 3)
+        and (${firstSubQuery.condition})
+        ${lowerBoundClause}
+      group by
+        ${sourceAlias}.workspace_id, ${sourceAlias}.user_or_anonymous_id
+    )
+    ${unionBranches}
+  `;
+}
+
+function getJoinedPriorClause({
+  subQuery,
+  workspaceIdClause,
+}: {
+  subQuery: SubQueryData;
+  workspaceIdClause: string;
+}): string {
+  if (!subQuery.joinPriorStateValue) {
+    return "";
+  }
+  return `
+            AND (
+              user_id,
+              last_value
+            ) NOT IN (
+              SELECT
+                user_id,
+                argMaxMerge(last_value) as last_value
+              FROM computed_property_state_v3
+              WHERE
+                workspace_id = ${workspaceIdClause}
+                AND type = '${subQuery.type}'
+                AND computed_property_id = '${subQuery.computedPropertyId}'
+                AND state_id = '${subQuery.stateId}'
+              GROUP BY
+                user_id
+            )
+          `;
+}
+
+async function tryCopyTraitSegmentState({
+  subQuery,
+  period,
+  workspaceId,
+  userProperties,
+  nowSeconds,
+  clickhouseClient,
+}: {
+  subQuery: SubQueryData;
+  period: number;
+  workspaceId: string;
+  userProperties: SavedUserPropertyResource[];
+  nowSeconds: number;
+  clickhouseClient: ReturnType<typeof createClickhouseClient>;
+}): Promise<boolean> {
+  if (
+    period !== 0 ||
+    subQuery.type !== "segment" ||
+    !subQuery.traitPath ||
+    !subQuery.segmentTraitOperator ||
+    !isReusableTraitSegmentOperator(subQuery.segmentTraitOperator)
+  ) {
+    return false;
+  }
+
+  const matchingTraitUserProperty = findMatchingTraitUserProperty({
+    traitPath: subQuery.traitPath,
+    userProperties,
+  });
+  if (!matchingTraitUserProperty) {
+    return false;
+  }
+
+  return copyTraitStateFromUserProperty({
+    workspaceId,
+    segmentId: subQuery.computedPropertyId,
+    segmentStateId: subQuery.stateId,
+    userPropertyId: matchingTraitUserProperty.userProperty.id,
+    userPropertyStateId: matchingTraitUserProperty.stateId,
+    nowSeconds,
+    clickhouseClient,
+  });
+}
+
+async function executeStateComputeTask({
+  task,
+  period,
+  workspaceId,
+  workspaceIdClause,
+  nowSeconds,
+  lowerBoundClause,
+  userProperties,
+  qb,
+}: {
+  task: StateComputeTask;
+  period: number;
+  workspaceId: string;
+  workspaceIdClause: string;
+  nowSeconds: number;
+  lowerBoundClause: string;
+  userProperties: SavedUserPropertyResource[];
+  qb: ClickHouseQueryBuilder;
+}): Promise<void> {
+  const clickhouseClient = createComputePropertiesClickhouseClient();
+  try {
+    if (task.kind === "single") {
+      const { subQuery } = task;
+      const copied = await tryCopyTraitSegmentState({
+        subQuery,
+        period,
+        workspaceId,
+        userProperties,
+        nowSeconds,
+        clickhouseClient,
+      });
+      if (copied) {
+        return;
+      }
+
+      const query = buildComputeStateInsertQuery({
+        subQuery,
+        workspaceIdClause,
+        nowSeconds,
+        lowerBoundClause,
+        joinedPrior: getJoinedPriorClause({ subQuery, workspaceIdClause }),
+      });
+
+      await command(
+        {
+          query,
+          query_params: qb.getQueries(),
+          clickhouse_settings: {
+            wait_end_of_query: 1,
+            function_json_value_return_type_allow_complex: 1,
+            max_execution_time:
+              config().clickhouseComputePropertiesMaxExecutionTime,
+          },
+        },
+        { clickhouseClient },
+      );
+      return;
+    }
+
+    const remainingSubQueries: SubQueryData[] = [];
+    for (const subQuery of task.subQueries) {
+      const copied = await tryCopyTraitSegmentState({
+        subQuery,
+        period,
+        workspaceId,
+        userProperties,
+        nowSeconds,
+        clickhouseClient,
+      });
+      if (!copied) {
+        remainingSubQueries.push(subQuery);
+      }
+    }
+
+    if (remainingSubQueries.length === 0) {
+      return;
+    }
+
+    if (remainingSubQueries.length === 1) {
+      const subQuery = remainingSubQueries[0];
+      if (!subQuery) {
+        return;
+      }
+      const query = buildComputeStateInsertQuery({
+        subQuery,
+        workspaceIdClause,
+        nowSeconds,
+        lowerBoundClause,
+        joinedPrior: getJoinedPriorClause({ subQuery, workspaceIdClause }),
+      });
+      await command(
+        {
+          query,
+          query_params: qb.getQueries(),
+          clickhouse_settings: {
+            wait_end_of_query: 1,
+            function_json_value_return_type_allow_complex: 1,
+            max_execution_time:
+              config().clickhouseComputePropertiesMaxExecutionTime,
+          },
+        },
+        { clickhouseClient },
+      );
+      return;
+    }
+
+    const query = buildCombinedTraitStateInsertQuery({
+      subQueries: remainingSubQueries,
+      workspaceIdClause,
+      nowSeconds,
+      lowerBoundClause,
+    });
+    await command(
+      {
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: {
+          wait_end_of_query: 1,
+          function_json_value_return_type_allow_complex: 1,
+          max_execution_time:
+            config().clickhouseComputePropertiesMaxExecutionTime,
+        },
+      },
+      { clickhouseClient },
+    );
+  } finally {
+    await clickhouseClient.close();
+  }
 }
 
 function getSegmentNodeVersion(
@@ -610,7 +1051,7 @@ function getSegmentNodeVersion(
   }
   if (
     node.type === SegmentNodeType.Trait &&
-    node.operator?.type === SegmentOperatorType.NotExists
+    node.operator.type === SegmentOperatorType.NotExists
   ) {
     // Version 1 for Trait + NotExists semantics fix
     return 1;
@@ -1910,10 +2351,10 @@ function resolvedSegmentToAssignment({
       if (children.length === 1 && child) {
         return child;
       }
-      const stateIds = children.flatMap((c) => c?.stateIds ?? []);
+      const stateIds = children.flatMap((c) => c.stateIds ?? []);
       return {
         stateIds,
-        expression: `(${children.flatMap((c) => c?.expression ?? []).join(" or ")})`,
+        expression: `(${children.flatMap((c) => c.expression ?? []).join(" or ")})`,
       };
     }
     case SegmentNodeType.Broadcast: {
@@ -2014,10 +2455,15 @@ export function segmentNodeToStateSubQuery({
         return [];
       }
       if (node.operator.type === SegmentOperatorType.NotEquals) {
-        const varName = qb.getVariableName();
+        const useTraitValuesTable = canUseTraitValuesTableForPath(node.path);
+        const valueExpr = traitValueExpression({
+          jsonPathParam: path,
+          qb,
+          useTraitValuesTable,
+        });
         return [
           {
-            ...traitIdentifySubQueryBase(node.operator.type),
+            ...traitIdentifySubQueryBase(node.operator.type, node.path),
             type: "segment",
             uniqValue: "''",
             traitPath: node.path,
@@ -2027,9 +2473,9 @@ export function segmentNodeToStateSubQuery({
             // stateId is a uuid
             argMaxValue: `
               if(
-                (JSON_VALUE(properties, ${path}) as ${varName}) == '',
+                ${valueExpr} == '',
                 ${qb.addQueryValue(stateId, "String")},
-                ${varName}
+                ${valueExpr}
               )
             `,
             computedPropertyId: segment.id,
@@ -2038,10 +2484,15 @@ export function segmentNodeToStateSubQuery({
         ];
       }
       if (node.operator.type === SegmentOperatorType.NotExists) {
-        const varName = qb.getVariableName();
+        const useTraitValuesTable = canUseTraitValuesTableForPath(node.path);
+        const valueExpr = traitValueExpression({
+          jsonPathParam: path,
+          qb,
+          useTraitValuesTable,
+        });
         return [
           {
-            ...traitIdentifySubQueryBase(node.operator.type),
+            ...traitIdentifySubQueryBase(node.operator.type, node.path),
             type: "segment",
             traitPath: node.path,
             segmentTraitOperator: node.operator.type,
@@ -2050,7 +2501,7 @@ export function segmentNodeToStateSubQuery({
             // uniqMerge(unique_count) together with argMaxMerge(last_value)
             uniqValue: `
               if(
-                JSON_VALUE(properties, ${path}) == '',
+                ${valueExpr} == '',
                 'E',
                 'N'
               )
@@ -2060,9 +2511,9 @@ export function segmentNodeToStateSubQuery({
             // stateId is a uuid
             argMaxValue: `
               if(
-                (JSON_VALUE(properties, ${path}) as ${varName}) == '',
+                ${valueExpr} == '',
                 ${qb.addQueryValue(stateId, "String")},
-                ${varName}
+                ${valueExpr}
               )
             `,
             computedPropertyId: segment.id,
@@ -2085,14 +2536,18 @@ export function segmentNodeToStateSubQuery({
 
       return [
         {
-          ...traitIdentifySubQueryBase(node.operator.type),
+          ...traitIdentifySubQueryBase(node.operator.type, node.path),
           type: "segment",
           traitPath: node.path,
           segmentTraitOperator: node.operator.type,
           joinPriorStateValue:
             node.operator.type === SegmentOperatorType.HasBeen,
           uniqValue: "''",
-          argMaxValue: `JSON_VALUE(properties, ${path})`,
+          argMaxValue: traitValueExpression({
+            jsonPathParam: path,
+            qb,
+            useTraitValuesTable: canUseTraitValuesTableForPath(node.path),
+          }),
           eventTimeExpression,
           computedPropertyId: segment.id,
           stateId,
@@ -2443,15 +2898,24 @@ function leafUserPropertyToSubQuery({
       }
       const conditions = ["True"];
       if (excludeNulls) {
-        conditions.push(`JSON_VALUE(properties, ${path}) != 'null'`);
+        const useTraitValuesTable = canUseTraitValuesTableForPath(child.path);
+        conditions.push(
+          useTraitValuesTable
+            ? `tv.trait_value != 'null'`
+            : `JSON_VALUE(properties, ${path}) != 'null'`,
+        );
       }
       return {
-        useIdentifyEventsTable: true,
-        groupByUserOnly: true,
+        ...traitIdentifySubQueryBase(SegmentOperatorType.Equals, child.path),
         condition: conditions.join(" and "),
         type: "user_property",
         uniqValue: "''",
-        argMaxValue: `JSON_VALUE(properties, ${path})`,
+        traitPath: child.path,
+        argMaxValue: traitValueExpression({
+          jsonPathParam: path,
+          qb,
+          useTraitValuesTable: canUseTraitValuesTableForPath(child.path),
+        }),
         computedPropertyId: userProperty.id,
         stateId,
       };
@@ -3328,93 +3792,27 @@ export async function computeState({
 
     const nowSeconds = now / 1000;
     const workspaceIdClause = qb.addQueryValue(workspaceId, "String");
-    const clickhouseClient = createClickhouseClient({
-      requestTimeout: config().clickhouseComputePropertiesRequestTimeout,
-    });
 
-    const queries = Array.from(subQueriesWithPeriods.entries()).flatMap(
-      ([period, periodSubQueries]) => {
-        const lowerBoundClause =
-          period > 0
-            ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
-            : ``;
+    for (const [period, periodSubQueries] of subQueriesWithPeriods.entries()) {
+      const lowerBoundClause =
+        period > 0
+          ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
+          : ``;
 
-        return periodSubQueries.map(async (subQuery) => {
-          const joinedPrior = !subQuery.joinPriorStateValue
-            ? ""
-            : `
-            AND (
-              user_id,
-              last_value
-            ) NOT IN (
-              SELECT
-                user_id,
-                argMaxMerge(last_value) as last_value
-              FROM computed_property_state_v3
-              WHERE
-                workspace_id = ${workspaceIdClause}
-                AND type = '${subQuery.type}'
-                AND computed_property_id = '${subQuery.computedPropertyId}'
-                AND state_id = '${subQuery.stateId}'
-              GROUP BY
-                user_id
-            )
-          `;
-
-          if (
-            period === 0 &&
-            subQuery.type === "segment" &&
-            subQuery.traitPath &&
-            subQuery.segmentTraitOperator &&
-            isReusableTraitSegmentOperator(subQuery.segmentTraitOperator)
-          ) {
-            const matchingTraitUserProperty = findMatchingTraitUserProperty({
-              traitPath: subQuery.traitPath,
-              userProperties,
-            });
-            if (matchingTraitUserProperty) {
-              const copied = await copyTraitStateFromUserProperty({
-                workspaceId,
-                segmentId: subQuery.computedPropertyId,
-                segmentStateId: subQuery.stateId,
-                userPropertyId: matchingTraitUserProperty.userProperty.id,
-                userPropertyStateId: matchingTraitUserProperty.stateId,
-                nowSeconds,
-                clickhouseClient,
-              });
-              if (copied) {
-                return;
-              }
-            }
-          }
-
-          const query = buildComputeStateInsertQuery({
-            subQuery,
-            workspaceIdClause,
-            nowSeconds,
-            lowerBoundClause,
-            joinedPrior,
-          });
-
-          await command(
-            {
-              query,
-              query_params: qb.getQueries(),
-              clickhouse_settings: {
-                wait_end_of_query: 1,
-                function_json_value_return_type_allow_complex: 1,
-                max_execution_time:
-                  config().clickhouseComputePropertiesMaxExecutionTime,
-              },
-            },
-            {
-              clickhouseClient,
-            },
-          );
+      const tasks = groupTraitSubQueriesForCombinedScan(periodSubQueries);
+      for (const task of tasks) {
+        await executeStateComputeTask({
+          task,
+          period,
+          workspaceId,
+          workspaceIdClause,
+          nowSeconds,
+          lowerBoundClause,
+          userProperties,
+          qb,
         });
-      },
-    );
-    await Promise.all(queries);
+      }
+    }
 
     await createPeriods({
       workspaceId,
@@ -3520,9 +3918,7 @@ export async function computeAssignments({
     const idUserProperty = userProperties.find(
       (up) => up.definition.type === UserPropertyDefinitionType.Id,
     );
-    const clickhouseClient = createClickhouseClient({
-      requestTimeout: config().clickhouseComputePropertiesRequestTimeout,
-    });
+    const clickhouseClient = createComputePropertiesClickhouseClient();
 
     for (const segment of segments) {
       // eslint-disable-next-line @typescript-eslint/no-loop-func
@@ -4200,9 +4596,7 @@ class AssignmentProcessor {
       let retrieved = this.pageSize;
       while (retrieved >= this.pageSize) {
         const qb = new ClickHouseQueryBuilder();
-        const clickhouseClient = createClickhouseClient({
-          requestTimeout: config().clickhouseComputePropertiesRequestTimeout,
-        });
+        const clickhouseClient = createComputePropertiesClickhouseClient();
         const currentCursor = cursor;
         const results = await withSpan(
           { name: "process-assignments-query-page" },

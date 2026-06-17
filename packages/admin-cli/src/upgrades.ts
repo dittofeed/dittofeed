@@ -26,11 +26,15 @@ import {
   Workspace,
 } from "backend-lib/src/types";
 import {
+  buildIdentifyEventsTableQuery,
+  buildInternalEventsTableQuery,
+  buildTrackEventsTableQuery,
+  buildUserTraitValuesTableQuery,
   CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
   CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY,
-  CREATE_TRACK_EVENTS_MATERIALIZED_VIEW_QUERY,
   CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
   CREATE_INTERNAL_EVENTS_TABLE_QUERY,
+  CREATE_TRACK_EVENTS_MATERIALIZED_VIEW_QUERY,
   CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
   CREATE_USER_PROPERTY_IDX_DATE_MV_QUERY,
   CREATE_USER_PROPERTY_IDX_DATE_QUERY,
@@ -39,14 +43,13 @@ import {
   CREATE_USER_PROPERTY_IDX_STR_MV_QUERY,
   CREATE_USER_PROPERTY_IDX_STR_QUERY,
   CREATE_USER_PROPERTY_INDEX_CONFIG_QUERY,
-  buildIdentifyEventsTableQuery,
-  buildInternalEventsTableQuery,
-  buildTrackEventsTableQuery,
+  CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY,
   createUserEventsTables,
   GROUP_MATERIALIZED_VIEWS,
   GROUP_TABLES,
   IDENTIFY_EVENTS_TABLE,
   TRACK_EVENTS_TABLE,
+  USER_TRAIT_VALUES_TABLE,
 } from "backend-lib/src/userEvents/clickhouse";
 import {
   migrateMergeTreeToReplicatedMergeTree,
@@ -1380,6 +1383,193 @@ export async function backfillIdentifyEvents({
   logger().info({ totalInserted }, "Completed identify events backfill");
 }
 
+export async function backfillUserTraitValues({
+  intervalMinutes = 1440,
+  workspaceIds,
+  startDate: startDateOverride,
+  endDate: endDateOverride,
+  forceFullBackfill = false,
+  limit = 10000,
+  dryRun = false,
+}: {
+  intervalMinutes?: number;
+  workspaceIds?: string[];
+  startDate?: string;
+  endDate?: string;
+  forceFullBackfill?: boolean;
+  limit?: number;
+  dryRun?: boolean;
+}) {
+  logger().info(
+    dryRun
+      ? "Analyzing user trait values backfill (dry run)"
+      : "Backfilling user trait values",
+  );
+
+  let startDate: Date;
+  if (startDateOverride) {
+    startDate = new Date(startDateOverride);
+  } else if (forceFullBackfill) {
+    const identifyQb = new ClickHouseQueryBuilder();
+    const identifyWorkspaceFilter = workspaceIds
+      ? `WHERE workspace_id IN ${identifyQb.addQueryValue(workspaceIds, "Array(String)")}`
+      : "";
+    const identifyResult = await query({
+      query: `SELECT min(processing_time) as min_time FROM ${IDENTIFY_EVENTS_TABLE} ${identifyWorkspaceFilter}`,
+      query_params: identifyQb.getQueries(),
+      clickhouse_settings: { wait_end_of_query: 1 },
+    });
+    const minTimeResult = await identifyResult.json<{ min_time: string }>();
+    const minTime = minTimeResult[0]?.min_time;
+    if (
+      !minTime ||
+      minTime === "0000-00-00 00:00:00" ||
+      minTime === "1970-01-01 00:00:00.000"
+    ) {
+      logger().info("No identify events found to backfill user trait values");
+      return;
+    }
+    startDate = new Date(`${minTime}Z`);
+  } else {
+    const qb = new ClickHouseQueryBuilder();
+    const workspaceFilter = workspaceIds
+      ? `WHERE workspace_id IN ${qb.addQueryValue(workspaceIds, "Array(String)")}`
+      : "";
+    const maxResult = await query({
+      query: `SELECT max(processing_time) as max_time FROM ${USER_TRAIT_VALUES_TABLE} ${workspaceFilter}`,
+      query_params: qb.getQueries(),
+      clickhouse_settings: { wait_end_of_query: 1 },
+    });
+    const maxTimeResult = await maxResult.json<{ max_time: string }>();
+    const maxTime = maxTimeResult[0]?.max_time;
+    if (
+      maxTime &&
+      maxTime !== "0000-00-00 00:00:00" &&
+      maxTime !== "1970-01-01 00:00:00.000"
+    ) {
+      startDate = new Date(`${maxTime}Z`);
+    } else {
+      const identifyQb = new ClickHouseQueryBuilder();
+      const identifyWorkspaceFilter = workspaceIds
+        ? `WHERE workspace_id IN ${identifyQb.addQueryValue(workspaceIds, "Array(String)")}`
+        : "";
+      const identifyResult = await query({
+        query: `SELECT min(processing_time) as min_time FROM ${IDENTIFY_EVENTS_TABLE} ${identifyWorkspaceFilter}`,
+        query_params: identifyQb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+      const minTimeResult = await identifyResult.json<{ min_time: string }>();
+      const minTime = minTimeResult[0]?.min_time;
+      if (
+        !minTime ||
+        minTime === "0000-00-00 00:00:00" ||
+        minTime === "1970-01-01 00:00:00.000"
+      ) {
+        logger().info("No identify events found to backfill user trait values");
+        return;
+      }
+      startDate = new Date(`${minTime}Z`);
+    }
+  }
+
+  const endDate = endDateOverride ? new Date(endDateOverride) : new Date();
+  const intervalMs = intervalMinutes * 60 * 1000;
+  let currentStart = startDate;
+  let totalInserted = 0;
+
+  while (currentStart < endDate) {
+    const currentEnd = new Date(
+      Math.min(currentStart.getTime() + intervalMs, endDate.getTime()),
+    );
+    let offset = 0;
+
+    while (true) {
+      const insertQb = new ClickHouseQueryBuilder();
+      const startTimeParam = insertQb.addQueryValue(
+        currentStart.toISOString(),
+        "String",
+      );
+      const endTimeParam = insertQb.addQueryValue(
+        currentEnd.toISOString(),
+        "String",
+      );
+      const limitParam = insertQb.addQueryValue(limit, "UInt64");
+      const offsetParam = insertQb.addQueryValue(offset, "UInt64");
+      const insertWorkspaceFilter = workspaceIds
+        ? `AND workspace_id IN ${insertQb.addQueryValue(workspaceIds, "Array(String)")}`
+        : "";
+
+      const insertQuery = `
+        INSERT INTO ${USER_TRAIT_VALUES_TABLE} (
+          workspace_id,
+          user_or_anonymous_id,
+          trait_path,
+          trait_value,
+          event_time,
+          processing_time
+        )
+        SELECT
+          workspace_id,
+          user_or_anonymous_id,
+          trait_path,
+          trait_value,
+          event_time,
+          processing_time
+        FROM (
+          SELECT
+            workspace_id,
+            user_or_anonymous_id,
+            trait_path,
+            JSONExtractString(properties, trait_path) AS trait_value,
+            event_time,
+            processing_time
+          FROM ${IDENTIFY_EVENTS_TABLE}
+          WHERE
+            processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
+            AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+            AND length(properties) > 2
+            ${insertWorkspaceFilter}
+          ARRAY JOIN JSONExtractKeys(assumeNotNull(properties)) AS trait_path
+        )
+        WHERE trait_path != '' AND trait_value != ''
+        ORDER BY processing_time
+        LIMIT ${limitParam}
+        OFFSET ${offsetParam}
+      `;
+
+      if (dryRun) {
+        logger().info(
+          {
+            start: currentStart.toISOString(),
+            end: currentEnd.toISOString(),
+            offset,
+            limit,
+          },
+          "Dry run user trait values backfill batch",
+        );
+        break;
+      }
+
+      const result = await command({
+        query: insertQuery,
+        query_params: insertQb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+      const writtenRowsString = result.summary?.written_rows;
+      const writtenRows = writtenRowsString ? parseInt(writtenRowsString) : 0;
+      totalInserted += writtenRows;
+      if (writtenRows === 0 || writtenRows < limit) {
+        break;
+      }
+      offset += limit;
+    }
+
+    currentStart = currentEnd;
+  }
+
+  logger().info({ totalInserted }, "Completed user trait values backfill");
+}
+
 export async function backfillTrackEvents({
   intervalMinutes = 1440,
   workspaceIds,
@@ -1576,6 +1766,16 @@ export async function backfillTrackEvents({
   logger().info({ totalInserted }, "Completed track events backfill");
 }
 
+export async function migrateUserTraitValuesToReplicatedMergeTree() {
+  await migrateMergeTreeToReplicatedMergeTree({
+    tableName: USER_TRAIT_VALUES_TABLE,
+    buildCreateTableQuery: buildUserTraitValuesTableQuery,
+    materializedViewName: "user_trait_values_v2_mv",
+    buildCreateMaterializedViewQuery: () =>
+      CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY,
+  });
+}
+
 export async function migrateIdentifyEventsToReplicatedMergeTree() {
   await migrateMergeTreeToReplicatedMergeTree({
     tableName: IDENTIFY_EVENTS_TABLE,
@@ -1599,6 +1799,7 @@ export async function migrateTrackEventsToReplicatedMergeTree() {
 export async function migrateEventTablesToReplicatedMergeTree() {
   await migrateIdentifyEventsToReplicatedMergeTree();
   await migrateTrackEventsToReplicatedMergeTree();
+  await migrateUserTraitValuesToReplicatedMergeTree();
 }
 
 export async function createTrackEventsTable({
@@ -1620,6 +1821,31 @@ export async function createTrackEventsTable({
   });
   logger().info("Backfilling track events");
   await backfillTrackEvents({
+    forceFullBackfill: true,
+    limit: backfillLimit,
+    intervalMinutes,
+  });
+}
+
+export async function createUserTraitValuesTable({
+  backfillLimit = 50000,
+  intervalMinutes = 1440,
+}: {
+  backfillLimit?: number;
+  intervalMinutes?: number;
+} = {}) {
+  logger().info("Creating user trait values table and materialized view");
+  const engine = await resolveMergeTreeEngine(USER_TRAIT_VALUES_TABLE);
+  await command({
+    query: buildUserTraitValuesTableQuery(engine),
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  await command({
+    query: CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  logger().info("Backfilling user trait values");
+  await backfillUserTraitValues({
     forceFullBackfill: true,
     limit: backfillLimit,
     intervalMinutes,
@@ -1671,6 +1897,10 @@ export async function upgradeV025Pre({
   await createTrackEventsTable({
     backfillLimit: trackEventsBackfillLimit,
     intervalMinutes: trackEventsBackfillIntervalMinutes,
+  });
+  await createUserTraitValuesTable({
+    backfillLimit: identifyEventsBackfillLimit,
+    intervalMinutes: identifyEventsBackfillIntervalMinutes,
   });
   logger().info("Pre-upgrade steps for v0.25.0 completed.");
 }
