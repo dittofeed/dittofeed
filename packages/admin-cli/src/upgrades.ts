@@ -1482,15 +1482,52 @@ export async function backfillUserTraitValues({
     const currentEnd = new Date(
       Math.min(currentStart.getTime() + intervalMs, endDate.getTime()),
     );
-    let offset = 0;
+    const chunkQb = new ClickHouseQueryBuilder();
+    const startTimeParam = chunkQb.addQueryValue(
+      currentStart.toISOString(),
+      "String",
+    );
+    const endTimeParam = chunkQb.addQueryValue(
+      currentEnd.toISOString(),
+      "String",
+    );
+    const chunkWorkspaceFilter = workspaceIds
+      ? `AND workspace_id IN ${chunkQb.addQueryValue(workspaceIds, "Array(String)")}`
+      : "";
 
-    while (true) {
+    const countResult = await query({
+      query: `
+        SELECT count() as cnt
+        FROM ${IDENTIFY_EVENTS_TABLE}
+        WHERE
+          processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
+          AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+          AND length(properties) > 2
+          ${chunkWorkspaceFilter}
+      `,
+      query_params: chunkQb.getQueries(),
+      clickhouse_settings: { wait_end_of_query: 1 },
+    });
+    const chunkCountRows = await countResult.json<{ cnt: string }>();
+    const chunkIdentifyCount = Number(chunkCountRows[0]?.cnt ?? 0);
+
+    logger().info(
+      {
+        start: currentStart.toISOString(),
+        end: currentEnd.toISOString(),
+        chunkIdentifyCount,
+      },
+      "Starting user trait values time chunk",
+    );
+
+    let offset = 0;
+    while (offset < chunkIdentifyCount) {
       const insertQb = new ClickHouseQueryBuilder();
-      const startTimeParam = insertQb.addQueryValue(
+      const batchStartTimeParam = insertQb.addQueryValue(
         currentStart.toISOString(),
         "String",
       );
-      const endTimeParam = insertQb.addQueryValue(
+      const batchEndTimeParam = insertQb.addQueryValue(
         currentEnd.toISOString(),
         "String",
       );
@@ -1511,8 +1548,8 @@ export async function backfillUserTraitValues({
         )
         ${buildUserTraitValuesBackfillInsertQuery({
           whereClause: `
-          processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
-          AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+          processing_time >= parseDateTimeBestEffort(${batchStartTimeParam}, 'UTC')
+          AND processing_time < parseDateTimeBestEffort(${batchEndTimeParam}, 'UTC')
           AND length(properties) > 2
           ${insertWorkspaceFilter}
         `,
@@ -1528,6 +1565,7 @@ export async function backfillUserTraitValues({
             end: currentEnd.toISOString(),
             offset,
             limit,
+            chunkIdentifyCount,
           },
           "Dry run user trait values backfill batch",
         );
@@ -1544,8 +1582,6 @@ export async function backfillUserTraitValues({
       });
       const writtenRowsString = result.summary?.written_rows;
       const writtenRows = writtenRowsString ? parseInt(writtenRowsString) : 0;
-      const readRowsString = result.summary?.read_rows;
-      const readRows = readRowsString ? parseInt(readRowsString) : 0;
       totalInserted += writtenRows;
       logger().info(
         {
@@ -1553,13 +1589,13 @@ export async function backfillUserTraitValues({
           end: currentEnd.toISOString(),
           offset,
           limit,
-          readRows,
+          chunkIdentifyCount,
           writtenRows,
           totalInserted,
         },
         "User trait values backfill batch completed",
       );
-      if (readRows === 0 || readRows < limit) {
+      if (writtenRows === 0) {
         break;
       }
       offset += limit;
