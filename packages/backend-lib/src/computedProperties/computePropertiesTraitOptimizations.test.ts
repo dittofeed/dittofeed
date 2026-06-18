@@ -328,10 +328,64 @@ describe("computePropertiesTraitOptimizations", () => {
     expect(query).toContain("from user_trait_values_v2 tv");
     expect(query).toContain("trait_path in ('banned', 'suspended')");
     expect(query).not.toMatch(/argMaxState\([^)]*\bas last_value\b/);
+    expect(query).not.toContain("tv.trait_value");
     expect(query).toContain(
       "group by\n          workspace_id,\n          user_or_anonymous_id",
     );
   });
+
+  it("replaces tv.trait_value in combined NotExists uniqValue expressions", () => {
+    const qb = new ClickHouseQueryBuilder();
+    const andNotExistsSegment: SavedSegmentResource = {
+      ...segment,
+      name: "wheelTraits",
+      definition: {
+        entryNode: {
+          type: SegmentNodeType.And,
+          id: "and-1",
+          children: ["trait-wheel", "trait-online"],
+        },
+        nodes: [
+          {
+            type: SegmentNodeType.Trait,
+            id: "trait-wheel",
+            path: "wheelLastSpinTimestamp",
+            operator: {
+              type: SegmentOperatorType.NotExists,
+            },
+          },
+          {
+            type: SegmentNodeType.Trait,
+            id: "trait-online",
+            path: "isOnline",
+            operator: {
+              type: SegmentOperatorType.NotExists,
+            },
+          },
+        ],
+      },
+    };
+    const subQueries = segmentNodeToStateSubQuery({
+      segment: andNotExistsSegment,
+      node: andNotExistsSegment.definition.entryNode,
+      qb,
+    });
+    const tasks = groupTraitSubQueriesForCombinedScan(subQueries);
+    if (tasks[0]?.kind !== "combined") {
+      throw new Error("expected combined task");
+    }
+
+    const query = buildCombinedTraitStateInsertQuery({
+      subQueries: tasks[0].subQueries,
+      workspaceIdClause: qb.addQueryValue(
+        "00000000-0000-4000-8000-000000000099",
+        "String",
+      ),
+      nowSeconds: 1,
+      lowerBoundClause: "",
+    });
+    expect(query).toContain("uniqState(if(trait_value = '', 'E', 'N'))");
+    expect(query).not.toContain("tv.trait_value");
 
   it("keeps non-combinable subqueries as single tasks", () => {
     const qb = new ClickHouseQueryBuilder();

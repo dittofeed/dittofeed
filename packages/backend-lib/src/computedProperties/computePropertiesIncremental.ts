@@ -682,6 +682,10 @@ export function groupTraitSubQueriesForCombinedScan(
   return tasks;
 }
 
+function replaceTraitValueAliasForCombinedQuery(expression: string): string {
+  return expression.replace(/tv\.trait_value/g, "trait_value");
+}
+
 export function buildCombinedTraitStateInsertQuery({
   subQueries,
   workspaceIdClause,
@@ -730,11 +734,12 @@ export function buildCombinedTraitStateInsertQuery({
           throw new Error("trait path required for trait values table");
         }
         const { traitPath } = subQuery;
-        const argMaxValue = (subQuery.argMaxValue ?? "''").replace(
-          /tv\.trait_value/g,
-          "trait_value",
+        const argMaxValue = replaceTraitValueAliasForCombinedQuery(
+          subQuery.argMaxValue ?? "''",
         );
-        const uniqValue = subQuery.uniqValue ?? "''";
+        const uniqValue = replaceTraitValueAliasForCombinedQuery(
+          subQuery.uniqValue ?? "''",
+        );
         return `
         select
           workspace_id,
