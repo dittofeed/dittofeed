@@ -1,0 +1,149 @@
+# Default values for dittofeed.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+workspaceName: Dittofeed
+
+replicaCount: 1
+
+image:
+  repository: harbor.hngcweywe.com/dittofeed/dittofeed-admin-cli
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "6bad241"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+separateWorker:
+  enabled: true
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources:
+  # Recommended resources for production
+  limits:
+    cpu: 2
+    memory: 2048Mi
+  requests:
+    cpu: 1
+    memory: 512Mi
+env:
+  - name: START_OTEL
+    value: "false"
+  - name: OTEL_COLLECTOR
+    value: "http://jaeger-collector.jaeger.svc.cluster.local:4317"
+  - name: DATABASE_HOST
+    value: "postgresql-dittofeed-dev-cluster-pgbouncer.dittofeed-dev.svc.cluster.local"
+  - name: DATABASE_USER
+    value: "dittofeed"
+  - name: DATABASE_PASSWORD
+    value: "a9v0wWPc9OCcLYd7Zy4wSXxR0vIoOk6y8sTGwbuJeMj5iyeUdfPN0bWsLlBUBuvE"
+  ## - name: DATABASE_PASSWORD
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: my-pg-secret-name
+  #       key: password
+  - name: CLICKHOUSE_HOST
+    value: "http://clickhouse-clickhouse-dittofeed-dev.dittofeed-dev.svc.cluster.local:8123"
+  - name: CLICKHOUSE_USER
+    value: "dittofeed"
+  - name: CLICKHOUSE_PASSWORD
+    value: "54u6tdi7fkyhgcmfyxhtdzgrdtf"
+  # - name: CLICKHOUSE_PASSWORD
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: my-clickhouse-secret-name
+  #       key: password
+  # BOOTSTRAP should be set to "false" after the first deployment
+  - name: BOOTSTRAP
+    value: "false"
+  - name: BOOTSTRAP_SAFE
+    value: "false"
+  - name: TEMPORAL_ADDRESS
+    value: "dittofeed-temporal-frontend.dittofeed-dev.svc.cluster.local:7233"
+  - name: AUTH_MODE
+    value: "single-tenant"   # уже выставляется chart'ом для lite
+  - name: PASSWORD
+    value: "dqk3bqe0thx*dwk-EDH"   # или secretKeyRef
+  - name: SECRET_KEY
+    value: "yOG2b51bouPH3gcmNKGkq0F1ErKaBcRqBiLpYHCX8sQ="   # openssl rand -base64 32
+  - name: SESSION_COOKIE_SECURE
+    value: "true"
+# necessary to use the write mode
+  - name: WRITE_MODE
+    value: kafka
+# the kafka host and portnames to write to
+  - name: KAFKA_BROKERS
+    value: "dittofeed-dev-kafka-kafka-brokers:9092"
+# the username and password to use for the kafka connection
+  - name: KAFKA_USERNAME
+    value: dittofeed-dev
+  - name: KAFKA_PASSWORD
+    value: "axm6qhg_HMX5zqr1wty"
+# whether to use SSL for the kafka connection
+  - name: KAFKA_SSL
+    value: "false"
+# the kafka sasl mechanism to use
+# possible values are: plain, scram-sha-256, scram-sha-512
+  - name: KAFKA_SASL_MECHANISM
+    value: "scram-sha-512"
+# the number of partitions to use for the user events topic when bootstrapping
+  - name: KAFKA_USER_EVENTS_PARTITIONS
+    value: "3"
+# the replication factor to use for the user events topic when bootstrapping
+  - name: KAFKA_USER_EVENTS_REPLICATION_FACTOR
+    value: "3"
+# the name of the user events topic to create when bootstrapping
+  - name: USER_EVENTS_TOPIC_NAME
+    value: dittofeed-user-events
+  - name: MAX_CACHED_WORKFLOWS
+    value: "1000"
+  - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+    value: "150"
+  - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+    value: "150"
+  - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+    value: "240"
+  - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+    value: "1000"
+  - name: REUSE_CONTEXT
+    value: "true"
+  - name: COMPUTE_PROPERTIES_TIMEOUT
+    value: "900000"
+  - name: COMPUTE_PROPERTIES_QUEUE_CONCURRENCY
+    value: "150"
+  - name: SKIP_PRUNE_JSON_EXISTS
+    value: "true"
+  - name: COMPUTE_PROPERTIES_INTERVAL
+    value: "10000"
+  - name: COMPUTE_PROPERTIES_SCHEDULER_INTERVAL
+    value: "3000"
+  - name: COMPUTE_PROPERTIES_JITTER_MS
+    value: "0"
+  - name: BOOTSTRAP_SKIP_CREATE_DATABASE
+    value: "true"

@@ -1,0 +1,16 @@
+name: Load kubeconfig from Vault
+description: GitHub OIDC login, read cicd/github KV, write KUBE_CONFIG to a temp file.
+
+outputs:
+  kubeconfig_file:
+    description: Path to kubeconfig written from Vault KUBE_CONFIG
+    value: ${{ steps.load.outputs.kubeconfig_file }}
+
+runs:
+  using: composite
+  steps:
+    - id: load
+      shell: bash
+      env:
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
+      run: ${{ github.action_path }}/load.sh

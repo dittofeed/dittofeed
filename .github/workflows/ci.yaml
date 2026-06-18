@@ -2,50 +2,37 @@ name: Dittofeed CI/CD
 
 on:
   push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Deployment target
+        required: true
+        default: prod
+        type: choice
+        options:
+          - prod
+          - dev
 
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: dittofeed-${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && inputs.target || 'prod' }}
+  cancel-in-progress: false
 
 env:
   REGISTRY: harbor.hngcweywe.com
   IMAGE_PREFIX: harbor.hngcweywe.com/dittofeed
+  HELM_OCI_REGISTRY: oci://harbor.hngcweywe.com/helm
+  DITTOFEED_CHART_VERSION: "0.3.3"
+  DITTOFEED_ADMIN_CLI_CHART_VERSION: "0.3.1"
 
 jobs:
-  # lint:
-  #   name: Lint (${{ matrix.package }})
-  #   runs-on: self-hosted
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       package:
-  #         - api
-  #         - worker
-  #         - dashboard
-  #         - admin-cli
-  #         - isomorphic-lib
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-
-  #     - name: Use Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: "20"
-  #         cache: yarn
-
-  #     - name: Install dependencies
-  #       run: yarn
-
-  #     - name: Emailo build
-  #       run: yarn workspace emailo build
-
-  #     - name: Run lint
-  #       run: yarn workspace ${{ matrix.package }} lint
-
-  #     - name: Run typecheck
-  #       run: yarn workspace ${{ matrix.package }} check
-
   docker:
     name: Publish Docker image (${{ matrix.package }})
-    if: github.event_name == 'push'
     runs-on: self-hosted
     strategy:
       fail-fast: false
@@ -75,4 +62,96 @@ jobs:
             --push \
             .
 
+  deploy:
+    name: Deploy (${{ github.event_name == 'workflow_dispatch' && inputs.target || 'prod' }})
+    needs: docker
+    runs-on: self-hosted
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'prod' }}
+    env:
+      VAULT_ADDR: https://vault.hngcweywe.com
+      VAULT_GITHUB_ROLE: ${{ secrets.VAULT_GITHUB_ROLE }}
+      VAULT_GITHUB_AUDIENCE: ${{ secrets.VAULT_GITHUB_AUDIENCE }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      - name: Resolve deployment target
+        id: target
+        run: |
+          TARGET="${{ github.event_name == 'workflow_dispatch' && inputs.target || 'prod' }}"
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+          if [ "$TARGET" = "dev" ]; then
+            echo "namespace=dittofeed-dev" >> "$GITHUB_OUTPUT"
+            echo "admin_cli_values=deploy/helm/admin-cli-values_dev.yaml" >> "$GITHUB_OUTPUT"
+            echo "app_values=deploy/helm/app-values_dev.yaml" >> "$GITHUB_OUTPUT"
+          else
+            echo "namespace=dittofeed" >> "$GITHUB_OUTPUT"
+            echo "admin_cli_values=" >> "$GITHUB_OUTPUT"
+            echo "app_values=" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tag=$(echo $GITHUB_SHA | head -c7)" >> "$GITHUB_OUTPUT"
+
+      - name: Load kubeconfig from Vault
+        id: kube
+        uses: ./.github/actions/vault-load-kubeconfig
+
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          cp "${{ steps.kube.outputs.kubeconfig_file }}" "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+
+      - name: Log in to Harbor
+        run: |
+          echo "${{ secrets.HARBOR_PASSWORD }}" | helm registry login "${{ env.REGISTRY }}" \
+            -u 'robot$github-actions' \
+            --password-stdin
+
+      - name: Deploy admin-cli
+        run: |
+          set -euo pipefail
+          args=(
+            upgrade --install
+            -n "${{ steps.target.outputs.namespace }}"
+            dittofeed-admin-cli "${{ env.HELM_OCI_REGISTRY }}/dittofeed-admin-cli"
+            --version "${{ env.DITTOFEED_ADMIN_CLI_CHART_VERSION }}"
+            --set "image.tag=${{ steps.target.outputs.tag }}"
+            --wait --timeout 10m
+          )
+          if [ -n "${{ steps.target.outputs.admin_cli_values }}" ]; then
+            args+=(-f "${{ steps.target.outputs.admin_cli_values }}")
+          fi
+          helm "${args[@]}"
+
+      - name: Run database migrations
+        run: |
+          kubectl rollout status \
+            -n "${{ steps.target.outputs.namespace }}" \
+            deployment/dittofeed-admin-cli \
+            --timeout=300s
+          kubectl exec \
+            -n "${{ steps.target.outputs.namespace }}" \
+            deploy/dittofeed-admin-cli \
+            -- ./admin.sh migrate
+
+      - name: Deploy dittofeed app
+        run: |
+          set -euo pipefail
+          args=(
+            upgrade
+            -n "${{ steps.target.outputs.namespace }}"
+            dittofeed-app "${{ env.HELM_OCI_REGISTRY }}/dittofeed"
+            --version "${{ env.DITTOFEED_CHART_VERSION }}"
+            --set "image.tag=${{ steps.target.outputs.tag }}"
+            --set "separateWorker.worker.image.tag=${{ steps.target.outputs.tag }}"
+            --wait --timeout 15m
+          )
+          if [ -n "${{ steps.target.outputs.app_values }}" ]; then
+            args+=(-f "${{ steps.target.outputs.app_values }}")
+          fi
+          helm "${args[@]}"
