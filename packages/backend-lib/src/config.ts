@@ -37,6 +37,8 @@ const BaseRawConfigProps = {
   clickhouseDatabase: Type.Optional(Type.String()),
   clickhouseUser: Type.String(),
   clickhousePassword: Type.String(),
+  clickhouseUseReplicatedTables: Type.Optional(BoolStr),
+  clickhouseReplicatedTablePathPrefix: Type.Optional(Type.String()),
   defaultUserJourneyMaxAttempts: Type.Optional(Type.String({ format: "naturalNumber" })),
   kafkaBrokers: Type.Optional(Type.String()),
   kafkaUsername: Type.Optional(Type.String()),
@@ -282,6 +284,8 @@ export type Config = Overwrite<
     bootstrapWorker: boolean;
     clickhouseDatabase: string;
     clickhouseHost: string;
+    clickhouseUseReplicatedTables?: boolean;
+    clickhouseReplicatedTablePathPrefix?: string;
     computedPropertiesActivityTaskQueue: string;
     computedPropertiesTaskQueue: string;
     computedPropertiesTopicName: string;
@@ -619,6 +623,12 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     clickhouseUser: rawConfig.clickhouseUser ?? "dittofeed",
     clickhousePassword:
       rawConfig.clickhousePassword ?? DEFAULT_BACKEND_CONFIG.clickhousePassword,
+    clickhouseUseReplicatedTables:
+      rawConfig.clickhouseUseReplicatedTables === undefined
+        ? undefined
+        : rawConfig.clickhouseUseReplicatedTables === "true",
+    clickhouseReplicatedTablePathPrefix:
+      rawConfig.clickhouseReplicatedTablePathPrefix,
     kafkaBrokers: rawConfig.kafkaBrokers
       ? rawConfig.kafkaBrokers.split(",")
       : ["localhost:9092"],
@@ -746,7 +756,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     clickhouseComputePropertiesRequestTimeout:
       rawConfig.clickhouseComputePropertiesRequestTimeout
         ? parseInt(rawConfig.clickhouseComputePropertiesRequestTimeout)
-        : 180000,
+        : 5 * 60 * 1000,
     clickhouseComputePropertiesMaxExecutionTime:
       rawConfig.clickhouseComputePropertiesMaxExecutionTime
         ? parseInt(rawConfig.clickhouseComputePropertiesMaxExecutionTime)

@@ -208,6 +208,18 @@ export function createClickhouseClient(
   return createClient(clientConfig);
 }
 
+/** Minimum HTTP timeout for heavy compute-properties INSERT SELECT queries. */
+export const MIN_COMPUTE_PROPERTIES_REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
+
+export function createComputePropertiesClickhouseClient() {
+  const configuredTimeout = config().clickhouseComputePropertiesRequestTimeout;
+  const requestTimeout = Math.max(
+    configuredTimeout ?? MIN_COMPUTE_PROPERTIES_REQUEST_TIMEOUT_MS,
+    MIN_COMPUTE_PROPERTIES_REQUEST_TIMEOUT_MS,
+  );
+  return createClickhouseClient({ requestTimeout });
+}
+
 let CLICKHOUSE_CLIENT: NodeClickHouseClient | null = null;
 
 export function clickhouseClient() {
