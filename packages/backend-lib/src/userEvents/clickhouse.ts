@@ -8,7 +8,6 @@ import {
   JSONValue,
 } from "../types";
 import {
-  getMergeTreeEngine,
   resolveMergeTreeEngine,
 } from "./clickhouseEngines";
 
@@ -77,7 +76,7 @@ export function buildUserTraitValuesTableQuery(engine: string): string {
 }
 
 export const CREATE_USER_TRAIT_VALUES_TABLE_QUERY =
-  buildUserTraitValuesTableQuery(getMergeTreeEngine(USER_TRAIT_VALUES_TABLE));
+  buildUserTraitValuesTableQuery("MergeTree()");
 
 export const CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY = `
   CREATE MATERIALIZED VIEW IF NOT EXISTS user_trait_values_v2_mv
@@ -129,7 +128,7 @@ export function buildIdentifyEventsTableQuery(engine: string): string {
 }
 
 export const CREATE_IDENTIFY_EVENTS_TABLE_QUERY = buildIdentifyEventsTableQuery(
-  getMergeTreeEngine(IDENTIFY_EVENTS_TABLE),
+  "MergeTree()",
 );
 
 export const CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY = `
@@ -176,7 +175,7 @@ export function buildTrackEventsTableQuery(engine: string): string {
 }
 
 export const CREATE_TRACK_EVENTS_TABLE_QUERY = buildTrackEventsTableQuery(
-  getMergeTreeEngine(TRACK_EVENTS_TABLE),
+  "MergeTree()",
 );
 
 export const CREATE_TRACK_EVENTS_MATERIALIZED_VIEW_QUERY = `
