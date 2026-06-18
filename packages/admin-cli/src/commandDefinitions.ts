@@ -1380,9 +1380,9 @@ export function createCommands(yargs: Argv): Argv {
           "interval-minutes": {
             type: "number",
             alias: "i",
-            default: 1440,
+            default: 60,
             describe:
-              "Interval in minutes for processing chunks (default: 1 day)",
+              "Interval in minutes for processing chunks (default: 1 hour)",
           },
           "workspace-ids": {
             type: "string",
@@ -1413,8 +1413,9 @@ export function createCommands(yargs: Argv): Argv {
           limit: {
             type: "number",
             alias: "l",
-            default: 10000,
-            describe: "Maximum rows to insert per batch",
+            default: 2000,
+            describe:
+              "Maximum identify rows to process per batch before ARRAY JOIN expansion",
           },
           "dry-run": {
             type: "boolean",
@@ -1451,15 +1452,16 @@ export function createCommands(yargs: Argv): Argv {
           "backfill-limit": {
             type: "number",
             alias: "l",
-            default: 50000,
-            describe: "Maximum rows to insert per backfill batch",
+            default: 2000,
+            describe:
+              "Maximum identify rows to process per backfill batch before ARRAY JOIN expansion",
           },
           "interval-minutes": {
             type: "number",
             alias: "i",
-            default: 1440,
+            default: 60,
             describe:
-              "Interval in minutes for processing backfill chunks (default: 1 day)",
+              "Interval in minutes for processing backfill chunks (default: 1 hour)",
           },
         }),
       async ({ backfillLimit, intervalMinutes }) => {

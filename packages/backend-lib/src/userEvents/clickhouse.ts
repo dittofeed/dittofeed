@@ -103,6 +103,54 @@ export function buildUserTraitValuesFromIdentifyEventsQuery(
   `;
 }
 
+export function buildUserTraitValuesBackfillInsertQuery({
+  whereClause,
+  identifyLimitParam,
+  identifyOffsetParam,
+}: {
+  whereClause: string;
+  identifyLimitParam: string;
+  identifyOffsetParam: string;
+}): string {
+  return `
+    SELECT
+      workspace_id,
+      user_or_anonymous_id,
+      trait_path,
+      trait_value,
+      event_time,
+      processing_time
+    FROM (
+      SELECT
+        workspace_id,
+        user_or_anonymous_id,
+        trait_path,
+        JSONExtractString(properties, trait_path) AS trait_value,
+        event_time,
+        processing_time
+      FROM (
+        SELECT
+          workspace_id,
+          user_or_anonymous_id,
+          properties,
+          event_time,
+          processing_time
+        FROM ${IDENTIFY_EVENTS_TABLE}
+        WHERE ${whereClause}
+        ORDER BY
+          processing_time,
+          user_or_anonymous_id,
+          message_id
+        LIMIT ${identifyLimitParam}
+        OFFSET ${identifyOffsetParam}
+      )
+      ARRAY JOIN JSONExtractKeys(assumeNotNull(properties)) AS trait_path
+      WHERE length(properties) > 2
+    )
+    WHERE trait_path != '' AND trait_value != ''
+  `;
+}
+
 export const CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY = `
   CREATE MATERIALIZED VIEW IF NOT EXISTS user_trait_values_v2_mv
   TO ${USER_TRAIT_VALUES_TABLE}

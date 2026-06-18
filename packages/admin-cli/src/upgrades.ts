@@ -29,7 +29,7 @@ import {
   buildIdentifyEventsTableQuery,
   buildInternalEventsTableQuery,
   buildTrackEventsTableQuery,
-  buildUserTraitValuesFromIdentifyEventsQuery,
+  buildUserTraitValuesBackfillInsertQuery,
   buildUserTraitValuesTableQuery,
   CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
   CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY,
@@ -1385,12 +1385,12 @@ export async function backfillIdentifyEvents({
 }
 
 export async function backfillUserTraitValues({
-  intervalMinutes = 1440,
+  intervalMinutes = 60,
   workspaceIds,
   startDate: startDateOverride,
   endDate: endDateOverride,
   forceFullBackfill = false,
-  limit = 10000,
+  limit = 2000,
   dryRun = false,
 }: {
   intervalMinutes?: number;
@@ -1509,15 +1509,16 @@ export async function backfillUserTraitValues({
           event_time,
           processing_time
         )
-        ${buildUserTraitValuesFromIdentifyEventsQuery(`
+        ${buildUserTraitValuesBackfillInsertQuery({
+          whereClause: `
           processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
           AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
           AND length(properties) > 2
           ${insertWorkspaceFilter}
-        `)}
-        ORDER BY processing_time
-        LIMIT ${limitParam}
-        OFFSET ${offsetParam}
+        `,
+          identifyLimitParam: limitParam,
+          identifyOffsetParam: offsetParam,
+        })}
       `;
 
       if (dryRun) {
@@ -1536,12 +1537,29 @@ export async function backfillUserTraitValues({
       const result = await command({
         query: insertQuery,
         query_params: insertQb.getQueries(),
-        clickhouse_settings: { wait_end_of_query: 1 },
+        clickhouse_settings: {
+          wait_end_of_query: 1,
+          max_execution_time: 0,
+        },
       });
       const writtenRowsString = result.summary?.written_rows;
       const writtenRows = writtenRowsString ? parseInt(writtenRowsString) : 0;
+      const readRowsString = result.summary?.read_rows;
+      const readRows = readRowsString ? parseInt(readRowsString) : 0;
       totalInserted += writtenRows;
-      if (writtenRows === 0 || writtenRows < limit) {
+      logger().info(
+        {
+          start: currentStart.toISOString(),
+          end: currentEnd.toISOString(),
+          offset,
+          limit,
+          readRows,
+          writtenRows,
+          totalInserted,
+        },
+        "User trait values backfill batch completed",
+      );
+      if (readRows === 0 || readRows < limit) {
         break;
       }
       offset += limit;
@@ -1811,8 +1829,8 @@ export async function createTrackEventsTable({
 }
 
 export async function createUserTraitValuesTable({
-  backfillLimit = 50000,
-  intervalMinutes = 1440,
+  backfillLimit = 2000,
+  intervalMinutes = 60,
 }: {
   backfillLimit?: number;
   intervalMinutes?: number;
