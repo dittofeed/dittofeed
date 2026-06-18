@@ -742,10 +742,10 @@ export function buildCombinedTraitStateInsertQuery({
           '${subQuery.computedPropertyId}' as computed_property_id,
           '${subQuery.stateId}' as state_id,
           user_or_anonymous_id,
-          argMaxState(${argMaxValue} as last_value, trait_event_time) as last_value,
-          uniqState(${uniqValue} as unique_value) as unique_value,
+          argMaxState(${argMaxValue}, trait_event_time) as last_value,
+          uniqState(${uniqValue}) as unique_value,
           trait_event_time as truncated_event_time,
-          groupArrayState('' as grouped_message_id) as grouped_message_id,
+          groupArrayState('') as grouped_message_id,
           toDateTime64(${nowSeconds}, 3) as computed_at
         from per_trait
         where trait_path = '${traitPath}'
