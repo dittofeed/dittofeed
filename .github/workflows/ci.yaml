@@ -95,6 +95,9 @@ jobs:
         id: kube
         uses: ./.github/actions/vault-load-kubeconfig
 
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
       - name: Setup kubeconfig
         run: |
           export HOME="${HOME:-/root}"
