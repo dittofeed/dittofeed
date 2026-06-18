@@ -29,6 +29,7 @@ import {
   buildIdentifyEventsTableQuery,
   buildInternalEventsTableQuery,
   buildTrackEventsTableQuery,
+  buildUserTraitValuesFromIdentifyEventsQuery,
   buildUserTraitValuesTableQuery,
   CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
   CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY,
@@ -1508,30 +1509,12 @@ export async function backfillUserTraitValues({
           event_time,
           processing_time
         )
-        SELECT
-          workspace_id,
-          user_or_anonymous_id,
-          trait_path,
-          trait_value,
-          event_time,
-          processing_time
-        FROM (
-          SELECT
-            workspace_id,
-            user_or_anonymous_id,
-            trait_path,
-            JSONExtractString(properties, trait_path) AS trait_value,
-            event_time,
-            processing_time
-          FROM ${IDENTIFY_EVENTS_TABLE}
-          WHERE
-            processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
-            AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
-            AND length(properties) > 2
-            ${insertWorkspaceFilter}
-          ARRAY JOIN JSONExtractKeys(assumeNotNull(properties)) AS trait_path
-        )
-        WHERE trait_path != '' AND trait_value != ''
+        ${buildUserTraitValuesFromIdentifyEventsQuery(`
+          processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
+          AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+          AND length(properties) > 2
+          ${insertWorkspaceFilter}
+        `)}
         ORDER BY processing_time
         LIMIT ${limitParam}
         OFFSET ${offsetParam}
