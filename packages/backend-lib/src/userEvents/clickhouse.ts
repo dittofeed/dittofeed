@@ -134,7 +134,8 @@ export function buildUserTraitValuesBackfillInsertQuery({
           user_or_anonymous_id,
           properties,
           event_time,
-          processing_time
+          processing_time,
+          message_id
         FROM ${IDENTIFY_EVENTS_TABLE}
         WHERE ${whereClause}
         ORDER BY
