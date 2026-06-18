@@ -327,6 +327,7 @@ describe("computePropertiesTraitOptimizations", () => {
     expect(query).toContain("with per_trait as");
     expect(query).toContain("from user_trait_values_v2 tv");
     expect(query).toContain("trait_path in ('banned', 'suspended')");
+    expect(query).not.toMatch(/argMaxState\([^)]*\bas last_value\b/);
   });
 
   it("keeps non-combinable subqueries as single tasks", () => {
