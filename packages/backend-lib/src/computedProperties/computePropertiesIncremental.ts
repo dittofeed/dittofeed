@@ -744,11 +744,14 @@ export function buildCombinedTraitStateInsertQuery({
           user_or_anonymous_id,
           argMaxState(${argMaxValue}, trait_event_time) as last_value,
           uniqState(${uniqValue}) as unique_value,
-          trait_event_time as truncated_event_time,
+          max(trait_event_time) as truncated_event_time,
           groupArrayState('') as grouped_message_id,
           toDateTime64(${nowSeconds}, 3) as computed_at
         from per_trait
         where trait_path = '${traitPath}'
+        group by
+          workspace_id,
+          user_or_anonymous_id
       `;
       })
       .join("\nunion all\n");
