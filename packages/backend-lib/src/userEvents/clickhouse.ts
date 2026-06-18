@@ -7,9 +7,7 @@ import {
   InternalEventType,
   JSONValue,
 } from "../types";
-import {
-  resolveMergeTreeEngine,
-} from "./clickhouseEngines";
+import { resolveMergeTreeEngine } from "./clickhouseEngines";
 
 export interface InsertValue {
   processingTime?: string;
@@ -78,29 +76,37 @@ export function buildUserTraitValuesTableQuery(engine: string): string {
 export const CREATE_USER_TRAIT_VALUES_TABLE_QUERY =
   buildUserTraitValuesTableQuery("MergeTree()");
 
-export const CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY = `
-  CREATE MATERIALIZED VIEW IF NOT EXISTS user_trait_values_v2_mv
-  TO ${USER_TRAIT_VALUES_TABLE}
-  AS SELECT
-    workspace_id,
-    user_or_anonymous_id,
-    trait_path,
-    trait_value,
-    event_time,
-    processing_time
-  FROM (
+export function buildUserTraitValuesFromIdentifyEventsQuery(
+  whereClause: string,
+): string {
+  return `
     SELECT
       workspace_id,
       user_or_anonymous_id,
       trait_path,
-      JSONExtractString(properties, trait_path) AS trait_value,
+      trait_value,
       event_time,
       processing_time
-    FROM ${IDENTIFY_EVENTS_TABLE}
-    ARRAY JOIN JSONExtractKeys(assumeNotNull(properties)) AS trait_path
-    WHERE length(properties) > 2
-  )
-  WHERE trait_path != '' AND trait_value != '';
+    FROM (
+      SELECT
+        workspace_id,
+        user_or_anonymous_id,
+        trait_path,
+        JSONExtractString(properties, trait_path) AS trait_value,
+        event_time,
+        processing_time
+      FROM ${IDENTIFY_EVENTS_TABLE}
+      ARRAY JOIN JSONExtractKeys(assumeNotNull(properties)) AS trait_path
+      WHERE ${whereClause}
+    )
+    WHERE trait_path != '' AND trait_value != ''
+  `;
+}
+
+export const CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS user_trait_values_v2_mv
+  TO ${USER_TRAIT_VALUES_TABLE}
+  AS ${buildUserTraitValuesFromIdentifyEventsQuery("length(properties) > 2")}
 `;
 
 export function buildIdentifyEventsTableQuery(engine: string): string {
@@ -127,9 +133,8 @@ export function buildIdentifyEventsTableQuery(engine: string): string {
 `;
 }
 
-export const CREATE_IDENTIFY_EVENTS_TABLE_QUERY = buildIdentifyEventsTableQuery(
-  "MergeTree()",
-);
+export const CREATE_IDENTIFY_EVENTS_TABLE_QUERY =
+  buildIdentifyEventsTableQuery("MergeTree()");
 
 export const CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY = `
   CREATE MATERIALIZED VIEW IF NOT EXISTS identify_events_v2_mv
@@ -174,9 +179,8 @@ export function buildTrackEventsTableQuery(engine: string): string {
 `;
 }
 
-export const CREATE_TRACK_EVENTS_TABLE_QUERY = buildTrackEventsTableQuery(
-  "MergeTree()",
-);
+export const CREATE_TRACK_EVENTS_TABLE_QUERY =
+  buildTrackEventsTableQuery("MergeTree()");
 
 export const CREATE_TRACK_EVENTS_MATERIALIZED_VIEW_QUERY = `
   CREATE MATERIALIZED VIEW IF NOT EXISTS track_events_v2_mv
