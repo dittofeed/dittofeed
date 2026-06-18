@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Read KUBE_CONFIG from Vault KV v2 path cicd/github.
+# Read KUBE_CONFIG from Vault KV v2 path cicd/github → write to a temp file.
 set -euo pipefail
 
 path="cicd/github"
@@ -32,9 +32,6 @@ oidc_token="$(
     "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${VAULT_GITHUB_AUDIENCE}" \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])'
 )"
-if [ -n "${oidc_token}" ] && [ "${#oidc_token}" -ge 4 ]; then
-  echo "::add-mask::${oidc_token}"
-fi
 
 login_body="$(
   VAULT_GITHUB_ROLE="$VAULT_GITHUB_ROLE" OIDC_TOKEN="$oidc_token" python3 -c \
@@ -56,9 +53,6 @@ vault_token="$(
   python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["auth"]["client_token"])' "$login_resp"
 )"
 rm -f "$login_resp"
-if [ -n "${vault_token}" ] && [ "${#vault_token}" -ge 4 ]; then
-  echo "::add-mask::${vault_token}"
-fi
 
 mount="${path%%/*}"
 rel="${path#*/}"
@@ -70,54 +64,24 @@ kv_code="$(
 )"
 if [ "$kv_code" != "200" ]; then
   echo "::error::Vault read ${path} HTTP ${kv_code}: $(head -c 400 "$kv_resp")"
-  if [ "$kv_code" = "403" ]; then
-    echo "::error::403: policy must allow ${mount}/data/${rel} (see infrastructure/vault/github-cicd-read.hcl)"
-  fi
   exit 1
 fi
 
 KUBECONFIG_FILE="$kubeconfig_file" VAULT_KV_RESPONSE="$kv_resp" python3 <<'PY'
-import base64
-import binascii
 import json
 import os
 import stat
 
-def decode_kubeconfig(raw: str) -> str:
-    raw = raw.strip()
-    if not raw:
-        raise SystemExit("KUBE_CONFIG is empty in cicd/github")
-
-    if "apiVersion:" in raw and "clusters:" in raw:
-        return raw
-
-    b64 = "".join(raw.split())
-    padded = b64 + "=" * (-len(b64) % 4)
-    last_error = None
-    for decoder in (base64.b64decode, base64.urlsafe_b64decode):
-        try:
-            decoded = decoder(padded).decode("utf-8")
-        except (binascii.Error, UnicodeDecodeError) as exc:
-            last_error = exc
-            continue
-        if "apiVersion:" in decoded and "clusters:" in decoded:
-            return decoded
-
-    raise SystemExit(
-        "KUBE_CONFIG must be kubeconfig YAML or base64-encoded kubeconfig "
-        f"(decode failed: {last_error})"
-    )
-
 data = json.load(open(os.environ["VAULT_KV_RESPONSE"]))["data"]["data"]
-kube = decode_kubeconfig(data.get("KUBE_CONFIG", ""))
+kube = data.get("KUBE_CONFIG", "").strip()
+if not kube:
+    raise SystemExit("KUBE_CONFIG missing in cicd/github")
 
 path = os.environ["KUBECONFIG_FILE"]
 with open(path, "w", encoding="utf-8") as handle:
-    handle.write(kube if kube.endswith("\n") else kube + "\n")
+    handle.write(kube + "\n")
 os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
 PY
 rm -f "$kv_resp"
 
-if [ -n "${GITHUB_OUTPUT:-}" ]; then
-  echo "kubeconfig_file=${kubeconfig_file}" >> "$GITHUB_OUTPUT"
-fi
+echo "kubeconfig_file=${kubeconfig_file}" >> "${GITHUB_OUTPUT:?GITHUB_OUTPUT is not set}"

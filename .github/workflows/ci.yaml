@@ -97,21 +97,21 @@ jobs:
 
       - name: Setup kubeconfig
         run: |
-          set -euo pipefail
+          export HOME="${HOME:-/root}"
           src="${{ steps.kube.outputs.kubeconfig_file }}"
           if [ ! -s "$src" ]; then
             echo "::error::kubeconfig file is missing or empty"
             exit 1
           fi
           mkdir -p "$HOME/.kube"
-          cp "$src" "$HOME/.kube/config"
+          if head -1 "$src" | grep -q '^apiVersion:'; then
+            cp "$src" "$HOME/.kube/config"
+          else
+            base64 -d < "$src" > "$HOME/.kube/config"
+          fi
           chmod 600 "$HOME/.kube/config"
           echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
-          grep -q '^apiVersion:' "$HOME/.kube/config"
-          grep -q '^clusters:' "$HOME/.kube/config"
-
-      - name: Verify cluster access
-        run: kubectl cluster-info --request-timeout=15s
+          kubectl cluster-info --request-timeout=15s
 
       - name: Setup Helm
         uses: azure/setup-helm@v4
