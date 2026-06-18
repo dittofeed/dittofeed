@@ -2455,15 +2455,18 @@ export function segmentNodeToStateSubQuery({
         return [];
       }
       if (node.operator.type === SegmentOperatorType.NotEquals) {
-        const useTraitValuesTable = canUseTraitValuesTableForPath(node.path);
+        const traitBase = traitIdentifySubQueryBase(
+          node.operator.type,
+          node.path,
+        );
         const valueExpr = traitValueExpression({
           jsonPathParam: path,
           qb,
-          useTraitValuesTable,
+          useTraitValuesTable: traitBase.useTraitValuesTable === true,
         });
         return [
           {
-            ...traitIdentifySubQueryBase(node.operator.type, node.path),
+            ...traitBase,
             type: "segment",
             uniqValue: "''",
             traitPath: node.path,
@@ -2484,15 +2487,18 @@ export function segmentNodeToStateSubQuery({
         ];
       }
       if (node.operator.type === SegmentOperatorType.NotExists) {
-        const useTraitValuesTable = canUseTraitValuesTableForPath(node.path);
+        const traitBase = traitIdentifySubQueryBase(
+          node.operator.type,
+          node.path,
+        );
         const valueExpr = traitValueExpression({
           jsonPathParam: path,
           qb,
-          useTraitValuesTable,
+          useTraitValuesTable: traitBase.useTraitValuesTable === true,
         });
         return [
           {
-            ...traitIdentifySubQueryBase(node.operator.type, node.path),
+            ...traitBase,
             type: "segment",
             traitPath: node.path,
             segmentTraitOperator: node.operator.type,
@@ -2534,9 +2540,10 @@ export function segmentNodeToStateSubQuery({
         eventTimeExpression = `toDateTime64(toStartOfInterval(event_time, toIntervalSecond(3600)), 3)`;
       }
 
+      const traitBase = traitIdentifySubQueryBase(node.operator.type, node.path);
       return [
         {
-          ...traitIdentifySubQueryBase(node.operator.type, node.path),
+          ...traitBase,
           type: "segment",
           traitPath: node.path,
           segmentTraitOperator: node.operator.type,
@@ -2546,7 +2553,7 @@ export function segmentNodeToStateSubQuery({
           argMaxValue: traitValueExpression({
             jsonPathParam: path,
             qb,
-            useTraitValuesTable: canUseTraitValuesTableForPath(node.path),
+            useTraitValuesTable: traitBase.useTraitValuesTable === true,
           }),
           eventTimeExpression,
           computedPropertyId: segment.id,
@@ -2896,17 +2903,20 @@ function leafUserPropertyToSubQuery({
       if (!path) {
         return null;
       }
+      const traitBase = traitIdentifySubQueryBase(
+        SegmentOperatorType.Equals,
+        child.path,
+      );
       const conditions = ["True"];
       if (excludeNulls) {
-        const useTraitValuesTable = canUseTraitValuesTableForPath(child.path);
         conditions.push(
-          useTraitValuesTable
+          traitBase.useTraitValuesTable
             ? `tv.trait_value != 'null'`
             : `JSON_VALUE(properties, ${path}) != 'null'`,
         );
       }
       return {
-        ...traitIdentifySubQueryBase(SegmentOperatorType.Equals, child.path),
+        ...traitBase,
         condition: conditions.join(" and "),
         type: "user_property",
         uniqValue: "''",
@@ -2914,7 +2924,7 @@ function leafUserPropertyToSubQuery({
         argMaxValue: traitValueExpression({
           jsonPathParam: path,
           qb,
-          useTraitValuesTable: canUseTraitValuesTableForPath(child.path),
+          useTraitValuesTable: traitBase.useTraitValuesTable === true,
         }),
         computedPropertyId: userProperty.id,
         stateId,

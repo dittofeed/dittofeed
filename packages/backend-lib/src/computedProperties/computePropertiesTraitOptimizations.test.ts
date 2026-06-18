@@ -141,6 +141,8 @@ describe("computePropertiesTraitOptimizations", () => {
       joinedPrior: "",
     });
     expect(query).toContain("from identify_events_v2 ue");
+    expect(query).toContain("JSON_VALUE(properties");
+    expect(query).not.toContain("tv.trait_value");
     expect(query).toContain(
       "group by\n      ue.workspace_id, ue.user_or_anonymous_id, ue.event_time",
     );
