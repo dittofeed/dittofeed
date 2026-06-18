@@ -78,21 +78,38 @@ fi
 
 KUBECONFIG_FILE="$kubeconfig_file" VAULT_KV_RESPONSE="$kv_resp" python3 <<'PY'
 import base64
+import binascii
 import json
 import os
 import stat
 
-data = json.load(open(os.environ["VAULT_KV_RESPONSE"]))["data"]["data"]
-kube = data.get("KUBE_CONFIG", "")
-if not kube:
-    raise SystemExit("KUBE_CONFIG missing in cicd/github")
+def decode_kubeconfig(raw: str) -> str:
+    raw = raw.strip()
+    if not raw:
+        raise SystemExit("KUBE_CONFIG is empty in cicd/github")
 
-try:
-    decoded = base64.b64decode(kube, validate=True).decode()
-    if "apiVersion:" in decoded:
-        kube = decoded
-except Exception:
-    pass
+    if "apiVersion:" in raw and "clusters:" in raw:
+        return raw
+
+    b64 = "".join(raw.split())
+    padded = b64 + "=" * (-len(b64) % 4)
+    last_error = None
+    for decoder in (base64.b64decode, base64.urlsafe_b64decode):
+        try:
+            decoded = decoder(padded).decode("utf-8")
+        except (binascii.Error, UnicodeDecodeError) as exc:
+            last_error = exc
+            continue
+        if "apiVersion:" in decoded and "clusters:" in decoded:
+            return decoded
+
+    raise SystemExit(
+        "KUBE_CONFIG must be kubeconfig YAML or base64-encoded kubeconfig "
+        f"(decode failed: {last_error})"
+    )
+
+data = json.load(open(os.environ["VAULT_KV_RESPONSE"]))["data"]["data"]
+kube = decode_kubeconfig(data.get("KUBE_CONFIG", ""))
 
 path = os.environ["KUBECONFIG_FILE"]
 with open(path, "w", encoding="utf-8") as handle:

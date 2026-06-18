@@ -33,7 +33,7 @@ env:
 jobs:
   docker:
     name: Publish Docker image (${{ matrix.package }})
-    runs-on: self-hosted
+    runs-on: [self-hosted, standalone]
     strategy:
       fail-fast: false
       matrix:
@@ -65,7 +65,7 @@ jobs:
   deploy:
     name: Deploy (${{ github.event_name == 'workflow_dispatch' && inputs.target || 'prod' }})
     needs: docker
-    runs-on: self-hosted
+    runs-on: [self-hosted, standalone]
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'prod' }}
     env:
       VAULT_ADDR: https://vault.hngcweywe.com
@@ -97,9 +97,21 @@ jobs:
 
       - name: Setup kubeconfig
         run: |
+          set -euo pipefail
+          src="${{ steps.kube.outputs.kubeconfig_file }}"
+          if [ ! -s "$src" ]; then
+            echo "::error::kubeconfig file is missing or empty"
+            exit 1
+          fi
           mkdir -p "$HOME/.kube"
-          cp "${{ steps.kube.outputs.kubeconfig_file }}" "$HOME/.kube/config"
+          cp "$src" "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
+          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
+          grep -q '^apiVersion:' "$HOME/.kube/config"
+          grep -q '^clusters:' "$HOME/.kube/config"
+
+      - name: Verify cluster access
+        run: kubectl cluster-info --request-timeout=15s
 
       - name: Setup Helm
         uses: azure/setup-helm@v4
