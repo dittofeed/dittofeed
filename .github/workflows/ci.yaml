@@ -143,17 +143,6 @@ jobs:
           fi
           helm "${args[@]}"
 
-      - name: Run database migrations
-        run: |
-          kubectl rollout status \
-            -n "${{ steps.target.outputs.namespace }}" \
-            deployment/dittofeed-admin-cli \
-            --timeout=300s
-          kubectl exec \
-            -n "${{ steps.target.outputs.namespace }}" \
-            deploy/dittofeed-admin-cli \
-            -- ./admin.sh migrate
-
       - name: Deploy dittofeed app
         run: |
           set -euo pipefail
