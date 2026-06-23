@@ -687,7 +687,9 @@ export function groupTraitSubQueriesForCombinedScan(
       tasks.push({ kind: "single", subQuery });
       continue;
     }
-    const key = `${subQuery.type}:${subQuery.computedPropertyId}`;
+    const sourceKey =
+      subQuery.useTraitValuesTable === true ? "trait-values" : "events";
+    const key = `${subQuery.type}:${subQuery.computedPropertyId}:${sourceKey}`;
     const group = combinableByKey.get(key) ?? [];
     group.push(subQuery);
     combinableByKey.set(key, group);

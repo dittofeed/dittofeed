@@ -78,6 +78,7 @@ import {
 import { getUsers } from "../users";
 import type { ComputePropertiesArgs } from "./computePropertiesIncremental";
 import {
+  groupTraitSubQueriesForCombinedScan,
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
@@ -890,6 +891,50 @@ async function upsertComputedProperties({
 }
 
 jest.setTimeout(3000000);
+
+describe("groupTraitSubQueriesForCombinedScan", () => {
+  it("does not combine trait subqueries from different source tables", () => {
+    type TraitSubQuery = Parameters<
+      typeof groupTraitSubQueriesForCombinedScan
+    >[0][number];
+
+    const baseSubQuery: Omit<
+      TraitSubQuery,
+      "traitPath" | "useTraitValuesTable"
+    > = {
+      useIdentifyEventsTable: false,
+      useTrackEventsTable: false,
+      groupByUserOnly: true,
+      condition: "True",
+      joinPriorStateValue: undefined,
+      type: "segment",
+      computedPropertyId: "segment-1",
+      stateId: "state-1",
+      argMaxValue: "tv.trait_value",
+      uniqValue: "''",
+    };
+
+    const tasks = groupTraitSubQueriesForCombinedScan([
+      {
+        ...baseSubQuery,
+        useTraitValuesTable: true,
+        traitPath: "lastVisit",
+      },
+      {
+        ...baseSubQuery,
+        useIdentifyEventsTable: true,
+        useTraitValuesTable: false,
+        stateId: "state-2",
+        argMaxValue: "JSON_VALUE(properties, 'lastVisit')",
+      },
+    ]);
+
+    expect(tasks).toEqual([
+      expect.objectContaining({ kind: "single" }),
+      expect.objectContaining({ kind: "single" }),
+    ]);
+  });
+});
 
 describe("computeProperties", () => {
   const tests: TableTest[] = [
