@@ -33,6 +33,11 @@ COPY ./packages/worker/ ./packages/worker
 COPY ./packages/admin-cli/ ./packages/admin-cli
 COPY ./packages/emailo/ ./packages/emailo
 
+# next build imports backend-lib SSR pages that validate production config.
+ENV CLICKHOUSE_HOST=http://127.0.0.1:8123 \
+    CLICKHOUSE_USER=default \
+    CLICKHOUSE_PASSWORD=build
+
 RUN yarn workspace emailo build && \
     yarn workspace api build && \
     yarn workspace worker build && \
