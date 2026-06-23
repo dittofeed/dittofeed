@@ -387,6 +387,16 @@ const SIMPLE_TRAIT_SEGMENT_OPERATORS: ReadonlySet<SegmentOperatorType> =
     SegmentOperatorType.NotExists,
   ]);
 
+// Within, NotWithin, and AbsoluteTimestamp only need the latest trait value as a
+// timestamp, not identify history, so they can use user_trait_values_v2 when the
+// path is flat.
+const TRAIT_VALUES_TABLE_OPERATORS: ReadonlySet<SegmentOperatorType> = new Set([
+  ...SIMPLE_TRAIT_SEGMENT_OPERATORS,
+  SegmentOperatorType.Within,
+  SegmentOperatorType.NotWithin,
+  SegmentOperatorType.AbsoluteTimestamp,
+]);
+
 const REUSABLE_TRAIT_SEGMENT_OPERATORS: ReadonlySet<SegmentOperatorType> =
   new Set([
     SegmentOperatorType.Equals,
@@ -400,6 +410,16 @@ function isSimpleTraitSegmentOperator(
   operatorType: SegmentOperatorType,
 ): boolean {
   return SIMPLE_TRAIT_SEGMENT_OPERATORS.has(operatorType);
+}
+
+function usesTraitValuesTableForOperator(
+  operatorType: SegmentOperatorType,
+  traitPath: string,
+): boolean {
+  return (
+    canUseTraitValuesTableForPath(traitPath) &&
+    TRAIT_VALUES_TABLE_OPERATORS.has(operatorType)
+  );
 }
 
 function isReusableTraitSegmentOperator(
@@ -440,13 +460,15 @@ function traitIdentifySubQueryBase(
   | "groupByUserOnly"
   | "condition"
 > {
-  const useTraitValuesTable =
-    canUseTraitValuesTableForPath(traitPath) &&
-    isSimpleTraitSegmentOperator(operatorType);
+  const useTraitValuesTable = usesTraitValuesTableForOperator(
+    operatorType,
+    traitPath,
+  );
   return {
     useTraitValuesTable,
     useIdentifyEventsTable: !useTraitValuesTable,
-    groupByUserOnly: isSimpleTraitSegmentOperator(operatorType),
+    groupByUserOnly:
+      useTraitValuesTable || isSimpleTraitSegmentOperator(operatorType),
     condition: "True",
   };
 }
@@ -1102,7 +1124,8 @@ function segmentToIndexed({
 
       switch (node.operator.type) {
         case SegmentOperatorType.AbsoluteTimestamp:
-        case SegmentOperatorType.Within: {
+        case SegmentOperatorType.Within:
+        case SegmentOperatorType.NotWithin: {
           return [
             {
               stateId,
@@ -1605,7 +1628,8 @@ function segmentToResolvedState({
       const { operator } = node;
       switch (operator.type) {
         case SegmentOperatorType.AbsoluteTimestamp:
-        case SegmentOperatorType.Within: {
+        case SegmentOperatorType.Within:
+        case SegmentOperatorType.NotWithin: {
           let boundClause: string;
           if (operator.type === SegmentOperatorType.AbsoluteTimestamp) {
             const indexValueComparator =
@@ -1617,11 +1641,16 @@ function segmentToResolvedState({
               unixTimestamp,
               "Int32",
             )}`;
-          } else {
+          } else if (operator.type === SegmentOperatorType.Within) {
             const withinLowerBound = Math.round(
               Math.max(nowSeconds - operator.windowSeconds, 0),
             );
             boundClause = `indexed_value >= ${qb.addQueryValue(withinLowerBound, "Int32")}`;
+          } else {
+            const notWithinUpperBound = Math.round(
+              Math.max(nowSeconds - operator.windowSeconds, 0),
+            );
+            boundClause = `indexed_value < ${qb.addQueryValue(notWithinUpperBound, "Int32")}`;
           }
           const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
           const computedPropertyIdParam = qb.addQueryValue(
@@ -2535,20 +2564,24 @@ export function segmentNodeToStateSubQuery({
           },
         ];
       }
-      let eventTimeExpression: string | undefined;
-      if (
-        node.operator.type === SegmentOperatorType.HasBeen ||
-        node.operator.type === SegmentOperatorType.Within
-      ) {
-        eventTimeExpression = truncateEventTimeExpression(
-          node.operator.windowSeconds,
-        );
-      } else if (node.operator.type === SegmentOperatorType.AbsoluteTimestamp) {
-        // Using precision / interval of 1 hour
-        eventTimeExpression = `toDateTime64(toStartOfInterval(event_time, toIntervalSecond(3600)), 3)`;
-      }
-
       const traitBase = traitIdentifySubQueryBase(node.operator.type, node.path);
+      let eventTimeExpression: string | undefined;
+      if (!traitBase.groupByUserOnly) {
+        if (
+          node.operator.type === SegmentOperatorType.HasBeen ||
+          node.operator.type === SegmentOperatorType.Within ||
+          node.operator.type === SegmentOperatorType.NotWithin
+        ) {
+          eventTimeExpression = truncateEventTimeExpression(
+            node.operator.windowSeconds,
+          );
+        } else if (
+          node.operator.type === SegmentOperatorType.AbsoluteTimestamp
+        ) {
+          // Using precision / interval of 1 hour
+          eventTimeExpression = `toDateTime64(toStartOfInterval(event_time, toIntervalSecond(3600)), 3)`;
+        }
+      }
       return [
         {
           ...traitBase,
@@ -2622,7 +2655,8 @@ export function segmentNodeToStateSubQuery({
               `Unimplemented segment operator for performed node ${operator.type} for segment: ${segment.id} and node: ${node.id}`,
             );
           }
-          case SegmentOperatorType.Within: {
+          case SegmentOperatorType.Within:
+          case SegmentOperatorType.NotWithin: {
             throw new Error(
               `Unimplemented segment operator for performed node ${operator.type} for segment: ${segment.id} and node: ${node.id}`,
             );

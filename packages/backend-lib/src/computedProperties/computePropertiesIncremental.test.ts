@@ -2938,6 +2938,148 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "computes NotWithin operator trait segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "inactiveUsers",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: "1",
+              path: "lastVisit",
+              operator: {
+                type: SegmentOperatorType.NotWithin,
+                windowSeconds: 60,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            ({ now }) => ({
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                lastVisit: Math.floor((now - 120000) / 1000),
+              },
+            }),
+            ({ now }) => ({
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                lastVisit: Math.floor((now - 30000) / 1000),
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user with stale lastVisit is in the segment, recent user is not",
+          indexedStates: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "inactiveUsers",
+              nodeId: "1",
+              indexedValue: Math.floor((now - 120000) / 1000),
+            }),
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-2",
+              name: "inactiveUsers",
+              nodeId: "1",
+              indexedValue: Math.floor((now - 30000) / 1000),
+            }),
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                inactiveUsers: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                inactiveUsers: null,
+              },
+            },
+          ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "inactiveUsers",
+              nodeId: "1",
+              lastValue: String(Math.floor((now - 120000) / 1000)),
+            }),
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-2",
+              name: "inactiveUsers",
+              nodeId: "1",
+              lastValue: String(Math.floor((now - 30000) / 1000)),
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            ({ now }) => ({
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                lastVisit: Math.floor((now - 100) / 1000),
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user leaves the segment after lastVisit is updated to a recent value",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                inactiveUsers: null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                inactiveUsers: null,
+              },
+            },
+          ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "inactiveUsers",
+              nodeId: "1",
+              lastValue: String(Math.floor((now - 100) / 1000)),
+            }),
+          ],
+        },
+      ],
+    },
+    {
       description: "computes absolute timestamp operator trait segment",
       userProperties: [],
       segments: [],

@@ -231,6 +231,7 @@ export enum UserPropertyOperatorType {
 
 export enum SegmentOperatorType {
   Within = "Within",
+  NotWithin = "NotWithin",
   Equals = "Equals",
   HasBeen = "HasBeen",
   NotEquals = "NotEquals",
@@ -261,6 +262,13 @@ export const SegmentWithinOperator = Type.Object({
 });
 
 export type SegmentWithinOperator = Static<typeof SegmentWithinOperator>;
+
+export const SegmentNotWithinOperator = Type.Object({
+  type: Type.Literal(SegmentOperatorType.NotWithin),
+  windowSeconds: Type.Number(),
+});
+
+export type SegmentNotWithinOperator = Static<typeof SegmentNotWithinOperator>;
 
 export const SegmentAbsoluteTimestampOperator = Type.Object({
   type: Type.Literal(SegmentOperatorType.AbsoluteTimestamp),
@@ -316,6 +324,7 @@ export type SegmentLessThanOperator = Static<typeof SegmentLessThanOperator>;
 
 export const SegmentOperator = Type.Union([
   SegmentWithinOperator,
+  SegmentNotWithinOperator,
   SegmentAbsoluteTimestampOperator,
   SegmentEqualsOperator,
   SegmentNotEqualsOperator,

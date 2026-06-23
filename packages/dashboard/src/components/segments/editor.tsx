@@ -58,6 +58,7 @@ import {
   SegmentOperatorType,
   SegmentResource,
   SegmentWithinOperator,
+  SegmentNotWithinOperator,
   SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
   TraitSegmentNode,
@@ -619,6 +620,11 @@ const withinOperatorOption = {
   label: "Within",
 };
 
+const notWithinOperatorOption = {
+  id: SegmentOperatorType.NotWithin,
+  label: "Not Within",
+};
+
 const existsOperatorOption = {
   id: SegmentOperatorType.Exists,
   label: "Exists",
@@ -658,6 +664,7 @@ const traitOperatorOptions: Option[] = [
   equalsOperatorOption,
   notEqualsOperatorOption,
   withinOperatorOption,
+  notWithinOperatorOption,
   hasBeenOperatorOption,
   existsOperatorOption,
   notExistsOperatorOption,
@@ -670,6 +677,7 @@ const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
   [SegmentOperatorType.NotExists]: notExistsOperatorOption,
   [SegmentOperatorType.Equals]: equalsOperatorOption,
   [SegmentOperatorType.Within]: withinOperatorOption,
+  [SegmentOperatorType.NotWithin]: notWithinOperatorOption,
   [SegmentOperatorType.HasBeen]: hasBeenOperatorOption,
   [SegmentOperatorType.Exists]: existsOperatorOption,
   [SegmentOperatorType.NotEquals]: notEqualsOperatorOption,
@@ -806,7 +814,7 @@ function DurationValueSelect({
   operator,
 }: {
   nodeId: string;
-  operator: SegmentWithinOperator | SegmentHasBeenOperator;
+  operator: SegmentWithinOperator | SegmentNotWithinOperator | SegmentHasBeenOperator;
 }) {
   const value = operator.windowSeconds;
 
@@ -818,6 +826,7 @@ function DurationValueSelect({
       if (
         node.type === SegmentNodeType.Trait &&
         (node.operator.type === SegmentOperatorType.Within ||
+          node.operator.type === SegmentOperatorType.NotWithin ||
           node.operator.type === SegmentOperatorType.HasBeen)
       ) {
         node.operator.windowSeconds = seconds;
@@ -2405,6 +2414,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   let valueSelect: React.ReactElement | null;
   switch (node.operator.type) {
     case SegmentOperatorType.Within:
+    case SegmentOperatorType.NotWithin:
       valueSelect = (
         <DurationValueSelect nodeId={node.id} operator={node.operator} />
       );
@@ -2536,6 +2546,13 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                   case SegmentOperatorType.Within: {
                     nodeOperator = {
                       type: SegmentOperatorType.Within,
+                      windowSeconds: 0,
+                    };
+                    break;
+                  }
+                  case SegmentOperatorType.NotWithin: {
+                    nodeOperator = {
+                      type: SegmentOperatorType.NotWithin,
                       windowSeconds: 0,
                     };
                     break;

@@ -6,6 +6,7 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   UserPropertyDefinitionType,
+  CursorDirectionEnum,
 } from "../types";
 import {
   buildCombinedTraitStateInsertQuery,
@@ -63,7 +64,7 @@ describe("computePropertiesTraitOptimizations", () => {
     expect(match?.stateId).toBeTruthy();
   });
 
-  it("builds identify_events_v2 queries grouped by user for simple trait segments", () => {
+  it("builds user_trait_values_v2 queries grouped by user for simple trait segments", () => {
     const qb = new ClickHouseQueryBuilder();
     const [subQuery] = segmentNodeToStateSubQuery({
       segment,
@@ -88,9 +89,9 @@ describe("computePropertiesTraitOptimizations", () => {
     expect(query).toContain("from user_trait_values_v2 tv");
     expect(query).toContain("trait_path = 'email'");
     expect(query).toContain(
-      "group by\n      ue.workspace_id, ue.user_or_anonymous_id",
+      "group by\n      tv.workspace_id, tv.user_or_anonymous_id",
     );
-    expect(query).not.toContain("ue.event_time\n");
+    expect(query).not.toContain("tv.event_time\n");
   });
 
   it("keeps per-event grouping for HasBeen trait segments", () => {
@@ -328,7 +329,7 @@ describe("computePropertiesTraitOptimizations", () => {
     expect(query).toContain("from user_trait_values_v2 tv");
     expect(query).toContain("trait_path in ('banned', 'suspended')");
     expect(query).not.toMatch(/argMaxState\([^)]*\bas last_value\b/);
-    expect(query).not.toContain("tv.trait_value");
+    expect(query).toContain("from per_trait");
     expect(query).toContain(
       "group by\n          workspace_id,\n          user_or_anonymous_id",
     );
@@ -384,8 +385,193 @@ describe("computePropertiesTraitOptimizations", () => {
       nowSeconds: 1,
       lowerBoundClause: "",
     });
-    expect(query).toContain("uniqState(if(trait_value = '', 'E', 'N'))");
-    expect(query).not.toContain("tv.trait_value");
+    expect(query).toMatch(
+      /uniqState\(\s*if\(\s*trait_value == '',\s*'E',\s*'N'\s*\)\s*\)/,
+    );
+    expect(query).toContain("from per_trait");
+  });
+
+  it("builds user_trait_values_v2 queries grouped by user for Within trait segments", () => {
+    const qb = new ClickHouseQueryBuilder();
+    const [subQuery] = segmentNodeToStateSubQuery({
+      segment: {
+        ...segment,
+        definition: {
+          entryNode: {
+            type: SegmentNodeType.Trait,
+            id: "node-1",
+            path: "created_at",
+            operator: {
+              type: SegmentOperatorType.Within,
+              windowSeconds: 604800,
+            },
+          },
+          nodes: [],
+        },
+      },
+      node: {
+        type: SegmentNodeType.Trait,
+        id: "node-1",
+        path: "created_at",
+        operator: {
+          type: SegmentOperatorType.Within,
+          windowSeconds: 604800,
+        },
+      },
+      qb,
+    });
+    expect(subQuery?.useTraitValuesTable).toBe(true);
+    expect(subQuery?.useIdentifyEventsTable).toBe(false);
+    expect(subQuery?.groupByUserOnly).toBe(true);
+
+    const query = buildComputeStateInsertQuery({
+      subQuery: subQuery!,
+      workspaceIdClause: qb.addQueryValue(
+        "00000000-0000-4000-8000-000000000099",
+        "String",
+      ),
+      nowSeconds: 1,
+      lowerBoundClause: "",
+      joinedPrior: "",
+    });
+    expect(query).toContain("from user_trait_values_v2 tv");
+    expect(query).toContain("trait_path = 'created_at'");
+    expect(query).not.toContain("from identify_events_v2 ue");
+    expect(query).toContain(
+      "group by\n      tv.workspace_id, tv.user_or_anonymous_id",
+    );
+    expect(query).not.toContain("tv.event_time\n");
+  });
+
+  it("builds user_trait_values_v2 queries grouped by user for NotWithin trait segments", () => {
+    const qb = new ClickHouseQueryBuilder();
+    const [subQuery] = segmentNodeToStateSubQuery({
+      segment: {
+        ...segment,
+        definition: {
+          entryNode: {
+            type: SegmentNodeType.Trait,
+            id: "node-1",
+            path: "lastVisit",
+            operator: {
+              type: SegmentOperatorType.NotWithin,
+              windowSeconds: 345600,
+            },
+          },
+          nodes: [],
+        },
+      },
+      node: {
+        type: SegmentNodeType.Trait,
+        id: "node-1",
+        path: "lastVisit",
+        operator: {
+          type: SegmentOperatorType.NotWithin,
+          windowSeconds: 345600,
+        },
+      },
+      qb,
+    });
+    expect(subQuery?.useTraitValuesTable).toBe(true);
+    expect(subQuery?.useIdentifyEventsTable).toBe(false);
+    expect(subQuery?.groupByUserOnly).toBe(true);
+
+    const query = buildComputeStateInsertQuery({
+      subQuery: subQuery!,
+      workspaceIdClause: qb.addQueryValue(
+        "00000000-0000-4000-8000-000000000099",
+        "String",
+      ),
+      nowSeconds: 1,
+      lowerBoundClause: "",
+      joinedPrior: "",
+    });
+    expect(query).toContain("from user_trait_values_v2 tv");
+    expect(query).toContain("trait_path = 'lastVisit'");
+    expect(query).not.toContain("from identify_events_v2 ue");
+  });
+
+  it("builds user_trait_values_v2 queries grouped by user for AbsoluteTimestamp trait segments", () => {
+    const qb = new ClickHouseQueryBuilder();
+    const [subQuery] = segmentNodeToStateSubQuery({
+      segment: {
+        ...segment,
+        definition: {
+          entryNode: {
+            type: SegmentNodeType.Trait,
+            id: "node-1",
+            path: "created_at",
+            operator: {
+              type: SegmentOperatorType.AbsoluteTimestamp,
+              absoluteTimestamp: "2026-01-01T00:00:00.000Z",
+              direction: CursorDirectionEnum.After,
+            },
+          },
+          nodes: [],
+        },
+      },
+      node: {
+        type: SegmentNodeType.Trait,
+        id: "node-1",
+        path: "created_at",
+        operator: {
+          type: SegmentOperatorType.AbsoluteTimestamp,
+          absoluteTimestamp: "2026-01-01T00:00:00.000Z",
+          direction: CursorDirectionEnum.After,
+        },
+      },
+      qb,
+    });
+    expect(subQuery?.useTraitValuesTable).toBe(true);
+    expect(subQuery?.groupByUserOnly).toBe(true);
+
+    const query = buildComputeStateInsertQuery({
+      subQuery: subQuery!,
+      workspaceIdClause: qb.addQueryValue(
+        "00000000-0000-4000-8000-000000000099",
+        "String",
+      ),
+      nowSeconds: 1,
+      lowerBoundClause: "",
+      joinedPrior: "",
+    });
+    expect(query).toContain("from user_trait_values_v2 tv");
+    expect(query).not.toContain("toStartOfInterval(event_time");
+  });
+
+  it("keeps per-event grouping for Within on nested trait paths", () => {
+    const qb = new ClickHouseQueryBuilder();
+    const [subQuery] = segmentNodeToStateSubQuery({
+      segment: {
+        ...segment,
+        definition: {
+          entryNode: {
+            type: SegmentNodeType.Trait,
+            id: "node-1",
+            path: "profile.created_at",
+            operator: {
+              type: SegmentOperatorType.Within,
+              windowSeconds: 604800,
+            },
+          },
+          nodes: [],
+        },
+      },
+      node: {
+        type: SegmentNodeType.Trait,
+        id: "node-1",
+        path: "profile.created_at",
+        operator: {
+          type: SegmentOperatorType.Within,
+          windowSeconds: 604800,
+        },
+      },
+      qb,
+    });
+    expect(subQuery?.useTraitValuesTable).toBe(false);
+    expect(subQuery?.useIdentifyEventsTable).toBe(true);
+    expect(subQuery?.groupByUserOnly).toBe(false);
+  });
 
   it("keeps non-combinable subqueries as single tasks", () => {
     const qb = new ClickHouseQueryBuilder();

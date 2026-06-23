@@ -190,6 +190,8 @@ function mapSegmentOperator({
       return operator;
     case SegmentOperatorType.Within:
       return operator;
+    case SegmentOperatorType.NotWithin:
+      return operator;
     case SegmentOperatorType.Exists:
       return operator;
     case SegmentOperatorType.NotExists:
