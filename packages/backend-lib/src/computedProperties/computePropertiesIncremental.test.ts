@@ -8242,6 +8242,127 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "computes a not includes segment",
+      segments: [
+        {
+          name: "not-includes",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.NotIncludes,
+              id: "1",
+              item: "test2",
+              path: "items1",
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                items1: ["test1", "test2", "test3"],
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                items1: ["test4", "test5", "test6"],
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-3",
+              traits: {
+                items2: ["test1", "test2", "test3"],
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-4",
+              traits: {
+                items1: "invalid",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                "not-includes": null,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                "not-includes": true,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                "not-includes": true,
+              },
+            },
+            {
+              id: "user-4",
+              segments: {
+                "not-includes": true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                items1: ["test1", "test2", "test3"],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment after its array is updated to include the item",
+          users: [
+            {
+              id: "user-2",
+              segments: {
+                "not-includes": null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "computes a negative trait segment",
       userProperties: [],
       segments: [

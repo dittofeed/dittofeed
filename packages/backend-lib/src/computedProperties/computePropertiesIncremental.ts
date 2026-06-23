@@ -2281,6 +2281,28 @@ function segmentToResolvedState({
         }),
       ];
     }
+    case SegmentNodeType.NotIncludes: {
+      const arrayPath = toJsonPathParamCh({
+        path: node.path,
+        qb,
+      });
+      if (!arrayPath) {
+        return [];
+      }
+      const itemParam = qb.addQueryValue(node.item, "String");
+      const expression = `if(argMaxMerge(last_value) != '', NOT has(JSONExtract(argMaxMerge(last_value), 'Array(String)'), ${itemParam}), True)`;
+      return [
+        buildRecentUpdateSegmentQuery({
+          workspaceId,
+          stateId,
+          expression,
+          segmentId: segment.id,
+          now,
+          periodBound,
+          qb,
+        }),
+      ];
+    }
     default:
       assertUnreachable(node);
   }
@@ -2459,6 +2481,12 @@ function resolvedSegmentToAssignment({
         expression: stateValue,
       };
     }
+    case SegmentNodeType.NotIncludes: {
+      return {
+        stateIds: [stateId],
+        expression: stateValue,
+      };
+    }
     default:
       assertUnreachable(node);
   }
@@ -2564,7 +2592,10 @@ export function segmentNodeToStateSubQuery({
           },
         ];
       }
-      const traitBase = traitIdentifySubQueryBase(node.operator.type, node.path);
+      const traitBase = traitIdentifySubQueryBase(
+        node.operator.type,
+        node.path,
+      );
       let eventTimeExpression: string | undefined;
       if (!traitBase.groupByUserOnly) {
         if (
@@ -2904,6 +2935,30 @@ export function segmentNodeToStateSubQuery({
         return [];
       }
       // For identify events, compute the state as the entire array at node.path
+      return [
+        {
+          useIdentifyEventsTable: true,
+          condition: "True",
+          type: "segment",
+          groupByUserOnly: true,
+          argMaxValue: `JSON_VALUE(properties, ${arrayPath})`,
+          computedPropertyId: segment.id,
+          stateId,
+        },
+      ];
+    }
+    case SegmentNodeType.NotIncludes: {
+      const stateId = segmentNodeStateId(segment, node.id);
+      if (!stateId) {
+        return [];
+      }
+      const arrayPath = toJsonPathParamCh({
+        path: node.path,
+        qb,
+      });
+      if (!arrayPath) {
+        return [];
+      }
       return [
         {
           useIdentifyEventsTable: true,

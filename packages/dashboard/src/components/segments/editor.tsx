@@ -41,6 +41,7 @@ import {
   KeyedPerformedSegmentNode,
   LastPerformedSegmentNode,
   ManualSegmentNode,
+  NotIncludesSegmentNode,
   PerformedSegmentNode,
   RandomBucketSegmentNode,
   RelationalOperators,
@@ -54,11 +55,11 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentNotEqualsOperator,
+  SegmentNotWithinOperator,
   SegmentOperator,
   SegmentOperatorType,
   SegmentResource,
   SegmentWithinOperator,
-  SegmentNotWithinOperator,
   SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
   TraitSegmentNode,
@@ -334,6 +335,17 @@ function mapSegmentNodeToNewType(
         secondary: [],
       };
     }
+    case SegmentNodeType.NotIncludes: {
+      return {
+        primary: {
+          type: SegmentNodeType.NotIncludes,
+          id: node.id,
+          path: "",
+          item: "",
+        },
+        secondary: [],
+      };
+    }
     default: {
       assertUnreachable(type);
     }
@@ -570,6 +582,12 @@ const includesOption = {
   label: "Includes",
 };
 
+const notIncludesOption = {
+  id: SegmentNodeType.NotIncludes,
+  group: "User Data",
+  label: "Not Includes",
+};
+
 const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
@@ -577,6 +595,7 @@ const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   lastPerformedOption,
   everyoneOption,
   includesOption,
+  notIncludesOption,
   randomBucketOption,
   manualOption,
   andGroupedOption,
@@ -603,6 +622,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.LastPerformed]: lastPerformedOption,
   [SegmentNodeType.RandomBucket]: randomBucketOption,
   [SegmentNodeType.Includes]: includesOption,
+  [SegmentNodeType.NotIncludes]: notIncludesOption,
 };
 
 interface Option {
@@ -814,7 +834,10 @@ function DurationValueSelect({
   operator,
 }: {
   nodeId: string;
-  operator: SegmentWithinOperator | SegmentNotWithinOperator | SegmentHasBeenOperator;
+  operator:
+    | SegmentWithinOperator
+    | SegmentNotWithinOperator
+    | SegmentHasBeenOperator;
 }) {
   const value = operator.windowSeconds;
 
@@ -2682,13 +2705,20 @@ function RandomBucketSelect({ node }: { node: RandomBucketSegmentNode }) {
   );
 }
 
-function IncludesSelect({ node }: { node: IncludesSegmentNode }) {
+function IncludesSelect({
+  node,
+}: {
+  node: IncludesSegmentNode | NotIncludesSegmentNode;
+}) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
 
   const handlePathChange = (newPath: string) => {
     updateEditableSegmentNodeData(setState, node.id, (n) => {
-      if (n.type === SegmentNodeType.Includes) {
+      if (
+        n.type === SegmentNodeType.Includes ||
+        n.type === SegmentNodeType.NotIncludes
+      ) {
         n.path = newPath;
       }
     });
@@ -2696,7 +2726,10 @@ function IncludesSelect({ node }: { node: IncludesSegmentNode }) {
 
   const handleItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateEditableSegmentNodeData(setState, node.id, (n) => {
-      if (n.type === SegmentNodeType.Includes) {
+      if (
+        n.type === SegmentNodeType.Includes ||
+        n.type === SegmentNodeType.NotIncludes
+      ) {
         n.item = e.target.value;
       }
     });
@@ -2992,6 +3025,15 @@ function SegmentNodeComponent({
       </Stack>
     );
   } else if (node.type === SegmentNodeType.Includes) {
+    el = (
+      <Stack direction="row" spacing={1}>
+        {labelEl}
+        {conditionSelect}
+        <IncludesSelect node={node} />
+        {deleteButton}
+      </Stack>
+    );
+  } else if (node.type === SegmentNodeType.NotIncludes) {
     el = (
       <Stack direction="row" spacing={1}>
         {labelEl}
