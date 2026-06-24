@@ -30,11 +30,12 @@ import {
   buildInternalEventsTableQuery,
   buildTrackEventsTableQuery,
   buildUserTraitValuesBackfillInsertQuery,
+  buildUserTraitValuesMaterializedViewQuery,
   buildUserTraitValuesTableQuery,
   CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
   CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY,
   CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
-  CREATE_INTERNAL_EVENTS_TABLE_QUERY,
+  CREATE_LEGACY_USER_TRAIT_VALUES_CURRENT_VIEW_QUERY,
   CREATE_TRACK_EVENTS_MATERIALIZED_VIEW_QUERY,
   CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
   CREATE_USER_PROPERTY_IDX_DATE_MV_QUERY,
@@ -45,12 +46,15 @@ import {
   CREATE_USER_PROPERTY_IDX_STR_QUERY,
   CREATE_USER_PROPERTY_INDEX_CONFIG_QUERY,
   CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY,
+  CREATE_V3_USER_TRAIT_VALUES_CURRENT_VIEW_QUERY,
   createUserEventsTables,
   GROUP_MATERIALIZED_VIEWS,
   GROUP_TABLES,
   IDENTIFY_EVENTS_TABLE,
   TRACK_EVENTS_TABLE,
+  USER_TRAIT_VALUES_CURRENT_VIEW,
   USER_TRAIT_VALUES_TABLE,
+  USER_TRAIT_VALUES_V3_TABLE,
 } from "backend-lib/src/userEvents/clickhouse";
 import {
   migrateMergeTreeToReplicatedMergeTree,
@@ -1392,6 +1396,7 @@ export async function backfillUserTraitValues({
   forceFullBackfill = false,
   limit = 2000,
   dryRun = false,
+  targetTable = USER_TRAIT_VALUES_TABLE,
 }: {
   intervalMinutes?: number;
   workspaceIds?: string[];
@@ -1400,8 +1405,10 @@ export async function backfillUserTraitValues({
   forceFullBackfill?: boolean;
   limit?: number;
   dryRun?: boolean;
+  targetTable?: string;
 }) {
   logger().info(
+    { targetTable },
     dryRun
       ? "Analyzing user trait values backfill (dry run)"
       : "Backfilling user trait values",
@@ -1437,7 +1444,7 @@ export async function backfillUserTraitValues({
       ? `WHERE workspace_id IN ${qb.addQueryValue(workspaceIds, "Array(String)")}`
       : "";
     const maxResult = await query({
-      query: `SELECT max(processing_time) as max_time FROM ${USER_TRAIT_VALUES_TABLE} ${workspaceFilter}`,
+      query: `SELECT max(processing_time) as max_time FROM ${targetTable} ${workspaceFilter}`,
       query_params: qb.getQueries(),
       clickhouse_settings: { wait_end_of_query: 1 },
     });
@@ -1477,6 +1484,7 @@ export async function backfillUserTraitValues({
   const intervalMs = intervalMinutes * 60 * 1000;
   let currentStart = startDate;
   let totalInserted = 0;
+  const includeUserId = targetTable === USER_TRAIT_VALUES_V3_TABLE;
 
   while (currentStart < endDate) {
     const currentEnd = new Date(
@@ -1538,9 +1546,10 @@ export async function backfillUserTraitValues({
         : "";
 
       const insertQuery = `
-        INSERT INTO ${USER_TRAIT_VALUES_TABLE} (
+        INSERT INTO ${targetTable} (
           workspace_id,
           user_or_anonymous_id,
+          ${includeUserId ? "user_id," : ""}
           trait_path,
           trait_value,
           event_time,
@@ -1555,6 +1564,7 @@ export async function backfillUserTraitValues({
         `,
           identifyLimitParam: limitParam,
           identifyOffsetParam: offsetParam,
+          includeUserId,
         })}
       `;
 
@@ -1604,7 +1614,7 @@ export async function backfillUserTraitValues({
     currentStart = currentEnd;
   }
 
-  logger().info({ totalInserted }, "Completed user trait values backfill");
+  logger().info({ targetTable, totalInserted }, "Completed user trait values backfill");
 }
 
 export async function backfillTrackEvents({
@@ -1881,11 +1891,143 @@ export async function createUserTraitValuesTable({
     query: CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY,
     clickhouse_settings: { wait_end_of_query: 1 },
   });
+  await command({
+    query: CREATE_LEGACY_USER_TRAIT_VALUES_CURRENT_VIEW_QUERY,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
   logger().info("Backfilling user trait values");
   await backfillUserTraitValues({
     forceFullBackfill: true,
     limit: backfillLimit,
     intervalMinutes,
+  });
+}
+
+export async function prepareUserTraitValuesV3({
+  backfillLimit = 2000,
+  intervalMinutes = 60,
+  workspaceIds,
+  startDate,
+  endDate,
+  dryRun = false,
+}: {
+  backfillLimit?: number;
+  intervalMinutes?: number;
+  workspaceIds?: string[];
+  startDate?: string;
+  endDate?: string;
+  dryRun?: boolean;
+} = {}) {
+  logger().info(
+    {
+      tableName: USER_TRAIT_VALUES_V3_TABLE,
+      viewName: "user_trait_values_v3_mv",
+    },
+    "Preparing user trait values v3 table and materialized view",
+  );
+  const engine = await resolveMergeTreeEngine(USER_TRAIT_VALUES_V3_TABLE);
+  await command({
+    query: buildUserTraitValuesTableQuery(engine, USER_TRAIT_VALUES_V3_TABLE, {
+      includeUserId: true,
+    }),
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  await command({
+    query: buildUserTraitValuesMaterializedViewQuery({
+      tableName: USER_TRAIT_VALUES_V3_TABLE,
+      viewName: "user_trait_values_v3_mv",
+      includeUserId: true,
+    }),
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  await command({
+    query: CREATE_LEGACY_USER_TRAIT_VALUES_CURRENT_VIEW_QUERY,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  logger().info("Backfilling user trait values v3");
+  await backfillUserTraitValues({
+    forceFullBackfill: !startDate,
+    startDate,
+    endDate,
+    workspaceIds,
+    limit: backfillLimit,
+    intervalMinutes,
+    dryRun,
+    targetTable: USER_TRAIT_VALUES_V3_TABLE,
+  });
+}
+
+export async function validateUserTraitValuesV3({
+  workspaceIds,
+}: {
+  workspaceIds?: string[];
+} = {}) {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceFilter = workspaceIds
+    ? `AND workspace_id IN ${qb.addQueryValue(workspaceIds, "Array(String)")}`
+    : "";
+  const result = await query({
+    query: `
+      SELECT
+        count() AS rows,
+        uniqExact(user_id) AS users,
+        countIf(user_id = '') AS anonymous_rows,
+        min(processing_time) AS min_processing_time,
+        max(processing_time) AS max_processing_time
+      FROM ${USER_TRAIT_VALUES_V3_TABLE}
+      WHERE 1 = 1
+      ${workspaceFilter}
+    `,
+    query_params: qb.getQueries(),
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  const rows = await result.json<
+    {
+      rows: string;
+      users: string;
+      anonymous_rows: string;
+      min_processing_time: string;
+      max_processing_time: string;
+    }[]
+  >();
+  logger().info(
+    {
+      tableName: USER_TRAIT_VALUES_V3_TABLE,
+      stats: rows[0],
+    },
+    "Validated user trait values v3",
+  );
+}
+
+export async function switchUserTraitValuesCurrentToV3() {
+  logger().info(
+    {
+      viewName: USER_TRAIT_VALUES_CURRENT_VIEW,
+      tableName: USER_TRAIT_VALUES_V3_TABLE,
+    },
+    "Switching active user trait values view to v3",
+  );
+  await command({
+    query: `DROP VIEW IF EXISTS ${USER_TRAIT_VALUES_CURRENT_VIEW}`,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  await command({
+    query: CREATE_V3_USER_TRAIT_VALUES_CURRENT_VIEW_QUERY,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  logger().info("Switched active user trait values view to v3");
+}
+
+export async function cleanupUserTraitValuesV2() {
+  logger().info("Dropping legacy user trait values v2 materialized view");
+  await command({
+    query: "DROP VIEW IF EXISTS user_trait_values_v2_mv",
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  logger().info("Dropping legacy user trait values v2 table");
+  await command({
+    query: `DROP TABLE IF EXISTS ${USER_TRAIT_VALUES_TABLE}`,
+    clickhouse_settings: { wait_end_of_query: 1 },
   });
 }
 

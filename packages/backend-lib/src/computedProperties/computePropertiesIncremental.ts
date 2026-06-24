@@ -61,7 +61,7 @@ import {
   IDENTIFY_EVENTS_TABLE,
   insertProcessedComputedProperties,
   TRACK_EVENTS_TABLE,
-  USER_TRAIT_VALUES_TABLE,
+  USER_TRAIT_VALUES_CURRENT_VIEW,
 } from "../userEvents/clickhouse";
 import {
   createPeriods,
@@ -387,9 +387,9 @@ const SIMPLE_TRAIT_SEGMENT_OPERATORS: ReadonlySet<SegmentOperatorType> =
     SegmentOperatorType.NotExists,
   ]);
 
-// Within, NotWithin, and AbsoluteTimestamp only need the latest trait value as a
-// timestamp, not identify history, so they can use user_trait_values_v2 when the
-// path is flat.
+// These operators only need the latest trait value, so they can use the compact
+// user_trait_values_current when the trait path is flat. During migration, the
+// view starts on legacy v2 and is switched to user-only v3 after backfill.
 const TRAIT_VALUES_TABLE_OPERATORS: ReadonlySet<SegmentOperatorType> = new Set([
   ...SIMPLE_TRAIT_SEGMENT_OPERATORS,
   SegmentOperatorType.Within,
@@ -412,6 +412,12 @@ function isSimpleTraitSegmentOperator(
   return SIMPLE_TRAIT_SEGMENT_OPERATORS.has(operatorType);
 }
 
+export function canUseTraitValuesTableForPath(traitPath: string): boolean {
+  return (
+    traitPath.length > 0 && !traitPath.includes(".") && !traitPath.includes("[")
+  );
+}
+
 function usesTraitValuesTableForOperator(
   operatorType: SegmentOperatorType,
   traitPath: string,
@@ -426,12 +432,6 @@ function isReusableTraitSegmentOperator(
   operatorType: SegmentOperatorType,
 ): boolean {
   return REUSABLE_TRAIT_SEGMENT_OPERATORS.has(operatorType);
-}
-
-export function canUseTraitValuesTableForPath(traitPath: string): boolean {
-  return (
-    traitPath.length > 0 && !traitPath.includes(".") && !traitPath.includes("[")
-  );
 }
 
 function traitValueExpression({
@@ -484,7 +484,7 @@ function performedSubQueryBase(node: {
 
 function getEventsTableForSubQuery(subQuery: SubQueryData): string {
   if (subQuery.useTraitValuesTable) {
-    return USER_TRAIT_VALUES_TABLE;
+    return USER_TRAIT_VALUES_CURRENT_VIEW;
   }
   if (subQuery.useIdentifyEventsTable) {
     return IDENTIFY_EVENTS_TABLE;
@@ -622,12 +622,13 @@ export function buildComputeStateInsertQuery({
     useTraitValuesTable && subQuery.traitPath
       ? `and trait_path = '${subQuery.traitPath}'`
       : "";
+  const userIdColumn = `${sourceAlias}.user_id`;
   const truncatedEventTimeExpression = subQuery.groupByUserOnly
     ? `max(${subQuery.eventTimeExpression ?? `${sourceAlias}.event_time`})`
     : subQuery.eventTimeExpression ?? "toDateTime64('0000-00-00 00:00:00', 3)";
   const groupByClause = subQuery.groupByUserOnly
-    ? `${sourceAlias}.workspace_id, ${sourceAlias}.user_or_anonymous_id`
-    : `${sourceAlias}.workspace_id, ${sourceAlias}.user_or_anonymous_id, ${sourceAlias}.event_time`;
+    ? `${sourceAlias}.workspace_id, ${userIdColumn}`
+    : `${sourceAlias}.workspace_id, ${userIdColumn}, ${sourceAlias}.event_time`;
 
   return `
     insert into computed_property_state_v3
@@ -636,7 +637,7 @@ export function buildComputeStateInsertQuery({
       '${subQuery.type}' as type,
       '${subQuery.computedPropertyId}' as computed_property_id,
       '${subQuery.stateId}' as state_id,
-      ${sourceAlias}.user_or_anonymous_id,
+      ${userIdColumn},
       argMaxState(${subQuery.argMaxValue ?? "''"} as last_value, ${sourceAlias}.event_time),
       uniqState(${subQuery.uniqValue ?? "''"} as unique_value),
       ${truncatedEventTimeExpression} as truncated_event_time,
@@ -645,6 +646,7 @@ export function buildComputeStateInsertQuery({
     from ${eventsTable} ${sourceAlias}
     where
       workspace_id = ${workspaceIdClause}
+      and ${userIdColumn} != ''
       and processing_time <= toDateTime64(${nowSeconds}, 3)
       and (${subQuery.condition})
       ${traitPathClause}
@@ -740,6 +742,7 @@ export function buildCombinedTraitStateInsertQuery({
   );
   const eventsTable = getEventsTableForSubQuery(firstSubQuery);
   const sourceAlias = useTraitValuesTable ? "tv" : "ue";
+  const userIdColumn = `${sourceAlias}.user_id`;
   const traitPathInClause = useTraitValuesTable
     ? `and trait_path in (${subQueries
         .map((subQuery) => {
@@ -770,7 +773,7 @@ export function buildCombinedTraitStateInsertQuery({
           '${subQuery.type}' as type,
           '${subQuery.computedPropertyId}' as computed_property_id,
           '${subQuery.stateId}' as state_id,
-          user_or_anonymous_id,
+          user_id,
           argMaxState(${argMaxValue}, trait_event_time) as last_value,
           uniqState(${uniqValue}) as unique_value,
           max(trait_event_time) as truncated_event_time,
@@ -780,7 +783,7 @@ export function buildCombinedTraitStateInsertQuery({
         where trait_path = '${traitPath}'
         group by
           workspace_id,
-          user_or_anonymous_id
+          user_id
       `;
       })
       .join("\nunion all\n");
@@ -790,20 +793,21 @@ export function buildCombinedTraitStateInsertQuery({
       with per_trait as (
         select
           ${sourceAlias}.workspace_id,
-          ${sourceAlias}.user_or_anonymous_id,
+          ${userIdColumn} as user_id,
           ${sourceAlias}.trait_path,
           argMax(${sourceAlias}.trait_value, ${sourceAlias}.processing_time) as trait_value,
           argMax(${sourceAlias}.event_time, ${sourceAlias}.processing_time) as trait_event_time
         from ${eventsTable} ${sourceAlias}
         where
           workspace_id = ${workspaceIdClause}
+          and ${userIdColumn} != ''
           and processing_time <= toDateTime64(${nowSeconds}, 3)
           and (${firstSubQuery.condition})
           ${traitPathInClause}
           ${lowerBoundClause}
         group by
           ${sourceAlias}.workspace_id,
-          ${sourceAlias}.user_or_anonymous_id,
+          ${userIdColumn},
           ${sourceAlias}.trait_path
       )
       ${unionBranches}
@@ -829,7 +833,7 @@ export function buildCombinedTraitStateInsertQuery({
           '${subQuery.type}' as type,
           '${subQuery.computedPropertyId}' as computed_property_id,
           '${subQuery.stateId}' as state_id,
-          user_or_anonymous_id,
+          user_id,
           trait_${index}_last_value as last_value,
           trait_${index}_unique_value as unique_value,
           max_event_time as truncated_event_time,
@@ -845,17 +849,18 @@ export function buildCombinedTraitStateInsertQuery({
     with per_user as (
       select
         ${sourceAlias}.workspace_id,
-        ${sourceAlias}.user_or_anonymous_id,
+        ${userIdColumn} as user_id,
         max(${sourceAlias}.event_time) as max_event_time,
         ${traitAggregations}
       from ${eventsTable} ${sourceAlias}
       where
         workspace_id = ${workspaceIdClause}
+        and ${userIdColumn} != ''
         and processing_time <= toDateTime64(${nowSeconds}, 3)
         and (${firstSubQuery.condition})
         ${lowerBoundClause}
       group by
-        ${sourceAlias}.workspace_id, ${sourceAlias}.user_or_anonymous_id
+        ${sourceAlias}.workspace_id, ${userIdColumn}
     )
     ${unionBranches}
   `;
@@ -3293,7 +3298,7 @@ function userPropertyToSubQuery({
           condition: "True",
           type: "user_property",
           computedPropertyId: userProperty.id,
-          argMaxValue: "user_or_anonymous_id",
+          argMaxValue: "user_id",
           stateId,
         },
       ];

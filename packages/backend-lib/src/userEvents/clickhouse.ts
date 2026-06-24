@@ -53,12 +53,19 @@ export function buildInternalEventsTableQuery(engine: string): string {
 export const IDENTIFY_EVENTS_TABLE = "identify_events_v2";
 export const TRACK_EVENTS_TABLE = "track_events_v2";
 export const USER_TRAIT_VALUES_TABLE = "user_trait_values_v2";
+export const USER_TRAIT_VALUES_V3_TABLE = "user_trait_values_v3";
+export const USER_TRAIT_VALUES_CURRENT_VIEW = "user_trait_values_current";
 
-export function buildUserTraitValuesTableQuery(engine: string): string {
+export function buildUserTraitValuesTableQuery(
+  engine: string,
+  tableName = USER_TRAIT_VALUES_TABLE,
+  { includeUserId = false }: { includeUserId?: boolean } = {},
+): string {
   return `
-  CREATE TABLE IF NOT EXISTS ${USER_TRAIT_VALUES_TABLE} (
+  CREATE TABLE IF NOT EXISTS ${tableName} (
     workspace_id LowCardinality(String),
     user_or_anonymous_id String,
+    ${includeUserId ? "user_id String," : ""}
     trait_path LowCardinality(String),
     trait_value String,
     event_time DateTime64(3),
@@ -68,6 +75,7 @@ export function buildUserTraitValuesTableQuery(engine: string): string {
   ORDER BY (
     workspace_id,
     trait_path,
+    ${includeUserId ? "user_id," : ""}
     user_or_anonymous_id
   );
 `;
@@ -78,11 +86,13 @@ export const CREATE_USER_TRAIT_VALUES_TABLE_QUERY =
 
 export function buildUserTraitValuesFromIdentifyEventsQuery(
   whereClause: string,
+  { includeUserId = false }: { includeUserId?: boolean } = {},
 ): string {
   return `
     SELECT
       workspace_id,
       user_or_anonymous_id,
+      ${includeUserId ? "user_id," : ""}
       trait_path,
       trait_value,
       event_time,
@@ -91,6 +101,7 @@ export function buildUserTraitValuesFromIdentifyEventsQuery(
       SELECT
         workspace_id,
         user_or_anonymous_id,
+        ${includeUserId ? "user_id," : ""}
         trait_path,
         JSONExtractString(properties, trait_path) AS trait_value,
         event_time,
@@ -99,7 +110,7 @@ export function buildUserTraitValuesFromIdentifyEventsQuery(
       ARRAY JOIN JSONExtractKeys(assumeNotNull(properties)) AS trait_path
       WHERE ${whereClause}
     )
-    WHERE trait_path != '' AND trait_value != ''
+    WHERE ${includeUserId ? "user_id != '' AND" : ""} trait_path != '' AND trait_value != ''
   `;
 }
 
@@ -107,15 +118,18 @@ export function buildUserTraitValuesBackfillInsertQuery({
   whereClause,
   identifyLimitParam,
   identifyOffsetParam,
+  includeUserId = false,
 }: {
   whereClause: string;
   identifyLimitParam: string;
   identifyOffsetParam: string;
+  includeUserId?: boolean;
 }): string {
   return `
     SELECT
       workspace_id,
       user_or_anonymous_id,
+      ${includeUserId ? "user_id," : ""}
       trait_path,
       trait_value,
       event_time,
@@ -124,6 +138,7 @@ export function buildUserTraitValuesBackfillInsertQuery({
       SELECT
         workspace_id,
         user_or_anonymous_id,
+        ${includeUserId ? "user_id," : ""}
         trait_path,
         JSONExtractString(properties, trait_path) AS trait_value,
         event_time,
@@ -132,6 +147,7 @@ export function buildUserTraitValuesBackfillInsertQuery({
         SELECT
           workspace_id,
           user_or_anonymous_id,
+          ${includeUserId ? "user_id," : ""}
           properties,
           event_time,
           processing_time,
@@ -148,7 +164,7 @@ export function buildUserTraitValuesBackfillInsertQuery({
       ARRAY JOIN JSONExtractKeys(assumeNotNull(properties)) AS trait_path
       WHERE length(properties) > 2
     )
-    WHERE trait_path != '' AND trait_value != ''
+    WHERE ${includeUserId ? "user_id != '' AND" : ""} trait_path != '' AND trait_value != ''
   `;
 }
 
@@ -156,6 +172,49 @@ export const CREATE_USER_TRAIT_VALUES_MATERIALIZED_VIEW_QUERY = `
   CREATE MATERIALIZED VIEW IF NOT EXISTS user_trait_values_v2_mv
   TO ${USER_TRAIT_VALUES_TABLE}
   AS ${buildUserTraitValuesFromIdentifyEventsQuery("length(properties) > 2")}
+`;
+
+export function buildUserTraitValuesMaterializedViewQuery({
+  tableName,
+  viewName,
+  includeUserId = false,
+}: {
+  tableName: string;
+  viewName: string;
+  includeUserId?: boolean;
+}): string {
+  return `
+    CREATE MATERIALIZED VIEW IF NOT EXISTS ${viewName}
+    TO ${tableName}
+    AS ${buildUserTraitValuesFromIdentifyEventsQuery("length(properties) > 2", {
+      includeUserId,
+    })}
+  `;
+}
+
+export const CREATE_LEGACY_USER_TRAIT_VALUES_CURRENT_VIEW_QUERY = `
+  CREATE VIEW IF NOT EXISTS ${USER_TRAIT_VALUES_CURRENT_VIEW}
+  AS SELECT
+    workspace_id,
+    user_or_anonymous_id AS user_id,
+    trait_path,
+    trait_value,
+    event_time,
+    processing_time
+  FROM ${USER_TRAIT_VALUES_TABLE}
+`;
+
+export const CREATE_V3_USER_TRAIT_VALUES_CURRENT_VIEW_QUERY = `
+  CREATE VIEW ${USER_TRAIT_VALUES_CURRENT_VIEW}
+  AS SELECT
+    workspace_id,
+    user_id,
+    trait_path,
+    trait_value,
+    event_time,
+    processing_time
+  FROM ${USER_TRAIT_VALUES_V3_TABLE}
+  WHERE user_id != ''
 `;
 
 export function buildIdentifyEventsTableQuery(engine: string): string {

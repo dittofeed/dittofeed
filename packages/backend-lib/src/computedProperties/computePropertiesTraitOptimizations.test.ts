@@ -1,12 +1,12 @@
 import { ClickHouseQueryBuilder } from "../clickhouse";
 import {
+  CursorDirectionEnum,
   SavedSegmentResource,
   SavedUserPropertyResource,
   SegmentHasBeenOperatorComparator,
   SegmentNodeType,
   SegmentOperatorType,
   UserPropertyDefinitionType,
-  CursorDirectionEnum,
 } from "../types";
 import {
   buildCombinedTraitStateInsertQuery,
@@ -64,7 +64,7 @@ describe("computePropertiesTraitOptimizations", () => {
     expect(match?.stateId).toBeTruthy();
   });
 
-  it("builds user_trait_values_v2 queries grouped by user for simple trait segments", () => {
+  it("builds current user trait values queries grouped by user for simple trait segments", () => {
     const qb = new ClickHouseQueryBuilder();
     const [subQuery] = segmentNodeToStateSubQuery({
       segment,
@@ -86,11 +86,10 @@ describe("computePropertiesTraitOptimizations", () => {
       lowerBoundClause: "",
       joinedPrior: "",
     });
-    expect(query).toContain("from user_trait_values_v2 tv");
+    expect(query).toContain("from user_trait_values_current tv");
     expect(query).toContain("trait_path = 'email'");
-    expect(query).toContain(
-      "group by\n      tv.workspace_id, tv.user_or_anonymous_id",
-    );
+    expect(query).toContain("group by\n      tv.workspace_id, tv.user_id");
+    expect(query).toContain("and tv.user_id != ''");
     expect(query).not.toContain("tv.event_time\n");
   });
 
@@ -145,8 +144,9 @@ describe("computePropertiesTraitOptimizations", () => {
     expect(query).toContain("JSON_VALUE(properties");
     expect(query).not.toContain("tv.trait_value");
     expect(query).toContain(
-      "group by\n      ue.workspace_id, ue.user_or_anonymous_id, ue.event_time",
+      "group by\n      ue.workspace_id, ue.user_id, ue.event_time",
     );
+    expect(query).toContain("and ue.user_id != ''");
   });
 
   it("builds track_events_v2 queries grouped by user for performed segments", () => {
@@ -184,9 +184,8 @@ describe("computePropertiesTraitOptimizations", () => {
       joinedPrior: "",
     });
     expect(query).toContain("from track_events_v2 ue");
-    expect(query).toContain(
-      "group by\n      ue.workspace_id, ue.user_or_anonymous_id",
-    );
+    expect(query).toContain("group by\n      ue.workspace_id, ue.user_id");
+    expect(query).toContain("and ue.user_id != ''");
     expect(query).not.toContain("ue.event_time\n");
   });
 
@@ -225,8 +224,9 @@ describe("computePropertiesTraitOptimizations", () => {
     });
     expect(query).toContain("from track_events_v2 ue");
     expect(query).toContain(
-      "group by\n      ue.workspace_id, ue.user_or_anonymous_id, ue.event_time",
+      "group by\n      ue.workspace_id, ue.user_id, ue.event_time",
     );
+    expect(query).toContain("and ue.user_id != ''");
   });
 
   it("propagates performed fast-path through And segment nodes", () => {
@@ -326,13 +326,14 @@ describe("computePropertiesTraitOptimizations", () => {
       lowerBoundClause: "",
     });
     expect(query).toContain("with per_trait as");
-    expect(query).toContain("from user_trait_values_v2 tv");
+    expect(query).toContain("from user_trait_values_current tv");
     expect(query).toContain("trait_path in ('banned', 'suspended')");
     expect(query).not.toMatch(/argMaxState\([^)]*\bas last_value\b/);
     expect(query).toContain("from per_trait");
     expect(query).toContain(
-      "group by\n          workspace_id,\n          user_or_anonymous_id",
+      "group by\n          workspace_id,\n          user_id",
     );
+    expect(query).toContain("and tv.user_id != ''");
   });
 
   it("replaces tv.trait_value in combined NotExists uniqValue expressions", () => {
@@ -391,7 +392,7 @@ describe("computePropertiesTraitOptimizations", () => {
     expect(query).toContain("from per_trait");
   });
 
-  it("builds user_trait_values_v2 queries grouped by user for Within trait segments", () => {
+  it("builds current user trait values queries grouped by user for Within trait segments", () => {
     const qb = new ClickHouseQueryBuilder();
     const [subQuery] = segmentNodeToStateSubQuery({
       segment: {
@@ -434,16 +435,15 @@ describe("computePropertiesTraitOptimizations", () => {
       lowerBoundClause: "",
       joinedPrior: "",
     });
-    expect(query).toContain("from user_trait_values_v2 tv");
+    expect(query).toContain("from user_trait_values_current tv");
     expect(query).toContain("trait_path = 'created_at'");
     expect(query).not.toContain("from identify_events_v2 ue");
-    expect(query).toContain(
-      "group by\n      tv.workspace_id, tv.user_or_anonymous_id",
-    );
+    expect(query).toContain("group by\n      tv.workspace_id, tv.user_id");
+    expect(query).toContain("and tv.user_id != ''");
     expect(query).not.toContain("tv.event_time\n");
   });
 
-  it("builds user_trait_values_v2 queries grouped by user for NotWithin trait segments", () => {
+  it("builds current user trait values queries grouped by user for NotWithin trait segments", () => {
     const qb = new ClickHouseQueryBuilder();
     const [subQuery] = segmentNodeToStateSubQuery({
       segment: {
@@ -486,12 +486,12 @@ describe("computePropertiesTraitOptimizations", () => {
       lowerBoundClause: "",
       joinedPrior: "",
     });
-    expect(query).toContain("from user_trait_values_v2 tv");
+    expect(query).toContain("from user_trait_values_current tv");
     expect(query).toContain("trait_path = 'lastVisit'");
     expect(query).not.toContain("from identify_events_v2 ue");
   });
 
-  it("builds user_trait_values_v2 queries grouped by user for AbsoluteTimestamp trait segments", () => {
+  it("builds current user trait values queries grouped by user for AbsoluteTimestamp trait segments", () => {
     const qb = new ClickHouseQueryBuilder();
     const [subQuery] = segmentNodeToStateSubQuery({
       segment: {
@@ -535,7 +535,7 @@ describe("computePropertiesTraitOptimizations", () => {
       lowerBoundClause: "",
       joinedPrior: "",
     });
-    expect(query).toContain("from user_trait_values_v2 tv");
+    expect(query).toContain("from user_trait_values_current tv");
     expect(query).not.toContain("toStartOfInterval(event_time");
   });
 

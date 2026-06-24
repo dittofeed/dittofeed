@@ -39,7 +39,9 @@ const BaseRawConfigProps = {
   clickhousePassword: Type.String(),
   clickhouseUseReplicatedTables: Type.Optional(BoolStr),
   clickhouseReplicatedTablePathPrefix: Type.Optional(Type.String()),
-  defaultUserJourneyMaxAttempts: Type.Optional(Type.String({ format: "naturalNumber" })),
+  defaultUserJourneyMaxAttempts: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   kafkaBrokers: Type.Optional(Type.String()),
   kafkaUsername: Type.Optional(Type.String()),
   kafkaPassword: Type.Optional(Type.String()),
@@ -602,6 +604,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
 
   const blobStorageBucket = rawConfig.blobStorageBucket ?? "dittofeed";
   const enableColdStorage = rawConfig.enableColdStorage === "true";
+  const defaultUserJourneyMaxAttempts =
+    rawConfig.defaultUserJourneyMaxAttempts !== undefined
+      ? parseInt(rawConfig.defaultUserJourneyMaxAttempts)
+      : undefined;
   const parsedConfig: Config = {
     ...rawConfig,
     bootstrap: rawConfig.bootstrap === "true",
@@ -804,9 +810,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.broadcastSendMessagesMaxAttempts,
       5,
     ),
-    defaultUserJourneyMaxAttempts: rawConfig.defaultUserJourneyMaxAttempts !== undefined ? parseInt(
-      rawConfig.defaultUserJourneyMaxAttempts,
-    ) : (nodeEnv === NodeEnvEnum.Test ? 1 : undefined),
+    defaultUserJourneyMaxAttempts:
+      defaultUserJourneyMaxAttempts ??
+      (nodeEnv === NodeEnvEnum.Test ? 1 : undefined),
     defaultGetSegmentAndEventDetailsMaxAttempts: parseMaxAttempts(
       rawConfig.defaultGetSegmentAndEventDetailsMaxAttempts,
       nodeEnv === NodeEnvEnum.Test ? 1 : 10,

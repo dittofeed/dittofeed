@@ -108,13 +108,16 @@ import {
   backfillInternalEvents,
   backfillTrackEvents,
   backfillUserTraitValues,
+  cleanupUserTraitValuesV2,
   createUnsubscribedSegmentsForExistingSubscriptionGroups,
   createUserSortingIndexTables,
   createUserTraitValuesTable,
   disentangleResendSendgrid,
   migrateEventTablesToReplicatedMergeTree,
   migrateMessageIdIndexToBloomFilter,
+  prepareUserTraitValuesV3,
   refreshNotExistsSegmentDefinitionUpdatedAt,
+  switchUserTraitValuesCurrentToV3,
   transferComputedPropertyStateV2ToV3,
   transferComputedPropertyStateV2ToV3Query,
   upgradeV010Post,
@@ -125,6 +128,7 @@ import {
   upgradeV023Pre,
   upgradeV024Pre,
   upgradeV025Pre,
+  validateUserTraitValuesV3,
 } from "./upgrades";
 
 function formatSqlParam(value: unknown): string {
@@ -1469,6 +1473,128 @@ export function createCommands(yargs: Argv): Argv {
           backfillLimit,
           intervalMinutes,
         });
+      },
+    )
+    .command(
+      "prepare-user-trait-values-v3",
+      "Create user_trait_values_v3, create its materialized view, and backfill identified users without switching reads.",
+      (cmd) =>
+        cmd.options({
+          "backfill-limit": {
+            type: "number",
+            alias: "l",
+            default: 2000,
+            describe:
+              "Maximum identify rows to process per backfill batch before ARRAY JOIN expansion",
+          },
+          "interval-minutes": {
+            type: "number",
+            alias: "i",
+            default: 60,
+            describe:
+              "Interval in minutes for processing backfill chunks (default: 1 hour)",
+          },
+          "workspace-ids": {
+            type: "string",
+            alias: "w",
+            array: true,
+            describe:
+              "Optional list of workspace IDs to process (if not provided, processes all workspaces)",
+          },
+          "start-date": {
+            type: "string",
+            alias: "s",
+            describe:
+              "Manual start date override in ISO format (e.g., '2023-01-01T00:00:00Z')",
+          },
+          "end-date": {
+            type: "string",
+            alias: "e",
+            describe:
+              "Manual end date override in ISO format (e.g., '2023-12-31T23:59:59Z')",
+          },
+          "dry-run": {
+            type: "boolean",
+            alias: "d",
+            default: false,
+            describe: "Create the table/view but only log backfill batches",
+          },
+        }),
+      async ({
+        backfillLimit,
+        intervalMinutes,
+        workspaceIds,
+        startDate,
+        endDate,
+        dryRun,
+      }) => {
+        await prepareUserTraitValuesV3({
+          backfillLimit,
+          intervalMinutes,
+          workspaceIds,
+          startDate,
+          endDate,
+          dryRun,
+        });
+      },
+    )
+    .command(
+      "validate-user-trait-values-v3",
+      "Validate user_trait_values_v3 row counts and confirm it contains no anonymous users.",
+      (cmd) =>
+        cmd.options({
+          "workspace-ids": {
+            type: "string",
+            alias: "w",
+            array: true,
+            describe:
+              "Optional list of workspace IDs to validate (if not provided, validates all workspaces)",
+          },
+        }),
+      async ({ workspaceIds }) => {
+        await validateUserTraitValuesV3({ workspaceIds });
+      },
+    )
+    .command(
+      "switch-user-trait-values-v3",
+      "Switch compute fast path to user_trait_values_v3 by replacing the stable user_trait_values_current view.",
+      (cmd) =>
+        cmd.options({
+          confirm: {
+            type: "boolean",
+            default: false,
+            describe:
+              "Required. Confirms that user_trait_values_v3 has been backfilled and validated.",
+          },
+        }),
+      async ({ confirm }) => {
+        if (!confirm) {
+          throw new Error(
+            "Pass --confirm after prepare-user-trait-values-v3 and validate-user-trait-values-v3 have completed successfully.",
+          );
+        }
+        await switchUserTraitValuesCurrentToV3();
+      },
+    )
+    .command(
+      "cleanup-user-trait-values-v2",
+      "Drop legacy user_trait_values_v2 materialized view and table after switching reads to v3.",
+      (cmd) =>
+        cmd.options({
+          confirm: {
+            type: "boolean",
+            default: false,
+            describe:
+              "Required. Confirms that switch-user-trait-values-v3 has been run and old v2 data can be removed.",
+          },
+        }),
+      async ({ confirm }) => {
+        if (!confirm) {
+          throw new Error(
+            "Pass --confirm after switch-user-trait-values-v3 has been run and verified.",
+          );
+        }
+        await cleanupUserTraitValuesV2();
       },
     )
     .command(
