@@ -2335,7 +2335,10 @@ export function resolvedSegmentToAssignment({
   const stateValue = `state_values[${stateIdParam}]`;
   switch (node.type) {
     case SegmentNodeType.Trait: {
-      if (node.operator.type === SegmentOperatorType.NotExists) {
+      if (
+        node.operator.type === SegmentOperatorType.NotExists ||
+        node.operator.type === SegmentOperatorType.NotEquals
+      ) {
         return {
           stateIds: [stateId],
           expression: `if(mapContains(state_values, ${stateIdParam}), ${stateValue}, true)`,

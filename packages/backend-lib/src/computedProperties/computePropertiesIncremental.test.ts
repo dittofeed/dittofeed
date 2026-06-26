@@ -5960,6 +5960,110 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description:
+        "and segment treats missing trait state as true for not equals",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "usUsersNotBanned",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "entry",
+              children: ["country", "not-banned"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "country",
+                path: "country",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "US",
+                },
+              },
+              {
+                type: SegmentNodeType.Trait,
+                id: "not-banned",
+                path: "banned",
+                operator: {
+                  type: SegmentOperatorType.NotEquals,
+                  value: "true",
+                },
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              userId: "user-1",
+              offsetMs: -100,
+              traits: {
+                country: "US",
+              },
+            },
+            {
+              type: EventType.Identify,
+              userId: "user-2",
+              offsetMs: -100,
+              traits: {
+                country: "US",
+                banned: "true",
+              },
+            },
+            {
+              type: EventType.Identify,
+              userId: "user-3",
+              offsetMs: -100,
+              traits: {
+                country: "CA",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "users satisfying the other AND condition should match when the not-equal trait is absent",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                usUsersNotBanned: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                usUsersNotBanned: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                usUsersNotBanned: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "performed segment with nested properties",
       userProperties: [
         {

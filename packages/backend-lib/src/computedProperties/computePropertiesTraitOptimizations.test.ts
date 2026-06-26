@@ -393,49 +393,64 @@ describe("computePropertiesTraitOptimizations", () => {
     expect(query).toContain("from per_trait");
   });
 
-  it("defaults missing NotExists trait states to true in assignments", () => {
-    const qb = new ClickHouseQueryBuilder();
-    const andNotExistsSegment: SavedSegmentResource = {
-      ...segment,
-      name: "usUsersWithoutWheelSpin",
-      definition: {
-        entryNode: {
-          type: SegmentNodeType.And,
-          id: "and-1",
-          children: ["trait-country", "trait-wheel"],
-        },
-        nodes: [
-          {
-            type: SegmentNodeType.Trait,
-            id: "trait-country",
-            path: "country",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: "US",
-            },
-          },
-          {
-            type: SegmentNodeType.Trait,
-            id: "trait-wheel",
-            path: "wheelLastSpinTimestamp",
-            operator: {
-              type: SegmentOperatorType.NotExists,
-            },
-          },
-        ],
+  it.each([
+    {
+      name: "NotExists",
+      operator: {
+        type: SegmentOperatorType.NotExists,
       },
-    };
+    },
+    {
+      name: "NotEquals",
+      operator: {
+        type: SegmentOperatorType.NotEquals,
+        value: "true",
+      },
+    },
+  ])(
+    "defaults missing $name trait states to true in assignments",
+    (testCase) => {
+      const qb = new ClickHouseQueryBuilder();
+      const andSparseTraitSegment: SavedSegmentResource = {
+        ...segment,
+        name: "usUsersWithSparseTrait",
+        definition: {
+          entryNode: {
+            type: SegmentNodeType.And,
+            id: "and-1",
+            children: ["trait-country", "trait-sparse"],
+          },
+          nodes: [
+            {
+              type: SegmentNodeType.Trait,
+              id: "trait-country",
+              path: "country",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "US",
+              },
+            },
+            {
+              type: SegmentNodeType.Trait,
+              id: "trait-sparse",
+              path: "sparseTrait",
+              operator: testCase.operator,
+            },
+          ],
+        },
+      };
 
-    const assignment = resolvedSegmentToAssignment({
-      segment: andNotExistsSegment,
-      node: andNotExistsSegment.definition.entryNode,
-      qb,
-    });
+      const assignment = resolvedSegmentToAssignment({
+        segment: andSparseTraitSegment,
+        node: andSparseTraitSegment.definition.entryNode,
+        qb,
+      });
 
-    expect(assignment.expression).toContain(" and ");
-    expect(assignment.expression).toContain("mapContains(state_values");
-    expect(assignment.expression).toContain("true");
-  });
+      expect(assignment.expression).toContain(" and ");
+      expect(assignment.expression).toContain("mapContains(state_values");
+      expect(assignment.expression).toContain("true");
+    },
+  );
 
   it("builds current user trait values queries grouped by user for Within trait segments", () => {
     const qb = new ClickHouseQueryBuilder();
