@@ -60,13 +60,22 @@ import {
   migrateMergeTreeToReplicatedMergeTree,
   resolveMergeTreeEngine,
 } from "backend-lib/src/userEvents/clickhouseEngines";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { parseInt } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import { spawnWithEnv, spawnWithEnvSafe } from "./spawn";
+
+export async function addJourneyTypeColumn() {
+  logger().info("Adding journeyType column to Journey table.");
+  await db().execute(sql`
+    ALTER TABLE "Journey"
+    ADD COLUMN IF NOT EXISTS "journeyType" text DEFAULT 'Marketing' NOT NULL
+  `);
+  logger().info("Finished adding journeyType column to Journey table.");
+}
 
 export async function createUserSortingIndexTables() {
   logger().info("Creating user sorting index tables and materialized views.");
@@ -1614,7 +1623,10 @@ export async function backfillUserTraitValues({
     currentStart = currentEnd;
   }
 
-  logger().info({ targetTable, totalInserted }, "Completed user trait values backfill");
+  logger().info(
+    { targetTable, totalInserted },
+    "Completed user trait values backfill",
+  );
 }
 
 export async function backfillTrackEvents({

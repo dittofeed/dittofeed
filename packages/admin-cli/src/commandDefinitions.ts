@@ -104,6 +104,7 @@ import { hubspotSync } from "./hubspot";
 import { resetWorkspaceData } from "./reset";
 import { spawnWithEnv } from "./spawn";
 import {
+  addJourneyTypeColumn,
   backfillIdentifyEvents,
   backfillInternalEvents,
   backfillTrackEvents,
@@ -1203,8 +1204,7 @@ export function createCommands(yargs: Argv): Argv {
           "identify-events-backfill-interval-minutes": {
             type: "number",
             default: 1440,
-            describe:
-              "Interval in minutes for identify events backfill chunks",
+            describe: "Interval in minutes for identify events backfill chunks",
           },
           "track-events-backfill-limit": {
             type: "number",
@@ -1446,6 +1446,14 @@ export function createCommands(yargs: Argv): Argv {
           limit,
           dryRun,
         });
+      },
+    )
+    .command(
+      "add-journey-type-column",
+      "Add the Journey.journeyType column used for routing transactional journeys.",
+      (y) => y,
+      async () => {
+        await addJourneyTypeColumn();
       },
     )
     .command(

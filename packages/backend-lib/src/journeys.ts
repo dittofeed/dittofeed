@@ -1,6 +1,6 @@
 import { Row } from "@clickhouse/client";
 import { Counter } from "@opentelemetry/api";
-import { Type } from "@sinclair/typebox";
+import { Static, Type } from "@sinclair/typebox";
 import { and, eq, inArray, isNotNull, not, SQL } from "drizzle-orm";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import { doesEventNameMatch } from "isomorphic-lib/src/events";
@@ -31,6 +31,7 @@ import { enqueueRecompute } from "./computedProperties/computePropertiesWorkflow
 import { QUEUE_ITEM_PRIORITIES } from "./constants";
 import { Db, db, insert, QueryError, queryResult } from "./db";
 import * as schema from "./db/schema";
+import { getJourneyTaskQueue } from "./journeys/taskQueues";
 import {
   segmentUpdateSignal,
   userJourneyWorkflow,
@@ -61,6 +62,7 @@ import {
   JourneyNodeType,
   JourneyResourceStatusEnum,
   JourneyStats,
+  JourneyType,
   JourneyUpsertValidationError,
   JourneyUpsertValidationErrorType,
   MessageChannelStats,
@@ -138,10 +140,25 @@ export function toJourneyResource(
   if (result.isErr()) {
     return err(result.error);
   }
-  const { definition, draft, status, createdAt, updatedAt, ...rest } =
-    result.value;
+  const {
+    definition,
+    draft,
+    status,
+    createdAt,
+    updatedAt,
+    journeyType: unvalidatedJourneyType,
+    ...rest
+  } = result.value;
+  const journeyTypeResult = schemaValidateWithErr(
+    unvalidatedJourneyType,
+    JourneyType,
+  );
+  if (journeyTypeResult.isErr()) {
+    return err(journeyTypeResult.error);
+  }
   const baseResource = {
     ...rest,
+    journeyType: journeyTypeResult.value,
     ...(definition ? { definition } : {}),
     ...(draft ? { draft } : {}),
     createdAt: createdAt.getTime(),
@@ -203,6 +220,15 @@ const JourneyMessageStatsRow = Type.Object({
   node_id: Type.String(),
   count: Type.String(),
 });
+
+const JourneyEventStatsRow = Type.Object({
+  journey_id: Type.String(),
+  event: Type.String(),
+  node_id: Type.String(),
+  count: Type.String(),
+});
+
+type JourneyEventStatsRow = Static<typeof JourneyEventStatsRow>;
 
 interface GetEdgePercentParams {
   originId: string;
@@ -366,15 +392,11 @@ export async function getJourneyMessageStats({
   const statsMap = new Map<string, Map<string, Map<string, number>>>();
   await streamClickhouseQuery(resultsSet, (row) => {
     for (const i of row) {
-      const item = i as {
-        journey_id: string;
-        // represents the last observed event for a given email
-        // so for example a clicked email will also have been opened and
-        // delivered
-        event: string;
-        node_id: string;
-        count: string;
-      };
+      const itemResult = schemaValidateWithErr(i, JourneyEventStatsRow);
+      if (itemResult.isErr()) {
+        throw itemResult.error;
+      }
+      const item: JourneyEventStatsRow = itemResult.value;
       const journeyStats =
         statsMap.get(item.journey_id) ?? new Map<string, Map<string, number>>();
       const nodeStats =
@@ -708,6 +730,7 @@ function journeyTriggerCounter() {
 interface EventTriggerJourneyDetails {
   journeyId: string;
   journeyName: string;
+  journeyType?: JourneyType;
   event: string;
   definition: JourneyDefinition;
 }
@@ -763,6 +786,7 @@ export function triggerEventEntryJourneysFactory({
         return {
           event: journey.definition.entryNode.event,
           journeyId: journey.id,
+          journeyType: journey.journeyType,
           definition: journey.definition,
           journeyName: journey.name,
         };
@@ -771,7 +795,13 @@ export function triggerEventEntryJourneysFactory({
     }
 
     const starts: Promise<unknown>[] = journeyDetails.flatMap(
-      ({ journeyId, journeyName, event: journeyEvent, definition }) => {
+      ({
+        journeyId,
+        journeyName,
+        journeyType,
+        event: journeyEvent,
+        definition,
+      }) => {
         const isMatch = doesEventNameMatch({
           pattern: journeyEvent,
           event: triggerEvent.event,
@@ -802,6 +832,7 @@ export function triggerEventEntryJourneysFactory({
           workspaceId,
           userId,
           journeyId,
+          journeyType,
           event: triggerEvent,
           definition,
         });
@@ -857,7 +888,7 @@ export async function triggerSegmentEntryJourney({
   }
 
   const { workflowClient } = getContext();
-  const { id: journeyId, definition } = journey;
+  const { id: journeyId, definition, journeyType } = journey;
 
   const workflowId = getUserJourneyWorkflowId({
     journeyId,
@@ -876,7 +907,7 @@ export async function triggerSegmentEntryJourney({
     typeof userJourneyWorkflow,
     [SegmentUpdate]
   >(userJourneyWorkflow, {
-    taskQueue: "default",
+    taskQueue: getJourneyTaskQueue(journeyType),
     workflowId,
     args: [
       {
@@ -946,8 +977,16 @@ function mapUpsertValidationError(
 export async function upsertJourney(
   params: UpsertJourneyResource,
 ): Promise<Result<SavedJourneyResource, JourneyUpsertValidationError>> {
-  const { id, name, definition, workspaceId, status, canRunMultiple, draft } =
-    params;
+  const {
+    id,
+    name,
+    definition,
+    workspaceId,
+    status,
+    canRunMultiple,
+    draft,
+    journeyType,
+  } = params;
 
   if (id && !validateUuid(id)) {
     return err({
@@ -1016,6 +1055,7 @@ export async function upsertJourney(
             draft: nullableDraft,
             status,
             canRunMultiple,
+            journeyType,
           },
         })
       ).mapErr(mapUpsertValidationError);
@@ -1090,6 +1130,7 @@ export async function upsertJourney(
           status,
           statusUpdatedAt,
           canRunMultiple,
+          journeyType,
         })
         .where(and(...conditions))
         .returning(),
@@ -1180,6 +1221,22 @@ export async function upsertJourney(
     throw new Error("Journey status is not NotStarted but has no definition");
   }
 
+  const journeyTypeResult = schemaValidateWithErr(
+    journey.journeyType,
+    JourneyType,
+  );
+  if (journeyTypeResult.isErr()) {
+    logger().error(
+      {
+        workspaceId,
+        journeyId: journey.id,
+        err: journeyTypeResult.error,
+      },
+      "Failed to validate journey type",
+    );
+    throw new Error("Failed to validate journey type");
+  }
+
   if (
     status === JourneyResourceStatusEnum.Running &&
     journey.status === JourneyResourceStatusEnum.Paused &&
@@ -1203,6 +1260,7 @@ export async function upsertJourney(
     id: journey.id,
     name: journey.name,
     workspaceId: journey.workspaceId,
+    journeyType: journeyTypeResult.value,
     draft: journeyDraftResult?.value,
     updatedAt: Number(journey.updatedAt),
     createdAt: Number(journey.createdAt),
