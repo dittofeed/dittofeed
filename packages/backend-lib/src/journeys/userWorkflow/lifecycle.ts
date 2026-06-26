@@ -1,9 +1,14 @@
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
-import { JourneyNodeType, MakeRequired } from "isomorphic-lib/src/types";
+import {
+  JourneyNodeType,
+  JourneyType,
+  MakeRequired,
+} from "isomorphic-lib/src/types";
 
 import { jsonValue } from "../../jsonPath";
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
+import { getJourneyTaskQueue } from "../taskQueues";
 import {
   getKeyedUserJourneyWorkflowId,
   trackSignal,
@@ -17,7 +22,9 @@ import {
 export type StartKeyedUserJourneyProps = Omit<
   MakeRequired<UserJourneyWorkflowPropsV2, "event">,
   "version"
->;
+> & {
+  journeyType?: JourneyType;
+};
 
 export async function startKeyedUserJourney({
   journeyId,
@@ -25,6 +32,7 @@ export async function startKeyedUserJourney({
   userId,
   definition,
   event,
+  journeyType,
 }: StartKeyedUserJourneyProps) {
   const workflowClient = await connectWorkflowClient();
   if (definition.entryNode.type !== JourneyNodeType.EventEntryNode) {
@@ -71,7 +79,7 @@ export async function startKeyedUserJourney({
       typeof userJourneyWorkflow,
       [TrackSignalParams]
     >(userJourneyWorkflow, {
-      taskQueue: "default",
+      taskQueue: getJourneyTaskQueue(journeyType),
       workflowId,
       signal: trackSignal,
       signalArgs: [

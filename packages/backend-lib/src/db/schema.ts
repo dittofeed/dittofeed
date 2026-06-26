@@ -861,6 +861,7 @@ export const journey = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
+    journeyType: text().default("Marketing").notNull(),
     resourceType: dbResourceType().default("Declarative").notNull(),
     canRunMultiple: boolean().default(false).notNull(),
     draft: jsonb(),

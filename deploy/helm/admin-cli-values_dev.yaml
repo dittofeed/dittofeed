@@ -86,6 +86,10 @@ env:
     value: "false"
   - name: TEMPORAL_ADDRESS
     value: "dittofeed-temporal-frontend.dittofeed-dev.svc.cluster.local:7233"
+  - name: USER_JOURNEY_TASK_QUEUE
+    value: "default"
+  - name: TRANSACTIONAL_TASK_QUEUE
+    value: "transactional"
   - name: AUTH_MODE
     value: "single-tenant"   # уже выставляется chart'ом для lite
   - name: PASSWORD

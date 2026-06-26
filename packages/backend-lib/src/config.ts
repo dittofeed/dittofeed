@@ -132,6 +132,8 @@ const BaseRawConfigProps = {
   appVersion: Type.Optional(Type.String()),
   onboardingUrl: Type.Optional(Type.String()),
   globalCronTaskQueue: Type.Optional(Type.String()),
+  userJourneyTaskQueue: Type.Optional(Type.String()),
+  transactionalTaskQueue: Type.Optional(Type.String()),
   computedPropertiesTaskQueue: Type.Optional(Type.String()),
   assignmentSequentialConsistency: Type.Optional(BoolStr),
   computePropertiesQueueConcurrency: Type.Optional(
@@ -311,6 +313,8 @@ export type Config = Overwrite<
     exportLogsHyperDx: boolean;
     enableColdStorage: boolean;
     globalCronTaskQueue: string;
+    userJourneyTaskQueue: string;
+    transactionalTaskQueue: string;
     googleOps: boolean;
     kafkaBrokers: string[];
     kafkaEnableAdminSasl: boolean;
@@ -734,6 +738,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       nodeEnv === NodeEnvEnum.Development,
     onboardingUrl: rawConfig.onboardingUrl ?? "/dashboard/waiting-room",
     globalCronTaskQueue: rawConfig.globalCronTaskQueue ?? "default",
+    userJourneyTaskQueue: rawConfig.userJourneyTaskQueue ?? "default",
+    transactionalTaskQueue: rawConfig.transactionalTaskQueue ?? "transactional",
     computedPropertiesTaskQueue,
     computedPropertiesActivityTaskQueue,
     assignmentSequentialConsistency:

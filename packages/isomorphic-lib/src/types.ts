@@ -2454,10 +2454,20 @@ export const JourneyResourceStatus = Type.KeyOf(
 
 export type JourneyResourceStatus = Static<typeof JourneyResourceStatus>;
 
+export const JourneyTypeEnum = {
+  Marketing: "Marketing",
+  Transactional: "Transactional",
+} as const;
+
+export const JourneyType = Type.Enum(JourneyTypeEnum);
+
+export type JourneyType = Static<typeof JourneyType>;
+
 const baseJourneyResource = {
   id: Type.String(),
   workspaceId: Type.String(),
   name: Type.String(),
+  journeyType: Type.Optional(JourneyType),
   canRunMultiple: Type.Optional(Type.Boolean()),
   updatedAt: Type.Number(),
   draft: Type.Optional(JourneyDraft),

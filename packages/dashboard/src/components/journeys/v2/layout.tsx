@@ -12,12 +12,15 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
+  MenuItem,
+  Select,
   Snackbar,
   Stack,
   Step,
   StepButton,
   Stepper,
   Tooltip,
+  Typography,
   useTheme,
 } from "@mui/material";
 import { deepEquals } from "isomorphic-lib/src/equality";
@@ -26,6 +29,8 @@ import {
   DuplicateResourceTypeEnum,
   JourneyDefinition,
   JourneyResourceStatus,
+  JourneyType,
+  JourneyTypeEnum,
   SavedJourneyResource,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
@@ -293,7 +298,7 @@ function JourneyStatusControl() {
         <Button
           variant="outlined"
           size="small"
-          disabled={statusValue.disabled || isUpdating}
+          disabled={statusValue.disabled === true || isUpdating}
           onClick={handleChangeStatus}
         >
           {statusValue.nextStatusLabel}
@@ -315,6 +320,7 @@ function formatJourneyCurl(journey: SavedJourneyResource) {
       id: journey.id,
       workspaceId: journey.workspaceId,
       name: journey.name,
+      journeyType: journey.journeyType,
       canRunMultiple: journey.canRunMultiple,
       definition: journey.definition,
     },
@@ -337,6 +343,9 @@ export default function JourneyV2Layout({
   const [optionsDialogOpen, setOptionsDialogOpen] = useState(false);
   const [canRunMultiple, setCanRunMultiple] = useState(
     !!journey?.canRunMultiple,
+  );
+  const [journeyType, setJourneyType] = useState<JourneyType>(
+    journey?.journeyType ?? JourneyTypeEnum.Marketing,
   );
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -372,6 +381,7 @@ export default function JourneyV2Layout({
   useEffect(() => {
     if (journey) {
       setCanRunMultiple(!!journey.canRunMultiple);
+      setJourneyType(journey.journeyType ?? JourneyTypeEnum.Marketing);
     }
   }, [journey]);
 
@@ -599,6 +609,30 @@ export default function JourneyV2Layout({
     [journey, workspace, canRunMultiple, updateJourney],
   );
 
+  const handleChangeJourneyType = useCallback(
+    (newValue: JourneyType) => {
+      if (!journey || workspace.type !== CompletionStatus.Successful) {
+        return;
+      }
+
+      const previousValue = journeyType;
+      setJourneyType(newValue);
+
+      updateJourney(
+        {
+          name: journey.name,
+          journeyType: newValue,
+        },
+        {
+          onError: () => {
+            setJourneyType(previousValue);
+          },
+        },
+      );
+    },
+    [journey, workspace, journeyType, updateJourney],
+  );
+
   const handleSnackbarClose = useCallback(() => {
     setSnackbarOpen(false);
   }, []);
@@ -712,6 +746,30 @@ export default function JourneyV2Layout({
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
+            <Stack spacing={1}>
+              <Typography variant="subtitle2">Journey type</Typography>
+              <Select<JourneyType>
+                size="small"
+                value={journeyType}
+                disabled={isJourneyMutationPending}
+                onChange={(e) => {
+                  const newJourneyType =
+                    e.target.value === JourneyTypeEnum.Transactional
+                      ? JourneyTypeEnum.Transactional
+                      : JourneyTypeEnum.Marketing;
+                  handleChangeJourneyType(newJourneyType);
+                }}
+              >
+                <MenuItem value={JourneyTypeEnum.Marketing}>Marketing</MenuItem>
+                <MenuItem value={JourneyTypeEnum.Transactional}>
+                  Transactional
+                </MenuItem>
+              </Select>
+              <Typography variant="body2" color="text.secondary">
+                Transactional journeys run on the transactional Temporal task
+                queue, separately from the default marketing queue.
+              </Typography>
+            </Stack>
             <FormControlLabel
               control={
                 <Checkbox
