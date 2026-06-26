@@ -28,6 +28,17 @@ separateWorker:
       requests:
         cpu: 1
         memory: 1024Mi
+  # The transactional queue is used for high-priority journeys like email confirmations.
+  transactional:
+    replicaCount: 3
+    maxOldSpaceSize: 4096
+    resources:
+      limits:
+        cpu: 8
+        memory: 6Gi
+      requests:
+        cpu: 1
+        memory: 1024Mi
   # The workspace queue is used to recompute workspaces' segments and user properties, and to process broadcasts.
   workspace:
     replicaCount: 3
@@ -231,6 +242,10 @@ env:
     value: "false"
   - name: TEMPORAL_ADDRESS
     value: "dittofeed-temporal-frontend.dittofeed-dev.svc.cluster.local:7233"
+  - name: USER_JOURNEY_TASK_QUEUE
+    value: "default"
+  - name: TRANSACTIONAL_TASK_QUEUE
+    value: "transactional"
   - name: AUTH_MODE
     value: "single-tenant"   # уже выставляется chart'ом для lite
   - name: PASSWORD

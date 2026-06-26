@@ -5,6 +5,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 
 import { db } from "../db";
 import { journey as dbJourney } from "../db/schema";
+import { getJourneyTaskQueue } from "../journeys/taskQueues";
 import {
   getUserJourneyWorkflowId,
   segmentUpdateSignal,
@@ -13,7 +14,12 @@ import {
 import logger from "../logger";
 import { findRecentlyUpdatedUsersInSegment } from "../segments";
 import { getContext } from "../temporal/activity";
-import { JourneyDefinition, JourneyNodeType, SegmentUpdate } from "../types";
+import {
+  JourneyDefinition,
+  JourneyNodeType,
+  JourneyType,
+  SegmentUpdate,
+} from "../types";
 
 export async function restartUserJourneysActivity({
   workspaceId,
@@ -33,6 +39,7 @@ export async function restartUserJourneysActivity({
     ),
     columns: {
       definition: true,
+      journeyType: true,
     },
   });
   if (!journey) {
@@ -72,6 +79,22 @@ export async function restartUserJourneysActivity({
     return;
   }
 
+  const journeyTypeResult = schemaValidateWithErr(
+    journey.journeyType,
+    JourneyType,
+  );
+  if (journeyTypeResult.isErr()) {
+    logger().error(
+      {
+        journeyId,
+        workspaceId,
+        err: journeyTypeResult.error,
+      },
+      "Failed to validate journey type",
+    );
+    return;
+  }
+
   const segmentId = definition.entryNode.segment;
 
   let page: { userId: string }[] = [];
@@ -105,7 +128,7 @@ export async function restartUserJourneysActivity({
         typeof userJourneyWorkflow,
         [SegmentUpdate]
       >(userJourneyWorkflow, {
-        taskQueue: "default",
+        taskQueue: getJourneyTaskQueue(journeyTypeResult.value),
         workflowId,
         args: [
           {
