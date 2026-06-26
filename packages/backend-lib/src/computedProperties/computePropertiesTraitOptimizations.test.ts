@@ -13,6 +13,7 @@ import {
   buildComputeStateInsertQuery,
   findMatchingTraitUserProperty,
   groupTraitSubQueriesForCombinedScan,
+  resolvedSegmentToAssignment,
   segmentNodeToStateSubQuery,
 } from "./computePropertiesIncremental";
 
@@ -390,6 +391,50 @@ describe("computePropertiesTraitOptimizations", () => {
       /uniqState\(\s*if\(\s*trait_value == '',\s*'E',\s*'N'\s*\)\s*\)/,
     );
     expect(query).toContain("from per_trait");
+  });
+
+  it("defaults missing NotExists trait states to true in assignments", () => {
+    const qb = new ClickHouseQueryBuilder();
+    const andNotExistsSegment: SavedSegmentResource = {
+      ...segment,
+      name: "usUsersWithoutWheelSpin",
+      definition: {
+        entryNode: {
+          type: SegmentNodeType.And,
+          id: "and-1",
+          children: ["trait-country", "trait-wheel"],
+        },
+        nodes: [
+          {
+            type: SegmentNodeType.Trait,
+            id: "trait-country",
+            path: "country",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "US",
+            },
+          },
+          {
+            type: SegmentNodeType.Trait,
+            id: "trait-wheel",
+            path: "wheelLastSpinTimestamp",
+            operator: {
+              type: SegmentOperatorType.NotExists,
+            },
+          },
+        ],
+      },
+    };
+
+    const assignment = resolvedSegmentToAssignment({
+      segment: andNotExistsSegment,
+      node: andNotExistsSegment.definition.entryNode,
+      qb,
+    });
+
+    expect(assignment.expression).toContain(" and ");
+    expect(assignment.expression).toContain("mapContains(state_values");
+    expect(assignment.expression).toContain("true");
   });
 
   it("builds current user trait values queries grouped by user for Within trait segments", () => {

@@ -5857,6 +5857,109 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description:
+        "and segment treats missing trait state as true for not exists",
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "usUsersWithoutEmail",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "entry",
+              children: ["country", "email-missing"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "country",
+                path: "country",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "US",
+                },
+              },
+              {
+                type: SegmentNodeType.Trait,
+                id: "email-missing",
+                path: "email",
+                operator: {
+                  type: SegmentOperatorType.NotExists,
+                },
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              userId: "user-1",
+              offsetMs: -100,
+              traits: {
+                country: "US",
+              },
+            },
+            {
+              type: EventType.Identify,
+              userId: "user-2",
+              offsetMs: -100,
+              traits: {
+                country: "US",
+                email: "test2@email.com",
+              },
+            },
+            {
+              type: EventType.Identify,
+              userId: "user-3",
+              offsetMs: -100,
+              traits: {
+                country: "CA",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "users satisfying the other AND condition should match when the trait is absent",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                usUsersWithoutEmail: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                usUsersWithoutEmail: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                usUsersWithoutEmail: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "performed segment with nested properties",
       userProperties: [
         {

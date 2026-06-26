@@ -2315,7 +2315,7 @@ function segmentToResolvedState({
   }
 }
 
-function resolvedSegmentToAssignment({
+export function resolvedSegmentToAssignment({
   segment,
   qb,
   node,
@@ -2335,6 +2335,12 @@ function resolvedSegmentToAssignment({
   const stateValue = `state_values[${stateIdParam}]`;
   switch (node.type) {
     case SegmentNodeType.Trait: {
+      if (node.operator.type === SegmentOperatorType.NotExists) {
+        return {
+          stateIds: [stateId],
+          expression: `if(mapContains(state_values, ${stateIdParam}), ${stateValue}, true)`,
+        };
+      }
       return {
         stateIds: [stateId],
         expression: stateValue,
