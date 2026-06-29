@@ -107,17 +107,16 @@ export async function getEventsByIdWithRetry(
 ) {
   try {
     // Retry policy (bounded for workflow/test safety):
-    // - up to 10 retries
-    // - retry delays are clamped to 50ms–1000ms
-    // - stop retrying after ~60s total (maxRetryTime), even if retries remain
+    // - retry delays are clamped to 1s–10s
+    // - stop retrying after ~15m total (maxRetryTime), even if retries remain
     //
-    // This keeps workflows responsive while still handling brief ClickHouse
-    // visibility lag right after writing events.
+    // ClickHouse visibility can lag behind event-trigger workflow starts during
+    // ingestion backlogs, especially for transactional event-entry journeys.
     const events = await pRetry(() => getEventsById(params, metadata), {
-      retries: 10,
-      minTimeout: 50,
-      maxTimeout: 1000,
-      maxRetryTime: 60_000,
+      retries: 200,
+      minTimeout: 1000,
+      maxTimeout: 10_000,
+      maxRetryTime: 15 * 60_000,
     });
     return events;
   } catch (e) {

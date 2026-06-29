@@ -407,7 +407,7 @@ describe("computePropertiesTraitOptimizations", () => {
         value: "true",
       },
     },
-  ])(
+  ] as const)(
     "defaults missing $name trait states to true in assignments",
     (testCase) => {
       const qb = new ClickHouseQueryBuilder();

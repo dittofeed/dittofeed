@@ -86,6 +86,7 @@ export async function startKeyedUserJourney({
         {
           version: TrackSignalParamsVersion.V2,
           messageId: event.messageId,
+          event,
         },
       ],
       args: [
@@ -95,6 +96,7 @@ export async function startKeyedUserJourney({
           workspaceId,
           userId,
           eventKey,
+          event,
           hidden: event.context?.hidden === true,
           messageId: event.messageId,
           version: UserJourneyWorkflowVersion.V3,

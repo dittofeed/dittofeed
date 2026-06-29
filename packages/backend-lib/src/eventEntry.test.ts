@@ -410,13 +410,29 @@ describe("eventEntry journeys", () => {
             definition: journeyDefinition,
             version: UserJourneyWorkflowVersion.V3,
             messageId,
+            event: {
+              event: "tracking_update",
+              messageId,
+              properties: {
+                data: {
+                  carrier: "test-carrier",
+                },
+              },
+              timestamp: new Date().toISOString(),
+            },
           },
         ],
       });
       expect(senderMock).toHaveBeenCalledTimes(1);
       expect(senderMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          eventIds: [messageId],
+          eventIds: undefined,
+          events: [
+            expect.objectContaining({
+              messageId,
+              event: "tracking_update",
+            }),
+          ],
         }),
       );
     });

@@ -70,6 +70,7 @@ export type TrackSignalParamsV1 = UserWorkflowTrackEvent & {
 export interface TrackSignalParamsV2 {
   version: TrackSignalParamsVersion.V2;
   messageId: string;
+  event?: UserWorkflowTrackEvent;
 }
 
 export type TrackSignalParams = TrackSignalParamsV1 | TrackSignalParamsV2;
@@ -165,6 +166,7 @@ export interface UserJourneyWorkflowPropsV3 {
   userId: string;
   definition: JourneyDefinition;
   journeyId: string;
+  event?: UserWorkflowTrackEvent;
   eventKey?: string;
   messageId: string;
   hidden?: boolean;
@@ -285,7 +287,7 @@ export async function userJourneyWorkflow(
 
   switch (props.version) {
     case UserJourneyWorkflowVersion.V3: {
-      // not setting entry event properties for v3
+      entryEventProperties = props.event?.properties;
       isHidden = props.hidden ?? false;
       eventKey = props.eventKey ?? props.messageId;
       break;
@@ -353,6 +355,9 @@ export async function userJourneyWorkflow(
   const keyedEventIds = new Set<string>();
   switch (props.version) {
     case UserJourneyWorkflowVersion.V3: {
+      if (props.event) {
+        keyedEvents = [props.event];
+      }
       keyedEventIds.add(props.messageId);
       break;
     }
@@ -363,6 +368,19 @@ export async function userJourneyWorkflow(
       }
       break;
     }
+  }
+
+  function getCompleteKeyedEvents(): UserWorkflowTrackEvent[] | undefined {
+    if (!keyedEvents) {
+      return undefined;
+    }
+    const keyedEventMessageIds = new Set(keyedEvents.map((e) => e.messageId));
+    for (const id of keyedEventIds) {
+      if (!keyedEventMessageIds.has(id)) {
+        return undefined;
+      }
+    }
+    return keyedEvents;
   }
 
   // event entry journeys can't be started from segment signals
@@ -412,12 +430,13 @@ export async function userJourneyWorkflow(
   }): Promise<SegmentAssignment | null> {
     if (eventKey) {
       // deprecated, now passing by id rather than by value
-      if (keyedEvents) {
+      const completeKeyedEvents = getCompleteKeyedEvents();
+      if (completeKeyedEvents) {
         return getSegmentAssignment({
           workspaceId,
           userId,
           segmentId,
-          events: keyedEvents,
+          events: completeKeyedEvents,
           keyValue: eventKey,
           nowMs: nowInner,
           version: GetSegmentAssignmentVersion.V1,
@@ -460,7 +479,12 @@ export async function userJourneyWorkflow(
     switch (event.version) {
       case TrackSignalParamsVersion.V2: {
         const propsVersion = props.version ?? UserJourneyWorkflowVersion.V1;
-        if (propsVersion !== UserJourneyWorkflowVersion.V3) {
+        if (propsVersion === UserJourneyWorkflowVersion.V3 && event.event) {
+          if (!keyedEvents) {
+            keyedEvents = [];
+          }
+          keyedEvents.push(event.event);
+        } else if (propsVersion !== UserJourneyWorkflowVersion.V3) {
           if (!Array.isArray(keyedEvents)) {
             logger.error(
               "keyed events not set on a workflow version that expects it to be",
@@ -695,7 +719,18 @@ export async function userJourneyWorkflow(
           }
           case DelayVariantType.UserProperty: {
             let params: GetUserPropertyDelayParams;
-            if (props.version === UserJourneyWorkflowVersion.V3) {
+            const completeKeyedEvents = getCompleteKeyedEvents();
+            if (completeKeyedEvents) {
+              params = {
+                workspaceId,
+                userId,
+                userProperty: currentNode.variant.userProperty,
+                now: Date.now(),
+                offsetSeconds: currentNode.variant.offsetSeconds,
+                offsetDirection: currentNode.variant.offsetDirection,
+                events: completeKeyedEvents,
+              } satisfies GetUserPropertyDelayParamsV1;
+            } else if (props.version === UserJourneyWorkflowVersion.V3) {
               params = {
                 workspaceId,
                 userId,
@@ -938,17 +973,21 @@ export async function userJourneyWorkflow(
           }
         }
 
+        const completeKeyedEvents = getCompleteKeyedEvents();
         const sendMesssageParams: SendParamsV2 = {
           ...messagePayload,
           ...variant,
-          events: keyedEvents,
+          events: completeKeyedEvents,
           context: entryEventProperties,
           isHidden,
         };
         if (currentNode.retryCount) {
           sendMesssageParams.retryCount = currentNode.retryCount;
         }
-        if (props.version === UserJourneyWorkflowVersion.V3) {
+        if (
+          props.version === UserJourneyWorkflowVersion.V3 &&
+          !completeKeyedEvents
+        ) {
           sendMesssageParams.eventIds = Array.from(keyedEventIds);
         }
 
