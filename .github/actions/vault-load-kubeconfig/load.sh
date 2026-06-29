@@ -17,7 +17,7 @@ if [ -f "${GITHUB_WORKSPACE}/cicd/certs/vault-internal-ca.pem" ]; then
 elif [ -n "${VAULT_CACERT:-}" ]; then
   export CURL_CA_BUNDLE="${RUNNER_TEMP}/vault-ca.pem"
   printf '%s\n' "$VAULT_CACERT" > "$CURL_CA_BUNDLE"
-elif [[ "${VAULT_ADDR}" == *"vault.hngcweywe.com"* ]]; then
+elif [[ "${VAULT_ADDR}" == *"vault.gbinfra.io"* || "${VAULT_ADDR}" == *"vault.hngcweywe.com"* ]]; then
   :
 else
   echo "::error::Vault TLS: missing cicd/certs/vault-internal-ca.pem and secrets.VAULT_CACERT"
