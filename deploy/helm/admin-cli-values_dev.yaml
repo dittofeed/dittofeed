@@ -151,3 +151,17 @@ env:
     value: "0"
   - name: BOOTSTRAP_SKIP_CREATE_DATABASE
     value: "true"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: workload
+              operator: In
+              values:
+                - "true"
