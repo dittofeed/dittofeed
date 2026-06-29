@@ -4,6 +4,7 @@ import { getNodeId } from "isomorphic-lib/src/journeys";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitTrack } from "../apps/track";
+import config from "../config";
 import { db } from "../db";
 import { userJourneyEvent as dbUserJourneyEvent } from "../db/schema";
 import { InternalEventType, JourneyNode } from "../types";
@@ -39,16 +40,17 @@ export async function recordNodeProcessed({
     eventKey,
     eventKeyName,
   };
-  await Promise.all([
-    db()
-      .insert(dbUserJourneyEvent)
-      .values({
-        ...trackedFields,
-        userId,
-        id: randomUUID(),
-      })
-      .onConflictDoNothing(),
-    submitTrack({
+  await db()
+    .insert(dbUserJourneyEvent)
+    .values({
+      ...trackedFields,
+      userId,
+      id: randomUUID(),
+    })
+    .onConflictDoNothing();
+
+  if (config().trackJourneyNodeProcessedEvents) {
+    await submitTrack({
       workspaceId,
       data: {
         userId,
@@ -56,8 +58,8 @@ export async function recordNodeProcessed({
         messageId: uuidv5(messageIdName, workspaceId),
         properties: trackedFields,
       },
-    }),
-  ]);
+    });
+  }
 }
 export interface RecordNodeProcessedParams {
   journeyStartedAt: number;

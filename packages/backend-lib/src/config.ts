@@ -135,6 +135,7 @@ const BaseRawConfigProps = {
   userJourneyTaskQueue: Type.Optional(Type.String()),
   transactionalTaskQueue: Type.Optional(Type.String()),
   computedPropertiesTaskQueue: Type.Optional(Type.String()),
+  trackJourneyNodeProcessedEvents: Type.Optional(BoolStr),
   assignmentSequentialConsistency: Type.Optional(BoolStr),
   computePropertiesQueueConcurrency: Type.Optional(
     Type.String({ format: "naturalNumber" }),
@@ -292,6 +293,7 @@ export type Config = Overwrite<
     clickhouseReplicatedTablePathPrefix?: string;
     computedPropertiesActivityTaskQueue: string;
     computedPropertiesTaskQueue: string;
+    trackJourneyNodeProcessedEvents: boolean;
     computedPropertiesTopicName: string;
     computePropertiesAttempts: number;
     computePropertiesInterval: number;
@@ -742,6 +744,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     transactionalTaskQueue: rawConfig.transactionalTaskQueue ?? "transactional",
     computedPropertiesTaskQueue,
     computedPropertiesActivityTaskQueue,
+    trackJourneyNodeProcessedEvents:
+      rawConfig.trackJourneyNodeProcessedEvents === "true",
     assignmentSequentialConsistency:
       rawConfig.assignmentSequentialConsistency !== "false",
     computePropertiesQueueConcurrency:

@@ -1,7 +1,14 @@
-import { Row } from "@clickhouse/client";
 import { Counter } from "@opentelemetry/api";
 import { Static, Type } from "@sinclair/typebox";
-import { and, eq, inArray, isNotNull, not, SQL } from "drizzle-orm";
+import {
+  and,
+  countDistinct,
+  eq,
+  inArray,
+  isNotNull,
+  not,
+  SQL,
+} from "drizzle-orm";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import { doesEventNameMatch } from "isomorphic-lib/src/events";
 import {
@@ -214,12 +221,6 @@ export async function findManyJourneysUnsafe(
   const result = await findManyJourneys(params);
   return unwrap(result);
 }
-
-const JourneyMessageStatsRow = Type.Object({
-  journey_id: Type.String(),
-  node_id: Type.String(),
-  count: Type.String(),
-});
 
 const JourneyEventStatsRow = Type.Object({
   journey_id: Type.String(),
@@ -497,7 +498,6 @@ export async function getJourneysStats({
   workspaceId: string;
   journeyIds?: string[];
 }): Promise<JourneyStats[]> {
-  const qb = new ClickHouseQueryBuilder();
   const conditions: SQL[] = [
     not(eq(dbJourney.status, JourneyResourceStatusEnum.NotStarted)),
     isNotNull(dbJourney.definition),
@@ -512,35 +512,29 @@ export async function getJourneysStats({
   if (!journeyIds.length) {
     return [];
   }
-  const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
-  const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
-
-  const query = `
-    select
-        journey_id,
-        JSON_VALUE(
-            properties,
-            '$.nodeId'
-        ) node_id,
-        uniq(message_id) as count
-    from internal_events
-    where
-        workspace_id = ${workspaceIdQuery}
-        and journey_id in ${journeyIdsQuery}
-        and event = 'DFJourneyNodeProcessed'
-    group by journey_id, node_id
-`;
 
   const enrichedJourneys = journeys.map((journey) =>
     unwrap(enrichJourney(journey)),
   );
 
-  const [statsResultSet, messageStats] = await Promise.all([
-    chQuery({
-      query,
-      query_params: qb.getQueries(),
-      format: "JSONEachRow",
-    }),
+  const [nodeProcessedRows, messageStats] = await Promise.all([
+    db()
+      .select({
+        journeyId: schema.userJourneyEvent.journeyId,
+        nodeId: schema.userJourneyEvent.nodeId,
+        count: countDistinct(schema.userJourneyEvent.userId),
+      })
+      .from(schema.userJourneyEvent)
+      .where(
+        and(
+          inArray(schema.userJourneyEvent.journeyId, journeyIds),
+          isNotNull(schema.userJourneyEvent.nodeId),
+        ),
+      )
+      .groupBy(
+        schema.userJourneyEvent.journeyId,
+        schema.userJourneyEvent.nodeId,
+      ),
     getJourneyMessageStats({
       workspaceId,
       journeys: enrichedJourneys.flatMap((j) => {
@@ -567,46 +561,17 @@ export async function getJourneysStats({
     }),
   ]);
 
-  const stream = statsResultSet.stream();
   // journey id -> node id -> count
   const journeyNodeProcessedMap = new Map<string, Map<string, number>>();
-
-  const rowPromises: Promise<unknown>[] = [];
-  stream.on("data", (rows: Row[]) => {
-    rows.forEach((row: Row) => {
-      const promise = (async () => {
-        const json = await row.json();
-        const validated = schemaValidateWithErr(json, JourneyMessageStatsRow);
-        if (validated.isErr()) {
-          logger().error(
-            { workspaceId, err: validated.error },
-            "Failed to validate row from clickhouse for journey stats",
-          );
-          return;
-        }
-        const {
-          node_id: nodeId,
-          count,
-          journey_id: journeyId,
-        } = validated.value;
-
-        const nodeMap =
-          journeyNodeProcessedMap.get(journeyId) ?? new Map<string, number>();
-        nodeMap.set(nodeId, parseInt(count));
-        journeyNodeProcessedMap.set(journeyId, nodeMap);
-      })();
-      rowPromises.push(promise);
-    });
-  });
-
-  await Promise.all([
-    new Promise((resolve) => {
-      stream.on("end", () => {
-        resolve(0);
-      });
-    }),
-    ...rowPromises,
-  ]);
+  for (const row of nodeProcessedRows) {
+    if (!row.journeyId || !row.nodeId) {
+      continue;
+    }
+    const nodeMap =
+      journeyNodeProcessedMap.get(row.journeyId) ?? new Map<string, number>();
+    nodeMap.set(row.nodeId, row.count);
+    journeyNodeProcessedMap.set(row.journeyId, nodeMap);
+  }
 
   const journeysStats: JourneyStats[] = [];
 
