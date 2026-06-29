@@ -121,7 +121,7 @@ export async function resolveOnClusterClause(): Promise<string> {
       logger().warn({ cluster }, "Ignoring unsafe ClickHouse cluster macro");
       return "";
     }
-    return ` ON CLUSTER ${cluster}`;
+    return ` ON CLUSTER '${cluster}'`;
   } catch (error) {
     logger().warn({ err: error }, "Failed to resolve ClickHouse cluster macro");
     return "";
