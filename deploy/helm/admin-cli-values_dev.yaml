@@ -7,7 +7,7 @@ workspaceName: Dittofeed
 replicaCount: 1
 
 image:
-  repository: harbor.hngcweywe.com/dittofeed/dittofeed-admin-cli
+  repository: harbor.gbinfra.io/dittofeed/dittofeed-admin-cli
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "6bad241"

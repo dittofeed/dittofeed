@@ -24,9 +24,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  REGISTRY: harbor.hngcweywe.com
-  IMAGE_PREFIX: harbor.hngcweywe.com/dittofeed
-  HELM_OCI_REGISTRY: oci://harbor.hngcweywe.com/helm
+  REGISTRY: harbor.gbinfra.io
+  IMAGE_PREFIX: harbor.gbinfra.io/dittofeed
+  HELM_OCI_REGISTRY: oci://harbor.gbinfra.io/helm
   DITTOFEED_CHART_VERSION: "0.3.3"
   DITTOFEED_ADMIN_CLI_CHART_VERSION: "0.3.1"
 
@@ -68,7 +68,7 @@ jobs:
     runs-on: [self-hosted, standalone]
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'prod' }}
     env:
-      VAULT_ADDR: https://vault.hngcweywe.com
+      VAULT_ADDR: https://vault.gbinfra.io
       VAULT_GITHUB_ROLE: ${{ secrets.VAULT_GITHUB_ROLE }}
       VAULT_GITHUB_AUDIENCE: ${{ secrets.VAULT_GITHUB_AUDIENCE }}
     steps:

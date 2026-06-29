@@ -12,7 +12,7 @@ separateWorker:
   enabled: true
   worker:
     image:
-      repository: harbor.hngcweywe.com/dittofeed/dittofeed-worker
+      repository: harbor.gbinfra.io/dittofeed/dittofeed-worker
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: "6bad241"
@@ -68,7 +68,7 @@ replicaCount: 3
 maxOldSpaceSize: 4096
 
 image:
-  repository: harbor.hngcweywe.com/dittofeed/dittofeed-lite
+  repository: harbor.gbinfra.io/dittofeed/dittofeed-lite
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "6bad241"
