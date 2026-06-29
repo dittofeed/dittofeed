@@ -137,6 +137,8 @@ const BaseRawConfigProps = {
   computedPropertiesTaskQueue: Type.Optional(Type.String()),
   trackJourneyNodeProcessedEvents: Type.Optional(BoolStr),
   assignmentSequentialConsistency: Type.Optional(BoolStr),
+  writeComputedPropertyAssignmentsCurrent: Type.Optional(BoolStr),
+  readComputedPropertyAssignmentsFromCurrent: Type.Optional(BoolStr),
   computePropertiesQueueConcurrency: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
@@ -359,6 +361,8 @@ export type Config = Overwrite<
     clickhouseColdStorageMaxExecutionTime?: number;
     broadcastSendMessagesMaxAttempts: number;
     defaultGetSegmentAndEventDetailsMaxAttempts: number;
+    writeComputedPropertyAssignmentsCurrent: boolean;
+    readComputedPropertyAssignmentsFromCurrent: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -748,6 +752,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.trackJourneyNodeProcessedEvents === "true",
     assignmentSequentialConsistency:
       rawConfig.assignmentSequentialConsistency !== "false",
+    writeComputedPropertyAssignmentsCurrent:
+      rawConfig.writeComputedPropertyAssignmentsCurrent === "true",
+    readComputedPropertyAssignmentsFromCurrent:
+      rawConfig.readComputedPropertyAssignmentsFromCurrent === "true",
     computePropertiesQueueConcurrency:
       rawConfig.computePropertiesQueueConcurrency
         ? parseInt(rawConfig.computePropertiesQueueConcurrency)

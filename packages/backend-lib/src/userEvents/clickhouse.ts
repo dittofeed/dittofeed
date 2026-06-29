@@ -7,7 +7,11 @@ import {
   InternalEventType,
   JSONValue,
 } from "../types";
-import { resolveMergeTreeEngine } from "./clickhouseEngines";
+import {
+  resolveMergeTreeEngine,
+  resolveOnClusterClause,
+  resolveReplacingMergeTreeEngine,
+} from "./clickhouseEngines";
 
 export interface InsertValue {
   processingTime?: string;
@@ -52,6 +56,10 @@ export function buildInternalEventsTableQuery(engine: string): string {
 
 export const IDENTIFY_EVENTS_TABLE = "identify_events_v2";
 export const TRACK_EVENTS_TABLE = "track_events_v2";
+export const COMPUTED_PROPERTY_ASSIGNMENTS_TABLE =
+  "computed_property_assignments_v2";
+export const COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE =
+  "computed_property_assignments_current_v2";
 export const USER_TRAIT_VALUES_TABLE = "user_trait_values_v2";
 export const USER_TRAIT_VALUES_V3_TABLE = "user_trait_values_v3";
 export const USER_TRAIT_VALUES_CURRENT_VIEW = "user_trait_values_current";
@@ -563,6 +571,12 @@ export async function createUserEventsTables() {
     IDENTIFY_EVENTS_TABLE,
   );
   const trackEventsEngine = await resolveMergeTreeEngine(TRACK_EVENTS_TABLE);
+  const onClusterClause = await resolveOnClusterClause();
+  const computedPropertyAssignmentsCurrentEngine =
+    await resolveReplacingMergeTreeEngine({
+      tableName: COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
+      versionColumn: "assigned_at",
+    });
 
   const queries = [
     // This is the primary table for user events, which serves as the source of truth for user traits and behaviors.
@@ -650,7 +664,7 @@ export async function createUserEventsTables() {
     // strings in the case of user properties or booleans in the case of
     // segments.
     `
-        CREATE TABLE IF NOT EXISTS computed_property_assignments_v2 (
+        CREATE TABLE IF NOT EXISTS ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE} (
           workspace_id LowCardinality(String),
           type Enum('user_property' = 1, 'segment' = 2),
           computed_property_id LowCardinality(String),
@@ -661,6 +675,28 @@ export async function createUserEventsTables() {
           assigned_at DateTime64(3) DEFAULT now64(3),
         )
         ENGINE = ReplacingMergeTree()
+        ORDER BY (
+          workspace_id,
+          type,
+          computed_property_id,
+          user_id
+        );
+      `,
+    // Current-state assignment read model. This table is populated by the
+    // compute assignments dual-write path and can be backfilled from
+    // computed_property_assignments_v2 before reads are switched over.
+    `
+        CREATE TABLE IF NOT EXISTS ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE}${onClusterClause} (
+          workspace_id LowCardinality(String),
+          type Enum('user_property' = 1, 'segment' = 2),
+          computed_property_id LowCardinality(String),
+          user_id String,
+          segment_value Boolean,
+          user_property_value String,
+          max_event_time DateTime64(3),
+          assigned_at DateTime64(3) DEFAULT now64(3),
+        )
+        ENGINE = ${computedPropertyAssignmentsCurrentEngine}
         ORDER BY (
           workspace_id,
           type,

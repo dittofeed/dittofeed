@@ -2,6 +2,10 @@ import { ClickHouseQueryBuilder, command } from "backend-lib/src/clickhouse";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
+import {
+  COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
+  COMPUTED_PROPERTY_ASSIGNMENTS_TABLE,
+} from "backend-lib/src/userEvents/clickhouse";
 import { eq } from "drizzle-orm";
 
 export async function resetWorkspaceData({
@@ -35,7 +39,11 @@ export async function resetWorkspaceData({
       ...baseChParams,
     }),
     command({
-      query: `ALTER TABLE computed_property_assignments_v2 DELETE WHERE workspace_id = ${workspaceIdParam}`,
+      query: `ALTER TABLE ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE} DELETE WHERE workspace_id = ${workspaceIdParam}`,
+      ...baseChParams,
+    }),
+    command({
+      query: `ALTER TABLE ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE} DELETE WHERE workspace_id = ${workspaceIdParam}`,
       ...baseChParams,
     }),
     command({

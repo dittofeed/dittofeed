@@ -20,7 +20,7 @@ import {
   command as chCommand,
   query as chQuery,
 } from "./clickhouse";
-import { assignmentSequentialConsistency } from "./config";
+import config, { assignmentSequentialConsistency } from "./config";
 import { db, QueryError, queryResult, upsert } from "./db";
 import { userProperty as dbUserProperty } from "./db/schema";
 import logger from "./logger";
@@ -45,6 +45,10 @@ import {
   UserPropertyOperatorType,
   UserPropertyResource,
 } from "./types";
+import {
+  COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
+  COMPUTED_PROPERTY_ASSIGNMENTS_TABLE,
+} from "./userEvents/clickhouse";
 
 export function enrichUserProperty(
   userProperty: UserProperty,
@@ -840,12 +844,21 @@ export async function insertUserPropertyAssignments(
     user_property_value: assignment.value,
     segment_value: false,
   }));
-  await client.insert({
-    table: "computed_property_assignments_v2",
-    values: assignments,
-    format: "JSONEachRow",
-    clickhouse_settings: { wait_end_of_query: 1 },
-  });
+  const tables = [COMPUTED_PROPERTY_ASSIGNMENTS_TABLE];
+  if (config().writeComputedPropertyAssignmentsCurrent) {
+    tables.push(COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE);
+  }
+
+  await Promise.all(
+    tables.map((table) =>
+      client.insert({
+        table,
+        values: assignments,
+        format: "JSONEachRow",
+        clickhouse_settings: { wait_end_of_query: 1 },
+      }),
+    ),
+  );
 }
 
 export async function findUserIdsByUserPropertyValue({
@@ -983,7 +996,10 @@ export async function deleteUserProperty({
     `DELETE FROM computed_property_state_v3 WHERE workspace_id = ${workspaceIdParam}
      AND type = ${typeParam}
      AND computed_property_id = ${computedPropertyIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
-    `DELETE FROM computed_property_assignments_v2 WHERE workspace_id = ${workspaceIdParam}
+    `DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE} WHERE workspace_id = ${workspaceIdParam}
+     AND type = ${typeParam}
+     AND computed_property_id = ${computedPropertyIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE} WHERE workspace_id = ${workspaceIdParam}
      AND type = ${typeParam}
      AND computed_property_id = ${computedPropertyIdParam} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
     `DELETE FROM processed_computed_properties_v2 WHERE workspace_id = ${workspaceIdParam}

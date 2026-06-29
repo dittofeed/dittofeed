@@ -32,6 +32,8 @@ import {
   buildUserTraitValuesBackfillInsertQuery,
   buildUserTraitValuesMaterializedViewQuery,
   buildUserTraitValuesTableQuery,
+  COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
+  COMPUTED_PROPERTY_ASSIGNMENTS_TABLE,
   CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
   CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY,
   CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
@@ -98,6 +100,73 @@ export async function createUserSortingIndexTables() {
     });
   }
   logger().info("Finished creating user sorting index tables and views.");
+}
+
+export async function backfillComputedPropertyAssignmentsCurrent({
+  workspaceId,
+  resetCurrent,
+}: {
+  workspaceId?: string;
+  resetCurrent: boolean;
+}) {
+  logger().info(
+    { workspaceId, resetCurrent },
+    "Backfilling current computed property assignments table.",
+  );
+  await createUserEventsTables();
+
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceClause = workspaceId
+    ? `WHERE workspace_id = ${qb.addQueryValue(workspaceId, "String")}`
+    : "";
+  const deleteWorkspaceClause = workspaceId
+    ? workspaceClause
+    : "WHERE 1 = 1";
+
+  if (resetCurrent) {
+    await command({
+      query: `
+        DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE}
+        ${deleteWorkspaceClause}
+        SETTINGS mutations_sync = 1, lightweight_deletes_sync = 1
+      `,
+      query_params: qb.getQueries(),
+      clickhouse_settings: {
+        wait_end_of_query: 1,
+      },
+    });
+  }
+
+  await command({
+    query: `
+      INSERT INTO ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE}
+      SELECT
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id,
+        argMax(segment_value, assigned_at) AS segment_value,
+        argMax(user_property_value, assigned_at) AS user_property_value,
+        argMax(max_event_time, assigned_at) AS max_event_time,
+        max(assigned_at) AS assigned_at
+      FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE}
+      ${workspaceClause}
+      GROUP BY
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id
+    `,
+    query_params: qb.getQueries(),
+    clickhouse_settings: {
+      wait_end_of_query: 1,
+    },
+  });
+
+  logger().info(
+    { workspaceId },
+    "Finished backfilling current computed property assignments table.",
+  );
 }
 
 export async function disentangleResendSendgrid() {

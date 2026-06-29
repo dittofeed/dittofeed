@@ -1,3 +1,5 @@
+import { and, eq } from "drizzle-orm";
+
 import { ClickHouseQueryBuilder, command } from "../clickhouse";
 import { db } from "../db";
 import {
@@ -8,7 +10,10 @@ import {
   userPropertyAssignment,
 } from "../db/schema";
 import logger from "../logger";
-import { and, eq } from "drizzle-orm";
+import {
+  COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
+  COMPUTED_PROPERTY_ASSIGNMENTS_TABLE,
+} from "../userEvents/clickhouse";
 
 const DELETE_SETTINGS =
   "settings mutations_sync = 1, lightweight_deletes_sync = 1";
@@ -34,7 +39,12 @@ async function deleteClickhouseSegmentState({
       WHERE workspace_id = ${workspaceIdParam}
         AND segment_id = ${segmentIdParam}
       ${DELETE_SETTINGS}`,
-    `DELETE FROM computed_property_assignments_v2
+    `DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE}
+      WHERE workspace_id = ${workspaceIdParam}
+        AND type = 'segment'
+        AND computed_property_id = ${segmentIdParam}
+      ${DELETE_SETTINGS}`,
+    `DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE}
       WHERE workspace_id = ${workspaceIdParam}
         AND type = 'segment'
         AND computed_property_id = ${segmentIdParam}
@@ -51,13 +61,15 @@ async function deleteClickhouseSegmentState({
       ${DELETE_SETTINGS}`,
   ];
 
-  for (const query of queries) {
-    await command({
-      query,
-      query_params: qb.getQueries(),
-      clickhouse_settings: { wait_end_of_query: 1 },
-    });
-  }
+  await Promise.all(
+    queries.map((query) =>
+      command({
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      }),
+    ),
+  );
 }
 
 async function deleteClickhouseUserPropertyState({
@@ -77,7 +89,12 @@ async function deleteClickhouseUserPropertyState({
         AND type = 'user_property'
         AND computed_property_id = ${userPropertyIdParam}
       ${DELETE_SETTINGS}`,
-    `DELETE FROM computed_property_assignments_v2
+    `DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE}
+      WHERE workspace_id = ${workspaceIdParam}
+        AND type = 'user_property'
+        AND computed_property_id = ${userPropertyIdParam}
+      ${DELETE_SETTINGS}`,
+    `DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE}
       WHERE workspace_id = ${workspaceIdParam}
         AND type = 'user_property'
         AND computed_property_id = ${userPropertyIdParam}
@@ -94,13 +111,15 @@ async function deleteClickhouseUserPropertyState({
       ${DELETE_SETTINGS}`,
   ];
 
-  for (const query of queries) {
-    await command({
-      query,
-      query_params: qb.getQueries(),
-      clickhouse_settings: { wait_end_of_query: 1 },
-    });
-  }
+  await Promise.all(
+    queries.map((query) =>
+      command({
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      }),
+    ),
+  );
 }
 
 async function deleteComputedPropertyPeriods({

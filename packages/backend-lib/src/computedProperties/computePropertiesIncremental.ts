@@ -58,6 +58,8 @@ import {
   UserPropertyOperatorType,
 } from "../types";
 import {
+  COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
+  COMPUTED_PROPERTY_ASSIGNMENTS_TABLE,
   IDENTIFY_EVENTS_TABLE,
   insertProcessedComputedProperties,
   TRACK_EVENTS_TABLE,
@@ -118,6 +120,26 @@ function readLimit(): AsyncWrapper {
     }
   }
   return READ_LIMIT;
+}
+
+function computedPropertyAssignmentsReadTable(): string {
+  return config().readComputedPropertyAssignmentsFromCurrent
+    ? COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE
+    : COMPUTED_PROPERTY_ASSIGNMENTS_TABLE;
+}
+
+function computedPropertyAssignmentsWriteQueries(query: string): string[] {
+  if (
+    !config().writeComputedPropertyAssignmentsCurrent ||
+    !/^\s*insert\s+into\s+/i.test(query)
+  ) {
+    return [query];
+  }
+  const currentQuery = query.replace(
+    COMPUTED_PROPERTY_ASSIGNMENTS_TABLE,
+    COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
+  );
+  return [query, currentQuery];
 }
 
 /**
@@ -3357,6 +3379,7 @@ function assignStandardUserPropertiesQuery({
   periodBound,
   qb,
   now,
+  writeOnlyChanged,
 }: {
   workspaceId: string;
   now: number;
@@ -3364,16 +3387,21 @@ function assignStandardUserPropertiesQuery({
   periodBound?: number;
   userPropertyId: string;
   config: StandardUserPropertyAssignmentConfig;
+  writeOnlyChanged: boolean;
 }): string | null {
   const nowSeconds = now / 1000;
 
   if (!ac.stateIds.length) {
     return null;
   }
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const userPropertyIdParam = qb.addQueryValue(userPropertyId, "String");
+  const stateIdsParam = qb.addQueryValue(ac.stateIds, "Array(String)");
   const lowerBoundClause =
     periodBound && periodBound !== 0
       ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const boundedQuery = `
     select
       workspace_id,
@@ -3383,23 +3411,32 @@ function assignStandardUserPropertiesQuery({
       user_id
     from updated_computed_property_state
     where
-      workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+      workspace_id = ${workspaceIdParam}
       and type = 'user_property'
-      and computed_property_id = ${qb.addQueryValue(userPropertyId, "String")}
-      and state_id in ${qb.addQueryValue(ac.stateIds, "Array(String)")}
+      and computed_property_id = ${userPropertyIdParam}
+      and state_id in ${stateIdsParam}
       and computed_at <= toDateTime64(${nowSeconds}, 3)
       ${lowerBoundClause}
   `;
-  const query = `
-    insert into computed_property_assignments_v2
+  const latestUserPropertyAssignments = `
+    select
+      user_id as previous_user_id,
+      argMax(user_property_value, assigned_at) as previous_user_property_value
+    from ${assignmentsReadTable}
+    where
+      workspace_id = ${workspaceIdParam}
+      and type = 'user_property'
+      and computed_property_id = ${userPropertyIdParam}
+    group by user_id
+  `;
+  const computedUserPropertyAssignments = `
     select
       workspace_id,
-      'user_property',
       computed_property_id,
       user_id,
       False as segment_value,
       ${ac.query} as user_property_value,
-      arrayReduce('max', mapValues(max_event_time)),
+      arrayReduce('max', mapValues(max_event_time)) as max_event_time,
       toDateTime64(${nowSeconds}, 3) as assigned_at
     from (
       select
@@ -3443,6 +3480,34 @@ function assignStandardUserPropertiesQuery({
         user_id
     )
   `;
+  const changedOnlyClause = writeOnlyChanged
+    ? `left any join (${latestUserPropertyAssignments}) previous_assignments
+      on computed_assignments.user_id = previous_assignments.previous_user_id
+    where
+      (
+        previous_assignments.previous_user_id != ''
+        and computed_assignments.user_property_value != previous_assignments.previous_user_property_value
+      )
+      or (
+        previous_assignments.previous_user_id = ''
+        and computed_assignments.user_property_value != ''
+        and computed_assignments.user_property_value != '""'
+      )`
+    : "";
+  const query = `
+    insert into ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE}
+    select
+      computed_assignments.workspace_id,
+      'user_property',
+      computed_assignments.computed_property_id,
+      computed_assignments.user_id,
+      computed_assignments.segment_value,
+      computed_assignments.user_property_value,
+      computed_assignments.max_event_time,
+      computed_assignments.assigned_at
+    from (${computedUserPropertyAssignments}) computed_assignments
+    ${changedOnlyClause}
+  `;
   return query;
 }
 
@@ -3453,6 +3518,7 @@ function assignPerformedManyUserPropertiesQuery({
   periodBound,
   qb,
   now,
+  writeOnlyChanged,
 }: {
   workspaceId: string;
   now: number;
@@ -3460,6 +3526,7 @@ function assignPerformedManyUserPropertiesQuery({
   periodBound?: number;
   userPropertyId: string;
   config: PerformedManyUserPropertyAssignmentConfig;
+  writeOnlyChanged: boolean;
 }): string {
   const nowSeconds = now / 1000;
 
@@ -3470,6 +3537,7 @@ function assignPerformedManyUserPropertiesQuery({
   const computedPropertyIdParam = qb.addQueryValue(userPropertyId, "String");
   const stateIdParam = qb.addQueryValue(ac.stateId, "String");
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const boundedQuery = `
     select
       workspace_id,
@@ -3486,8 +3554,18 @@ function assignPerformedManyUserPropertiesQuery({
       and computed_at <= toDateTime64(${nowSeconds}, 3)
       ${lowerBoundClause}
   `;
-  const query = `
-    INSERT INTO computed_property_assignments_v2
+  const latestUserPropertyAssignments = `
+    select
+      user_id as previous_user_id,
+      argMax(user_property_value, assigned_at) as previous_user_property_value
+    from ${assignmentsReadTable}
+    where
+      workspace_id = ${workspaceIdParam}
+      and type = 'user_property'
+      and computed_property_id = ${computedPropertyIdParam}
+    group by user_id
+  `;
+  const computedUserPropertyAssignments = `
     SELECT
       workspace_id,
       'user_property' AS type,
@@ -3535,7 +3613,35 @@ function assignPerformedManyUserPropertiesQuery({
       )
     GROUP BY
       workspace_id,
-      user_id;
+      user_id
+  `;
+  const changedOnlyClause = writeOnlyChanged
+    ? `left any join (${latestUserPropertyAssignments}) previous_assignments
+      on computed_assignments.user_id = previous_assignments.previous_user_id
+    where
+      (
+        previous_assignments.previous_user_id != ''
+        and computed_assignments.user_property_value != previous_assignments.previous_user_property_value
+      )
+      or (
+        previous_assignments.previous_user_id = ''
+        and computed_assignments.user_property_value != ''
+        and computed_assignments.user_property_value != '""'
+      )`
+    : "";
+  const query = `
+    INSERT INTO ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE}
+    SELECT
+      computed_assignments.workspace_id,
+      computed_assignments.type,
+      computed_assignments.computed_property_id,
+      computed_assignments.user_id,
+      computed_assignments.segment_value,
+      computed_assignments.user_property_value,
+      computed_assignments.max_event_time,
+      computed_assignments.assigned_at
+    FROM (${computedUserPropertyAssignments}) computed_assignments
+    ${changedOnlyClause};
   `;
   return query;
 }
@@ -3547,6 +3653,7 @@ function assignUserPropertiesQuery({
   periodBound,
   qb,
   now,
+  writeOnlyChanged,
 }: {
   workspaceId: string;
   now: number;
@@ -3554,6 +3661,7 @@ function assignUserPropertiesQuery({
   periodBound?: number;
   userPropertyId: string;
   config: UserPropertyAssignmentConfig;
+  writeOnlyChanged: boolean;
 }): string | null {
   switch (ac.type) {
     case UserPropertyAssignmentType.Standard: {
@@ -3564,6 +3672,7 @@ function assignUserPropertiesQuery({
         periodBound,
         qb,
         now,
+        writeOnlyChanged,
       });
     }
     case UserPropertyAssignmentType.PerformedMany: {
@@ -3574,6 +3683,7 @@ function assignUserPropertiesQuery({
         periodBound,
         qb,
         now,
+        writeOnlyChanged,
       });
     }
   }
@@ -3969,54 +4079,38 @@ async function execAssignmentQueryGroup({
   clickhouseClient: ReturnType<typeof createClickhouseClient>;
 }) {
   const { queries, qb } = group;
-  for (const assignmentQuery of queries) {
-    if (Array.isArray(assignmentQuery)) {
-      await Promise.all(
-        assignmentQuery.map(
-          ({ query, computedPropertyId, computedPropertyType }) =>
-            withSpan({ name: "exec-assignment-query" }, async (span) => {
-              span.setAttribute("workspaceId", workspaceId);
-              span.setAttribute("computedPropertyId", computedPropertyId);
-              span.setAttribute("computedPropertyType", computedPropertyType);
-              return command(
-                {
-                  query,
-                  query_params: qb.getQueries(),
-                  clickhouse_settings: {
-                    wait_end_of_query: 1,
-                    max_execution_time:
-                      config().clickhouseComputePropertiesMaxExecutionTime,
-                  },
-                },
-                { clickhouseClient },
-              );
-            }),
+  const execAssignmentQuery = async ({
+    query,
+    computedPropertyId,
+    computedPropertyType,
+  }: AssignmentQuery) =>
+    withSpan({ name: "exec-assignment-query" }, async (span) => {
+      span.setAttribute("workspaceId", workspaceId);
+      span.setAttribute("computedPropertyId", computedPropertyId);
+      span.setAttribute("computedPropertyType", computedPropertyType);
+      return Promise.all(
+        computedPropertyAssignmentsWriteQueries(query).map((writeQuery) =>
+          command(
+            {
+              query: writeQuery,
+              query_params: qb.getQueries(),
+              clickhouse_settings: {
+                wait_end_of_query: 1,
+                max_execution_time:
+                  config().clickhouseComputePropertiesMaxExecutionTime,
+              },
+            },
+            { clickhouseClient },
+          ),
         ),
       );
+    });
+
+  for (const assignmentQuery of queries) {
+    if (Array.isArray(assignmentQuery)) {
+      await Promise.all(assignmentQuery.map(execAssignmentQuery));
     } else {
-      await withSpan({ name: "exec-assignment-query" }, async (span) => {
-        span.setAttribute("workspaceId", workspaceId);
-        span.setAttribute(
-          "computedPropertyId",
-          assignmentQuery.computedPropertyId,
-        );
-        span.setAttribute(
-          "computedPropertyType",
-          assignmentQuery.computedPropertyType,
-        );
-        return command(
-          {
-            query: assignmentQuery.query,
-            query_params: qb.getQueries(),
-            clickhouse_settings: {
-              wait_end_of_query: 1,
-              max_execution_time:
-                config().clickhouseComputePropertiesMaxExecutionTime,
-            },
-          },
-          { clickhouseClient },
-        );
-      });
+      await execAssignmentQuery(assignmentQuery);
     }
   }
 }
@@ -4090,6 +4184,7 @@ export async function computeAssignments({
 
         const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
         const segmentIdParam = qb.addQueryValue(segment.id, "String");
+        const assignmentsReadTable = computedPropertyAssignmentsReadTable();
         const shouldReset = shouldResetComputedProperty({
           definitionUpdatedAt: segment.definitionUpdatedAt,
           createdAt: segment.createdAt,
@@ -4102,15 +4197,23 @@ export async function computeAssignments({
             assignmentConfig.stateIds,
             "Array(String)",
           );
-          assignmentQueries.push(
-            `insert into computed_property_assignments_v2
+          const latestSegmentAssignments = `
+            select
+              user_id as previous_user_id,
+              argMax(segment_value, assigned_at) as previous_segment_value
+            from ${assignmentsReadTable}
+            where
+              workspace_id = ${workspaceIdParam}
+              and type = 'segment'
+              and computed_property_id = ${segmentIdParam}
+            group by user_id
+          `;
+          const computedSegmentAssignments = `
             select
               workspace_id,
-              'segment',
               segment_id,
               user_id,
               ${assignmentConfig.expression} as segment_value,
-              '',
               max_state_event_time,
               toDateTime64(${nowSeconds}, 3) as assigned_at
             from (
@@ -4157,7 +4260,35 @@ export async function computeAssignments({
                 workspace_id,
                 segment_id,
                 user_id
-            )`,
+            )
+          `;
+          const changedOnlyClause = shouldReset
+            ? ""
+            : `left any join (${latestSegmentAssignments}) previous_assignments
+              on computed_assignments.user_id = previous_assignments.previous_user_id
+            where
+              (
+                previous_assignments.previous_user_id != ''
+                and computed_assignments.segment_value != previous_assignments.previous_segment_value
+              )
+              or (
+                previous_assignments.previous_user_id = ''
+                and computed_assignments.segment_value = true
+              )`;
+
+          assignmentQueries.push(
+            `insert into ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE}
+            select
+              computed_assignments.workspace_id,
+              'segment',
+              computed_assignments.segment_id,
+              computed_assignments.user_id,
+              computed_assignments.segment_value,
+              '',
+              computed_assignments.max_state_event_time,
+              computed_assignments.assigned_at
+            from (${computedSegmentAssignments}) computed_assignments
+            ${changedOnlyClause}`,
           );
 
           if (shouldReset) {
@@ -4169,7 +4300,7 @@ export async function computeAssignments({
               "resetting segment assignments",
             );
             const resetQuery = `
-          delete from computed_property_assignments_v2
+          delete from ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE}
           where
             workspace_id = ${workspaceIdParam}
             and type = 'segment'
@@ -4179,6 +4310,15 @@ export async function computeAssignments({
         `;
 
             assignmentQueries.unshift(resetQuery);
+            assignmentQueries.unshift(`
+          delete from ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE}
+          where
+            workspace_id = ${workspaceIdParam}
+            and type = 'segment'
+            and computed_property_id = ${segmentIdParam}
+            and assigned_at < toDateTime64(${nowSeconds}, 3)
+          settings mutations_sync = 0, lightweight_deletes_sync = 0;
+        `);
           }
         }
 
@@ -4283,6 +4423,7 @@ export async function computeAssignments({
               qb,
               now,
               periodBound: period?.maxTo.getTime(),
+              writeOnlyChanged: !shouldReset,
             })
           : null;
         const queries: string[] = [];
@@ -4295,7 +4436,7 @@ export async function computeAssignments({
             "String",
           );
           const resetQuery = `
-          delete from computed_property_assignments_v2
+          delete from ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE}
           where
             workspace_id = ${workspaceIdParam}
             and type = 'user_property'
@@ -4304,6 +4445,15 @@ export async function computeAssignments({
           settings mutations_sync = 0, lightweight_deletes_sync = 0;
         `;
           queries.push(resetQuery);
+          queries.push(`
+          delete from ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE}
+          where
+            workspace_id = ${workspaceIdParam}
+            and type = 'user_property'
+            and computed_property_id = ${userPropertyIdParam}
+            and assigned_at < toDateTime64(${nowSeconds}, 3)
+          settings mutations_sync = 0, lightweight_deletes_sync = 0;
+        `);
         }
 
         if (stateQuery) {
@@ -4601,6 +4751,24 @@ function buildProcessAssignmentsQuery({
   const innerCursorClause = cursor
     ? `and user_id > ${qb.addQueryValue(cursor, "String")}`
     : "";
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
+  const assignmentRowsQuery = `
+    SELECT
+      user_id,
+      max(assigned_at) max_assigned_at,
+      argMax(segment_value, assigned_at) latest_segment_value,
+      argMax(user_property_value, assigned_at) latest_user_property_value
+    FROM ${assignmentsReadTable}
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND type = ${typeParam}
+      AND computed_property_id = ${computedPropertyIdParam}
+      ${innerCursorClause}
+      ${lowerBoundClause}
+    GROUP BY
+      user_id
+    ORDER BY user_id ASC
+  `;
 
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
@@ -4626,23 +4794,7 @@ function buildProcessAssignmentsQuery({
       cpa.max_assigned_at,
       ${processedForParam} as processed_for,
       ${processedForTypeParam} as processed_for_type
-    FROM (
-      SELECT
-        user_id,
-        max(assigned_at) max_assigned_at,
-        argMax(segment_value, assigned_at) latest_segment_value,
-        argMax(user_property_value, assigned_at) latest_user_property_value
-      FROM computed_property_assignments_v2
-      WHERE
-        workspace_id = ${workspaceIdParam}
-        AND type = ${typeParam}
-        AND computed_property_id = ${computedPropertyIdParam}
-        ${innerCursorClause}
-        ${lowerBoundClause}
-      GROUP BY
-        user_id
-      ORDER BY user_id ASC
-    ) cpa
+    FROM (${assignmentRowsQuery}) cpa
     LEFT ANY JOIN (
       SELECT
         user_id,

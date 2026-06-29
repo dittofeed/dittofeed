@@ -16,6 +16,20 @@ export function getReplicatedMergeTreeEngine(tableName: string): string {
   return `ReplicatedMergeTree('${pathPrefix}/${tableName}', '{replica}')`;
 }
 
+export function getReplicatedReplacingMergeTreeEngine({
+  tableName,
+  versionColumn,
+}: {
+  tableName: string;
+  versionColumn?: string;
+}): string {
+  const pathPrefix =
+    config().clickhouseReplicatedTablePathPrefix ??
+    DEFAULT_REPLICATED_TABLE_PATH_PREFIX;
+  const versionArg = versionColumn ? `, ${versionColumn}` : "";
+  return `ReplicatedReplacingMergeTree('${pathPrefix}/${tableName}', '{replica}'${versionArg})`;
+}
+
 export function getMergeTreeEngine(tableName: string): string {
   if (config().clickhouseUseReplicatedTables === false) {
     return "MergeTree()";
@@ -69,6 +83,51 @@ export async function resolveMergeTreeEngine(
   return "MergeTree()";
 }
 
+export async function resolveReplacingMergeTreeEngine({
+  tableName,
+  versionColumn,
+}: {
+  tableName: string;
+  versionColumn?: string;
+}): Promise<string> {
+  const versionArg = versionColumn ? `(${versionColumn})` : "()";
+  if (config().clickhouseUseReplicatedTables === false) {
+    return `ReplacingMergeTree${versionArg}`;
+  }
+  if (
+    config().clickhouseUseReplicatedTables === true ||
+    (await hasReplicationMacros())
+  ) {
+    return getReplicatedReplacingMergeTreeEngine({ tableName, versionColumn });
+  }
+  return `ReplacingMergeTree${versionArg}`;
+}
+
+export async function resolveOnClusterClause(): Promise<string> {
+  if (config().clickhouseUseReplicatedTables === false) {
+    return "";
+  }
+
+  try {
+    const result = await query({
+      query: "SELECT getMacro('cluster') AS cluster",
+    });
+    const rows = await result.json<{ cluster: string }>();
+    const cluster = rows[0]?.cluster;
+    if (!cluster) {
+      return "";
+    }
+    if (!/^[A-Za-z0-9_-]+$/.test(cluster)) {
+      logger().warn({ cluster }, "Ignoring unsafe ClickHouse cluster macro");
+      return "";
+    }
+    return ` ON CLUSTER ${cluster}`;
+  } catch (error) {
+    logger().warn({ err: error }, "Failed to resolve ClickHouse cluster macro");
+    return "";
+  }
+}
+
 export async function getClickhouseClusterHttpHosts(): Promise<string[]> {
   const result = await query({
     query: `
@@ -91,12 +150,13 @@ export async function getClickhouseClusterHttpHosts(): Promise<string[]> {
   const protocol = configuredHost.protocol || "http:";
 
   return rows.map(
-    ({ host_name }) =>
-      `${protocol}//${host_name}.${namespace}:${port}`,
+    ({ host_name }) => `${protocol}//${host_name}.${namespace}:${port}`,
   );
 }
 
-export async function getTableEngine(tableName: string): Promise<string | null> {
+export async function getTableEngine(
+  tableName: string,
+): Promise<string | null> {
   const result = await query({
     query: `
       SELECT engine

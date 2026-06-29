@@ -105,6 +105,7 @@ import { resetWorkspaceData } from "./reset";
 import { spawnWithEnv } from "./spawn";
 import {
   addJourneyTypeColumn,
+  backfillComputedPropertyAssignmentsCurrent,
   backfillIdentifyEvents,
   backfillInternalEvents,
   backfillTrackEvents,
@@ -284,6 +285,29 @@ export function createCommands(yargs: Argv): Argv {
       (cmd) => cmd,
       async () => {
         await createUserSortingIndexTables();
+      },
+    )
+    .command(
+      "backfill-computed-property-assignments-current",
+      "Backfill computed_property_assignments_current_v2 from computed_property_assignments_v2.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            describe: "Optional workspace ID to backfill.",
+          },
+          "reset-current": {
+            type: "boolean",
+            default: false,
+            describe:
+              "Delete current table rows in scope before inserting latest assignments.",
+          },
+        }),
+      async ({ workspaceId, resetCurrent }) => {
+        await backfillComputedPropertyAssignmentsCurrent({
+          workspaceId: workspaceId ?? undefined,
+          resetCurrent,
+        });
       },
     )
     .command(

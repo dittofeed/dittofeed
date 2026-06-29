@@ -25,10 +25,6 @@ import {
 } from "./db/schema";
 import logger from "./logger";
 import { withSpan } from "./openTelemetry";
-import {
-  IDENTIFY_EVENTS_TABLE,
-  TRACK_EVENTS_TABLE,
-} from "./userEvents/clickhouse";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import {
   getSubscriptionGroupDetails,
@@ -52,6 +48,12 @@ import {
   UserPropertyDefinition,
   UserSubscriptionItem,
 } from "./types";
+import {
+  COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
+  COMPUTED_PROPERTY_ASSIGNMENTS_TABLE,
+  IDENTIFY_EVENTS_TABLE,
+  TRACK_EVENTS_TABLE,
+} from "./userEvents/clickhouse";
 import { UserPropertyIndexType } from "./userPropertyIndices";
 
 enum CursorKey {
@@ -1518,8 +1520,10 @@ export async function deleteUsers({
     `DELETE FROM computed_property_state_v3 WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam}) settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
 
-    // Delete from computed_property_assignments_v2
-    `DELETE FROM computed_property_assignments_v2 WHERE workspace_id = ${workspaceIdParam}
+    // Delete from computed property assignments
+    `DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE} WHERE workspace_id = ${workspaceIdParam}
+     AND user_id IN (${userIdsParam}) settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE} WHERE workspace_id = ${workspaceIdParam}
      AND user_id IN (${userIdsParam}) settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
 
     // Delete from processed_computed_properties_v2
@@ -1594,8 +1598,10 @@ export async function deleteAllUsers({
     `DELETE FROM computed_property_state_v3 WHERE workspace_id = ${workspaceIdParam}
      settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
 
-    // Delete from computed_property_assignments_v2
-    `DELETE FROM computed_property_assignments_v2 WHERE workspace_id = ${workspaceIdParam}
+    // Delete from computed property assignments
+    `DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE} WHERE workspace_id = ${workspaceIdParam}
+     settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+    `DELETE FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE} WHERE workspace_id = ${workspaceIdParam}
      settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
 
     // Delete from processed_computed_properties_v2
