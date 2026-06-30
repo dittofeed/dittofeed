@@ -22,6 +22,7 @@ import {
   command as chCommand,
   query as chQuery,
 } from "./clickhouse";
+import { computedPropertyAssignmentsReadTable } from "./computedProperties/assignmentTables";
 import config, { assignmentSequentialConsistency } from "./config";
 import { db, TxQueryError, txQueryResult } from "./db";
 import {
@@ -88,11 +89,12 @@ export async function findAllSegmentAssignmentsByIds({
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const query = `
     SELECT
       computed_property_id,
       argMax(segment_value, assigned_at) as latest_segment_value
-    FROM computed_property_assignments_v2
+    FROM ${assignmentsReadTable}
     WHERE
       workspace_id = ${workspaceIdParam}
       AND type = 'segment'
@@ -133,12 +135,13 @@ export async function findAllSegmentAssignmentsByIdsForUsers({
 
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const query = `
     SELECT
       user_id,
       computed_property_id,
       argMax(segment_value, assigned_at) as latest_segment_value
-    FROM computed_property_assignments_v2
+    FROM ${assignmentsReadTable}
     WHERE
       workspace_id = ${workspaceIdParam}
       AND type = 'segment'
@@ -204,12 +207,13 @@ export async function findAllSegmentAssignments({
   const segmentIdsClause = segmentIds
     ? `AND computed_property_id IN ${qb.addQueryValue(segmentIds, "Array(String)")}`
     : "";
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
 
   const query = `
     SELECT
       computed_property_id,
       argMax(segment_value, assigned_at) as latest_segment_value
-    FROM computed_property_assignments_v2
+    FROM ${assignmentsReadTable}
     WHERE
       workspace_id = ${workspaceIdParam}
       AND type = 'segment'
@@ -601,12 +605,27 @@ export async function upsertSegment(
     throw txResult.error;
   }
   const segment = txResult.value;
+  const definitionResult = schemaValidateWithErr(
+    segment.definition,
+    SegmentDefinition,
+  );
+  if (definitionResult.isErr()) {
+    logger().error(
+      {
+        err: definitionResult.error,
+        segment,
+        workspaceId: params.workspaceId,
+      },
+      "Saved segment definition is invalid",
+    );
+    throw new Error("Saved segment definition is invalid");
+  }
 
   return ok({
     id: segment.id,
     workspaceId: segment.workspaceId,
     name: segment.name,
-    definition: segment.definition as SegmentDefinition,
+    definition: definitionResult.value,
     definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
     updatedAt: segment.updatedAt.getTime(),
     createdAt: segment.createdAt.getTime(),
@@ -652,12 +671,13 @@ async function getWorkspaceSegmentAssignments({
 }) {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const query = `
     SELECT
       computed_property_id,
       user_id,
       argMax(segment_value, assigned_at) as latest_segment_value
-    FROM computed_property_assignments_v2
+    FROM ${assignmentsReadTable}
     WHERE
       workspace_id = ${workspaceIdParam}
       AND type = 'segment'
@@ -998,12 +1018,13 @@ export async function findRecentlyUpdatedUsersInSegment({
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const segmentIdParam = qb.addQueryValue(segmentId, "String");
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const paginationClause = !cursor
     ? ""
     : `AND user_id > ${qb.addQueryValue(cursor, "String")}`;
 
   const query = `
-    SELECT user_id as "userId" FROM computed_property_assignments_v2
+    SELECT user_id as "userId" FROM ${assignmentsReadTable}
     WHERE
       workspace_id = ${workspaceIdParam}
       AND type = 'segment'
@@ -1065,10 +1086,11 @@ export async function getSegmentAssignmentDb({
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const segmentIdParam = qb.addQueryValue(segmentId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const query = `
     SELECT
       argMax(segment_value, assigned_at) as latest_segment_value
-    FROM computed_property_assignments_v2
+    FROM ${assignmentsReadTable}
     WHERE
       workspace_id = ${workspaceIdParam}
       AND type = 'segment'

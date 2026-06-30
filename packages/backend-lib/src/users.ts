@@ -13,6 +13,7 @@ import {
   command as chCommand,
   query as chQuery,
 } from "./clickhouse";
+import { computedPropertyAssignmentsReadTable } from "./computedProperties/assignmentTables";
 import { db } from "./db";
 import {
   segment as dbSegment,
@@ -94,6 +95,7 @@ export async function buildGetUsersQueriesForDebug(
     subscriptionGroupFilter,
     sortBy,
   } = request;
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
 
   const childWorkspaceIds = (
     await db()
@@ -353,13 +355,13 @@ export async function buildGetUsersQueriesForDebug(
             cp.type,
             argMax(user_property_value, assigned_at) AS last_user_property_value,
             argMax(segment_value, assigned_at) AS last_segment_value
-        FROM computed_property_assignments_v2 cp
+        FROM ${assignmentsReadTable} cp
         WHERE
           ${workspaceIdClause}
           AND cp.user_id IN (SELECT user_id FROM (
             SELECT
               ${selectedStr}
-            FROM computed_property_assignments_v2
+            FROM ${assignmentsReadTable}
             WHERE
               ${workspaceIdClause}
               ${cursorClause}
@@ -429,7 +431,7 @@ export async function buildGetUsersQueriesForDebug(
     SELECT user_id FROM (
       SELECT
         ${selectUserIdColumns.join(", ")}
-      FROM computed_property_assignments_v2
+      FROM ${assignmentsReadTable}
       WHERE
         ${workspaceIdClause}
         ${userIdsClause}
@@ -518,7 +520,7 @@ export async function buildGetUsersQueriesForDebug(
   const remainderQuery = `
     SELECT
       ${remSelectUserIdColumns.join(", ")}
-    FROM computed_property_assignments_v2
+    FROM ${assignmentsReadTable}
     WHERE
       ${remWorkspaceIdClause}
       ${remUserIdsClause}
@@ -608,6 +610,7 @@ export async function getUsers(
     } else {
       cursorComparison = useStrictComparison ? "<" : "<=";
     }
+    const assignmentsReadTable = computedPropertyAssignmentsReadTable();
 
     const childWorkspaceIds = (
       await db()
@@ -946,7 +949,7 @@ export async function getUsers(
             cp.type,
             argMax(user_property_value, assigned_at) AS last_user_property_value,
             argMax(segment_value, assigned_at) AS last_segment_value
-        FROM computed_property_assignments_v2 cp
+        FROM ${assignmentsReadTable} cp
         WHERE
           ${workspaceIdClause}
           AND cp.user_id IN (${userIdsParam})
@@ -1023,13 +1026,13 @@ export async function getUsers(
             cp.type,
             argMax(user_property_value, assigned_at) AS last_user_property_value,
             argMax(segment_value, assigned_at) AS last_segment_value
-        FROM computed_property_assignments_v2 cp
+        FROM ${assignmentsReadTable} cp
         WHERE
           ${workspaceIdClause}
           AND cp.user_id IN (SELECT user_id FROM (
             SELECT
               ${selectedStr}
-            FROM computed_property_assignments_v2
+            FROM ${assignmentsReadTable}
             WHERE
               ${workspaceIdClause}
               ${cursorClause}
@@ -1109,7 +1112,7 @@ export async function getUsers(
         SELECT user_id FROM (
           SELECT
             ${selectUserIdColumns.join(", ")}
-          FROM computed_property_assignments_v2
+          FROM ${assignmentsReadTable}
           WHERE
             ${workspaceIdClause}
             ${userIdsClause}
@@ -1201,7 +1204,7 @@ export async function getUsers(
         const remainderQuery = `
         SELECT
           ${selectUserIdColumns.join(", ")}
-        FROM computed_property_assignments_v2
+        FROM ${assignmentsReadTable}
         WHERE
           ${workspaceIdClause}
           ${userIdsClause}
@@ -1898,6 +1901,7 @@ export async function getUsersCount({
     childWorkspaceIds.length > 0
       ? `workspace_id IN (${qb.addQueryValue(childWorkspaceIds, "Array(String)")})`
       : `workspace_id = ${qb.addQueryValue(workspaceId, "String")}`;
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
 
   // Using a similar nested query approach as getUsers
   const query = `
@@ -1906,7 +1910,7 @@ export async function getUsersCount({
     FROM (
       SELECT
         ${selectUserIdStr}
-      FROM computed_property_assignments_v2
+      FROM ${assignmentsReadTable}
       WHERE
         ${workspaceIdClause}
         ${userIdsClause}

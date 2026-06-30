@@ -66,6 +66,10 @@ import {
   USER_TRAIT_VALUES_CURRENT_VIEW,
 } from "../userEvents/clickhouse";
 import {
+  computedPropertyAssignmentsReadTable,
+  computedPropertyAssignmentsWriteQueries,
+} from "./assignmentTables";
+import {
   createPeriods,
   getPeriodsByComputedPropertyId,
   Period,
@@ -120,26 +124,6 @@ function readLimit(): AsyncWrapper {
     }
   }
   return READ_LIMIT;
-}
-
-function computedPropertyAssignmentsReadTable(): string {
-  return config().readComputedPropertyAssignmentsFromCurrent
-    ? COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE
-    : COMPUTED_PROPERTY_ASSIGNMENTS_TABLE;
-}
-
-function computedPropertyAssignmentsWriteQueries(query: string): string[] {
-  if (
-    !config().writeComputedPropertyAssignmentsCurrent ||
-    !/^\s*insert\s+into\s+/i.test(query)
-  ) {
-    return [query];
-  }
-  const currentQuery = query.replace(
-    COMPUTED_PROPERTY_ASSIGNMENTS_TABLE,
-    COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
-  );
-  return [query, currentQuery];
 }
 
 /**

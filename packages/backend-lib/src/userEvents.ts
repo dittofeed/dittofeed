@@ -1,4 +1,4 @@
-import { ClickHouseSettings, Row } from "@clickhouse/client";
+import { ClickHouseSettings } from "@clickhouse/client";
 import { writeToString } from "@fast-csv/format";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
@@ -11,6 +11,7 @@ import {
   ClickHouseQueryBuilder,
   query as chQuery,
 } from "./clickhouse";
+import { computedPropertyAssignmentsReadTable } from "./computedProperties/assignmentTables";
 import config from "./config";
 import { db } from "./db";
 import {
@@ -834,10 +835,11 @@ export async function findUserIdsByUserProperty({
     Array.from(valueSet),
     "Array(String)",
   );
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
 
   const query = `
     select user_id, user_property_value
-    from computed_property_assignments_v2
+    from ${assignmentsReadTable}
     where workspace_id = ${workspaceIdParam}
       and user_property_value in ${valueSetParam}
       and computed_property_id = ${computedPropertyId}
@@ -853,21 +855,19 @@ export async function findUserIdsByUserProperty({
   const result: UserIdsByPropertyValue = {};
 
   for await (const rows of queryResults.stream()) {
-    await Promise.all([
-      (rows as Row[]).forEach((row) => {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        const { user_id, user_property_value } = row.json<{
-          user_id: string;
-          user_property_value: string;
-        }>();
-        let userResult = result[user_property_value];
-        if (!userResult) {
-          userResult = [];
-          result[user_property_value] = userResult;
-        }
-        userResult.push(user_id);
-      }),
-    ]);
+    rows.forEach((row) => {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      const { user_id, user_property_value } = row.json<{
+        user_id: string;
+        user_property_value: string;
+      }>();
+      let userResult = result[user_property_value];
+      if (!userResult) {
+        userResult = [];
+        result[user_property_value] = userResult;
+      }
+      userResult.push(user_id);
+    });
   }
   return result;
 }

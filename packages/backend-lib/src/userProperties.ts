@@ -20,6 +20,7 @@ import {
   command as chCommand,
   query as chQuery,
 } from "./clickhouse";
+import { computedPropertyAssignmentsReadTable } from "./computedProperties/assignmentTables";
 import config, { assignmentSequentialConsistency } from "./config";
 import { db, QueryError, queryResult, upsert } from "./db";
 import { userProperty as dbUserProperty } from "./db/schema";
@@ -419,11 +420,12 @@ async function findAllUserPropertyAssignmentsComponents({
   const userProperties = await db().select().from(dbUserProperty).where(where);
 
   const qb = new ClickHouseQueryBuilder();
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const query = `
     select
       computed_property_id,
       argMax(user_property_value, assigned_at) as last_value
-    from computed_property_assignments_v2
+    from ${assignmentsReadTable}
     where
       workspace_id = ${qb.addQueryValue(workspaceId, "String")}
       and user_id = ${qb.addQueryValue(userId, "String")}
@@ -522,12 +524,13 @@ export async function findAllUserPropertyAssignmentsForWorkspace({
   const userProperties = await db().select().from(dbUserProperty).where(where);
 
   const qb = new ClickHouseQueryBuilder();
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const query = `
     select
       computed_property_id,
       user_id,
       argMax(user_property_value, assigned_at) as last_value
-    from computed_property_assignments_v2
+    from ${assignmentsReadTable}
     where
       workspace_id = ${qb.addQueryValue(workspaceId, "String")}
       and type = 'user_property'
@@ -811,12 +814,27 @@ export async function upsertUserProperty(
   }
 
   const userProperty = result.value;
+  const definitionResult = schemaValidate(
+    userProperty.definition,
+    UserPropertyDefinition,
+  );
+  if (definitionResult.isErr()) {
+    logger().error(
+      {
+        err: definitionResult.error,
+        userProperty,
+        workspaceId,
+      },
+      "Saved user property definition is invalid",
+    );
+    throw new Error("Saved user property definition is invalid");
+  }
 
   const resource: SavedUserPropertyResource = {
     id: userProperty.id,
     name: userProperty.name,
     workspaceId: userProperty.workspaceId,
-    definition: userProperty.definition as UserPropertyDefinition,
+    definition: definitionResult.value,
     exampleValue: userProperty.exampleValue ?? undefined,
     updatedAt: userProperty.updatedAt.getTime(),
     createdAt: userProperty.createdAt.getTime(),
@@ -884,11 +902,12 @@ export async function findUserIdsByUserPropertyValue({
     return null;
   }
   const qb = new ClickHouseQueryBuilder();
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const query = `
     select
       user_id,
       argMax(user_property_value, assigned_at) as latest_user_property_value
-    from computed_property_assignments_v2
+    from ${assignmentsReadTable}
     where
       workspace_id = ${qb.addQueryValue(workspaceId, "String")}
       and type = 'user_property'

@@ -5,6 +5,7 @@ import {
   ClickHouseQueryBuilder,
   command as chCommand,
 } from "./clickhouse";
+import { computedPropertyAssignmentsReadTable } from "./computedProperties/assignmentTables";
 import { db } from "./db";
 import { userPropertyIndex } from "./db/schema";
 import logger from "./logger";
@@ -76,6 +77,7 @@ async function backfillIndex({
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const userPropertyIdParam = qb.addQueryValue(userPropertyId, "String");
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
 
   const query = `
     INSERT INTO ${targetTable} (workspace_id, computed_property_id, user_id, ${valueColumn}, assigned_at)
@@ -85,7 +87,7 @@ async function backfillIndex({
       user_id,
       ${valueExtractor} as ${valueColumn},
       assigned_at
-    FROM computed_property_assignments_v2
+    FROM ${assignmentsReadTable}
     WHERE workspace_id = ${workspaceIdParam}
       AND computed_property_id = ${userPropertyIdParam}
       AND type = 'user_property'
