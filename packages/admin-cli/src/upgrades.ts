@@ -137,31 +137,100 @@ export async function backfillComputedPropertyAssignmentsCurrent({
     });
   }
 
-  await command({
-    query: `
-      INSERT INTO ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE}
-      SELECT
-        workspace_id,
-        type,
-        computed_property_id,
-        user_id,
-        argMax(segment_value, assigned_at) AS segment_value,
-        argMax(user_property_value, assigned_at) AS user_property_value,
-        argMax(max_event_time, assigned_at) AS max_event_time,
-        max(assigned_at) AS assigned_at
-      FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE}
-      ${workspaceClause}
-      GROUP BY
-        workspace_id,
-        type,
-        computed_property_id,
-        user_id
-    `,
-    query_params: qb.getQueries(),
-    clickhouse_settings: {
-      wait_end_of_query: 1,
-    },
-  });
+  const segmentRows = workspaceId
+    ? await db()
+        .select({
+          id: schema.segment.id,
+          workspaceId: schema.segment.workspaceId,
+        })
+        .from(schema.segment)
+        .where(eq(schema.segment.workspaceId, workspaceId))
+    : await db()
+        .select({
+          id: schema.segment.id,
+          workspaceId: schema.segment.workspaceId,
+        })
+        .from(schema.segment);
+  const userPropertyRows = workspaceId
+    ? await db()
+        .select({
+          id: schema.userProperty.id,
+          workspaceId: schema.userProperty.workspaceId,
+        })
+        .from(schema.userProperty)
+        .where(eq(schema.userProperty.workspaceId, workspaceId))
+    : await db()
+        .select({
+          id: schema.userProperty.id,
+          workspaceId: schema.userProperty.workspaceId,
+        })
+        .from(schema.userProperty);
+
+  const items = [
+    ...segmentRows.map((row) => ({
+      ...row,
+      type: "segment" as const,
+    })),
+    ...userPropertyRows.map((row) => ({
+      ...row,
+      type: "user_property" as const,
+    })),
+  ];
+
+  logger().info(
+    { workspaceId, itemCount: items.length },
+    "Backfilling current computed property assignments in chunks.",
+  );
+
+  let completed = 0;
+  for (const item of items) {
+    await command({
+      query: `
+        INSERT INTO ${COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE}
+        SELECT
+          workspace_id,
+          type,
+          computed_property_id,
+          user_id,
+          argMax(segment_value, assigned_at) AS segment_value,
+          argMax(user_property_value, assigned_at) AS user_property_value,
+          argMax(max_event_time, assigned_at) AS max_event_time,
+          max(assigned_at) AS latest_assigned_at
+        FROM ${COMPUTED_PROPERTY_ASSIGNMENTS_TABLE}
+        WHERE
+          workspace_id = {workspaceId:String}
+          AND type = {type:String}
+          AND computed_property_id = {computedPropertyId:String}
+        GROUP BY
+          workspace_id,
+          type,
+          computed_property_id,
+          user_id
+      `,
+      query_params: {
+        workspaceId: item.workspaceId,
+        type: item.type,
+        computedPropertyId: item.id,
+      },
+      clickhouse_settings: {
+        wait_end_of_query: 1,
+        max_execution_time: 0,
+        max_bytes_before_external_group_by: "1000000000",
+        max_bytes_before_external_sort: "1000000000",
+      },
+    });
+    completed += 1;
+    logger().info(
+      {
+        workspaceId: item.workspaceId,
+        type: item.type,
+        computedPropertyId: item.id,
+        completed,
+        total: items.length,
+      },
+      "Backfilled current computed property assignment chunk.",
+    );
+  }
 
   logger().info(
     { workspaceId },
