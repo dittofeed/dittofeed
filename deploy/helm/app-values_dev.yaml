@@ -327,7 +327,7 @@ env:
   - name: "REALTIME_SEGMENTS_QUEUE_BACKEND"
     value: "true"
   - name: "REALTIME_SEGMENTS_NATS_SERVERS"
-    value: "nats://nats.dittofeed.svc.cluster.local:4222"
+    value: "nats://nats.dittofeed-dev.svc.cluster.local:4222"
   - name: "REALTIME_SEGMENTS_NATS_USERNAME"
     value: "app"
   - name: "REALTIME_SEGMENTS_NATS_PASSWORD"
