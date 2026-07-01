@@ -20,6 +20,7 @@ import {
 } from "./db/schema";
 import { kafkaProducer } from "./kafka";
 import logger from "./logger";
+import { enqueueRealtimeSegmentEvalJobs } from "./realtimeSegments/enqueue";
 import {
   DownloadEventsRequest,
   EventType,
@@ -142,6 +143,13 @@ export async function insertUserEvents(
       });
       break;
     }
+  }
+
+  if (config().realtimeSegmentsEnabled) {
+    await enqueueRealtimeSegmentEvalJobs({
+      workspaceId,
+      userEvents: userEventsWithDefault,
+    });
   }
 }
 

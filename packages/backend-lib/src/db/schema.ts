@@ -121,6 +121,64 @@ export const workspace = pgTable(
   ],
 );
 
+export const realtimeSegmentEvalJob = pgTable(
+  "RealtimeSegmentEvalJob",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    messageId: text().notNull(),
+    userId: text(),
+    anonymousId: text(),
+    userOrAnonymousId: text().notNull(),
+    eventType: text().notNull(),
+    event: text(),
+    traitPaths: jsonb().default([]).notNull(),
+    propertyPaths: jsonb().default([]).notNull(),
+    payload: jsonb().notNull(),
+    eventTime: timestamp({ precision: 3, mode: "date" }).notNull(),
+    processingTime: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    status: text().default("Pending").notNull(),
+    attempts: integer().default(0).notNull(),
+    availableAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    lockedAt: timestamp({ precision: 3, mode: "date" }),
+    lockId: text(),
+    lastError: text(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("RealtimeSegmentEvalJob_workspaceId_messageId_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.messageId.asc().nullsLast().op("text_ops"),
+    ),
+    index("RealtimeSegmentEvalJob_status_availableAt_idx").using(
+      "btree",
+      table.status.asc().nullsLast().op("text_ops"),
+      table.availableAt.asc().nullsLast().op("timestamp_ops"),
+    ),
+    index("RealtimeSegmentEvalJob_workspaceId_userOrAnonymousId_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.userOrAnonymousId.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "RealtimeSegmentEvalJob_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
 export const segmentIoConfiguration = pgTable(
   "SegmentIOConfiguration",
   {

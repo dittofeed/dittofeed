@@ -13,6 +13,8 @@ import {
   KafkaSaslMechanism,
   LogLevel,
   NodeEnvEnum,
+  RealtimeSegmentsMode,
+  RealtimeSegmentsQueueBackend,
   SourceControlProvider,
   WriteMode,
 } from "./types";
@@ -139,6 +141,30 @@ const BaseRawConfigProps = {
   assignmentSequentialConsistency: Type.Optional(BoolStr),
   writeComputedPropertyAssignmentsCurrent: Type.Optional(BoolStr),
   readComputedPropertyAssignmentsFromCurrent: Type.Optional(BoolStr),
+  realtimeSegmentsEnabled: Type.Optional(BoolStr),
+  realtimeSegmentsMode: Type.Optional(RealtimeSegmentsMode),
+  realtimeSegmentsQueueBackend: Type.Optional(RealtimeSegmentsQueueBackend),
+  realtimeSegmentsWorkerConcurrency: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  realtimeSegmentsQueueBatchSize: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  realtimeSegmentsMaxRetries: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  realtimeSegmentsNatsServers: Type.Optional(Type.String()),
+  realtimeSegmentsNatsUsername: Type.Optional(Type.String()),
+  realtimeSegmentsNatsPassword: Type.Optional(Type.String()),
+  realtimeSegmentsNatsToken: Type.Optional(Type.String()),
+  realtimeSegmentsNatsStream: Type.Optional(Type.String()),
+  realtimeSegmentsNatsSubject: Type.Optional(Type.String()),
+  realtimeSegmentsNatsConsumer: Type.Optional(Type.String()),
+  realtimeSegmentsNatsAckWaitMs: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  realtimeSegmentsWriteHistory: Type.Optional(BoolStr),
+  realtimeSegmentsTriggerJourneys: Type.Optional(BoolStr),
   computePropertiesQueueConcurrency: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
@@ -363,6 +389,22 @@ export type Config = Overwrite<
     defaultGetSegmentAndEventDetailsMaxAttempts: number;
     writeComputedPropertyAssignmentsCurrent: boolean;
     readComputedPropertyAssignmentsFromCurrent: boolean;
+    realtimeSegmentsEnabled: boolean;
+    realtimeSegmentsMode: RealtimeSegmentsMode;
+    realtimeSegmentsQueueBackend: RealtimeSegmentsQueueBackend;
+    realtimeSegmentsWorkerConcurrency: number;
+    realtimeSegmentsQueueBatchSize: number;
+    realtimeSegmentsMaxRetries: number;
+    realtimeSegmentsNatsServers: string[];
+    realtimeSegmentsNatsUsername?: string;
+    realtimeSegmentsNatsPassword?: string;
+    realtimeSegmentsNatsToken?: string;
+    realtimeSegmentsNatsStream: string;
+    realtimeSegmentsNatsSubject: string;
+    realtimeSegmentsNatsConsumer: string;
+    realtimeSegmentsNatsAckWaitMs: number;
+    realtimeSegmentsWriteHistory: boolean;
+    realtimeSegmentsTriggerJourneys: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -383,6 +425,8 @@ export const SECRETS = new Set<keyof Config>([
   "hyperDxApiKey",
   "databaseUrl", // Contains password
   "dashboardWriteKey", // Potentially sensitive
+  "realtimeSegmentsNatsPassword",
+  "realtimeSegmentsNatsToken",
 ]);
 
 const defaultDbParams: Record<string, string> = {
@@ -756,6 +800,39 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.writeComputedPropertyAssignmentsCurrent === "true",
     readComputedPropertyAssignmentsFromCurrent:
       rawConfig.readComputedPropertyAssignmentsFromCurrent === "true",
+    realtimeSegmentsEnabled: rawConfig.realtimeSegmentsEnabled === "true",
+    realtimeSegmentsMode: rawConfig.realtimeSegmentsMode ?? "shadow",
+    realtimeSegmentsQueueBackend:
+      rawConfig.realtimeSegmentsQueueBackend ?? "postgres",
+    realtimeSegmentsWorkerConcurrency:
+      rawConfig.realtimeSegmentsWorkerConcurrency
+        ? parseInt(rawConfig.realtimeSegmentsWorkerConcurrency)
+        : 4,
+    realtimeSegmentsQueueBatchSize: rawConfig.realtimeSegmentsQueueBatchSize
+      ? parseInt(rawConfig.realtimeSegmentsQueueBatchSize)
+      : 100,
+    realtimeSegmentsMaxRetries: rawConfig.realtimeSegmentsMaxRetries
+      ? parseInt(rawConfig.realtimeSegmentsMaxRetries)
+      : 5,
+    realtimeSegmentsNatsServers: rawConfig.realtimeSegmentsNatsServers
+      ? rawConfig.realtimeSegmentsNatsServers.split(",")
+      : ["localhost:4222"],
+    realtimeSegmentsNatsUsername: rawConfig.realtimeSegmentsNatsUsername,
+    realtimeSegmentsNatsPassword: rawConfig.realtimeSegmentsNatsPassword,
+    realtimeSegmentsNatsToken: rawConfig.realtimeSegmentsNatsToken,
+    realtimeSegmentsNatsStream:
+      rawConfig.realtimeSegmentsNatsStream ?? "DITTOFEED_REALTIME_SEGMENTS",
+    realtimeSegmentsNatsSubject:
+      rawConfig.realtimeSegmentsNatsSubject ?? "dittofeed.realtime_segments",
+    realtimeSegmentsNatsConsumer:
+      rawConfig.realtimeSegmentsNatsConsumer ?? "dittofeed-realtime-segments",
+    realtimeSegmentsNatsAckWaitMs: rawConfig.realtimeSegmentsNatsAckWaitMs
+      ? parseInt(rawConfig.realtimeSegmentsNatsAckWaitMs)
+      : 60_000,
+    realtimeSegmentsWriteHistory:
+      rawConfig.realtimeSegmentsWriteHistory !== "false",
+    realtimeSegmentsTriggerJourneys:
+      rawConfig.realtimeSegmentsTriggerJourneys === "true",
     computePropertiesQueueConcurrency:
       rawConfig.computePropertiesQueueConcurrency
         ? parseInt(rawConfig.computePropertiesQueueConcurrency)

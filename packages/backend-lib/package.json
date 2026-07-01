@@ -65,6 +65,7 @@
     "markdown-it": "^13.0.1",
     "minimist": "^1.2.7",
     "mjml": "^4.14.1",
+    "nats": "^2.29.3",
     "neverthrow": "^6.0.0",
     "node-cache": "^5.1.2",
     "nodemailer": "^6.9.7",
