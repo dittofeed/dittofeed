@@ -3,6 +3,7 @@ import pLimit from "p-limit";
 
 import config from "../config";
 import logger from "../logger";
+import { processRealtimeSegmentJob } from "./process";
 import { getRealtimeSegmentQueue } from "./queue";
 import { ClaimedRealtimeSegmentEvalJob } from "./types";
 
@@ -16,13 +17,22 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-function processRealtimeSegmentJob(job: ClaimedRealtimeSegmentEvalJob): void {
+async function processRealtimeSegmentEvalJob(
+  job: ClaimedRealtimeSegmentEvalJob,
+): Promise<void> {
   const mode = config().realtimeSegmentsMode;
-  if (mode !== "shadow") {
-    throw new Error(
-      `Realtime segment evaluator is not implemented for mode ${mode}.`,
-    );
-  }
+  const writeAssignments =
+    mode === "write" || mode === "trigger" || mode === "read";
+  const triggerJourneys =
+    (mode === "trigger" || mode === "read") &&
+    config().realtimeSegmentsTriggerJourneys;
+
+  const result = await processRealtimeSegmentJob({
+    job,
+    mode,
+    writeAssignments,
+    triggerJourneys,
+  });
 
   logger().info(
     {
@@ -33,8 +43,14 @@ function processRealtimeSegmentJob(job: ClaimedRealtimeSegmentEvalJob): void {
       event: job.event,
       traitPaths: job.traitPaths,
       propertyPaths: job.propertyPaths,
+      candidateCount: result.candidateCount,
+      evaluatedCount: result.evaluatedCount,
+      unsupportedCount: result.unsupportedCount,
+      writtenCount: result.writtenCount,
+      triggeredJourneyCount: result.triggeredJourneyCount,
+      changes: result.changes,
     },
-    "Realtime segment job accepted in shadow mode.",
+    "Realtime segment job processed.",
   );
 }
 
@@ -76,7 +92,7 @@ export async function runRealtimeSegmentsWorker(): Promise<void> {
       jobs.map((job) =>
         limit(async () => {
           try {
-            processRealtimeSegmentJob(job);
+            await processRealtimeSegmentEvalJob(job);
             await queue.markComplete({ id: job.id, lockId });
           } catch (err) {
             const error = err instanceof Error ? err : new Error(String(err));

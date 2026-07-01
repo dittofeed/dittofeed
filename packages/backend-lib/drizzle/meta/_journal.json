@@ -85,6 +85,13 @@
       "when": 1782910800000,
       "tag": "0011_realtime_segment_eval_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1782925200000,
+      "tag": "0012_realtime_segment_status",
+      "breakpoints": true
     }
   ]
 }
