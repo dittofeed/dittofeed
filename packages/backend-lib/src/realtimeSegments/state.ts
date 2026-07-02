@@ -4,14 +4,15 @@ import { ClickHouseQueryBuilder, query as chQuery } from "../clickhouse";
 import { jsonValue } from "../jsonPath";
 import { EventType, JSONValue } from "../types";
 import {
-  IDENTIFY_EVENTS_TABLE,
   TRACK_EVENTS_TABLE,
+  USER_TRAIT_VALUES_V3_TABLE,
 } from "../userEvents/clickhouse";
 import { RealtimeSegmentDependencies } from "./dependencies";
 import { RealtimeSegmentEvalJob } from "./types";
 
-interface IdentifyRow {
-  properties: string;
+interface TraitRow {
+  trait_path: string;
+  trait_value: string;
 }
 
 interface TrackRow {
@@ -38,6 +39,14 @@ function parseProperties(raw: string): Record<string, JSONValue> {
     return {};
   }
   return parsed as Record<string, JSONValue>;
+}
+
+function parseTraitValue(raw: string): JSONValue {
+  try {
+    return JSON.parse(raw) as JSONValue;
+  } catch {
+    return raw;
+  }
 }
 
 function asRecord(value: unknown): Record<string, JSONValue> {
@@ -118,33 +127,26 @@ async function readIdentifyTraits({
   }
 
   const qb = new ClickHouseQueryBuilder();
+  const traitPaths = [...dependencies.traitPaths];
   const result = await chQuery({
     query: `
-      SELECT properties
-      FROM (
-        SELECT properties, event_time, processing_time
-        FROM ${IDENTIFY_EVENTS_TABLE}
-        WHERE
-          workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-          AND user_or_anonymous_id = ${qb.addQueryValue(userOrAnonymousId, "String")}
-        ORDER BY event_time DESC, processing_time DESC
-        LIMIT 500
-      )
-      ORDER BY event_time ASC, processing_time ASC
+      SELECT
+        trait_path,
+        argMax(trait_value, tuple(event_time, processing_time)) AS trait_value
+      FROM ${USER_TRAIT_VALUES_V3_TABLE}
+      WHERE
+        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+        AND user_or_anonymous_id = ${qb.addQueryValue(userOrAnonymousId, "String")}
+        AND trait_path IN ${qb.addQueryValue(traitPaths, "Array(String)")}
+      GROUP BY trait_path
     `,
     query_params: qb.getQueries(),
   });
-  const rows = await result.json<IdentifyRow>();
+  const rows = await result.json<TraitRow>();
   const traits: Record<string, JSONValue> = {};
 
   for (const row of rows) {
-    const properties = parseProperties(row.properties);
-    for (const path of dependencies.traitPaths) {
-      const trait = readTraitPath({ path, properties });
-      if (trait) {
-        traits[trait.path] = trait.value;
-      }
-    }
+    traits[row.trait_path] = parseTraitValue(row.trait_value);
   }
 
   return traits;

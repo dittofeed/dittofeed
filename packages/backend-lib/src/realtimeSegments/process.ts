@@ -1,7 +1,10 @@
 import { sql } from "drizzle-orm";
 
+import { enqueueRecompute } from "../computedProperties/computePropertiesWorkflow/lifecycle";
 import { db } from "../db";
+import logger from "../logger";
 import { findAllSegmentAssignmentsByIds } from "../segments";
+import { WorkspaceQueueItemType } from "../types";
 import {
   RealtimeSegmentAssignmentChange,
   writeRealtimeSegmentAssignments,
@@ -58,6 +61,52 @@ function mergeDependencies(
   }
 
   return dependencies;
+}
+
+async function enqueueUnsupportedSegmentRecompute({
+  workspaceId,
+  changes,
+}: {
+  workspaceId: string;
+  changes: RealtimeSegmentProcessResult["changes"];
+}): Promise<void> {
+  const unsupportedSegmentIds = [
+    ...new Set(
+      changes
+        .filter((change) => change.unsupportedNodes.length > 0)
+        .map((change) => change.segmentId),
+    ),
+  ];
+  if (unsupportedSegmentIds.length === 0) {
+    return;
+  }
+
+  try {
+    await enqueueRecompute({
+      items: unsupportedSegmentIds.map((segmentId) => ({
+        type: WorkspaceQueueItemType.Segment,
+        workspaceId,
+        id: segmentId,
+        priority: 15,
+      })),
+    });
+    logger().info(
+      {
+        workspaceId,
+        segmentIds: unsupportedSegmentIds,
+      },
+      "Enqueued batch recompute for realtime unsupported segments.",
+    );
+  } catch (err) {
+    logger().error(
+      {
+        err,
+        workspaceId,
+        segmentIds: unsupportedSegmentIds,
+      },
+      "Failed to enqueue batch recompute for realtime unsupported segments.",
+    );
+  }
 }
 
 async function withRealtimeUserLock<T>({
@@ -170,6 +219,10 @@ async function processRealtimeSegmentJobUnlocked({
   const candidateById = new Map(
     candidates.map((segment) => [segment.id, segment]),
   );
+  await enqueueUnsupportedSegmentRecompute({
+    workspaceId: job.workspaceId,
+    changes: evaluatedChanges,
+  });
   const assignmentChanges: RealtimeSegmentAssignmentChange[] = evaluatedChanges
     .filter((change) => change.changed)
     .map((change) => ({
