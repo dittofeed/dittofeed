@@ -156,9 +156,22 @@ export async function triggerRealtimeSegmentJourneys({
   );
 
   if (processedAssignments.length > 0) {
-    await insertProcessedComputedProperties({
-      assignments: processedAssignments,
-    });
+    try {
+      await insertProcessedComputedProperties({
+        assignments: processedAssignments,
+      });
+    } catch (err) {
+      logger().error(
+        {
+          err,
+          workspaceId: change.workspaceId,
+          segmentId: change.segmentId,
+          userId: change.userId,
+          processedAssignmentCount: processedAssignments.length,
+        },
+        "Failed to record realtime processed journey assignments after triggering journeys.",
+      );
+    }
   }
   logger().info(
     {

@@ -1,3 +1,6 @@
+import { sql } from "drizzle-orm";
+
+import { db } from "../db";
 import { findAllSegmentAssignmentsByIds } from "../segments";
 import {
   RealtimeSegmentAssignmentChange,
@@ -53,7 +56,25 @@ function mergeDependencies(
   return dependencies;
 }
 
-export async function processRealtimeSegmentJob({
+async function withRealtimeUserLock<T>({
+  workspaceId,
+  userOrAnonymousId,
+  fn,
+}: {
+  workspaceId: string;
+  userOrAnonymousId: string;
+  fn: () => Promise<T>;
+}): Promise<T> {
+  const lockKey = `realtime-segment:${workspaceId}:${userOrAnonymousId}`;
+  return db().transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`,
+    );
+    return fn();
+  });
+}
+
+async function processRealtimeSegmentJobUnlocked({
   job,
   mode = "shadow",
   writeAssignments = false,
@@ -190,4 +211,28 @@ export async function processRealtimeSegmentJob({
     triggeredJourneyCount,
     changes: evaluatedChanges,
   };
+}
+
+export async function processRealtimeSegmentJob({
+  job,
+  mode = "shadow",
+  writeAssignments = false,
+  triggerJourneys = false,
+}: {
+  job: ClaimedRealtimeSegmentEvalJob;
+  mode?: string;
+  writeAssignments?: boolean;
+  triggerJourneys?: boolean;
+}): Promise<RealtimeSegmentProcessResult> {
+  return withRealtimeUserLock({
+    workspaceId: job.workspaceId,
+    userOrAnonymousId: job.userOrAnonymousId,
+    fn: () =>
+      processRealtimeSegmentJobUnlocked({
+        job,
+        mode,
+        writeAssignments,
+        triggerJourneys,
+      }),
+  });
 }

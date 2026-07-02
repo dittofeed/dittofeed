@@ -145,6 +145,8 @@ env:
     value: "5000"
   - name: COMPUTE_PROPERTIES_SCHEDULER_INTERVAL
     value: "1000"
+  - name: COMPUTE_PROPERTIES_PERIODIC_SCHEDULER_ENABLED
+    value: "false"
   - name: COMPUTE_PROPERTIES_JITTER_MS
     value: "0"
   - name: CLICKHOUSE_MAX_MEMORY_USAGE
@@ -175,6 +177,8 @@ env:
     value: "true"
   - name: "ASSIGNMENT_SEQUENTIAL_CONSISTENCY"
     value: "true"
+  - name: "COMPUTE_PROPERTIES_PERIODIC_SCHEDULER_ENABLED"
+    value: "false"
 nodeSelector: {}
 
 tolerations: []

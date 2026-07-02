@@ -23,6 +23,7 @@ import {
   query as chQuery,
 } from "./clickhouse";
 import { computedPropertyAssignmentsReadTable } from "./computedProperties/assignmentTables";
+import { enqueueRecompute } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config, { assignmentSequentialConsistency } from "./config";
 import { db, TxQueryError, txQueryResult } from "./db";
 import {
@@ -54,6 +55,7 @@ import {
   UpsertSegmentValidationError,
   UpsertSegmentValidationErrorType,
   UserWorkflowTrackEvent,
+  WorkspaceQueueItemType,
 } from "./types";
 import {
   COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
@@ -456,134 +458,144 @@ export async function upsertSegment(
     });
   }
 
-  const txResult: Result<Segment, TxQueryError> = await db().transaction(
-    async (tx) => {
-      const findFirstConditions: SQL[] = [
-        eq(dbSegment.workspaceId, params.workspaceId),
-      ];
-      if (params.id) {
-        findFirstConditions.push(eq(dbSegment.id, params.id));
-      } else {
-        findFirstConditions.push(eq(dbSegment.name, params.name));
+  const txResult: Result<
+    { segment: Segment; shouldEnqueueRecompute: boolean },
+    TxQueryError
+  > = await db().transaction(async (tx) => {
+    const findFirstConditions: SQL[] = [
+      eq(dbSegment.workspaceId, params.workspaceId),
+    ];
+    if (params.id) {
+      findFirstConditions.push(eq(dbSegment.id, params.id));
+    } else {
+      findFirstConditions.push(eq(dbSegment.name, params.name));
+    }
+    const existingSegment = await tx.query.segment.findFirst({
+      where: and(...findFirstConditions),
+    });
+    if (existingSegment) {
+      if (params.createOnly) {
+        return ok({
+          segment: existingSegment,
+          shouldEnqueueRecompute: false,
+        });
       }
-      const existingSegment = await tx.query.segment.findFirst({
-        where: and(...findFirstConditions),
-      });
-      if (existingSegment) {
-        if (params.createOnly) {
-          return ok(existingSegment);
-        }
-        const wasDefinitionUpdated =
-          params.definition &&
-          !deepEqual(existingSegment.definition, params.definition);
+      const wasDefinitionUpdated =
+        params.definition &&
+        !deepEqual(existingSegment.definition, params.definition);
 
-        const existingDefinitionResult = schemaValidateWithErr(
-          existingSegment.definition,
-          SegmentDefinition,
+      const existingDefinitionResult = schemaValidateWithErr(
+        existingSegment.definition,
+        SegmentDefinition,
+      );
+      if (existingDefinitionResult.isErr()) {
+        logger().error(
+          {
+            err: existingDefinitionResult.error,
+            segment: existingSegment,
+            workspaceId: params.workspaceId,
+          },
+          "Existing segment definition is invalid",
         );
-        if (existingDefinitionResult.isErr()) {
-          logger().error(
-            {
-              err: existingDefinitionResult.error,
-              segment: existingSegment,
-              workspaceId: params.workspaceId,
-            },
-            "Existing segment definition is invalid",
-          );
-          throw new Error("Existing segment definition is invalid");
-        }
+        throw new Error("Existing segment definition is invalid");
+      }
 
-        const wasPreviouslyManual =
+      const wasPreviouslyManual =
+        existingDefinitionResult.value.entryNode.type ===
+        SegmentNodeType.Manual;
+
+      let willBeManual: boolean;
+      if (params.definition) {
+        willBeManual =
+          params.definition.entryNode.type === SegmentNodeType.Manual;
+      } else {
+        willBeManual =
           existingDefinitionResult.value.entryNode.type ===
           SegmentNodeType.Manual;
-
-        let willBeManual: boolean;
-        if (params.definition) {
-          willBeManual =
-            params.definition.entryNode.type === SegmentNodeType.Manual;
-        } else {
-          willBeManual =
-            existingDefinitionResult.value.entryNode.type ===
-            SegmentNodeType.Manual;
-        }
-        let status: SegmentStatus;
-        // Ensure manual segments are not started. They're updated imperatively.
-        if (willBeManual) {
-          status = SegmentStatusEnum.NotStarted;
-        } else if (params.status) {
-          status = params.status;
-          // If the segment was previously manual, and is now not, we need to start it.
-        } else if (wasPreviouslyManual) {
-          status = SegmentStatusEnum.Running;
-        } else {
-          status = existingSegment.status;
-        }
-
-        const updateResult = await txQueryResult(
-          tx
-            .update(dbSegment)
-            .set({
-              definition: params.definition,
-              name: params.name,
-              resourceType: params.resourceType,
-              definitionUpdatedAt: wasDefinitionUpdated
-                ? new Date()
-                : existingSegment.definitionUpdatedAt,
-              status,
-            })
-            .where(eq(dbSegment.id, existingSegment.id))
-            .returning(),
-        );
-        if (updateResult.isErr()) {
-          return err(updateResult.error);
-        }
-        const updatedSegment = updateResult.value[0];
-        if (!updatedSegment) {
-          logger().error(
-            {
-              workspaceId: params.workspaceId,
-              segmentId: existingSegment.id,
-            },
-            "segment not found after update",
-          );
-          throw new Error("segment not found");
-        }
-        return ok(updatedSegment);
+      }
+      let status: SegmentStatus;
+      // Ensure manual segments are not started. They're updated imperatively.
+      if (willBeManual) {
+        status = SegmentStatusEnum.NotStarted;
+      } else if (params.status) {
+        status = params.status;
+        // If the segment was previously manual, and is now not, we need to start it.
+      } else if (wasPreviouslyManual) {
+        status = SegmentStatusEnum.Running;
+      } else {
+        status = existingSegment.status;
       }
 
-      const status =
-        params.definition?.entryNode.type === SegmentNodeType.Manual
-          ? SegmentStatusEnum.NotStarted
-          : params.status;
-      const value: typeof dbSegment.$inferInsert = {
-        id: params.id,
-        workspaceId: params.workspaceId,
-        name: params.name,
-        definition: params.definition,
-        resourceType: params.resourceType,
-        status,
-      };
-
-      const createResult = await txQueryResult(
-        tx.insert(dbSegment).values(value).returning(),
+      const updateResult = await txQueryResult(
+        tx
+          .update(dbSegment)
+          .set({
+            definition: params.definition,
+            name: params.name,
+            resourceType: params.resourceType,
+            definitionUpdatedAt: wasDefinitionUpdated
+              ? new Date()
+              : existingSegment.definitionUpdatedAt,
+            status,
+          })
+          .where(eq(dbSegment.id, existingSegment.id))
+          .returning(),
       );
-      if (createResult.isErr()) {
-        return err(createResult.error);
+      if (updateResult.isErr()) {
+        return err(updateResult.error);
       }
-      const createdSegment = createResult.value[0];
-      if (!createdSegment) {
+      const updatedSegment = updateResult.value[0];
+      if (!updatedSegment) {
         logger().error(
           {
             workspaceId: params.workspaceId,
-            name: params.name,
+            segmentId: existingSegment.id,
           },
-          "segment not found after create",
+          "segment not found after update",
         );
         throw new Error("segment not found");
       }
-      return ok(createdSegment);
-    },
-  );
+      return ok({
+        segment: updatedSegment,
+        shouldEnqueueRecompute: Boolean(wasDefinitionUpdated),
+      });
+    }
+
+    const status =
+      params.definition?.entryNode.type === SegmentNodeType.Manual
+        ? SegmentStatusEnum.NotStarted
+        : params.status;
+    const value: typeof dbSegment.$inferInsert = {
+      id: params.id,
+      workspaceId: params.workspaceId,
+      name: params.name,
+      definition: params.definition,
+      resourceType: params.resourceType,
+      status,
+    };
+
+    const createResult = await txQueryResult(
+      tx.insert(dbSegment).values(value).returning(),
+    );
+    if (createResult.isErr()) {
+      return err(createResult.error);
+    }
+    const createdSegment = createResult.value[0];
+    if (!createdSegment) {
+      logger().error(
+        {
+          workspaceId: params.workspaceId,
+          name: params.name,
+        },
+        "segment not found after create",
+      );
+      throw new Error("segment not found");
+    }
+    return ok({
+      segment: createdSegment,
+      shouldEnqueueRecompute: true,
+    });
+  });
   if (txResult.isErr()) {
     if (
       txResult.error.code === PostgresError.FOREIGN_KEY_VIOLATION ||
@@ -604,7 +616,7 @@ export async function upsertSegment(
     );
     throw txResult.error;
   }
-  const segment = txResult.value;
+  const { segment, shouldEnqueueRecompute } = txResult.value;
   const definitionResult = schemaValidateWithErr(
     segment.definition,
     SegmentDefinition,
@@ -619,6 +631,30 @@ export async function upsertSegment(
       "Saved segment definition is invalid",
     );
     throw new Error("Saved segment definition is invalid");
+  }
+
+  if (shouldEnqueueRecompute && segment.status === SegmentStatusEnum.Running) {
+    try {
+      await enqueueRecompute({
+        items: [
+          {
+            type: WorkspaceQueueItemType.Segment,
+            workspaceId: segment.workspaceId,
+            id: segment.id,
+            priority: 20,
+          },
+        ],
+      });
+    } catch (enqueueErr) {
+      logger().error(
+        {
+          err: enqueueErr,
+          workspaceId: segment.workspaceId,
+          segmentId: segment.id,
+        },
+        "Failed to enqueue segment recompute after segment definition change.",
+      );
+    }
   }
 
   return ok({
