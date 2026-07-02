@@ -21,11 +21,10 @@ export const COMPUTE_PROPERTIES_SCHEDULER_WORKFLOW_ID =
 //
 // Activities proxy
 //
-const { findDueWorkspacesV3, getQueueSize, config } = proxyActivities<
-  typeof activities
->({
-  startToCloseTimeout: "1 minute",
-});
+const { findDueWorkspacesV3, findDueUserPropertyItems, getQueueSize, config } =
+  proxyActivities<typeof activities>({
+    startToCloseTimeout: "1 minute",
+  });
 
 export interface ComputePropertiesSchedulerWorkflowParams {
   /**
@@ -54,12 +53,16 @@ export async function computePropertiesSchedulerWorkflow(
     computePropertiesQueueCapacity,
     computePropertiesAttempts,
     computePropertiesPeriodicSchedulerEnabled,
+    computePropertiesPeriodicSegmentsEnabled,
+    computePropertiesPeriodicUserPropertiesEnabled,
     computePropertiesSchedulerInterval,
     computePropertiesSchedulerQueueRestartDelay,
   } = await config([
     "computePropertiesQueueCapacity",
     "computePropertiesAttempts",
     "computePropertiesPeriodicSchedulerEnabled",
+    "computePropertiesPeriodicSegmentsEnabled",
+    "computePropertiesPeriodicUserPropertiesEnabled",
     "computePropertiesSchedulerInterval",
     "computePropertiesSchedulerQueueRestartDelay",
   ]);
@@ -68,6 +71,8 @@ export async function computePropertiesSchedulerWorkflow(
     computePropertiesQueueCapacity,
     computePropertiesAttempts,
     computePropertiesPeriodicSchedulerEnabled,
+    computePropertiesPeriodicSegmentsEnabled,
+    computePropertiesPeriodicUserPropertiesEnabled,
     computePropertiesSchedulerInterval,
     computePropertiesSchedulerQueueRestartDelay,
   });
@@ -79,7 +84,10 @@ export async function computePropertiesSchedulerWorkflow(
     const size = await getQueueSize();
 
     // (B) If there's room, poll for new items
-    if (!computePropertiesPeriodicSchedulerEnabled) {
+    if (
+      !computePropertiesPeriodicSchedulerEnabled &&
+      !computePropertiesPeriodicUserPropertiesEnabled
+    ) {
       logger.info(
         "Scheduler: Periodic computed properties enqueue is disabled",
         {
@@ -90,26 +98,30 @@ export async function computePropertiesSchedulerWorkflow(
       logger.info("Scheduler: Found room in the queue, polling for new items", {
         size,
         computePropertiesQueueCapacity,
+        computePropertiesPeriodicSegmentsEnabled,
+        computePropertiesPeriodicUserPropertiesEnabled,
       });
-      const dueWorkspaces = await findDueWorkspacesV3({
-        now: Date.now(),
-      });
+      const dueWorkspaces = computePropertiesPeriodicSegmentsEnabled
+        ? await findDueWorkspacesV3({
+            now: Date.now(),
+          })
+        : await findDueUserPropertyItems({
+            now: Date.now(),
+          });
 
       logger.info("Scheduler: Found due workspaces", {
         workspaceIdsCount: dueWorkspaces.workspaces.length,
       });
 
       if (dueWorkspaces.workspaces.length > 0) {
+        const { workspaces } = dueWorkspaces;
         logger.debug("Scheduler: Signaling queue workflow with new items", {
-          workspaceIds: dueWorkspaces.workspaces.map((w) => w.id),
+          itemCount: workspaces.length,
         });
         // (C) Signal the queue workflow with new items
         try {
           await queueWf.signal(addWorkspacesSignalV2, {
-            workspaces: dueWorkspaces.workspaces.map((w) => ({
-              id: w.id,
-              period: w.minPeriod,
-            })),
+            workspaces,
           });
         } catch (err) {
           if (err instanceof WorkflowNotFoundError) {

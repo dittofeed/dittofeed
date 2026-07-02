@@ -179,6 +179,8 @@ const BaseRawConfigProps = {
     Type.String({ format: "naturalNumber" }),
   ),
   computePropertiesPeriodicSchedulerEnabled: Type.Optional(BoolStr),
+  computePropertiesPeriodicSegmentsEnabled: Type.Optional(BoolStr),
+  computePropertiesPeriodicUserPropertiesEnabled: Type.Optional(BoolStr),
   computePropertiesSchedulerQueueRestartDelay: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
@@ -330,6 +332,8 @@ export type Config = Overwrite<
     computePropertiesQueueCapacity: number;
     computePropertiesQueueConcurrency: number;
     computePropertiesPeriodicSchedulerEnabled: boolean;
+    computePropertiesPeriodicSegmentsEnabled: boolean;
+    computePropertiesPeriodicUserPropertiesEnabled: boolean;
     computePropertiesSchedulerInterval: number;
     computePropertiesSchedulerQueueRestartDelay: number;
     computePropertiesWorkflowTaskTimeout: number;
@@ -848,6 +852,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
         : 10 * 1000,
     computePropertiesPeriodicSchedulerEnabled:
       rawConfig.computePropertiesPeriodicSchedulerEnabled !== "false",
+    computePropertiesPeriodicSegmentsEnabled:
+      rawConfig.computePropertiesPeriodicSegmentsEnabled === "true",
+    computePropertiesPeriodicUserPropertiesEnabled:
+      rawConfig.computePropertiesPeriodicUserPropertiesEnabled !== "false",
     computePropertiesSchedulerQueueRestartDelay:
       rawConfig.computePropertiesSchedulerQueueRestartDelay
         ? parseInt(rawConfig.computePropertiesSchedulerQueueRestartDelay)
