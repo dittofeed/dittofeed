@@ -84,6 +84,7 @@ export async function processRealtimeSegmentJob({
     workspaceId: job.workspaceId,
     userOrAnonymousId: job.userOrAnonymousId,
     dependencies: mergeDependencies(candidates),
+    currentJob: job,
   });
   const currentAssignments = await findAllSegmentAssignmentsByIds({
     workspaceId: job.workspaceId,

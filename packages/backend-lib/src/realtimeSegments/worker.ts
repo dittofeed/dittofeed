@@ -43,6 +43,10 @@ async function processRealtimeSegmentEvalJob(
       event: job.event,
       traitPaths: job.traitPaths,
       propertyPaths: job.propertyPaths,
+      mode,
+      writeAssignments,
+      triggerJourneys,
+      realtimeSegmentsTriggerJourneys: config().realtimeSegmentsTriggerJourneys,
       candidateCount: result.candidateCount,
       evaluatedCount: result.evaluatedCount,
       unsupportedCount: result.unsupportedCount,
@@ -68,6 +72,7 @@ export async function runRealtimeSegmentsWorker(): Promise<void> {
     {
       lockId,
       mode: config().realtimeSegmentsMode,
+      triggerJourneys: config().realtimeSegmentsTriggerJourneys,
       queueBackend: config().realtimeSegmentsQueueBackend,
       concurrency: config().realtimeSegmentsWorkerConcurrency,
       batchSize: config().realtimeSegmentsQueueBatchSize,

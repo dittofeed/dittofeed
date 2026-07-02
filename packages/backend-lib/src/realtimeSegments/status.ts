@@ -5,6 +5,7 @@ import {
   realtimeSegmentStatus as dbRealtimeSegmentStatus,
   segment as dbSegment,
 } from "../db/schema";
+import logger from "../logger";
 import { RealtimeSegmentStatusResource } from "../types";
 
 export interface RealtimeSegmentStatusIncrement {
@@ -95,6 +96,24 @@ export async function recordRealtimeSegmentStatus(
 ): Promise<void> {
   if (increments.length === 0) {
     return;
+  }
+
+  const triggeredIncrements = increments.filter(
+    (increment) => increment.triggeredJourneyCount > 0,
+  );
+  if (triggeredIncrements.length > 0) {
+    logger().info(
+      {
+        increments: triggeredIncrements.map((increment) => ({
+          workspaceId: increment.workspaceId,
+          segmentId: increment.segmentId,
+          mode: increment.mode,
+          triggeredJourneyCount: increment.triggeredJourneyCount,
+          triggeredAt: increment.triggeredAt?.toISOString(),
+        })),
+      },
+      "Recording realtime segment journey trigger status.",
+    );
   }
 
   const now = new Date();

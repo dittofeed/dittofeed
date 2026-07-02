@@ -2,12 +2,13 @@
 
 import { ClickHouseQueryBuilder, query as chQuery } from "../clickhouse";
 import { jsonValue } from "../jsonPath";
-import { JSONValue } from "../types";
+import { EventType, JSONValue } from "../types";
 import {
   IDENTIFY_EVENTS_TABLE,
   TRACK_EVENTS_TABLE,
 } from "../userEvents/clickhouse";
 import { RealtimeSegmentDependencies } from "./dependencies";
+import { RealtimeSegmentEvalJob } from "./types";
 
 interface IdentifyRow {
   properties: string;
@@ -39,6 +40,13 @@ function parseProperties(raw: string): Record<string, JSONValue> {
   return parsed as Record<string, JSONValue>;
 }
 
+function asRecord(value: unknown): Record<string, JSONValue> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, JSONValue>;
+}
+
 function readTraitPath({
   path,
   properties,
@@ -51,6 +59,49 @@ function readTraitPath({
     return null;
   }
   return { path, value: value.value };
+}
+
+function applyIdentifyJobTraits({
+  traits,
+  dependencies,
+  job,
+}: {
+  traits: Record<string, JSONValue>;
+  dependencies: RealtimeSegmentDependencies;
+  job?: RealtimeSegmentEvalJob;
+}): Record<string, JSONValue> {
+  if (job?.eventType !== String(EventType.Identify)) {
+    return traits;
+  }
+
+  const jobTraits = asRecord(job.payload.traits);
+  const nextTraits = { ...traits };
+  for (const path of dependencies.traitPaths) {
+    const trait = readTraitPath({ path, properties: jobTraits });
+    if (trait) {
+      nextTraits[trait.path] = trait.value;
+    }
+  }
+  return nextTraits;
+}
+
+function currentJobTrackEvent(
+  job?: RealtimeSegmentEvalJob,
+): RealtimeUserTrackEvent | null {
+  if (
+    !job?.event ||
+    (job.eventType !== String(EventType.Track) &&
+      job.eventType !== String(EventType.Page) &&
+      job.eventType !== String(EventType.Screen))
+  ) {
+    return null;
+  }
+
+  return {
+    event: job.event,
+    properties: asRecord(job.payload.properties),
+    eventTime: job.eventTime,
+  };
 }
 
 async function readIdentifyTraits({
@@ -139,15 +190,26 @@ export async function readRealtimeUserState({
   workspaceId,
   userOrAnonymousId,
   dependencies,
+  currentJob,
 }: {
   workspaceId: string;
   userOrAnonymousId: string;
   dependencies: RealtimeSegmentDependencies;
+  currentJob?: RealtimeSegmentEvalJob;
 }): Promise<RealtimeUserState> {
   const [traits, trackEvents] = await Promise.all([
     readIdentifyTraits({ workspaceId, userOrAnonymousId, dependencies }),
     readTrackEvents({ workspaceId, userOrAnonymousId, dependencies }),
   ]);
+  const jobTrackEvent = currentJobTrackEvent(currentJob);
 
-  return { userOrAnonymousId, traits, trackEvents };
+  return {
+    userOrAnonymousId,
+    traits: applyIdentifyJobTraits({
+      traits,
+      dependencies,
+      job: currentJob,
+    }),
+    trackEvents: jobTrackEvent ? [jobTrackEvent, ...trackEvents] : trackEvents,
+  };
 }

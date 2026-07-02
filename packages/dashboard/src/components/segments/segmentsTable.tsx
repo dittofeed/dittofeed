@@ -443,9 +443,14 @@ export function SegmentsTable({
     },
   });
 
-  const segmentsQuery = useSegmentsQuery({
-    resourceType: "Declarative",
-  });
+  const segmentsQuery = useSegmentsQuery(
+    {
+      resourceType: "Declarative",
+    },
+    {
+      refetchInterval: 5 * 1000,
+    },
+  );
 
   const segmentsData: Row[] = useMemo(() => {
     if (!segmentsQuery.data?.segments) {

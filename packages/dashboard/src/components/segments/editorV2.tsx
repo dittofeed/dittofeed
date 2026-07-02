@@ -217,7 +217,12 @@ function UsersDrawerHeader({
 function UsersDrawerContent({ segmentId }: { segmentId: string }) {
   return (
     <Box sx={{ flex: 1, overflow: "auto" }}>
-      <UsersTableV2 limit={5} segmentFilter={[segmentId]} hideControls />
+      <UsersTableV2
+        limit={5}
+        segmentFilter={[segmentId]}
+        hideControls
+        autoReloadByDefault
+      />
     </Box>
   );
 }

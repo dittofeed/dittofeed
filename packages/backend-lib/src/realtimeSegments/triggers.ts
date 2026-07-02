@@ -48,13 +48,21 @@ function toProcessedAssignment(
 }
 
 export async function triggerRealtimeSegmentJourneys({
-  segment: _segment,
+  segment,
   change,
 }: {
   segment: SavedSegmentResource;
   change: RealtimeSegmentAssignmentChange;
 }): Promise<number> {
   if (!change.inSegment) {
+    logger().debug(
+      {
+        workspaceId: change.workspaceId,
+        segmentId: change.segmentId,
+        userId: change.userId,
+      },
+      "Skipping realtime journey trigger for segment exit.",
+    );
     return 0;
   }
 
@@ -63,18 +71,53 @@ export async function triggerRealtimeSegmentJourneys({
     segmentId: change.segmentId,
   });
   if (journeys.length === 0) {
+    logger().info(
+      {
+        workspaceId: change.workspaceId,
+        segmentId: change.segmentId,
+        segmentName: segment.name,
+        userId: change.userId,
+      },
+      "No running journeys subscribed to realtime segment change.",
+    );
     return 0;
   }
 
   const workflowClient = await connectWorkflowClient();
   const processedAssignments: ComputedPropertyAssignment[] = [];
+  let triggeredCount = 0;
   await Promise.all(
     journeys.map(async (journey) => {
       if (
         journey.definition.entryNode.type !== JourneyNodeType.SegmentEntryNode
       ) {
+        logger().info(
+          {
+            workspaceId: change.workspaceId,
+            segmentId: change.segmentId,
+            journeyId: journey.id,
+            journeyName: journey.name,
+            entryNodeType: journey.definition.entryNode.type,
+          },
+          "Skipping realtime journey trigger for non-segment entry journey.",
+        );
         return;
       }
+
+      if (journey.definition.entryNode.segment !== change.segmentId) {
+        logger().info(
+          {
+            workspaceId: change.workspaceId,
+            segmentId: change.segmentId,
+            journeyId: journey.id,
+            journeyName: journey.name,
+            entrySegmentId: journey.definition.entryNode.segment,
+          },
+          "Skipping realtime journey trigger for different entry segment.",
+        );
+        return;
+      }
+
       const assignment = toComputedAssignment({
         change,
         journeyId: journey.id,
@@ -108,20 +151,24 @@ export async function triggerRealtimeSegmentJourneys({
         signalArgs: [segmentUpdate],
       });
       processedAssignments.push(toProcessedAssignment(assignment));
+      triggeredCount += 1;
     }),
   );
 
-  await insertProcessedComputedProperties({
-    assignments: processedAssignments,
-  });
+  if (processedAssignments.length > 0) {
+    await insertProcessedComputedProperties({
+      assignments: processedAssignments,
+    });
+  }
   logger().info(
     {
       workspaceId: change.workspaceId,
       segmentId: change.segmentId,
       userId: change.userId,
       journeyCount: journeys.length,
+      triggeredCount,
     },
     "Triggered realtime segment entry journeys.",
   );
-  return journeys.length;
+  return triggeredCount;
 }
