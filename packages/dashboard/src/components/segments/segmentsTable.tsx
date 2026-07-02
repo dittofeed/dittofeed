@@ -655,6 +655,7 @@ export function SegmentsTable({
   const table = useReactTable({
     columns,
     data: segmentsData,
+    autoResetPageIndex: false,
     getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
