@@ -80,10 +80,10 @@ function evaluateTimestamp({
   value: JSONValue | undefined;
   operator: SegmentOperator;
   now: Date;
-}): boolean | null {
+}): boolean {
   const timestamp = new Date(toStringValue(value)).getTime();
   if (Number.isNaN(timestamp)) {
-    return null;
+    return operator.type === SegmentOperatorType.NotWithin;
   }
 
   switch (operator.type) {
@@ -94,14 +94,14 @@ function evaluateTimestamp({
     case SegmentOperatorType.AbsoluteTimestamp: {
       const absoluteTimestamp = new Date(operator.absoluteTimestamp).getTime();
       if (Number.isNaN(absoluteTimestamp)) {
-        return null;
+        return false;
       }
       return operator.direction === CursorDirectionEnum.After
         ? timestamp >= absoluteTimestamp
         : timestamp < absoluteTimestamp;
     }
     default:
-      return null;
+      return false;
   }
 }
 

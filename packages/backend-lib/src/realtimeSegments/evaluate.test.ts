@@ -110,4 +110,27 @@ describe("evaluateRealtimeSegment", () => {
       unsupportedNodes: ["trait:unsupported trait operator HasBeen"],
     });
   });
+
+  it("treats missing NotWithin timestamp traits as outside the window", () => {
+    const result = evaluateRealtimeSegment({
+      segment: segment({
+        entryNode: {
+          type: SegmentNodeType.Trait,
+          id: "trait",
+          path: "last_notification_activation_at",
+          operator: {
+            type: SegmentOperatorType.NotWithin,
+            windowSeconds: 3600,
+          },
+        },
+        nodes: [],
+      }),
+      state,
+    });
+
+    expect(result).toEqual({
+      inSegment: true,
+      unsupportedNodes: [],
+    });
+  });
 });
