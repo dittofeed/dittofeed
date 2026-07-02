@@ -1,12 +1,18 @@
+import { findSubscribedRunningJourneysForSegment } from "../journeys";
+import { getJourneyTaskQueue } from "../journeys/taskQueues";
 import {
-  findSubscribedRunningJourneysForSegment,
-  triggerSegmentEntryJourney,
-} from "../journeys";
+  getUserJourneyWorkflowId,
+  segmentUpdateSignal,
+  userJourneyWorkflow,
+} from "../journeys/userWorkflow";
 import logger from "../logger";
+import connectWorkflowClient from "../temporal/connectWorkflowClient";
 import {
   ComputedAssignment,
   ComputedPropertyAssignment,
+  JourneyNodeType,
   SavedSegmentResource,
+  SegmentUpdate,
 } from "../types";
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { RealtimeSegmentAssignmentChange } from "./assignments";
@@ -42,7 +48,7 @@ function toProcessedAssignment(
 }
 
 export async function triggerRealtimeSegmentJourneys({
-  segment,
+  segment: _segment,
   change,
 }: {
   segment: SavedSegmentResource;
@@ -60,19 +66,46 @@ export async function triggerRealtimeSegmentJourneys({
     return 0;
   }
 
+  const workflowClient = await connectWorkflowClient();
   const processedAssignments: ComputedPropertyAssignment[] = [];
   await Promise.all(
     journeys.map(async (journey) => {
+      if (
+        journey.definition.entryNode.type !== JourneyNodeType.SegmentEntryNode
+      ) {
+        return;
+      }
       const assignment = toComputedAssignment({
         change,
         journeyId: journey.id,
       });
-      await triggerSegmentEntryJourney({
-        workspaceId: change.workspaceId,
+      const segmentUpdate: SegmentUpdate = {
         segmentId: change.segmentId,
-        segmentDefinition: segment.definition,
-        segmentAssignment: assignment,
-        journey,
+        currentlyInSegment: assignment.latest_segment_value,
+        segmentVersion: new Date(assignment.max_assigned_at).getTime(),
+        type: "segment",
+      };
+      const workflowId = getUserJourneyWorkflowId({
+        journeyId: journey.id,
+        userId: change.userId,
+      });
+
+      await workflowClient.signalWithStart<
+        typeof userJourneyWorkflow,
+        [SegmentUpdate]
+      >(userJourneyWorkflow, {
+        taskQueue: getJourneyTaskQueue(journey.journeyType),
+        workflowId,
+        args: [
+          {
+            journeyId: journey.id,
+            definition: journey.definition,
+            workspaceId: change.workspaceId,
+            userId: change.userId,
+          },
+        ],
+        signal: segmentUpdateSignal,
+        signalArgs: [segmentUpdate],
       });
       processedAssignments.push(toProcessedAssignment(assignment));
     }),
