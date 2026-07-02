@@ -323,7 +323,7 @@ env:
   - name: "REALTIME_SEGMENTS_ENABLED"
     value: "true"
   - name: "REALTIME_SEGMENTS_MODE"
-    value: "shadow"
+    value: "trigger"
   - name: "REALTIME_SEGMENTS_QUEUE_BACKEND"
     value: "nats"
   - name: "REALTIME_SEGMENTS_NATS_SERVERS"
