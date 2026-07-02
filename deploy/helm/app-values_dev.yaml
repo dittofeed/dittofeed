@@ -306,6 +306,8 @@ env:
     value: "5000"
   - name: COMPUTE_PROPERTIES_SCHEDULER_INTERVAL
     value: "1000"
+  - name: COMPUTE_PROPERTIES_PERIODIC_SCHEDULER_ENABLED
+    value: "false"
   - name: COMPUTE_PROPERTIES_JITTER_MS
     value: "0"
   - name: CLICKHOUSE_MAX_MEMORY_USAGE
@@ -323,15 +325,19 @@ env:
   - name: "REALTIME_SEGMENTS_ENABLED"
     value: "true"
   - name: "REALTIME_SEGMENTS_MODE"
-    value: "true"
+    value: "trigger"
   - name: "REALTIME_SEGMENTS_QUEUE_BACKEND"
-    value: "true"
+    value: "nats"
   - name: "REALTIME_SEGMENTS_NATS_SERVERS"
     value: "nats://nats.dittofeed-dev.svc.cluster.local:4222"
   - name: "REALTIME_SEGMENTS_NATS_USERNAME"
     value: "app"
   - name: "REALTIME_SEGMENTS_NATS_PASSWORD"
     value: "wym4udp*YPA7het4bzr"
+  - name: REALTIME_SEGMENTS_TRIGGER_JOURNEYS
+    value: "true"
+  - name: "ASSIGNMENT_SEQUENTIAL_CONSISTENCY"
+    value: "true"
 nodeSelector: {}
 
 tolerations: []

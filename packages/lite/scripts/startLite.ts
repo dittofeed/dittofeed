@@ -7,6 +7,7 @@ import { requestToSessionValue } from "api/src/buildApp/requestContext";
 import backendConfig from "backend-lib/src/config";
 import { startBootstrapWorkflow } from "backend-lib/src/journeys/bootstrap/lifecycle";
 import logger from "backend-lib/src/logger";
+import { runRealtimeSegmentsWorker } from "backend-lib/src/realtimeSegments/worker";
 import next from "next";
 import path from "path";
 import yargs from "yargs";
@@ -114,7 +115,13 @@ async function startLite() {
 
   otel.start();
 
-  await Promise.all([app.listen({ port, host }), worker?.run()]);
+  await Promise.all([
+    app.listen({ port, host }),
+    worker?.run(),
+    worker && backendConfig().realtimeSegmentsEnabled
+      ? runRealtimeSegmentsWorker()
+      : Promise.resolve(),
+  ]);
 }
 
 startLite()

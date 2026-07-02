@@ -1,5 +1,6 @@
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
+import { runRealtimeSegmentsWorker } from "backend-lib/src/realtimeSegments/worker";
 
 import { buildWorker } from "../src/buildWorker";
 import config from "../src/config";
@@ -22,7 +23,12 @@ async function run() {
   const worker = await buildWorker(otel);
   otel.start();
 
-  await worker.run();
+  await Promise.all([
+    worker.run(),
+    backendConfig().realtimeSegmentsEnabled
+      ? runRealtimeSegmentsWorker()
+      : Promise.resolve(),
+  ]);
 }
 
 run().catch((err) => {

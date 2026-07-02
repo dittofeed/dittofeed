@@ -53,11 +53,13 @@ export async function computePropertiesSchedulerWorkflow(
   const {
     computePropertiesQueueCapacity,
     computePropertiesAttempts,
+    computePropertiesPeriodicSchedulerEnabled,
     computePropertiesSchedulerInterval,
     computePropertiesSchedulerQueueRestartDelay,
   } = await config([
     "computePropertiesQueueCapacity",
     "computePropertiesAttempts",
+    "computePropertiesPeriodicSchedulerEnabled",
     "computePropertiesSchedulerInterval",
     "computePropertiesSchedulerQueueRestartDelay",
   ]);
@@ -65,6 +67,7 @@ export async function computePropertiesSchedulerWorkflow(
   logger.info("Scheduler: Loaded config", {
     computePropertiesQueueCapacity,
     computePropertiesAttempts,
+    computePropertiesPeriodicSchedulerEnabled,
     computePropertiesSchedulerInterval,
     computePropertiesSchedulerQueueRestartDelay,
   });
@@ -76,7 +79,14 @@ export async function computePropertiesSchedulerWorkflow(
     const size = await getQueueSize();
 
     // (B) If there's room, poll for new items
-    if (size < computePropertiesQueueCapacity) {
+    if (!computePropertiesPeriodicSchedulerEnabled) {
+      logger.info(
+        "Scheduler: Periodic computed properties enqueue is disabled",
+        {
+          size,
+        },
+      );
+    } else if (size < computePropertiesQueueCapacity) {
       logger.info("Scheduler: Found room in the queue, polling for new items", {
         size,
         computePropertiesQueueCapacity,

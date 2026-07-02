@@ -14,6 +14,7 @@ import {
   query as chQuery,
 } from "./clickhouse";
 import { computedPropertyAssignmentsReadTable } from "./computedProperties/assignmentTables";
+import { assignmentSequentialConsistency } from "./config";
 import { db } from "./db";
 import {
   segment as dbSegment,
@@ -964,6 +965,7 @@ export async function getUsers(
         query_params: qb.getQueries(),
         clickhouse_settings: {
           output_format_json_named_tuples_as_objects: 0,
+          select_sequential_consistency: assignmentSequentialConsistency(),
         },
       });
       const rows = await results.json<UserRow>();
@@ -1054,6 +1056,7 @@ export async function getUsers(
         query_params: qb.getQueries(),
         clickhouse_settings: {
           output_format_json_named_tuples_as_objects: 0,
+          select_sequential_consistency: assignmentSequentialConsistency(),
         },
       });
       rows = await results.json<UserRow>();
@@ -1162,6 +1165,9 @@ export async function getUsers(
         const indexResults = await chQuery({
           query: indexQuery,
           query_params: qbIndex.getQueries(),
+          clickhouse_settings: {
+            select_sequential_consistency: assignmentSequentialConsistency(),
+          },
         });
         const indexRows = await indexResults.json<{
           user_id: string;
@@ -1221,6 +1227,9 @@ export async function getUsers(
         const remainderResults = await chQuery({
           query: remainderQuery,
           query_params: qbRemainder.getQueries(),
+          clickhouse_settings: {
+            select_sequential_consistency: assignmentSequentialConsistency(),
+          },
         });
         const remainderRows = await remainderResults.json<{
           user_id: string;
@@ -1924,6 +1933,9 @@ export async function getUsersCount({
   const results = await chQuery({
     query,
     query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
   });
 
   const rows = await results.json<{ user_count: number }>();

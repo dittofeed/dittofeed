@@ -121,6 +121,64 @@ export const workspace = pgTable(
   ],
 );
 
+export const realtimeSegmentEvalJob = pgTable(
+  "RealtimeSegmentEvalJob",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    messageId: text().notNull(),
+    userId: text(),
+    anonymousId: text(),
+    userOrAnonymousId: text().notNull(),
+    eventType: text().notNull(),
+    event: text(),
+    traitPaths: jsonb().default([]).notNull(),
+    propertyPaths: jsonb().default([]).notNull(),
+    payload: jsonb().notNull(),
+    eventTime: timestamp({ precision: 3, mode: "date" }).notNull(),
+    processingTime: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    status: text().default("Pending").notNull(),
+    attempts: integer().default(0).notNull(),
+    availableAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    lockedAt: timestamp({ precision: 3, mode: "date" }),
+    lockId: text(),
+    lastError: text(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("RealtimeSegmentEvalJob_workspaceId_messageId_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.messageId.asc().nullsLast().op("text_ops"),
+    ),
+    index("RealtimeSegmentEvalJob_status_availableAt_idx").using(
+      "btree",
+      table.status.asc().nullsLast().op("text_ops"),
+      table.availableAt.asc().nullsLast().op("timestamp_ops"),
+    ),
+    index("RealtimeSegmentEvalJob_workspaceId_userOrAnonymousId_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.userOrAnonymousId.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "RealtimeSegmentEvalJob_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
 export const segmentIoConfiguration = pgTable(
   "SegmentIOConfiguration",
   {
@@ -776,6 +834,104 @@ export const segment = pgTable(
     })
       .onUpdate("cascade")
       .onDelete("set null"),
+  ],
+);
+
+export const realtimeSegmentStatus = pgTable(
+  "RealtimeSegmentStatus",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    segmentId: uuid().notNull(),
+    mode: text().notNull(),
+    lastEvaluatedAt: timestamp({ precision: 3, mode: "date" }),
+    lastAssignmentAt: timestamp({ precision: 3, mode: "date" }),
+    lastTriggeredAt: timestamp({ precision: 3, mode: "date" }),
+    evaluatedCount: integer().default(0).notNull(),
+    assignmentCount: integer().default(0).notNull(),
+    triggeredJourneyCount: integer().default(0).notNull(),
+    unsupportedCount: integer().default(0).notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("RealtimeSegmentStatus_workspaceId_segmentId_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.segmentId.asc().nullsLast().op("uuid_ops"),
+    ),
+    index("RealtimeSegmentStatus_workspaceId_updatedAt_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.updatedAt.asc().nullsLast().op("timestamp_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "RealtimeSegmentStatus_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.segmentId],
+      foreignColumns: [segment.id],
+      name: "RealtimeSegmentStatus_segmentId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
+export const realtimeSegmentMembership = pgTable(
+  "RealtimeSegmentMembership",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    segmentId: uuid().notNull(),
+    userId: text().notNull(),
+    inSegment: boolean().notNull(),
+    eventTime: timestamp({ precision: 3, mode: "date" }).notNull(),
+    assignedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("RealtimeSegmentMembership_workspace_segment_user_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.segmentId.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast().op("text_ops"),
+    ),
+    index("RealtimeSegmentMembership_workspace_user_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast().op("text_ops"),
+    ),
+    index("RealtimeSegmentMembership_workspace_segment_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.segmentId.asc().nullsLast().op("uuid_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "RealtimeSegmentMembership_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.segmentId],
+      foreignColumns: [segment.id],
+      name: "RealtimeSegmentMembership_segmentId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
   ],
 );
 

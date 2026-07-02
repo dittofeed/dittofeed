@@ -94,6 +94,7 @@ export type SegmentsAllowedColumn =
   | "status"
   | "journeysUsedBy"
   | "lastRecomputed"
+  | "liveStatus"
   | "updatedAt"
   | "actions";
 
@@ -102,12 +103,14 @@ export const DEFAULT_ALLOWED_SEGMENTS_COLUMNS: SegmentsAllowedColumn[] = [
   "status",
   "journeysUsedBy",
   "lastRecomputed",
+  "liveStatus",
   "updatedAt",
   "actions",
 ];
 
 type Row = SegmentResource & {
   journeysUsedBy: MinimalJourneysResource[];
+  lastRecomputedAt?: number;
 };
 
 // TimeCell for displaying timestamps like createdAt
@@ -181,6 +184,69 @@ function StatusCell({ getValue }: CellContext<Row, unknown>) {
   }
 
   return <Typography variant="body2">{status}</Typography>;
+}
+
+function formatTimestamp(timestamp?: number): string {
+  if (!timestamp) {
+    return "Never";
+  }
+  return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+}
+
+function LiveStatusCell({ getValue }: CellContext<Row, unknown>) {
+  const realtimeStatus = getValue<SegmentResource["realtimeStatus"]>();
+
+  if (!realtimeStatus) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        Not observed
+      </Typography>
+    );
+  }
+
+  const latestLiveUpdate =
+    realtimeStatus.lastAssignmentAt ?? realtimeStatus.lastEvaluatedAt;
+  const tooltipContent = (
+    <Stack spacing={1}>
+      <Typography variant="body2">Mode: {realtimeStatus.mode}</Typography>
+      <Typography variant="body2">
+        Last evaluated: {formatTimestamp(realtimeStatus.lastEvaluatedAt)}
+      </Typography>
+      <Typography variant="body2">
+        Last assignment: {formatTimestamp(realtimeStatus.lastAssignmentAt)}
+      </Typography>
+      <Typography variant="body2">
+        Last trigger: {formatTimestamp(realtimeStatus.lastTriggeredAt)}
+      </Typography>
+      <Typography variant="body2">
+        Evaluated: {realtimeStatus.evaluatedCount}
+      </Typography>
+      <Typography variant="body2">
+        Assignments: {realtimeStatus.assignmentCount}
+      </Typography>
+      <Typography variant="body2">
+        Journey triggers: {realtimeStatus.triggeredJourneyCount}
+      </Typography>
+      <Typography variant="body2">
+        Unsupported: {realtimeStatus.unsupportedCount}
+      </Typography>
+    </Stack>
+  );
+
+  return (
+    <Tooltip title={tooltipContent} placement="bottom-start" arrow>
+      <Stack spacing={0.25}>
+        <Typography variant="body2" sx={{ textTransform: "capitalize" }}>
+          {realtimeStatus.mode}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {latestLiveUpdate
+            ? `Live ${formatTimestamp(latestLiveUpdate)}`
+            : "No live updates"}
+        </Typography>
+      </Stack>
+    </Tooltip>
+  );
 }
 
 // Cell renderer for Actions column
@@ -377,9 +443,14 @@ export function SegmentsTable({
     },
   });
 
-  const segmentsQuery = useSegmentsQuery({
-    resourceType: "Declarative",
-  });
+  const segmentsQuery = useSegmentsQuery(
+    {
+      resourceType: "Declarative",
+    },
+    {
+      refetchInterval: 5 * 1000,
+    },
+  );
 
   const segmentsData: Row[] = useMemo(() => {
     if (!segmentsQuery.data?.segments) {
@@ -399,11 +470,16 @@ export function SegmentsTable({
         journeysBySegmentId.set(journeySegment, existingJourneys);
       }
     }
-    return segmentsQuery.data.segments.map((segment) => ({
-      ...segment,
-      lastRecomputedAt: periodBySegmentId.get(segment.id)?.lastRecomputed,
-      journeysUsedBy: journeysBySegmentId.get(segment.id) ?? [],
-    }));
+    return segmentsQuery.data.segments.map((segment) => {
+      const period = periodBySegmentId.get(segment.id);
+      return {
+        ...segment,
+        lastRecomputedAt: period
+          ? new Date(period.lastRecomputed).getTime()
+          : undefined,
+        journeysUsedBy: journeysBySegmentId.get(segment.id) ?? [],
+      };
+    });
   }, [
     segmentsQuery.data?.segments,
     computedPropertyPeriods?.periods,
@@ -548,9 +624,15 @@ export function SegmentsTable({
       },
       lastRecomputed: {
         id: "lastRecomputed",
-        header: "Last Recomputed",
+        header: "Batch Recomputed",
         accessorKey: "lastRecomputedAt",
         cell: TimeCell,
+      },
+      liveStatus: {
+        id: "liveStatus",
+        header: "Live Updates",
+        accessorKey: "realtimeStatus",
+        cell: LiveStatusCell,
       },
       updatedAt: {
         id: "updatedAt",

@@ -15242,6 +15242,7 @@ __metadata:
     markdown-it: "npm:^13.0.1"
     minimist: "npm:^1.2.7"
     mjml: "npm:^4.14.1"
+    nats: "npm:^2.29.3"
     neverthrow: "npm:^6.0.0"
     node-cache: "npm:^5.1.2"
     nodemailer: "npm:^6.9.7"
@@ -25352,6 +25353,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"nats@npm:^2.29.3":
+  version: 2.29.3
+  resolution: "nats@npm:2.29.3"
+  dependencies:
+    nkeys.js: "npm:1.1.0"
+  checksum: 10/c60b0c61a23afa3412e16c95a486a19c1a48544a9de4eb7004eaddba06f2f341f6aa475924158045b851cba6755ed4d46832b894b45d9c7342df674aa6e2b7ff
+  languageName: node
+  linkType: hard
+
 "natural-compare-lite@npm:^1.4.0":
   version: 1.4.0
   resolution: "natural-compare-lite@npm:1.4.0"
@@ -25461,6 +25471,15 @@ __metadata:
   version: 0.0.1
   resolution: "nexus-rpc@npm:0.0.1"
   checksum: 10/24467ab6d17db98bcef8cd4f13edbb3291a190967ccc9bf2463bf90b5850abc139590501c6785d994f156deec3b71234d14e6b98bea623a3aae4cbbc4eee9c41
+  languageName: node
+  linkType: hard
+
+"nkeys.js@npm:1.1.0":
+  version: 1.1.0
+  resolution: "nkeys.js@npm:1.1.0"
+  dependencies:
+    tweetnacl: "npm:1.0.3"
+  checksum: 10/54ee6a141cadb1dd58d8739bb98424adbdb866256496e022c2ceee793581cfe774e51fd18b50563d4145ff647f670c73e30c0b164b0edfe4f91330187fe3eeb0
   languageName: node
   linkType: hard
 
@@ -30691,6 +30710,13 @@ __metadata:
   bin:
     tsx: dist/cli.mjs
   checksum: 10/62f40d06a41deebd51690b086f4387d842a826542639b6a26fd6cf09158c6b44956ca9d9088146330ab0622587b2329981cc3584b89025040f3aa100c50ac13c
+  languageName: node
+  linkType: hard
+
+"tweetnacl@npm:1.0.3":
+  version: 1.0.3
+  resolution: "tweetnacl@npm:1.0.3"
+  checksum: 10/ca122c2f86631f3c0f6d28efb44af2a301d4a557a62a3e2460286b08e97567b258c2212e4ad1cfa22bd6a57edcdc54ba76ebe946847450ab0999e6d48ccae332
   languageName: node
   linkType: hard
 

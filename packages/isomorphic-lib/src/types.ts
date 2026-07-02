@@ -1309,6 +1309,21 @@ export const SegmentStatus = Type.KeyOf(Type.Const(SegmentStatusEnum));
 
 export type SegmentStatus = Static<typeof SegmentStatus>;
 
+export const RealtimeSegmentStatusResource = Type.Object({
+  mode: Type.String(),
+  lastEvaluatedAt: Type.Optional(Type.Number()),
+  lastAssignmentAt: Type.Optional(Type.Number()),
+  lastTriggeredAt: Type.Optional(Type.Number()),
+  evaluatedCount: Type.Number(),
+  assignmentCount: Type.Number(),
+  triggeredJourneyCount: Type.Number(),
+  unsupportedCount: Type.Number(),
+});
+
+export type RealtimeSegmentStatusResource = Static<
+  typeof RealtimeSegmentStatusResource
+>;
+
 export const SegmentResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
@@ -1317,6 +1332,7 @@ export const SegmentResource = Type.Object({
   subscriptionGroupId: Type.Optional(Type.String()),
   updatedAt: Type.Number(),
   lastRecomputed: Type.Optional(Type.Number()),
+  realtimeStatus: Type.Optional(RealtimeSegmentStatusResource),
   resourceType: Type.Optional(ResourceType),
   status: Type.Optional(SegmentStatus),
 });

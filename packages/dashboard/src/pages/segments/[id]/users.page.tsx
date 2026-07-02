@@ -49,6 +49,7 @@ export default function SegmentUsers() {
             </Typography>
             <UsersTableV2
               segmentFilter={[segmentId]}
+              autoReloadByDefault
               {...queryParams}
               onPaginationChange={onUsersTablePaginate}
             />

@@ -5,6 +5,7 @@ import { SubmitBatchOptions } from "backend-lib/src/apps/batch";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import logger from "backend-lib/src/logger";
+import { findRealtimeSegmentStatusBySegmentId } from "backend-lib/src/realtimeSegments/status";
 import {
   buildSegmentsFile,
   deleteSegment,
@@ -89,7 +90,15 @@ export default async function segmentsController(fastify: FastifyInstance) {
       const segmentModels = await db().query.segment.findMany({
         where: and(...conditions),
       });
-      const segments = segmentModels.map((s) => unwrap(toSegmentResource(s)));
+      const realtimeStatusBySegmentId =
+        await findRealtimeSegmentStatusBySegmentId({
+          workspaceId: request.query.workspaceId,
+          segmentIds: segmentModels.map((segment) => segment.id),
+        });
+      const segments = segmentModels.map((s) => ({
+        ...unwrap(toSegmentResource(s)),
+        realtimeStatus: realtimeStatusBySegmentId.get(s.id),
+      }));
       return reply.status(200).send({ segments });
     },
   );

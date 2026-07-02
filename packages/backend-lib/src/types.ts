@@ -208,6 +208,25 @@ export const WriteMode = Type.Union([
 
 export type WriteMode = Static<typeof WriteMode>;
 
+export const RealtimeSegmentsMode = Type.Union([
+  Type.Literal("shadow"),
+  Type.Literal("write"),
+  Type.Literal("trigger"),
+  Type.Literal("read"),
+]);
+
+export type RealtimeSegmentsMode = Static<typeof RealtimeSegmentsMode>;
+
+export const RealtimeSegmentsQueueBackend = Type.Union([
+  Type.Literal("postgres"),
+  Type.Literal("nats"),
+  Type.Literal("bullmq"),
+]);
+
+export type RealtimeSegmentsQueueBackend = Static<
+  typeof RealtimeSegmentsQueueBackend
+>;
+
 export const AuthMode = Type.Union([
   Type.Literal("anonymous"),
   Type.Literal("multi-tenant"),
@@ -889,11 +908,11 @@ export type WorkspaceQueueItem =
 
 export interface SubscriptionManagementChannel {
   name: string;
-  subscriptions: Array<{
+  subscriptions: {
     id: string;
     name: string;
     isSubscribed: boolean;
-  }>;
+  }[];
 }
 
 export interface SubscriptionManagementTemplateContext {
