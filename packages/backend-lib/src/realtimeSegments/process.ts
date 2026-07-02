@@ -11,6 +11,10 @@ import {
   getSegmentDependencies,
 } from "./dependencies";
 import { evaluateRealtimeSegment } from "./evaluate";
+import {
+  findRealtimeSegmentMemberships,
+  upsertRealtimeSegmentMemberships,
+} from "./membership";
 import { readRealtimeUserState } from "./state";
 import { recordRealtimeSegmentStatus } from "./status";
 import { triggerRealtimeSegmentJourneys } from "./triggers";
@@ -107,26 +111,50 @@ async function processRealtimeSegmentJobUnlocked({
     dependencies: mergeDependencies(candidates),
     currentJob: job,
   });
-  const currentAssignments = await findAllSegmentAssignmentsByIds({
+  const candidateSegmentIds = candidates.map((segment) => segment.id);
+  const currentMemberships = await findRealtimeSegmentMemberships({
     workspaceId: job.workspaceId,
     userId: job.userOrAnonymousId,
-    segmentIds: candidates.map((segment) => segment.id),
+    segmentIds: candidateSegmentIds,
   });
   const currentBySegmentId = new Map(
-    currentAssignments.map((assignment) => [
-      assignment.segmentId,
-      assignment.inSegment,
+    currentMemberships.map((membership) => [
+      membership.segmentId,
+      membership.inSegment,
     ]),
   );
+  const currentEventTimeBySegmentId = new Map(
+    currentMemberships.map((membership) => [
+      membership.segmentId,
+      membership.eventTime,
+    ]),
+  );
+  const missingSegmentIds = candidateSegmentIds.filter(
+    (segmentId) => !currentBySegmentId.has(segmentId),
+  );
+  if (missingSegmentIds.length > 0) {
+    const currentAssignments = await findAllSegmentAssignmentsByIds({
+      workspaceId: job.workspaceId,
+      userId: job.userOrAnonymousId,
+      segmentIds: missingSegmentIds,
+    });
+    for (const assignment of currentAssignments) {
+      currentBySegmentId.set(assignment.segmentId, assignment.inSegment);
+    }
+  }
 
   const evaluatedAt = new Date();
   const assignedAt = evaluatedAt;
   const evaluatedChanges = candidates.map((segment) => {
     const evaluation = evaluateRealtimeSegment({ segment, state });
     const previousInSegment = currentBySegmentId.get(segment.id) ?? null;
+    const currentEventTime = currentEventTimeBySegmentId.get(segment.id);
+    const staleJob =
+      currentEventTime !== undefined && currentEventTime > job.eventTime;
     const supported = evaluation.unsupportedNodes.length === 0;
     const changed =
       supported &&
+      !staleJob &&
       previousInSegment !== evaluation.inSegment &&
       (previousInSegment !== null || evaluation.inSegment);
     return {
@@ -152,9 +180,20 @@ async function processRealtimeSegmentJobUnlocked({
       maxEventTime: job.eventTime,
       assignedAt,
     }));
+  const membershipUpdates: RealtimeSegmentAssignmentChange[] = evaluatedChanges
+    .filter((change) => change.unsupportedNodes.length === 0)
+    .map((change) => ({
+      workspaceId: job.workspaceId,
+      userId: job.userOrAnonymousId,
+      segmentId: change.segmentId,
+      inSegment: change.realtimeInSegment,
+      maxEventTime: job.eventTime,
+      assignedAt,
+    }));
 
   if (writeAssignments) {
     await writeRealtimeSegmentAssignments(assignmentChanges);
+    await upsertRealtimeSegmentMemberships(membershipUpdates);
     for (const change of evaluatedChanges) {
       change.written = assignmentChanges.some(
         (assignment) => assignment.segmentId === change.segmentId,

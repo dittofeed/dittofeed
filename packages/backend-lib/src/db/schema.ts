@@ -885,6 +885,56 @@ export const realtimeSegmentStatus = pgTable(
   ],
 );
 
+export const realtimeSegmentMembership = pgTable(
+  "RealtimeSegmentMembership",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    segmentId: uuid().notNull(),
+    userId: text().notNull(),
+    inSegment: boolean().notNull(),
+    eventTime: timestamp({ precision: 3, mode: "date" }).notNull(),
+    assignedAt: timestamp({ precision: 3, mode: "date" }).notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("RealtimeSegmentMembership_workspace_segment_user_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.segmentId.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast().op("text_ops"),
+    ),
+    index("RealtimeSegmentMembership_workspace_user_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast().op("text_ops"),
+    ),
+    index("RealtimeSegmentMembership_workspace_segment_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.segmentId.asc().nullsLast().op("uuid_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "RealtimeSegmentMembership_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.segmentId],
+      foreignColumns: [segment.id],
+      name: "RealtimeSegmentMembership_segmentId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
 export const defaultSmsProvider = pgTable(
   "DefaultSmsProvider",
   {

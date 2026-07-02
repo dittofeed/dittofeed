@@ -92,6 +92,13 @@
       "when": 1782925200000,
       "tag": "0012_realtime_segment_status",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1783008000000,
+      "tag": "0013_realtime_segment_membership",
+      "breakpoints": true
     }
   ]
 }
