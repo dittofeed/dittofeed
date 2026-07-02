@@ -332,6 +332,10 @@ env:
     value: "app"
   - name: "REALTIME_SEGMENTS_NATS_PASSWORD"
     value: "wym4udp*YPA7het4bzr"
+  - name: REALTIME_SEGMENTS_TRIGGER_JOURNEYS
+    value: "true"
+  - name: "ASSIGNMENT_SEQUENTIAL_CONSISTENCY"
+    value: "true"
 nodeSelector: {}
 
 tolerations: []
