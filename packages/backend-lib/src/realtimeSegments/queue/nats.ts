@@ -17,17 +17,32 @@ import {
 
 import config from "../../config";
 import logger from "../../logger";
+import { JSONValue } from "../../types";
 import {
   ClaimedRealtimeSegmentEvalJob,
   RealtimeSegmentEvalJob,
   RealtimeSegmentQueue,
 } from "../types";
 
-interface EncodedRealtimeSegmentEvalJob
-  extends Omit<RealtimeSegmentEvalJob, "eventTime" | "processingTime"> {
+type EncodedRealtimeSegmentEvalJob = {
+  workspaceId: string;
+  userOrAnonymousId: string;
+  anonymousId?: string;
+  userId?: string;
+  payload: Record<string, JSONValue>;
   eventTime: string;
   processingTime: string;
-}
+  messageId: string;
+} & (
+  | {
+      type?: "eventReceived";
+      eventType: string;
+      event?: string;
+      traitPaths: string[];
+      propertyPaths: string[];
+    }
+  | { type: "segmentChange"; segment: string }
+);
 
 function encodeJob(job: RealtimeSegmentEvalJob): EncodedRealtimeSegmentEvalJob {
   return {
@@ -46,12 +61,24 @@ function decodeJob({
   attempts: number;
   job: EncodedRealtimeSegmentEvalJob;
 }): ClaimedRealtimeSegmentEvalJob {
+  if ("type" in job && job.type === "segmentChange") {
+    return {
+      ...job,
+      id,
+      attempts,
+      eventTime: new Date(job.eventTime),
+      processingTime: new Date(job.processingTime),
+      type: "segmentChange",
+    };
+  }
+
   return {
     ...job,
     id,
     attempts,
     eventTime: new Date(job.eventTime),
     processingTime: new Date(job.processingTime),
+    type: "eventReceived",
   };
 }
 

@@ -6,6 +6,7 @@ import logger from "../logger";
 import { processRealtimeSegmentJob } from "./process";
 import { getRealtimeSegmentQueue } from "./queue";
 import { ClaimedRealtimeSegmentEvalJob } from "./types";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 /* eslint-disable no-await-in-loop */
 
@@ -15,6 +16,24 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+function getEventAdditionalContextLog(job: ClaimedRealtimeSegmentEvalJob) {
+  switch (job.type) {
+    case "eventReceived":
+      return {
+        eventType: job.eventType,
+        event: job.event,
+        traitPaths: job.traitPaths,
+        propertyPaths: job.propertyPaths,
+      };
+    case "segmentChange":
+      return {
+        segment: job.segment,
+      };
+    default:
+      assertUnreachable(job);
+  }
 }
 
 async function processRealtimeSegmentEvalJob(
@@ -39,10 +58,6 @@ async function processRealtimeSegmentEvalJob(
       workspaceId: job.workspaceId,
       messageId: job.messageId,
       userOrAnonymousId: job.userOrAnonymousId,
-      eventType: job.eventType,
-      event: job.event,
-      traitPaths: job.traitPaths,
-      propertyPaths: job.propertyPaths,
       mode,
       writeAssignments,
       triggerJourneys,
@@ -53,6 +68,8 @@ async function processRealtimeSegmentEvalJob(
       writtenCount: result.writtenCount,
       triggeredJourneyCount: result.triggeredJourneyCount,
       changes: result.changes,
+      type: job.type,
+      ...getEventAdditionalContextLog(job),
     },
     "Realtime segment job processed.",
   );

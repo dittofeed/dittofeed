@@ -1,24 +1,29 @@
 import { JSONValue } from "../types";
 
-export interface RealtimeSegmentEvalJob {
+export type RealtimeSegmentEvalJob = {
   workspaceId: string;
-  messageId: string;
-  userId?: string;
-  anonymousId?: string;
   userOrAnonymousId: string;
-  eventType: string;
-  event?: string;
-  traitPaths: string[];
-  propertyPaths: string[];
+  anonymousId?: string;
+  userId?: string;
   payload: Record<string, JSONValue>;
   eventTime: Date;
   processingTime: Date;
-}
+  messageId: string;
+} & (
+  | {
+      type: "eventReceived";
+      eventType: string;
+      event?: string;
+      traitPaths: string[];
+      propertyPaths: string[];
+    }
+  | { type: "segmentChange"; segment: string }
+);
 
-export interface ClaimedRealtimeSegmentEvalJob extends RealtimeSegmentEvalJob {
+export type ClaimedRealtimeSegmentEvalJob = RealtimeSegmentEvalJob & {
   id: string;
   attempts: number;
-}
+};
 
 export interface RealtimeSegmentQueue {
   enqueue(jobs: RealtimeSegmentEvalJob[]): Promise<void>;

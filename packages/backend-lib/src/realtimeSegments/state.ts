@@ -2,6 +2,7 @@
 
 import { ClickHouseQueryBuilder, query as chQuery } from "../clickhouse";
 import { jsonValue } from "../jsonPath";
+import { getSegmentsAssignmentDb } from "../segments";
 import { EventType, JSONValue } from "../types";
 import {
   TRACK_EVENTS_TABLE,
@@ -31,6 +32,7 @@ export interface RealtimeUserState {
   userOrAnonymousId: string;
   traits: Record<string, JSONValue>;
   trackEvents: RealtimeUserTrackEvent[];
+  segments: Record<string, boolean>;
 }
 
 function parseProperties(raw: string): Record<string, JSONValue> {
@@ -79,7 +81,11 @@ function applyIdentifyJobTraits({
   dependencies: RealtimeSegmentDependencies;
   job?: RealtimeSegmentEvalJob;
 }): Record<string, JSONValue> {
-  if (job?.eventType !== String(EventType.Identify)) {
+  if (
+    !job ||
+    job.type !== "eventReceived" ||
+    job.eventType !== String(EventType.Identify)
+  ) {
     return traits;
   }
 
@@ -97,6 +103,10 @@ function applyIdentifyJobTraits({
 function currentJobTrackEvent(
   job?: RealtimeSegmentEvalJob,
 ): RealtimeUserTrackEvent | null {
+  if (job?.type === "segmentChange") {
+    return null;
+  }
+
   if (
     !job?.event ||
     (job.eventType !== String(EventType.Track) &&
@@ -188,6 +198,26 @@ async function readTrackEvents({
   }));
 }
 
+async function readSegments({
+  workspaceId,
+  userOrAnonymousId,
+  dependencies,
+}: {
+  workspaceId: string;
+  userOrAnonymousId: string;
+  dependencies: RealtimeSegmentDependencies;
+}): Promise<Record<string, boolean>> {
+  if (dependencies.segments.size === 0) {
+    return {};
+  }
+
+  return getSegmentsAssignmentDb({
+    workspaceId,
+    userId: userOrAnonymousId,
+    segmentIds: [...dependencies.segments],
+  });
+}
+
 export async function readRealtimeUserState({
   workspaceId,
   userOrAnonymousId,
@@ -199,9 +229,10 @@ export async function readRealtimeUserState({
   dependencies: RealtimeSegmentDependencies;
   currentJob?: RealtimeSegmentEvalJob;
 }): Promise<RealtimeUserState> {
-  const [traits, trackEvents] = await Promise.all([
+  const [traits, trackEvents, segments] = await Promise.all([
     readIdentifyTraits({ workspaceId, userOrAnonymousId, dependencies }),
     readTrackEvents({ workspaceId, userOrAnonymousId, dependencies }),
+    readSegments({ workspaceId, userOrAnonymousId, dependencies }),
   ]);
   const jobTrackEvent = currentJobTrackEvent(currentJob);
 
@@ -213,5 +244,6 @@ export async function readRealtimeUserState({
       job: currentJob,
     }),
     trackEvents: jobTrackEvent ? [jobTrackEvent, ...trackEvents] : trackEvents,
+    segments,
   };
 }

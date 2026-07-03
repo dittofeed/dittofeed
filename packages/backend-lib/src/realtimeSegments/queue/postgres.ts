@@ -1,9 +1,13 @@
 import { sql } from "drizzle-orm";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 /* eslint-disable class-methods-use-this */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { db } from "../../db";
-import { realtimeSegmentEvalJob as dbRealtimeSegmentEvalJob } from "../../db/schema";
+import {
+  DbRealtimeSegmentEvalJob,
+  realtimeSegmentEvalJob as dbRealtimeSegmentEvalJob,
+} from "../../db/schema";
 import {
   ClaimedRealtimeSegmentEvalJob,
   RealtimeSegmentEvalJob,
@@ -17,7 +21,7 @@ interface ClaimedRow extends Record<string, unknown> {
   userId: string | null;
   anonymousId: string | null;
   userOrAnonymousId: string;
-  eventType: string;
+  eventType?: string;
   event: string | null;
   traitPaths: string[];
   propertyPaths: string[];
@@ -25,25 +29,56 @@ interface ClaimedRow extends Record<string, unknown> {
   eventTime: Date;
   processingTime: Date;
   attempts: number;
+  type: "eventReceived" | "segmentChange";
+  segment?: string;
 }
 
 function toClaimedJob(row: ClaimedRow): ClaimedRealtimeSegmentEvalJob {
-  return {
-    id: row.id,
-    workspaceId: row.workspaceId,
-    messageId: row.messageId,
-    userId: row.userId ?? undefined,
-    anonymousId: row.anonymousId ?? undefined,
-    userOrAnonymousId: row.userOrAnonymousId,
-    eventType: row.eventType,
-    event: row.event ?? undefined,
-    traitPaths: row.traitPaths,
-    propertyPaths: row.propertyPaths,
-    payload: row.payload as ClaimedRealtimeSegmentEvalJob["payload"],
-    eventTime: row.eventTime,
-    processingTime: row.processingTime,
-    attempts: row.attempts,
-  };
+  switch (row.type) {
+    case "eventReceived":
+      if (!("eventType" in row) || !row.eventType) {
+        throw new Error(
+          `messageId or eventType missing from ${JSON.stringify(row)}`,
+        );
+      }
+      return {
+        id: row.id,
+        workspaceId: row.workspaceId,
+        messageId: row.messageId,
+        userId: row.userId ?? undefined,
+        anonymousId: row.anonymousId ?? undefined,
+        userOrAnonymousId: row.userOrAnonymousId,
+        eventType: row.eventType,
+        event: row.event ?? undefined,
+        traitPaths: row.traitPaths,
+        propertyPaths: row.propertyPaths,
+        payload: row.payload as ClaimedRealtimeSegmentEvalJob["payload"],
+        eventTime: row.eventTime,
+        processingTime: row.processingTime,
+        attempts: row.attempts,
+        type: "eventReceived",
+      };
+    case "segmentChange":
+      if (!("segment" in row) || !row.segment) {
+        throw new Error(`segment missing from ${JSON.stringify(row)}`);
+      }
+      return {
+        id: row.id,
+        messageId: row.messageId,
+        workspaceId: row.workspaceId,
+        userId: row.userId ?? undefined,
+        anonymousId: row.anonymousId ?? undefined,
+        userOrAnonymousId: row.userOrAnonymousId,
+        payload: row.payload as ClaimedRealtimeSegmentEvalJob["payload"],
+        eventTime: row.eventTime,
+        processingTime: row.processingTime,
+        attempts: row.attempts,
+        type: "segmentChange",
+        segment: row.segment,
+      };
+    default:
+      assertUnreachable(row.type);
+  }
 }
 
 export class PostgresRealtimeSegmentQueue implements RealtimeSegmentQueue {
@@ -54,20 +89,38 @@ export class PostgresRealtimeSegmentQueue implements RealtimeSegmentQueue {
     await db()
       .insert(dbRealtimeSegmentEvalJob)
       .values(
-        jobs.map((job) => ({
-          workspaceId: job.workspaceId,
-          messageId: job.messageId,
-          userId: job.userId,
-          anonymousId: job.anonymousId,
-          userOrAnonymousId: job.userOrAnonymousId,
-          eventType: job.eventType,
-          event: job.event,
-          traitPaths: job.traitPaths,
-          propertyPaths: job.propertyPaths,
-          payload: job.payload,
-          eventTime: job.eventTime,
-          processingTime: job.processingTime,
-        })),
+        jobs.map((job): DbRealtimeSegmentEvalJob => {
+          const partialJob = {
+            workspaceId: job.workspaceId,
+            userId: job.userId,
+            anonymousId: job.anonymousId,
+            userOrAnonymousId: job.userOrAnonymousId,
+            payload: job.payload,
+            eventTime: job.eventTime,
+            processingTime: job.processingTime,
+            messageId: job.messageId,
+          };
+
+          switch (job.type) {
+            case "eventReceived": {
+              return {
+                ...partialJob,
+                type: "eventReceived",
+                eventType: job.eventType,
+                event: job.event,
+              };
+            }
+            case "segmentChange": {
+              return {
+                ...partialJob,
+                type: "segmentChange",
+                segment: job.segment,
+              };
+            }
+            default:
+              assertUnreachable(job);
+          }
+        }),
       )
       .onConflictDoNothing({
         target: [

@@ -246,6 +246,18 @@ function mapSegmentNode({
           }),
         })),
       };
+    case SegmentNodeType.Segment: {
+      const newSegmentId = segmentMap.get(node.segmentId);
+
+      if (!newSegmentId) {
+        throw new Error(`SegmentId ${node.segmentId} not found`);
+      }
+
+      return {
+        ...node,
+        segmentId: newSegmentId,
+      };
+    }
     default:
       return node;
   }

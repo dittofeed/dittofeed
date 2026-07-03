@@ -12,6 +12,7 @@ import { RealtimeSegmentEvalJob } from "./types";
 export interface RealtimeSegmentDependencies {
   traitPaths: Set<string>;
   eventNames: Set<string>;
+  segments: Set<string>;
   always: boolean;
 }
 
@@ -27,7 +28,10 @@ function collectNodeDependencies({
   dependencies,
 }: {
   node: SegmentNode;
-  dependencies: Pick<RealtimeSegmentDependencies, "eventNames" | "traitPaths">;
+  dependencies: Pick<
+    RealtimeSegmentDependencies,
+    "eventNames" | "traitPaths" | "segments"
+  >;
 }): void {
   switch (node.type) {
     case SegmentNodeType.Trait:
@@ -59,6 +63,9 @@ function collectNodeDependencies({
     case SegmentNodeType.And:
     case SegmentNodeType.Or:
       return;
+    case SegmentNodeType.Segment:
+      dependencies.segments.add(node.segmentId);
+      return;
     default:
       assertUnreachable(node);
   }
@@ -82,6 +89,7 @@ function hasAlwaysDependency(node: SegmentNode): boolean {
     case SegmentNodeType.Manual:
     case SegmentNodeType.And:
     case SegmentNodeType.Or:
+    case SegmentNodeType.Segment:
       return false;
     default:
       assertUnreachable(node);
@@ -102,6 +110,7 @@ function collectDependencies(
   const dependencies: Omit<RealtimeSegmentDependencies, "always"> = {
     traitPaths: new Set(),
     eventNames: new Set(),
+    segments: new Set(),
   };
   for (const node of collectSegmentNodes(segment)) {
     collectNodeDependencies({ node, dependencies });
@@ -129,10 +138,15 @@ export function doesJobAffectSegment({
   if (dependencies.always) {
     return true;
   }
-  if (job.event && dependencies.eventNames.has(job.event)) {
-    return true;
+
+  if (job.type === "eventReceived") {
+    if (job.event && dependencies.eventNames.has(job.event)) {
+      return true;
+    }
+    return job.traitPaths.some((path) => dependencies.traitPaths.has(path));
   }
-  return job.traitPaths.some((path) => dependencies.traitPaths.has(path));
+
+  return dependencies.segments.has(job.segment);
 }
 
 export async function findRealtimeSegmentCandidates({

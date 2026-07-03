@@ -1146,6 +1146,54 @@ export async function getSegmentAssignmentDb({
   return rows[0]?.latest_segment_value ?? null;
 }
 
+export async function getSegmentsAssignmentDb({
+  workspaceId,
+  segmentIds,
+  userId,
+}: {
+  workspaceId: string;
+  segmentIds: string[];
+  userId: string;
+}): Promise<Record<string, boolean>> {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const segmentIdParam = qb.addQueryValue(segmentIds, "Array(String)");
+  const userIdParam = qb.addQueryValue(userId, "String");
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
+  const query = `
+    SELECT
+      argMax(segment_value, assigned_at) as latest_segment_value
+    FROM ${assignmentsReadTable}
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND type = 'segment'
+      AND computed_property_id = IN(${segmentIdParam})
+      AND user_id = ${userIdParam}
+    GROUP BY computed_property_id, user_id
+  `;
+  const result = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+    clickhouse_settings: {
+      select_sequential_consistency: assignmentSequentialConsistency(),
+    },
+  });
+  const rows = await result.json<{
+    computed_property_id: string;
+    latest_segment_value: boolean;
+  }>();
+
+  const segments: Record<string, boolean> = {};
+
+  for (const segmentId of segmentIds) {
+    segments[segmentId] =
+      rows.find((segment) => segment.computed_property_id === segmentId)
+        ?.latest_segment_value ?? false;
+  }
+
+  return segments;
+}
+
 export async function updateSegmentStatus({
   workspaceId,
   id,

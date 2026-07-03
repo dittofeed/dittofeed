@@ -1,6 +1,11 @@
+import { randomUUID } from "crypto";
+import { SavedSegmentResource } from "isomorphic-lib/src/types";
+
 import logger from "../logger";
+import { findSegmentResources } from "../segments";
 import { EventType, JSONValue } from "../types";
 import type { InsertUserEvent } from "../userEvents";
+import { getSegmentDependencies } from "./dependencies";
 import { getRealtimeSegmentQueue } from "./queue";
 import { RealtimeSegmentEvalJob } from "./types";
 
@@ -80,6 +85,7 @@ export function buildRealtimeSegmentEvalJobs({
         : {};
 
     return {
+      type: "eventReceived",
       workspaceId,
       messageId,
       userId: raw.userId,
@@ -98,6 +104,30 @@ export function buildRealtimeSegmentEvalJobs({
   });
 }
 
+export function buildRealtimeSegmentEvalJobBySegment({
+  workspaceId,
+  segment,
+  userId,
+}: {
+  workspaceId: string;
+  segment: SavedSegmentResource;
+  userId: string;
+}): RealtimeSegmentEvalJob {
+  const now = new Date();
+
+  return {
+    type: "segmentChange",
+    workspaceId,
+    messageId: randomUUID(),
+    userId,
+    userOrAnonymousId: userId,
+    payload: {},
+    eventTime: now,
+    processingTime: now,
+    segment: segment.id,
+  };
+}
+
 export async function enqueueRealtimeSegmentEvalJobs({
   workspaceId,
   userEvents,
@@ -109,5 +139,35 @@ export async function enqueueRealtimeSegmentEvalJobs({
   if (jobs.length === 0) {
     return;
   }
+  await getRealtimeSegmentQueue().enqueue(jobs);
+}
+
+export async function enqueueRealtimeSegmentEvalBySegmentJobs({
+  workspaceId,
+  segmentIds,
+  userId,
+}: {
+  workspaceId: string;
+  segmentIds: Set<string>;
+  userId: string;
+}): Promise<void> {
+  const segments = await findSegmentResources({ workspaceId });
+
+  const jobs = segments.flatMap((segment) => {
+    const dependencies = getSegmentDependencies(segment);
+
+    if (
+      ![...dependencies.segments].some((segmentId) => segmentIds.has(segmentId))
+    ) {
+      return [];
+    }
+
+    return buildRealtimeSegmentEvalJobBySegment({
+      segment,
+      userId,
+      workspaceId,
+    });
+  });
+
   await getRealtimeSegmentQueue().enqueue(jobs);
 }

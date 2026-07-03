@@ -121,16 +121,21 @@ export const workspace = pgTable(
   ],
 );
 
+export const realtimeSegmentEvalJobType = pgEnum("RealtimeSegmentEvalJobType", [
+  "segmentChange",
+  "eventReceived",
+]);
+
 export const realtimeSegmentEvalJob = pgTable(
   "RealtimeSegmentEvalJob",
   {
     id: uuid().primaryKey().defaultRandom().notNull(),
-    workspaceId: uuid().notNull(),
+    workspaceId: uuid(),
     messageId: text().notNull(),
     userId: text(),
     anonymousId: text(),
     userOrAnonymousId: text().notNull(),
-    eventType: text().notNull(),
+    eventType: text(),
     event: text(),
     traitPaths: jsonb().default([]).notNull(),
     propertyPaths: jsonb().default([]).notNull(),
@@ -152,6 +157,8 @@ export const realtimeSegmentEvalJob = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
+    type: realtimeSegmentEvalJobType().default("eventReceived"),
+    segment: text(),
   },
   (table) => [
     uniqueIndex("RealtimeSegmentEvalJob_workspaceId_messageId_key").using(
@@ -178,6 +185,8 @@ export const realtimeSegmentEvalJob = pgTable(
       .onDelete("cascade"),
   ],
 );
+
+export type DbRealtimeSegmentEvalJob = typeof realtimeSegmentEvalJob.$inferInsert;
 
 export const segmentIoConfiguration = pgTable(
   "SegmentIOConfiguration",

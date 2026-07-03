@@ -1,5 +1,9 @@
 import crypto from "crypto";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import {
+  SegmentSegmentNode,
+  SegmentSegmentOperatorType,
+} from "isomorphic-lib/src/types";
 
 import { jsonValue } from "../jsonPath";
 import {
@@ -338,6 +342,26 @@ function subscriptionSegmentToLastPerformed(
   };
 }
 
+
+export function evaluateSegmentState({
+  segments,
+  node,
+}: {
+  segments: Record<string, boolean>;
+  node: SegmentSegmentNode;
+}) {
+  const segmentState = !!segments[node.segmentId];
+
+  switch (node.operator) {
+    case SegmentSegmentOperatorType.In:
+      return segmentState;
+    case SegmentSegmentOperatorType.NotIn:
+      return !segmentState;
+    default:
+      assertUnreachable(node.operator);
+  }
+}
+
 function evaluateNode({
   node,
   segment,
@@ -516,6 +540,14 @@ function evaluateNode({
     case SegmentNodeType.Broadcast:
     case SegmentNodeType.KeyedPerformed:
       return unsupported(node, `unsupported node type ${node.type}`);
+    case SegmentNodeType.Segment:
+      return {
+        supported: true,
+        value: evaluateSegmentState({
+          segments: state.segments,
+          node,
+        }),
+      };
     default:
       assertUnreachable(node);
   }

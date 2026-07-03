@@ -13,6 +13,7 @@ import {
   findRealtimeSegmentCandidates,
   getSegmentDependencies,
 } from "./dependencies";
+import { enqueueRealtimeSegmentEvalBySegmentJobs } from "./enqueue";
 import { evaluateRealtimeSegment } from "./evaluate";
 import {
   findRealtimeSegmentMemberships,
@@ -46,6 +47,7 @@ function mergeDependencies(
   const dependencies = {
     traitPaths: new Set<string>(),
     eventNames: new Set<string>(),
+    segments: new Set<string>(),
     always: false,
   };
 
@@ -56,6 +58,9 @@ function mergeDependencies(
     }
     for (const event of segmentDependencies.eventNames) {
       dependencies.eventNames.add(event);
+    }
+    for (const event of segmentDependencies.segments) {
+      dependencies.segments.add(event);
     }
     dependencies.always ||= segmentDependencies.always;
   }
@@ -247,6 +252,12 @@ async function processRealtimeSegmentJobUnlocked({
   if (writeAssignments) {
     await writeRealtimeSegmentAssignments(assignmentChanges);
     await upsertRealtimeSegmentMemberships(membershipUpdates);
+    await enqueueRealtimeSegmentEvalBySegmentJobs({
+      workspaceId: job.workspaceId,
+      userId: job.userOrAnonymousId,
+      segmentIds: new Set(assignmentChanges.map((change) => change.segmentId)),
+    });
+
     for (const change of evaluatedChanges) {
       change.written = assignmentChanges.some(
         (assignment) => assignment.segmentId === change.segmentId,
