@@ -112,7 +112,7 @@ separateWorker:
       - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
         value: "1000"
   # The bulk_marketing queue is used to process large marketing journey fan-outs separately from the default queue.
-  bulkmarketing:
+  bulk_marketing:
     replicaCount: 10
     maxOldSpaceSize: 8192
     resources:
