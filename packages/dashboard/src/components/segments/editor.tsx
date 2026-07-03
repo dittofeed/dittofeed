@@ -346,6 +346,17 @@ function mapSegmentNodeToNewType(
         secondary: [],
       };
     }
+    case SegmentNodeType.Segment: { // TODO FIX ME PLS
+      return {
+        primary: {
+          type: SegmentNodeType.NotIncludes,
+          id: node.id,
+          path: "",
+          item: "",
+        },
+        secondary: [],
+      };
+    }
     default: {
       assertUnreachable(type);
     }
@@ -623,6 +634,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.RandomBucket]: randomBucketOption,
   [SegmentNodeType.Includes]: includesOption,
   [SegmentNodeType.NotIncludes]: notIncludesOption,
+  [SegmentNodeType.Segment]: notIncludesOption, // TODO FIX ME PLS
 };
 
 interface Option {
@@ -3043,6 +3055,13 @@ function SegmentNodeComponent({
       </Stack>
     );
   } else if (node.type === SegmentNodeType.Everyone) {
+    el = (
+      <Stack direction="row" spacing={1}>
+        {labelEl}
+        {conditionSelect}
+      </Stack>
+    );
+  } else if (node.type === SegmentNodeType.Segment) { // TODO FIX ME PLS
     el = (
       <Stack direction="row" spacing={1}>
         {labelEl}

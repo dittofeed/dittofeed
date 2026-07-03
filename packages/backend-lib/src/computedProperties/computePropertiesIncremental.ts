@@ -50,6 +50,7 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
+  SegmentSegmentOperatorType,
   SubscriptionChange,
   SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
@@ -1203,9 +1204,9 @@ function segmentToIndexed({
   }
 }
 
-function getLowerBoundClause(bound?: number): string {
+function getLowerBoundClause(bound?: number, column = "computed_at"): string {
   return bound && bound > 0
-    ? `and computed_at >= toDateTime64(${bound / 1000}, 3)`
+    ? `and ${column} >= toDateTime64(${bound / 1000}, 3)`
     : "";
 }
 
@@ -1279,6 +1280,7 @@ function segmentToResolvedState({
   periodBound,
   idUserProperty,
   prunedComputedProperties,
+  shouldReset = false,
 }: {
   workspaceId: string;
   segment: SavedSegmentResource;
@@ -1288,6 +1290,7 @@ function segmentToResolvedState({
   qb: ClickHouseQueryBuilder;
   idUserProperty?: SavedUserPropertyResource;
   prunedComputedProperties: PrunedComputedProperties;
+  shouldReset?: boolean;
 }): string[] {
   const nowSeconds = now / 1000;
   const stateId = segmentNodeStateId(segment, node.id);
@@ -2040,6 +2043,7 @@ function segmentToResolvedState({
           workspaceId,
           idUserProperty,
           prunedComputedProperties,
+          shouldReset,
           qb,
         });
       });
@@ -2066,6 +2070,7 @@ function segmentToResolvedState({
           workspaceId,
           idUserProperty,
           prunedComputedProperties,
+          shouldReset,
           qb,
         });
       });
@@ -2084,6 +2089,7 @@ function segmentToResolvedState({
         workspaceId,
         idUserProperty,
         prunedComputedProperties,
+        shouldReset,
         qb,
       });
     }
@@ -2097,6 +2103,7 @@ function segmentToResolvedState({
         workspaceId,
         idUserProperty,
         prunedComputedProperties,
+        shouldReset,
         qb,
       });
     }
@@ -2110,6 +2117,7 @@ function segmentToResolvedState({
         workspaceId,
         idUserProperty,
         prunedComputedProperties,
+        shouldReset,
         qb,
       });
     }
@@ -2191,6 +2199,7 @@ function segmentToResolvedState({
         workspaceId,
         idUserProperty,
         prunedComputedProperties,
+        shouldReset,
         qb,
       });
     }
@@ -2315,6 +2324,53 @@ function segmentToResolvedState({
           qb,
         }),
       ];
+    }
+    case SegmentNodeType.Segment: {
+      const referencedSegmentIdParam = qb.addQueryValue(
+        node.segmentId,
+        "String",
+      );
+      const segmentIdParam = qb.addQueryValue(segment.id, "String");
+      const stateIdParam = qb.addQueryValue(stateId, "String");
+      const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+      const assignmentsReadTable = computedPropertyAssignmentsReadTable();
+      const assignedAtLowerBoundClause = shouldReset
+        ? ""
+        : getLowerBoundClause(periodBound, "assigned_at");
+      const segmentValueExpression =
+        node.operator === SegmentSegmentOperatorType.In
+          ? "referenced.segment_value"
+          : "NOT referenced.segment_value";
+
+      const query = `
+        insert into resolved_segment_state
+        select
+          referenced.workspace_id,
+          ${segmentIdParam},
+          ${stateIdParam},
+          referenced.user_id,
+          ${segmentValueExpression},
+          referenced.max_event_time,
+          toDateTime64(${nowSeconds}, 3) as assigned_at
+        from (
+          select
+            workspace_id,
+            user_id,
+            argMax(segment_value, assigned_at) as segment_value,
+            argMax(max_event_time, assigned_at) as max_event_time
+          from ${assignmentsReadTable}
+          where
+            workspace_id = ${workspaceIdParam}
+            and type = 'segment'
+            and computed_property_id = ${referencedSegmentIdParam}
+            and assigned_at <= toDateTime64(${nowSeconds}, 3)
+            ${assignedAtLowerBoundClause}
+          group by
+            workspace_id,
+            user_id
+        ) referenced
+      `;
+      return [query];
     }
     default:
       assertUnreachable(node);
@@ -2504,6 +2560,12 @@ export function resolvedSegmentToAssignment({
       };
     }
     case SegmentNodeType.NotIncludes: {
+      return {
+        stateIds: [stateId],
+        expression: stateValue,
+      };
+    }
+    case SegmentNodeType.Segment: {
       return {
         stateIds: [stateId],
         expression: stateValue,
@@ -2992,6 +3054,9 @@ export function segmentNodeToStateSubQuery({
           stateId,
         },
       ];
+    }
+    case SegmentNodeType.Segment: {
+      return [];
     }
     default:
       assertUnreachable(node);
@@ -4142,6 +4207,12 @@ export async function computeAssignments({
           segment,
           node: segment.definition.entryNode,
         });
+        const shouldReset = shouldResetComputedProperty({
+          definitionUpdatedAt: segment.definitionUpdatedAt,
+          createdAt: segment.createdAt,
+          now,
+          periodBound,
+        });
 
         const resolvedQueries = segmentToResolvedState({
           segment,
@@ -4152,6 +4223,7 @@ export async function computeAssignments({
           periodBound,
           idUserProperty,
           prunedComputedProperties,
+          shouldReset,
         });
         if (resolvedQueries.length === 0) {
           return;
@@ -4169,12 +4241,6 @@ export async function computeAssignments({
         const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
         const segmentIdParam = qb.addQueryValue(segment.id, "String");
         const assignmentsReadTable = computedPropertyAssignmentsReadTable();
-        const shouldReset = shouldResetComputedProperty({
-          definitionUpdatedAt: segment.definitionUpdatedAt,
-          createdAt: segment.createdAt,
-          now,
-          periodBound,
-        });
 
         if (!allStateIdsPruned || shouldReset) {
           const stateIdsParam = qb.addQueryValue(

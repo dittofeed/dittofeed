@@ -1492,7 +1492,7 @@ export const TriggerBroadcastRequest = Type.Object({
 export type TriggerBroadcastRequest = Static<typeof TriggerBroadcastRequest>;
 
 export const UpsertSegmentResource = Type.Intersect([
-  Type.Omit(Type.Partial(SegmentResource), ["workspaceId", "name"]),
+  Type.Omit(Type.Partial(SegmentResource), ["+", "name"]),
   Type.Pick(SegmentResource, ["workspaceId", "name"]),
   Type.Object({
     createOnly: Type.Optional(Type.Boolean()),

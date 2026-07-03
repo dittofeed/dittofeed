@@ -8,7 +8,10 @@ import { findAllIntegrationResources } from "../../../integrations";
 import { findRunningJourneys, getSubscribedSegments } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
-import { findManySegmentResourcesSafe } from "../../../segments";
+import {
+  findManySegmentResourcesSafe,
+  findSegmentResources,
+} from "../../../segments";
 import {
   IndividualComputedPropertyQueueItem,
   JourneyNodeType,
@@ -24,6 +27,11 @@ import {
   processAssignments,
   pruneComputedProperties,
 } from "../../computePropertiesIncremental";
+import {
+  expandAndSortSegmentsForCompute,
+  findDependentSegments,
+} from "../../segmentDependencies";
+import { enqueueRecompute } from "../lifecycle";
 
 export interface ComputePropertiesIncrementalArgsParams {
   workspaceId: string;
@@ -113,24 +121,52 @@ export async function computePropertiesIncremental(
   args: ComputePropertiesArgs,
 ) {
   return withSpan({ name: "compute-properties-incremental" }, async (span) => {
-    const commonAttributes = {
+    const segments = await expandAndSortSegmentsForCompute({
       workspaceId: args.workspaceId,
-      segments: args.segments.map((s) => s.id),
-      userProperties: args.userProperties.map((up) => up.id),
-      journeys: args.journeys.map((j) => j.id),
-      integrations: args.integrations.map((i) => i.id),
-      now: new Date(args.now).toISOString(),
+      segments: args.segments,
+    });
+    const preparedArgs = {
+      ...args,
+      segments,
+    };
+    const commonAttributes = {
+      workspaceId: preparedArgs.workspaceId,
+      segments: preparedArgs.segments.map((s) => s.id),
+      userProperties: preparedArgs.userProperties.map((up) => up.id),
+      journeys: preparedArgs.journeys.map((j) => j.id),
+      integrations: preparedArgs.integrations.map((i) => i.id),
+      now: new Date(preparedArgs.now).toISOString(),
     };
     span.setAttributes(commonAttributes);
     try {
-      const prunedComputedProperties = await pruneComputedProperties(args);
+      const prunedComputedProperties =
+        await pruneComputedProperties(preparedArgs);
       const prunedArgs = {
-        ...args,
+        ...preparedArgs,
         prunedComputedProperties,
       };
       await computeState(prunedArgs);
       await computeAssignments(prunedArgs);
-      await processAssignments(args);
+      await processAssignments(preparedArgs);
+
+      if (segments.length > 0) {
+        const allSegments = await findSegmentResources({
+          workspaceId: preparedArgs.workspaceId,
+        });
+        const dependents = findDependentSegments({
+          allSegments,
+          changedSegmentIds: new Set(segments.map((segment) => segment.id)),
+        });
+        if (dependents.length > 0) {
+          await enqueueRecompute({
+            items: dependents.map((segment) => ({
+              type: WorkspaceQueueItemType.Segment,
+              workspaceId: preparedArgs.workspaceId,
+              id: segment.id,
+            })),
+          });
+        }
+      }
     } catch (e) {
       logger().error(
         {
