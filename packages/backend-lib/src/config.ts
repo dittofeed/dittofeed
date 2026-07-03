@@ -154,6 +154,10 @@ const BaseRawConfigProps = {
   realtimeSegmentsMaxRetries: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  realtimeSegmentsDelayedReevaluationEnabled: Type.Optional(BoolStr),
+  realtimeSegmentsDelayedReevaluationBatchSize: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   realtimeSegmentsNatsServers: Type.Optional(Type.String()),
   realtimeSegmentsNatsUsername: Type.Optional(Type.String()),
   realtimeSegmentsNatsPassword: Type.Optional(Type.String()),
@@ -403,6 +407,8 @@ export type Config = Overwrite<
     realtimeSegmentsWorkerConcurrency: number;
     realtimeSegmentsQueueBatchSize: number;
     realtimeSegmentsMaxRetries: number;
+    realtimeSegmentsDelayedReevaluationEnabled: boolean;
+    realtimeSegmentsDelayedReevaluationBatchSize: number;
     realtimeSegmentsNatsServers: string[];
     realtimeSegmentsNatsUsername?: string;
     realtimeSegmentsNatsPassword?: string;
@@ -824,6 +830,12 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     realtimeSegmentsMaxRetries: rawConfig.realtimeSegmentsMaxRetries
       ? parseInt(rawConfig.realtimeSegmentsMaxRetries)
       : 5,
+    realtimeSegmentsDelayedReevaluationEnabled:
+      rawConfig.realtimeSegmentsDelayedReevaluationEnabled !== "false",
+    realtimeSegmentsDelayedReevaluationBatchSize:
+      rawConfig.realtimeSegmentsDelayedReevaluationBatchSize
+        ? parseInt(rawConfig.realtimeSegmentsDelayedReevaluationBatchSize)
+        : 500,
     realtimeSegmentsNatsServers: rawConfig.realtimeSegmentsNatsServers
       ? rawConfig.realtimeSegmentsNatsServers.split(",")
       : ["localhost:4222"],

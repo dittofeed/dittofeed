@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 
 import { enqueueRecompute } from "../computedProperties/computePropertiesWorkflow/lifecycle";
+import config from "../config";
 import { db } from "../db";
 import logger from "../logger";
 import { findAllSegmentAssignmentsByIds } from "../segments";
@@ -9,6 +10,7 @@ import {
   RealtimeSegmentAssignmentChange,
   writeRealtimeSegmentAssignments,
 } from "./assignments";
+import { scheduleDelayedReevaluations } from "./delayed";
 import {
   findRealtimeSegmentCandidates,
   getSegmentDependencies,
@@ -219,6 +221,16 @@ async function processRealtimeSegmentJobUnlocked({
   const candidateById = new Map(
     candidates.map((segment) => [segment.id, segment]),
   );
+  if (config().realtimeSegmentsDelayedReevaluationEnabled) {
+    await scheduleDelayedReevaluations({
+      workspaceId: job.workspaceId,
+      userId: job.userId,
+      anonymousId: job.anonymousId,
+      state,
+      segments: candidates,
+      now: evaluatedAt,
+    });
+  }
   await enqueueUnsupportedSegmentRecompute({
     workspaceId: job.workspaceId,
     changes: evaluatedChanges,

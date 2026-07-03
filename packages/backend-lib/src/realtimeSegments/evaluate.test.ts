@@ -133,4 +133,66 @@ describe("evaluateRealtimeSegment", () => {
       unsupportedNodes: [],
     });
   });
+
+  it("evaluates persisted withinSeconds performed windows without timeOperator", () => {
+    const openedAt = new Date("2026-01-01T00:00:00.000Z");
+    const timedState: RealtimeUserState = {
+      userOrAnonymousId: "user-1",
+      traits: {},
+      trackEvents: [
+        {
+          event: "THIRD_STEP_DEPOSIT_OPENED",
+          properties: {},
+          eventTime: openedAt,
+        },
+      ],
+    };
+    const timedSegment = segment({
+      entryNode: {
+        type: SegmentNodeType.And,
+        id: "and",
+        children: ["opened-within-12", "not-opened-within-10"],
+      },
+      nodes: [
+        {
+          type: SegmentNodeType.Performed,
+          id: "opened-within-12",
+          event: "THIRD_STEP_DEPOSIT_OPENED",
+          times: 1,
+          timesOperator: RelationalOperators.GreaterThanOrEqual,
+          withinSeconds: 720,
+        },
+        {
+          type: SegmentNodeType.Performed,
+          id: "not-opened-within-10",
+          event: "THIRD_STEP_DEPOSIT_OPENED",
+          times: 1,
+          timesOperator: RelationalOperators.LessThan,
+          withinSeconds: 600,
+        },
+      ],
+    });
+
+    expect(
+      evaluateRealtimeSegment({
+        segment: timedSegment,
+        state: timedState,
+        now: new Date(openedAt.getTime() + 60_000),
+      }).inSegment,
+    ).toBe(false);
+    expect(
+      evaluateRealtimeSegment({
+        segment: timedSegment,
+        state: timedState,
+        now: new Date(openedAt.getTime() + 601_000),
+      }).inSegment,
+    ).toBe(true);
+    expect(
+      evaluateRealtimeSegment({
+        segment: timedSegment,
+        state: timedState,
+        now: new Date(openedAt.getTime() + 721_000),
+      }).inSegment,
+    ).toBe(false);
+  });
 });

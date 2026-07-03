@@ -9,6 +9,7 @@ import { findRealtimeSegmentStatusBySegmentId } from "backend-lib/src/realtimeSe
 import {
   buildSegmentsFile,
   deleteSegment,
+  enqueueSegmentRecompute,
   toSegmentResource,
   updateSegmentStatus,
   upsertSegment,
@@ -48,6 +49,7 @@ import {
   GetSegmentsResponse,
   KnownBatchIdentifyData,
   ManualSegmentUploadCsvHeaders,
+  RecomputeSegmentRequest,
   SavedSegmentResource,
   SegmentDefinition,
   SegmentNodeType,
@@ -209,6 +211,35 @@ export default async function segmentsController(fastify: FastifyInstance) {
       }
 
       return reply.status(200).send(updated.value);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/recompute",
+    {
+      schema: {
+        description: "Enqueue a manual batch recompute for a segment.",
+        tags: ["Segments"],
+        body: RecomputeSegmentRequest,
+        response: {
+          202: EmptyResponse,
+          400: BaseMessageResponse,
+          404: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const result = await enqueueSegmentRecompute(request.body);
+      if (result.isErr()) {
+        return reply.status(400).send({
+          message: result.error.message,
+        });
+      }
+      if (!result.value) {
+        return reply.status(404).send();
+      }
+
+      return reply.status(202).send();
     },
   );
 

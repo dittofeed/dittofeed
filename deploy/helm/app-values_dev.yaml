@@ -401,6 +401,10 @@ env:
     value: "wym4udp*YPA7het4bzr"
   - name: REALTIME_SEGMENTS_TRIGGER_JOURNEYS
     value: "true"
+  - name: "REALTIME_SEGMENTS_DELAYED_REEVALUATION_ENABLED"
+    value: "true"
+  - name: "REALTIME_SEGMENTS_DELAYED_REEVALUATION_BATCH_SIZE"
+    value: "500"
   - name: "ASSIGNMENT_SEQUENTIAL_CONSISTENCY"
     value: "true"
 nodeSelector: {}

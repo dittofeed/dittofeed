@@ -1537,6 +1537,13 @@ export type UpdateSegmentStatusRequest = Static<
   typeof UpdateSegmentStatusRequest
 >;
 
+export const RecomputeSegmentRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+});
+
+export type RecomputeSegmentRequest = Static<typeof RecomputeSegmentRequest>;
+
 export const UserId = Type.String({
   description:
     "Unique identifier for the user. Should be the id of the user in your system. Only applicable to logged in users.",

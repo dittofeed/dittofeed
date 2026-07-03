@@ -184,20 +184,21 @@ function matchesPerformedTime({
   node: PerformedSegmentNode;
   now: Date;
 }): boolean {
-  if (!node.timeOperator) {
+  const timeOperator =
+    node.timeOperator ?? (node.withinSeconds ? TimeOperator.Within : undefined);
+  if (!timeOperator) {
     return true;
   }
   const timestamp = event.eventTime.getTime();
-  switch (node.timeOperator) {
+  switch (timeOperator) {
     case TimeOperator.Within:
       return timestamp >= now.getTime() - (node.withinSeconds ?? 0) * 1000;
     case TimeOperator.AfterAbsolute:
       return timestamp >= new Date(node.absoluteTimestamp ?? 0).getTime();
     case TimeOperator.BeforeAbsolute:
       return timestamp < new Date(node.absoluteTimestamp ?? 0).getTime();
-    default:
-      assertUnreachable(node.timeOperator);
   }
+  return false;
 }
 
 function evaluateRelationalOperator({

@@ -1,3 +1,5 @@
+import { WorkflowNotFoundError } from "@temporalio/common";
+
 import { findSubscribedRunningJourneysForSegment } from "../journeys";
 import { getJourneyTaskQueue } from "../journeys/taskQueues";
 import {
@@ -47,6 +49,17 @@ function toProcessedAssignment(
   };
 }
 
+function toSegmentUpdate(
+  change: RealtimeSegmentAssignmentChange,
+): SegmentUpdate {
+  return {
+    segmentId: change.segmentId,
+    currentlyInSegment: change.inSegment,
+    segmentVersion: change.assignedAt.getTime(),
+    type: "segment",
+  };
+}
+
 export async function triggerRealtimeSegmentJourneys({
   segment,
   change,
@@ -86,21 +99,45 @@ export async function triggerRealtimeSegmentJourneys({
   const workflowClient = await connectWorkflowClient();
   const processedAssignments: ComputedPropertyAssignment[] = [];
   let triggeredCount = 0;
+  let signaledCount = 0;
   await Promise.all(
     journeys.map(async (journey) => {
+      const assignment = toComputedAssignment({
+        change,
+        journeyId: journey.id,
+      });
+      const segmentUpdate = toSegmentUpdate(change);
+      const workflowId = getUserJourneyWorkflowId({
+        journeyId: journey.id,
+        userId: change.userId,
+      });
+
       if (
         journey.definition.entryNode.type !== JourneyNodeType.SegmentEntryNode
       ) {
-        logger().info(
-          {
-            workspaceId: change.workspaceId,
-            segmentId: change.segmentId,
-            journeyId: journey.id,
-            journeyName: journey.name,
-            entryNodeType: journey.definition.entryNode.type,
-          },
-          "Skipping realtime journey trigger for non-segment entry journey.",
-        );
+        try {
+          await workflowClient
+            .getHandle(workflowId)
+            .signal(segmentUpdateSignal, segmentUpdate);
+          processedAssignments.push(toProcessedAssignment(assignment));
+          signaledCount += 1;
+        } catch (err) {
+          if (err instanceof WorkflowNotFoundError) {
+            logger().debug(
+              {
+                workspaceId: change.workspaceId,
+                segmentId: change.segmentId,
+                userId: change.userId,
+                journeyId: journey.id,
+                journeyName: journey.name,
+                entryNodeType: journey.definition.entryNode.type,
+              },
+              "No existing user journey workflow to signal for realtime segment update.",
+            );
+            return;
+          }
+          throw err;
+        }
         return;
       }
 
@@ -117,21 +154,6 @@ export async function triggerRealtimeSegmentJourneys({
         );
         return;
       }
-
-      const assignment = toComputedAssignment({
-        change,
-        journeyId: journey.id,
-      });
-      const segmentUpdate: SegmentUpdate = {
-        segmentId: change.segmentId,
-        currentlyInSegment: assignment.latest_segment_value,
-        segmentVersion: new Date(assignment.max_assigned_at).getTime(),
-        type: "segment",
-      };
-      const workflowId = getUserJourneyWorkflowId({
-        journeyId: journey.id,
-        userId: change.userId,
-      });
 
       await workflowClient.signalWithStart<
         typeof userJourneyWorkflow,
@@ -180,8 +202,9 @@ export async function triggerRealtimeSegmentJourneys({
       userId: change.userId,
       journeyCount: journeys.length,
       triggeredCount,
+      signaledCount,
     },
-    "Triggered realtime segment entry journeys.",
+    "Processed realtime segment journey updates.",
   );
-  return triggeredCount;
+  return triggeredCount + signaledCount;
 }

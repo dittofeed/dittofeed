@@ -885,6 +885,66 @@ export const realtimeSegmentStatus = pgTable(
   ],
 );
 
+export const realtimeSegmentDelayedEval = pgTable(
+  "RealtimeSegmentDelayedEval",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    segmentId: uuid().notNull(),
+    userId: text(),
+    anonymousId: text(),
+    userOrAnonymousId: text().notNull(),
+    event: text().notNull(),
+    eventTime: timestamp({ precision: 3, mode: "date" }).notNull(),
+    availableAt: timestamp({ precision: 3, mode: "date" }).notNull(),
+    status: text().default("Pending").notNull(),
+    attempts: integer().default(0).notNull(),
+    lockedAt: timestamp({ precision: 3, mode: "date" }),
+    lockId: text(),
+    lastError: text(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex(
+      "RealtimeSegmentDelayedEval_workspace_segment_user_available_key",
+    ).using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.segmentId.asc().nullsLast().op("uuid_ops"),
+      table.userOrAnonymousId.asc().nullsLast().op("text_ops"),
+      table.availableAt.asc().nullsLast().op("timestamp_ops"),
+    ),
+    index("RealtimeSegmentDelayedEval_status_availableAt_idx").using(
+      "btree",
+      table.status.asc().nullsLast().op("text_ops"),
+      table.availableAt.asc().nullsLast().op("timestamp_ops"),
+    ),
+    index("RealtimeSegmentDelayedEval_workspace_user_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.userOrAnonymousId.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "RealtimeSegmentDelayedEval_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.segmentId],
+      foreignColumns: [segment.id],
+      name: "RealtimeSegmentDelayedEval_segmentId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
 export const realtimeSegmentMembership = pgTable(
   "RealtimeSegmentMembership",
   {

@@ -11,6 +11,7 @@ import {
 import {
   buildSegmentsFile,
   calculateKeyedSegment,
+  enqueueSegmentRecompute,
   findAllSegmentAssignments,
   findAllSegmentAssignmentsByIdsForUsers,
   findRecentlyUpdatedUsersInSegment,
@@ -18,7 +19,6 @@ import {
   upsertSegment,
 } from "./segments";
 import {
-  KeyedPerformedSegmentNode,
   RelationalOperators,
   Segment,
   SegmentDefinition,
@@ -30,13 +30,25 @@ import {
   UserProperty,
   UserPropertyDefinitionType,
   Workspace,
+  WorkspaceQueueItem,
+  WorkspaceQueueItemType,
 } from "./types";
 import { insertUserPropertyAssignments } from "./userProperties";
+
+const mockEnqueueRecompute = jest.fn<
+  Promise<void>,
+  [{ items: WorkspaceQueueItem[] }]
+>(() => Promise.resolve(undefined));
+
+jest.mock("./computedProperties/computePropertiesWorkflow/lifecycle", () => ({
+  enqueueRecompute: mockEnqueueRecompute,
+}));
 
 describe("segments", () => {
   let workspace: Workspace;
 
   beforeEach(async () => {
+    jest.clearAllMocks();
     workspace = unwrap(
       await insert({
         table: dbWorkspace,
@@ -47,6 +59,88 @@ describe("segments", () => {
         },
       }),
     );
+  });
+
+  describe("enqueueSegmentRecompute", () => {
+    it("enqueues an explicit segment recompute for a running segment", async () => {
+      const segment = unwrap(
+        await insert({
+          table: dbSegment,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: "test",
+            updatedAt: new Date(),
+            status: SegmentStatusEnum.Running,
+            definition: {
+              entryNode: {
+                id: randomUUID(),
+                type: SegmentNodeType.Trait,
+                path: "name",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              nodes: [],
+            } satisfies SegmentDefinition,
+          },
+        }),
+      );
+
+      const result = await enqueueSegmentRecompute({
+        workspaceId: workspace.id,
+        id: segment.id,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(mockEnqueueRecompute).toHaveBeenCalledTimes(1);
+      const item = mockEnqueueRecompute.mock.calls[0]?.[0].items[0];
+      if (!item || item.type !== WorkspaceQueueItemType.Segment) {
+        throw new Error("Expected a segment queue item");
+      }
+      expect(item.workspaceId).toBe(workspace.id);
+      expect(item.id).toBe(segment.id);
+      expect(item.priority).toBe(20);
+      expect(item.dedupeKey).toContain(
+        `${WorkspaceQueueItemType.Segment}:${workspace.id}:${segment.id}:manual:`,
+      );
+    });
+
+    it("does not enqueue recompute for a paused segment", async () => {
+      const segment = unwrap(
+        await insert({
+          table: dbSegment,
+          values: {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: "paused",
+            updatedAt: new Date(),
+            status: SegmentStatusEnum.Paused,
+            definition: {
+              entryNode: {
+                id: randomUUID(),
+                type: SegmentNodeType.Trait,
+                path: "name",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              nodes: [],
+            } satisfies SegmentDefinition,
+          },
+        }),
+      );
+
+      const result = await enqueueSegmentRecompute({
+        workspaceId: workspace.id,
+        id: segment.id,
+      });
+
+      expect(result.isErr()).toBe(true);
+      expect(mockEnqueueRecompute).not.toHaveBeenCalled();
+    });
   });
 
   describe("buildSegmentsFile", () => {
@@ -624,7 +718,7 @@ describe("segments", () => {
 
       // Check that all users are present
       expect(Object.keys(results)).toEqual(
-        expect.arrayContaining([userId1, userId2, userId3])
+        expect.arrayContaining([userId1, userId2, userId3]),
       );
 
       // Check userId1 assignments
@@ -632,7 +726,7 @@ describe("segments", () => {
         expect.arrayContaining([
           { segmentId: segment1.id, inSegment: true },
           { segmentId: segment2.id, inSegment: false },
-        ])
+        ]),
       );
       expect(results[userId1]).toHaveLength(2);
 
@@ -641,7 +735,7 @@ describe("segments", () => {
         expect.arrayContaining([
           { segmentId: segment1.id, inSegment: false },
           { segmentId: segment2.id, inSegment: true },
-        ])
+        ]),
       );
       expect(results[userId2]).toHaveLength(2);
 
@@ -650,7 +744,7 @@ describe("segments", () => {
         expect.arrayContaining([
           { segmentId: segment1.id, inSegment: true },
           { segmentId: segment2.id, inSegment: true },
-        ])
+        ]),
       );
       expect(results[userId3]).toHaveLength(2);
     });

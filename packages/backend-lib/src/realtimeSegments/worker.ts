@@ -3,6 +3,7 @@ import pLimit from "p-limit";
 
 import config from "../config";
 import logger from "../logger";
+import { enqueueDueDelayedReevaluations } from "./delayed";
 import { processRealtimeSegmentJob } from "./process";
 import { getRealtimeSegmentQueue } from "./queue";
 import { ClaimedRealtimeSegmentEvalJob } from "./types";
@@ -58,6 +59,29 @@ async function processRealtimeSegmentEvalJob(
   );
 }
 
+async function enqueueDueDelayedRealtimeSegmentJobs(): Promise<void> {
+  if (!config().realtimeSegmentsDelayedReevaluationEnabled) {
+    return;
+  }
+  try {
+    const enqueuedCount = await enqueueDueDelayedReevaluations({
+      batchSize: config().realtimeSegmentsDelayedReevaluationBatchSize,
+      maxRetries: config().realtimeSegmentsMaxRetries,
+    });
+    if (enqueuedCount > 0) {
+      logger().info(
+        { enqueuedCount },
+        "Enqueued delayed realtime segment reevaluation jobs.",
+      );
+    }
+  } catch (err) {
+    logger().error(
+      { err },
+      "Failed to enqueue due delayed realtime segment reevaluation jobs.",
+    );
+  }
+}
+
 export async function runRealtimeSegmentsWorker(): Promise<void> {
   if (!config().realtimeSegmentsEnabled) {
     logger().info("Realtime segments worker disabled.");
@@ -76,12 +100,17 @@ export async function runRealtimeSegmentsWorker(): Promise<void> {
       queueBackend: config().realtimeSegmentsQueueBackend,
       concurrency: config().realtimeSegmentsWorkerConcurrency,
       batchSize: config().realtimeSegmentsQueueBatchSize,
+      delayedReevaluationEnabled:
+        config().realtimeSegmentsDelayedReevaluationEnabled,
+      delayedReevaluationBatchSize:
+        config().realtimeSegmentsDelayedReevaluationBatchSize,
     },
     "Starting realtime segments worker.",
   );
 
   // eslint-disable-next-line no-constant-condition, @typescript-eslint/no-unnecessary-condition
   while (true) {
+    await enqueueDueDelayedRealtimeSegmentJobs();
     const jobs = await queue.claim({
       batchSize: config().realtimeSegmentsQueueBatchSize,
       lockId,

@@ -15,6 +15,7 @@ import {
   OpenInNew as OpenInNewIcon,
   Pause as PauseIcon,
   PlayArrow as PlayArrowIcon,
+  Replay as ReplayIcon,
   UnfoldMore,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
@@ -79,6 +80,7 @@ import { useComputedPropertyPeriodsQuery } from "../../lib/useComputedPropertyPe
 import { useDeleteSegmentMutation } from "../../lib/useDeleteSegmentMutation";
 import { useDownloadSegmentsMutation } from "../../lib/useDownloadSegmentsMutation";
 import { useDuplicateResourceMutation } from "../../lib/useDuplicateResourceMutation";
+import { useRecomputeSegmentMutation } from "../../lib/useRecomputeSegmentMutation";
 import { useResourcesQuery } from "../../lib/useResourcesQuery";
 import {
   SEGMENTS_QUERY_KEY,
@@ -259,6 +261,7 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
   // Access functions from table meta
   const deleteSegment = table.options.meta?.deleteSegment;
   const duplicateSegment = table.options.meta?.duplicateSegment;
+  const recomputeSegment = table.options.meta?.recomputeSegment;
   const toggleSegmentStatus = table.options.meta?.toggleSegmentStatus;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -277,6 +280,14 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
       return;
     }
     duplicateSegment(rowName);
+    handleClose();
+  };
+
+  const handleRecompute = () => {
+    if (!recomputeSegment) {
+      return;
+    }
+    recomputeSegment(rowId);
     handleClose();
   };
 
@@ -346,6 +357,13 @@ function ActionsCell({ row, table }: CellContext<Row, unknown>) {
         <MenuItem onClick={handleDuplicate}>
           <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} />
           Duplicate
+        </MenuItem>
+        <MenuItem
+          onClick={handleRecompute}
+          disabled={rowStatus !== SegmentStatusEnum.Running}
+        >
+          <ReplayIcon fontSize="small" sx={{ mr: 1 }} />
+          Run batch recompute
         </MenuItem>
         <MenuItem
           onClick={handleDelete}
@@ -526,6 +544,7 @@ export function SegmentsTable({
   });
 
   const statusMutation = useSegmentStatusMutation();
+  const recomputeSegmentMutation = useRecomputeSegmentMutation();
 
   const handleToggleSegmentStatus = (
     segmentId: string,
@@ -678,6 +697,22 @@ export function SegmentsTable({
           name: originalSegmentName,
           resourceType: DuplicateResourceTypeEnum.Segment,
         });
+      },
+      recomputeSegment: (segmentId: string) => {
+        if (recomputeSegmentMutation.isPending) return;
+        recomputeSegmentMutation.mutate(
+          { id: segmentId },
+          {
+            onSuccess: () => {
+              setSnackbarMessage("Segment recompute queued.");
+              setSnackbarOpen(true);
+            },
+            onError: () => {
+              setSnackbarMessage("Failed to enqueue segment recompute.");
+              setSnackbarOpen(true);
+            },
+          },
+        );
       },
       toggleSegmentStatus: (
         segmentId: string,
@@ -957,6 +992,7 @@ declare module "@tanstack/react-table" {
   interface TableMeta<TData = unknown> {
     deleteSegment?: (segmentId: string) => void;
     duplicateSegment?: (segmentName: string) => void;
+    recomputeSegment?: (segmentId: string) => void;
     toggleSegmentStatus?: (
       segmentId: string,
       newStatus: "NotStarted" | "Running" | "Paused",

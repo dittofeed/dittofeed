@@ -25,6 +25,7 @@ import {
 import { computedPropertyAssignmentsReadTable } from "./computedProperties/assignmentTables";
 import { enqueueRecompute } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config, { assignmentSequentialConsistency } from "./config";
+import { QUEUE_ITEM_PRIORITIES } from "./constants";
 import { db, TxQueryError, txQueryResult } from "./db";
 import {
   segment as dbSegment,
@@ -40,6 +41,7 @@ import {
   KeyedPerformedSegmentNode,
   KeyedSegmentEventContext,
   PartialSegmentResource,
+  RecomputeSegmentRequest,
   RelationalOperators,
   SavedSegmentResource,
   Segment,
@@ -1203,6 +1205,47 @@ export async function updateSegmentStatus({
 
     return ok(result.value);
   });
+}
+
+export async function enqueueSegmentRecompute({
+  workspaceId,
+  id,
+}: RecomputeSegmentRequest): Promise<
+  Result<SavedSegmentResource | null, Error>
+> {
+  const segment = await db().query.segment.findFirst({
+    where: and(eq(dbSegment.workspaceId, workspaceId), eq(dbSegment.id, id)),
+  });
+
+  if (!segment) {
+    return ok(null);
+  }
+  if (segment.status !== SegmentStatusEnum.Running) {
+    return err(new Error("Only running segments can be recomputed"));
+  }
+
+  const resourceResult = toSegmentResource(segment);
+  if (resourceResult.isErr()) {
+    logger().error(
+      { err: resourceResult.error, workspaceId, id },
+      "failed to convert segment to resource before recompute enqueue",
+    );
+    return err(resourceResult.error);
+  }
+
+  await enqueueRecompute({
+    items: [
+      {
+        type: WorkspaceQueueItemType.Segment,
+        workspaceId,
+        id,
+        priority: QUEUE_ITEM_PRIORITIES.Explicit,
+        dedupeKey: `${WorkspaceQueueItemType.Segment}:${workspaceId}:${id}:manual:${Date.now()}`,
+      },
+    ],
+  });
+
+  return ok(resourceResult.value);
 }
 
 export async function deleteSegment({
