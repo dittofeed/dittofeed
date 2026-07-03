@@ -99,8 +99,6 @@ separateWorker:
     additional_env:
       - name: USER_JOURNEY_TASK_QUEUE
         value: "default"
-      - name: BULK_MARKETING_TASK_QUEUE
-        value: "bulk_marketing"
       - name: TRANSACTIONAL_TASK_QUEUE
         value: "transactional"
       - name: MAX_CACHED_WORKFLOWS
