@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import pLimit from "p-limit";
 
 import config from "../config";
@@ -6,7 +7,6 @@ import logger from "../logger";
 import { processRealtimeSegmentJob } from "./process";
 import { getRealtimeSegmentQueue } from "./queue";
 import { ClaimedRealtimeSegmentEvalJob } from "./types";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 /* eslint-disable no-await-in-loop */
 

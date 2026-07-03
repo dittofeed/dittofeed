@@ -1162,12 +1162,13 @@ export async function getSegmentsAssignmentDb({
   const assignmentsReadTable = computedPropertyAssignmentsReadTable();
   const query = `
     SELECT
+      computed_property_id,
       argMax(segment_value, assigned_at) as latest_segment_value
     FROM ${assignmentsReadTable}
     WHERE
       workspace_id = ${workspaceIdParam}
       AND type = 'segment'
-      AND computed_property_id = IN(${segmentIdParam})
+      AND computed_property_id IN ${segmentIdParam}
       AND user_id = ${userIdParam}
     GROUP BY computed_property_id, user_id
   `;

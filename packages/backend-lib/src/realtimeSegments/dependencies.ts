@@ -131,9 +131,11 @@ export function getSegmentDependencies(
 export function doesJobAffectSegment({
   job,
   dependencies,
+  segment,
 }: {
   job: RealtimeSegmentEvalJob;
   dependencies: RealtimeSegmentDependencies;
+  segment: SavedSegmentResource;
 }): boolean {
   if (dependencies.always) {
     return true;
@@ -146,7 +148,7 @@ export function doesJobAffectSegment({
     return job.traitPaths.some((path) => dependencies.traitPaths.has(path));
   }
 
-  return dependencies.segments.has(job.segment);
+  return segment.id === job.segment;
 }
 
 export async function findRealtimeSegmentCandidates({
@@ -161,6 +163,7 @@ export async function findRealtimeSegmentCandidates({
     doesJobAffectSegment({
       job,
       dependencies: getSegmentDependencies(segment),
+      segment,
     }),
   );
 }

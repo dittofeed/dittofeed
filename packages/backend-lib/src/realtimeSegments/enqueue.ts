@@ -162,11 +162,13 @@ export async function enqueueRealtimeSegmentEvalBySegmentJobs({
       return [];
     }
 
-    return buildRealtimeSegmentEvalJobBySegment({
-      segment,
-      userId,
-      workspaceId,
-    });
+    return [
+      buildRealtimeSegmentEvalJobBySegment({
+        segment,
+        userId,
+        workspaceId,
+      }),
+    ];
   });
 
   await getRealtimeSegmentQueue().enqueue(jobs);
