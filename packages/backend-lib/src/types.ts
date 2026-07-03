@@ -847,6 +847,7 @@ export interface EntireWorkspaceQueueItem {
   id: string;
   type?: typeof WorkspaceQueueItemType.Workspace;
   priority?: number;
+  dedupeKey?: string;
   // for backwards compatibility
   maxPeriod?: number;
   period?: number;
@@ -856,6 +857,7 @@ export interface EntireWorkspaceQueueItem {
 export interface BaseComputedPropertyBatchQueueItem {
   workspaceId: string;
   priority?: number;
+  dedupeKey?: string;
   // for backwards compatibility
   maxPeriod?: number;
   period?: number;

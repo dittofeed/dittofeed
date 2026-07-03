@@ -2472,6 +2472,7 @@ export type JourneyResourceStatus = Static<typeof JourneyResourceStatus>;
 
 export const JourneyTypeEnum = {
   Marketing: "Marketing",
+  BulkMarketing: "BulkMarketing",
   Transactional: "Transactional",
 } as const;
 

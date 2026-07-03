@@ -8,6 +8,10 @@ import { WorkspaceQueueItem, WorkspaceQueueItemType } from "../types";
  * - Individual computed-property jobs key on (type, workspaceId, propertyId).
  */
 export function generateKeyFromItem(item: WorkspaceQueueItem): string {
+  if (item.dedupeKey) {
+    return item.dedupeKey;
+  }
+
   switch (item.type) {
     case WorkspaceQueueItemType.Batch:
       return `${item.type}:${item.workspaceId}`;

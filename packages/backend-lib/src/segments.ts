@@ -642,6 +642,7 @@ export async function upsertSegment(
             workspaceId: segment.workspaceId,
             id: segment.id,
             priority: 20,
+            dedupeKey: `${WorkspaceQueueItemType.Segment}:${segment.workspaceId}:${segment.id}:${segment.definitionUpdatedAt.getTime()}`,
           },
         ],
       });

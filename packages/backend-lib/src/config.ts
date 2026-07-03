@@ -135,6 +135,7 @@ const BaseRawConfigProps = {
   onboardingUrl: Type.Optional(Type.String()),
   globalCronTaskQueue: Type.Optional(Type.String()),
   userJourneyTaskQueue: Type.Optional(Type.String()),
+  bulkMarketingTaskQueue: Type.Optional(Type.String()),
   transactionalTaskQueue: Type.Optional(Type.String()),
   computedPropertiesTaskQueue: Type.Optional(Type.String()),
   trackJourneyNodeProcessedEvents: Type.Optional(BoolStr),
@@ -350,6 +351,7 @@ export type Config = Overwrite<
     enableColdStorage: boolean;
     globalCronTaskQueue: string;
     userJourneyTaskQueue: string;
+    bulkMarketingTaskQueue: string;
     transactionalTaskQueue: string;
     googleOps: boolean;
     kafkaBrokers: string[];
@@ -795,6 +797,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     onboardingUrl: rawConfig.onboardingUrl ?? "/dashboard/waiting-room",
     globalCronTaskQueue: rawConfig.globalCronTaskQueue ?? "default",
     userJourneyTaskQueue: rawConfig.userJourneyTaskQueue ?? "default",
+    bulkMarketingTaskQueue:
+      rawConfig.bulkMarketingTaskQueue ?? "bulk_marketing",
     transactionalTaskQueue: rawConfig.transactionalTaskQueue ?? "transactional",
     computedPropertiesTaskQueue,
     computedPropertiesActivityTaskQueue,

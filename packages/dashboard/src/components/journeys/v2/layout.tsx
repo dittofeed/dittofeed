@@ -753,21 +753,32 @@ export default function JourneyV2Layout({
                 value={journeyType}
                 disabled={isJourneyMutationPending}
                 onChange={(e) => {
-                  const newJourneyType =
-                    e.target.value === JourneyTypeEnum.Transactional
-                      ? JourneyTypeEnum.Transactional
-                      : JourneyTypeEnum.Marketing;
+                  let newJourneyType: JourneyType;
+                  switch (e.target.value) {
+                    case JourneyTypeEnum.BulkMarketing:
+                      newJourneyType = JourneyTypeEnum.BulkMarketing;
+                      break;
+                    case JourneyTypeEnum.Transactional:
+                      newJourneyType = JourneyTypeEnum.Transactional;
+                      break;
+                    case JourneyTypeEnum.Marketing:
+                    default:
+                      newJourneyType = JourneyTypeEnum.Marketing;
+                  }
                   handleChangeJourneyType(newJourneyType);
                 }}
               >
                 <MenuItem value={JourneyTypeEnum.Marketing}>Marketing</MenuItem>
+                <MenuItem value={JourneyTypeEnum.BulkMarketing}>
+                  Bulk marketing
+                </MenuItem>
                 <MenuItem value={JourneyTypeEnum.Transactional}>
                   Transactional
                 </MenuItem>
               </Select>
               <Typography variant="body2" color="text.secondary">
-                Transactional journeys run on the transactional Temporal task
-                queue, separately from the default marketing queue.
+                Bulk marketing and transactional journeys run on separate
+                Temporal task queues from the default marketing queue.
               </Typography>
             </Stack>
             <FormControlLabel
