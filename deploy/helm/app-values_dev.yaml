@@ -28,17 +28,19 @@ separateWorker:
       requests:
         cpu: 1
         memory: 1024Mi
-  # The bulk_marketing queue is used to process large marketing journey fan-outs separately from the default queue.
-  bulk_marketing:
-    replicaCount: 3
-    maxOldSpaceSize: 4096
-    resources:
-      limits:
-        cpu: 8
-        memory: 6Gi
-      requests:
-        cpu: 1
-        memory: 1024Mi
+    additional_env:
+      - name: MAX_CACHED_WORKFLOWS
+        value: "1000"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+        value: "240"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+        value: "1000"
+
+
   # The workspace queue is used to recompute workspaces' segments and user properties, and to process broadcasts.
   workspace:
     replicaCount: 3
@@ -50,6 +52,17 @@ separateWorker:
       requests:
         cpu: 1
         memory: 2048Mi
+    additional_env:
+      - name: MAX_CACHED_WORKFLOWS
+        value: "1000"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+        value: "240"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+        value: "1000"
   # Is used to handle secondary scheduled workflows.
   global:
     replicaCount: 3
@@ -61,6 +74,17 @@ separateWorker:
       requests:
         cpu: 1
         memory: 1024Mi
+    additional_env:
+      - name: MAX_CACHED_WORKFLOWS
+        value: "1000"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+        value: "240"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+        value: "1000"
 
   transactional:
     replicaCount: 3
@@ -79,6 +103,40 @@ separateWorker:
         value: "bulk_marketing"
       - name: TRANSACTIONAL_TASK_QUEUE
         value: "transactional"
+      - name: MAX_CACHED_WORKFLOWS
+        value: "1000"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+        value: "240"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+        value: "1000"
+  # The bulk_marketing queue is used to process large marketing journey fan-outs separately from the default queue.
+  bulkmarketing:
+    replicaCount: 10
+    maxOldSpaceSize: 8192
+    resources:
+      limits:
+        cpu: 8
+        memory: 12Gi
+      requests:
+        cpu: 1
+        memory: 1024Mi
+    additional_env:
+      - name: BULK_MARKETING_TASK_QUEUE
+        value: bulk_marketing
+      - name: MAX_CACHED_WORKFLOWS
+        value: "1000"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+        value: "240"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+        value: "1000"
 
 workspaceName: Dittofeed
 replicaCount: 3
@@ -295,18 +353,6 @@ env:
 # the name of the user events topic to create when bootstrapping
   - name: USER_EVENTS_TOPIC_NAME
     value: dittofeed-user-events
-  - name: BULK_MARKETING_TASK_QUEUE
-    value: "bulk_marketing"
-  - name: MAX_CACHED_WORKFLOWS
-    value: "1000"
-  - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
-    value: "150"
-  - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
-    value: "150"
-  - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
-    value: "240"
-  - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
-    value: "1000"
   - name: REUSE_CONTEXT
     value: "true"
   - name: COMPUTE_PROPERTIES_TIMEOUT
