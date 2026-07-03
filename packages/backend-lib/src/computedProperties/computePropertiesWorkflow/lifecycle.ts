@@ -320,6 +320,10 @@ export async function enqueueRecompute({
   client?: WorkflowClient;
 }) {
   const workflowClient = client ?? (await connectWorkflowClient());
+  const signalQueueWorkflow = () =>
+    workflowClient
+      .getHandle(COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID)
+      .signal(addWorkspacesSignalV2, { workspaces: items });
   try {
     logger().info(
       {
@@ -327,10 +331,19 @@ export async function enqueueRecompute({
       },
       "Sending add workspaces v2 signal",
     );
-    await workflowClient
-      .getHandle(COMPUTE_PROPERTIES_QUEUE_WORKFLOW_ID)
-      .signal(addWorkspacesSignalV2, { workspaces: items });
+    await signalQueueWorkflow();
   } catch (e) {
+    if (e instanceof WorkflowNotFoundError) {
+      logger().info(
+        {
+          itemCount: items.length,
+        },
+        "Compute properties queue workflow not found; starting before retrying signal.",
+      );
+      await startQueueWorkflow({ client: workflowClient });
+      await signalQueueWorkflow();
+      return;
+    }
     logger().error(
       {
         err: e,

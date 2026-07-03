@@ -157,6 +157,7 @@ export async function computePropertiesQueueWorkflow(
   const maxLoopIterations = initialConfig.computePropertiesAttempts;
 
   const { computePropertiesContainedV2 } = proxyActivities<typeof activities>({
+    scheduleToStartTimeout: initialConfig.computePropertiesTimeout,
     startToCloseTimeout: initialConfig.computePropertiesTimeout,
     taskQueue: initialConfig.computedPropertiesActivityTaskQueue,
     retry: {
