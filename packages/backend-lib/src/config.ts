@@ -168,6 +168,9 @@ const BaseRawConfigProps = {
   realtimeSegmentsNatsAckWaitMs: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  realtimeSegmentsNatsMaxAckPending: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   realtimeSegmentsWriteHistory: Type.Optional(BoolStr),
   realtimeSegmentsTriggerJourneys: Type.Optional(BoolStr),
   computePropertiesQueueConcurrency: Type.Optional(
@@ -417,6 +420,7 @@ export type Config = Overwrite<
     realtimeSegmentsNatsSubject: string;
     realtimeSegmentsNatsConsumer: string;
     realtimeSegmentsNatsAckWaitMs: number;
+    realtimeSegmentsNatsMaxAckPending: number;
     realtimeSegmentsWriteHistory: boolean;
     realtimeSegmentsTriggerJourneys: boolean;
   }
@@ -851,6 +855,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     realtimeSegmentsNatsAckWaitMs: rawConfig.realtimeSegmentsNatsAckWaitMs
       ? parseInt(rawConfig.realtimeSegmentsNatsAckWaitMs)
       : 60_000,
+    realtimeSegmentsNatsMaxAckPending:
+      rawConfig.realtimeSegmentsNatsMaxAckPending
+        ? parseInt(rawConfig.realtimeSegmentsNatsMaxAckPending)
+        : 1_000,
     realtimeSegmentsWriteHistory:
       rawConfig.realtimeSegmentsWriteHistory !== "false",
     realtimeSegmentsTriggerJourneys:

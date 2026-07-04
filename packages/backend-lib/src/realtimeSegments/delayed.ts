@@ -42,6 +42,17 @@ interface DelayedBoundary {
   availableAt: Date;
 }
 
+function toDate(value: Date | string, fieldName: string): Date {
+  if (value instanceof Date) {
+    return value;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid delayed reevaluation ${fieldName}`);
+  }
+  return parsed;
+}
+
 function segmentNodes(segment: SavedSegmentResource): SegmentNode[] {
   return [segment.definition.entryNode, ...segment.definition.nodes];
 }
@@ -162,22 +173,25 @@ export async function scheduleDelayedReevaluations({
   return boundaries.length;
 }
 
-function delayedMessageId(row: DelayedReevaluation): string {
+function delayedMessageId(row: DelayedReevaluation, availableAt: Date): string {
   return [
     "delayed",
     row.workspaceId,
     row.segmentId,
     row.userOrAnonymousId,
-    row.availableAt.getTime(),
+    availableAt.getTime(),
   ].join(":");
 }
 
 function toRealtimeJob(
   row: ClaimedDelayedReevaluation,
 ): RealtimeSegmentEvalJob {
+  const availableAt = toDate(row.availableAt, "availableAt");
+  const eventTime = toDate(row.eventTime, "eventTime");
+
   return {
     workspaceId: row.workspaceId,
-    messageId: delayedMessageId(row),
+    messageId: delayedMessageId(row, availableAt),
     userId: row.userId,
     anonymousId: row.anonymousId,
     userOrAnonymousId: row.userOrAnonymousId,
@@ -189,7 +203,7 @@ function toRealtimeJob(
       delayedReevaluationId: row.id,
       segmentId: row.segmentId,
     },
-    eventTime: row.eventTime,
+    eventTime,
     processingTime: new Date(),
   };
 }

@@ -127,11 +127,13 @@ export class NatsRealtimeSegmentQueue implements RealtimeSegmentQueue {
       });
     }
 
+    let consumerExists = false;
     try {
       await manager.consumers.info(
         backendConfig.realtimeSegmentsNatsStream,
         backendConfig.realtimeSegmentsNatsConsumer,
       );
+      consumerExists = true;
     } catch (error) {
       if (!isNotFoundError(error)) {
         throw error;
@@ -144,9 +146,20 @@ export class NatsRealtimeSegmentQueue implements RealtimeSegmentQueue {
         deliver_policy: DeliverPolicy.All,
         ack_policy: AckPolicy.Explicit,
         ack_wait: nanos(backendConfig.realtimeSegmentsNatsAckWaitMs),
-        max_ack_pending: backendConfig.realtimeSegmentsQueueBatchSize,
+        max_ack_pending: backendConfig.realtimeSegmentsNatsMaxAckPending,
         max_deliver: backendConfig.realtimeSegmentsMaxRetries,
       });
+    }
+    if (consumerExists) {
+      await manager.consumers.update(
+        backendConfig.realtimeSegmentsNatsStream,
+        backendConfig.realtimeSegmentsNatsConsumer,
+        {
+          ack_wait: nanos(backendConfig.realtimeSegmentsNatsAckWaitMs),
+          max_ack_pending: backendConfig.realtimeSegmentsNatsMaxAckPending,
+          max_deliver: backendConfig.realtimeSegmentsMaxRetries,
+        },
+      );
     }
 
     this.initialized = true;
@@ -211,21 +224,19 @@ export class NatsRealtimeSegmentQueue implements RealtimeSegmentQueue {
     return jobs;
   }
 
-  markComplete({ id }: { id: string; lockId: string }): Promise<void> {
+  async markComplete({ id }: { id: string; lockId: string }): Promise<void> {
     const message = this.inflight.get(id);
     if (!message) {
       logger().warn({ id }, "NATS realtime segment job was not inflight.");
-      return Promise.resolve();
+      return;
     }
 
-    message.ack();
+    await message.ackAck();
     this.inflight.delete(id);
-    return Promise.resolve();
   }
 
-  markFailed({
+  async markFailed({
     id,
-    error,
     maxRetries,
   }: {
     id: string;
@@ -236,15 +247,16 @@ export class NatsRealtimeSegmentQueue implements RealtimeSegmentQueue {
     const message = this.inflight.get(id);
     if (!message) {
       logger().warn({ id }, "NATS realtime segment job was not inflight.");
-      return Promise.resolve();
+      return;
     }
 
     if (message.info.deliveryCount >= maxRetries) {
-      message.term(error.message);
-    } else {
-      message.nak(1_000);
+      await message.ackAck();
+      this.inflight.delete(id);
+      return;
     }
+
+    message.nak(1_000);
     this.inflight.delete(id);
-    return Promise.resolve();
   }
 }
