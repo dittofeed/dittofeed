@@ -15,6 +15,19 @@ export interface RealtimeSegmentDependencies {
   always: boolean;
 }
 
+const REALTIME_SEGMENT_DEPENDENCY_CACHE_MAX_SIZE = 1_000;
+const REALTIME_SEGMENT_DEPENDENCY_CACHE_TTL_MS = 30_000;
+
+interface CachedRealtimeSegmentDependencies {
+  dependencies: RealtimeSegmentDependencies;
+  expiresAt: number;
+}
+
+const REALTIME_SEGMENT_DEPENDENCY_CACHE = new Map<
+  string,
+  CachedRealtimeSegmentDependencies
+>();
+
 function addEventDependency(
   dependencies: Pick<RealtimeSegmentDependencies, "eventNames">,
   event: string,
@@ -119,7 +132,80 @@ export function getSegmentDependencies(
   };
 }
 
-export function doesJobAffectSegment({
+export function mergeRealtimeSegmentDependencies(
+  segments: SavedSegmentResource[],
+): RealtimeSegmentDependencies {
+  const dependencies: RealtimeSegmentDependencies = {
+    traitPaths: new Set(),
+    eventNames: new Set(),
+    always: false,
+  };
+
+  for (const segment of segments) {
+    const segmentDependencies = getSegmentDependencies(segment);
+    for (const path of segmentDependencies.traitPaths) {
+      dependencies.traitPaths.add(path);
+    }
+    for (const event of segmentDependencies.eventNames) {
+      dependencies.eventNames.add(event);
+    }
+    dependencies.always ||= segmentDependencies.always;
+  }
+
+  return dependencies;
+}
+
+function setCachedRealtimeSegmentDependencies({
+  workspaceId,
+  dependencies,
+}: {
+  workspaceId: string;
+  dependencies: RealtimeSegmentDependencies;
+}): void {
+  if (REALTIME_SEGMENT_DEPENDENCY_CACHE.has(workspaceId)) {
+    REALTIME_SEGMENT_DEPENDENCY_CACHE.delete(workspaceId);
+  } else if (
+    REALTIME_SEGMENT_DEPENDENCY_CACHE.size >=
+    REALTIME_SEGMENT_DEPENDENCY_CACHE_MAX_SIZE
+  ) {
+    const lruKey = REALTIME_SEGMENT_DEPENDENCY_CACHE.keys().next().value;
+    if (lruKey) {
+      REALTIME_SEGMENT_DEPENDENCY_CACHE.delete(lruKey);
+    }
+  }
+
+  REALTIME_SEGMENT_DEPENDENCY_CACHE.set(workspaceId, {
+    dependencies,
+    expiresAt: Date.now() + REALTIME_SEGMENT_DEPENDENCY_CACHE_TTL_MS,
+  });
+}
+
+export function clearRealtimeSegmentDependencyCache(): void {
+  REALTIME_SEGMENT_DEPENDENCY_CACHE.clear();
+}
+
+export async function getCachedRealtimeSegmentDependencies({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<RealtimeSegmentDependencies> {
+  const cached = REALTIME_SEGMENT_DEPENDENCY_CACHE.get(workspaceId);
+  if (cached && cached.expiresAt > Date.now()) {
+    REALTIME_SEGMENT_DEPENDENCY_CACHE.delete(workspaceId);
+    REALTIME_SEGMENT_DEPENDENCY_CACHE.set(workspaceId, cached);
+    return cached.dependencies;
+  }
+  if (cached) {
+    REALTIME_SEGMENT_DEPENDENCY_CACHE.delete(workspaceId);
+  }
+
+  const segments = await findSegmentResources({ workspaceId });
+  const dependencies = mergeRealtimeSegmentDependencies(segments);
+  setCachedRealtimeSegmentDependencies({ workspaceId, dependencies });
+  return dependencies;
+}
+
+export function doesJobAffectDependencies({
   job,
   dependencies,
 }: {
@@ -133,6 +219,16 @@ export function doesJobAffectSegment({
     return true;
   }
   return job.traitPaths.some((path) => dependencies.traitPaths.has(path));
+}
+
+export function doesJobAffectSegment({
+  job,
+  dependencies,
+}: {
+  job: RealtimeSegmentEvalJob;
+  dependencies: RealtimeSegmentDependencies;
+}): boolean {
+  return doesJobAffectDependencies({ job, dependencies });
 }
 
 export async function findRealtimeSegmentCandidates({

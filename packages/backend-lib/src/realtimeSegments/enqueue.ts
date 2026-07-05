@@ -1,6 +1,10 @@
 import logger from "../logger";
 import { EventType, JSONValue } from "../types";
 import type { InsertUserEvent } from "../userEvents";
+import {
+  doesJobAffectDependencies,
+  getCachedRealtimeSegmentDependencies,
+} from "./dependencies";
 import { getRealtimeSegmentQueue } from "./queue";
 import { RealtimeSegmentEvalJob } from "./types";
 
@@ -98,6 +102,23 @@ export function buildRealtimeSegmentEvalJobs({
   });
 }
 
+export async function filterRealtimeSegmentEvalJobs({
+  workspaceId,
+  jobs,
+}: {
+  workspaceId: string;
+  jobs: RealtimeSegmentEvalJob[];
+}): Promise<RealtimeSegmentEvalJob[]> {
+  if (jobs.length === 0) {
+    return jobs;
+  }
+
+  const dependencies = await getCachedRealtimeSegmentDependencies({
+    workspaceId,
+  });
+  return jobs.filter((job) => doesJobAffectDependencies({ job, dependencies }));
+}
+
 export async function enqueueRealtimeSegmentEvalJobs({
   workspaceId,
   userEvents,
@@ -109,5 +130,12 @@ export async function enqueueRealtimeSegmentEvalJobs({
   if (jobs.length === 0) {
     return;
   }
-  await getRealtimeSegmentQueue().enqueue(jobs);
+  const filteredJobs = await filterRealtimeSegmentEvalJobs({
+    workspaceId,
+    jobs,
+  });
+  if (filteredJobs.length === 0) {
+    return;
+  }
+  await getRealtimeSegmentQueue().enqueue(filteredJobs);
 }

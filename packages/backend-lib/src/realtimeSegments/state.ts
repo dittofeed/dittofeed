@@ -115,10 +115,12 @@ function currentJobTrackEvent(
 
 async function readIdentifyTraits({
   workspaceId,
+  userId,
   userOrAnonymousId,
   dependencies,
 }: {
   workspaceId: string;
+  userId?: string;
   userOrAnonymousId: string;
   dependencies: RealtimeSegmentDependencies;
 }): Promise<Record<string, JSONValue>> {
@@ -128,6 +130,9 @@ async function readIdentifyTraits({
 
   const qb = new ClickHouseQueryBuilder();
   const traitPaths = [...dependencies.traitPaths];
+  const userIdClause = userId
+    ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
+    : "";
   const result = await chQuery({
     query: `
       SELECT
@@ -136,6 +141,7 @@ async function readIdentifyTraits({
       FROM ${USER_TRAIT_VALUES_V3_TABLE}
       WHERE
         workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+        ${userIdClause}
         AND user_or_anonymous_id = ${qb.addQueryValue(userOrAnonymousId, "String")}
         AND trait_path IN ${qb.addQueryValue(traitPaths, "Array(String)")}
       GROUP BY trait_path
@@ -200,7 +206,12 @@ export async function readRealtimeUserState({
   currentJob?: RealtimeSegmentEvalJob;
 }): Promise<RealtimeUserState> {
   const [traits, trackEvents] = await Promise.all([
-    readIdentifyTraits({ workspaceId, userOrAnonymousId, dependencies }),
+    readIdentifyTraits({
+      workspaceId,
+      userId: currentJob?.userId,
+      userOrAnonymousId,
+      dependencies,
+    }),
     readTrackEvents({ workspaceId, userOrAnonymousId, dependencies }),
   ]);
   const jobTrackEvent = currentJobTrackEvent(currentJob);
