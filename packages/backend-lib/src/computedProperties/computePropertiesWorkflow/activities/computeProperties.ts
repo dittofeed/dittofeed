@@ -8,9 +8,7 @@ import { findAllIntegrationResources } from "../../../integrations";
 import { findRunningJourneys, getSubscribedSegments } from "../../../journeys";
 import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
-import {
-  findManySegmentResourcesSafe,
-} from "../../../segments";
+import { findManySegmentResourcesSafe } from "../../../segments";
 import {
   IndividualComputedPropertyQueueItem,
   JourneyNodeType,
@@ -26,9 +24,7 @@ import {
   processAssignments,
   pruneComputedProperties,
 } from "../../computePropertiesIncremental";
-import {
-  expandAndSortSegmentsForCompute,
-} from "../../segmentDependencies";
+import { expandAndSortSegmentsForCompute } from "../../segmentDependencies";
 
 export interface ComputePropertiesIncrementalArgsParams {
   workspaceId: string;
