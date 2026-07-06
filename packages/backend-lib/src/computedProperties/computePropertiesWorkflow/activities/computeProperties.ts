@@ -10,7 +10,6 @@ import logger from "../../../logger";
 import { withSpan } from "../../../openTelemetry";
 import {
   findManySegmentResourcesSafe,
-  findSegmentResources,
 } from "../../../segments";
 import {
   IndividualComputedPropertyQueueItem,
@@ -29,9 +28,7 @@ import {
 } from "../../computePropertiesIncremental";
 import {
   expandAndSortSegmentsForCompute,
-  findDependentSegments,
 } from "../../segmentDependencies";
-import { enqueueRecompute } from "../lifecycle";
 
 export interface ComputePropertiesIncrementalArgsParams {
   workspaceId: string;
@@ -189,8 +186,27 @@ export async function computePropertiesIndividual({
             workspaceId: item.workspaceId,
           }),
         ]);
+      const segments = segmentsResult.flatMap((r) => {
+        if (r.isErr()) {
+          logger().error(
+            { err: r.error, workspaceId: item.workspaceId },
+            "failed to get segment",
+          );
+          return [];
+        }
+        return [r.value];
+      });
+      const expandedSegments = await expandAndSortSegmentsForCompute({
+        workspaceId: item.workspaceId,
+        segments,
+      });
+      const expandedSegmentIds = new Set(
+        expandedSegments.map((segment) => segment.id),
+      );
       const subscribedJourneys = journeys.filter((j) =>
-        getSubscribedSegments(j.definition).has(item.id),
+        [...getSubscribedSegments(j.definition)].some((segmentId) =>
+          expandedSegmentIds.has(segmentId),
+        ),
       );
       const subscribedIntegrations = integrations.flatMap((i) => {
         if (i.isErr()) {
@@ -205,19 +221,11 @@ export async function computePropertiesIndividual({
           );
           return [];
         }
-        return i.value.definition.subscribedSegments.includes(item.id)
+        return i.value.definition.subscribedSegments.some((segmentId) =>
+          expandedSegmentIds.has(segmentId),
+        )
           ? [i.value]
           : [];
-      });
-      const segments = segmentsResult.flatMap((r) => {
-        if (r.isErr()) {
-          logger().error(
-            { err: r.error, workspaceId: item.workspaceId },
-            "failed to get segment",
-          );
-          return [];
-        }
-        return [r.value];
       });
 
       await computePropertiesIncremental({

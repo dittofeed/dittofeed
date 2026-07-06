@@ -50,6 +50,37 @@ export function expandSegmentDependencies({
   return [...result.values()];
 }
 
+export function expandSegmentDependents({
+  segments,
+  allSegments,
+}: {
+  segments: SavedSegmentResource[];
+  allSegments: SavedSegmentResource[];
+}): SavedSegmentResource[] {
+  const result = new Map<string, SavedSegmentResource>(
+    segments.map((segment) => [segment.id, segment]),
+  );
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const segment of allSegments) {
+      if (result.has(segment.id)) {
+        continue;
+      }
+      const dependsOnIncludedSegment = [
+        ...getSegmentDependencies(segment).segments,
+      ].some((referencedSegmentId) => result.has(referencedSegmentId));
+      if (dependsOnIncludedSegment) {
+        result.set(segment.id, segment);
+        changed = true;
+      }
+    }
+  }
+
+  return [...result.values()];
+}
+
 export function topologicalSortSegments(
   segments: SavedSegmentResource[],
 ): SavedSegmentResource[] {
@@ -104,26 +135,13 @@ export async function expandAndSortSegmentsForCompute({
     allSegments.map((segment) => [segment.id, segment]),
   );
 
-  const expanded = expandSegmentDependencies({
+  const withReferenced = expandSegmentDependencies({
     segments,
     allSegmentsById,
   });
-  return topologicalSortSegments(expanded);
-}
-
-export function findDependentSegments({
-  allSegments,
-  changedSegmentIds,
-}: {
-  allSegments: SavedSegmentResource[];
-  changedSegmentIds: Set<string>;
-}): SavedSegmentResource[] {
-  return allSegments.filter((segment) => {
-    if (changedSegmentIds.has(segment.id)) {
-      return false;
-    }
-    return [...getSegmentDependencies(segment).segments].some((segmentId) =>
-      changedSegmentIds.has(segmentId),
-    );
+  const withDependents = expandSegmentDependents({
+    segments: withReferenced,
+    allSegments,
   });
+  return topologicalSortSegments(withDependents);
 }

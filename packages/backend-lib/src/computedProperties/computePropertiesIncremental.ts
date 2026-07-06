@@ -2334,41 +2334,81 @@ function segmentToResolvedState({
       const stateIdParam = qb.addQueryValue(stateId, "String");
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
       const assignmentsReadTable = computedPropertyAssignmentsReadTable();
-      const assignedAtLowerBoundClause = shouldReset
-        ? ""
-        : getLowerBoundClause(periodBound, "assigned_at");
-      const segmentValueExpression =
-        node.operator === SegmentSegmentOperatorType.In
-          ? "referenced.segment_value"
-          : "NOT referenced.segment_value";
+      const referencedSegmentAssignments = `
+        select
+          workspace_id,
+          user_id,
+          argMax(segment_value, assigned_at) as segment_value,
+          argMax(max_event_time, assigned_at) as max_event_time
+        from ${assignmentsReadTable}
+        where
+          workspace_id = ${workspaceIdParam}
+          and type = 'segment'
+          and computed_property_id = ${referencedSegmentIdParam}
+          and assigned_at <= toDateTime64(${nowSeconds}, 3)
+        group by
+          workspace_id,
+          user_id
+      `;
+
+      if (node.operator === SegmentSegmentOperatorType.In) {
+        const query = `
+          insert into resolved_segment_state
+          select
+            referenced.workspace_id,
+            ${segmentIdParam},
+            ${stateIdParam},
+            referenced.user_id,
+            referenced.segment_value,
+            referenced.max_event_time,
+            toDateTime64(${nowSeconds}, 3) as assigned_at
+          from (${referencedSegmentAssignments}) referenced
+        `;
+        return [query];
+      }
+
+      const userIdPropertyIdParam = idUserProperty
+        ? qb.addQueryValue(idUserProperty.id, "String")
+        : null;
+      if (!userIdPropertyIdParam) {
+        logger().error(
+          {
+            segmentId: segment.id,
+            workspaceId,
+            referencedSegmentId: node.segmentId,
+          },
+          "id user property is required for NotIn segment references",
+        );
+        return [];
+      }
 
       const query = `
         insert into resolved_segment_state
         select
-          referenced.workspace_id,
+          users.workspace_id,
           ${segmentIdParam},
           ${stateIdParam},
-          referenced.user_id,
-          ${segmentValueExpression},
-          referenced.max_event_time,
+          users.user_id,
+          NOT coalesce(referenced.segment_value, false),
+          coalesce(referenced.max_event_time, toDateTime64(0, 3)),
           toDateTime64(${nowSeconds}, 3) as assigned_at
         from (
           select
             workspace_id,
-            user_id,
-            argMax(segment_value, assigned_at) as segment_value,
-            argMax(max_event_time, assigned_at) as max_event_time
+            user_id
           from ${assignmentsReadTable}
           where
             workspace_id = ${workspaceIdParam}
-            and type = 'segment'
-            and computed_property_id = ${referencedSegmentIdParam}
+            and type = 'user_property'
+            and computed_property_id = ${userIdPropertyIdParam}
             and assigned_at <= toDateTime64(${nowSeconds}, 3)
-            ${assignedAtLowerBoundClause}
           group by
             workspace_id,
             user_id
-        ) referenced
+        ) users
+        left join (${referencedSegmentAssignments}) referenced
+          on users.workspace_id = referenced.workspace_id
+          and users.user_id = referenced.user_id
       `;
       return [query];
     }
