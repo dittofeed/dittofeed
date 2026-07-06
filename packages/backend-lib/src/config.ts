@@ -181,6 +181,10 @@ const BaseRawConfigProps = {
   realtimeSegmentsStateCacheMaxEventsPerUserEvent: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  computedPropertyAssignmentsCacheEnabled: Type.Optional(BoolStr),
+  computedPropertyAssignmentsCacheTtlSeconds: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   computePropertiesQueueConcurrency: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
@@ -435,6 +439,8 @@ export type Config = Overwrite<
     realtimeSegmentsStateCacheUrl?: string;
     realtimeSegmentsStateCacheTtlSeconds: number;
     realtimeSegmentsStateCacheMaxEventsPerUserEvent: number;
+    computedPropertyAssignmentsCacheEnabled: boolean;
+    computedPropertyAssignmentsCacheTtlSeconds: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -887,6 +893,12 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.realtimeSegmentsStateCacheMaxEventsPerUserEvent
         ? parseInt(rawConfig.realtimeSegmentsStateCacheMaxEventsPerUserEvent)
         : 5000,
+    computedPropertyAssignmentsCacheEnabled:
+      rawConfig.computedPropertyAssignmentsCacheEnabled === "true",
+    computedPropertyAssignmentsCacheTtlSeconds:
+      rawConfig.computedPropertyAssignmentsCacheTtlSeconds
+        ? parseInt(rawConfig.computedPropertyAssignmentsCacheTtlSeconds)
+        : 300,
     computePropertiesQueueConcurrency:
       rawConfig.computePropertiesQueueConcurrency
         ? parseInt(rawConfig.computePropertiesQueueConcurrency)

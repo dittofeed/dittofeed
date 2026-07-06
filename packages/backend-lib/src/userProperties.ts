@@ -20,6 +20,10 @@ import {
   command as chCommand,
   query as chQuery,
 } from "./clickhouse";
+import {
+  fillUserPropertyAssignmentsCache,
+  readCachedUserPropertyAssignments,
+} from "./computedProperties/assignmentCache";
 import { computedPropertyAssignmentsReadTable } from "./computedProperties/assignmentTables";
 import config, { assignmentSequentialConsistency } from "./config";
 import { db, QueryError, queryResult, upsert } from "./db";
@@ -418,6 +422,18 @@ async function findAllUserPropertyAssignmentsComponents({
   }
   const where = and(...conditions);
   const userProperties = await db().select().from(dbUserProperty).where(where);
+  const userPropertyIdsToRead = userProperties.map((up) => up.id);
+  const cachedAssignmentMap = await readCachedUserPropertyAssignments({
+    workspaceId,
+    userId,
+    userPropertyIds: userPropertyIdsToRead,
+  });
+  if (cachedAssignmentMap) {
+    return {
+      userProperties,
+      assignmentMap: cachedAssignmentMap,
+    };
+  }
 
   const qb = new ClickHouseQueryBuilder();
   const assignmentsReadTable = computedPropertyAssignmentsReadTable();
@@ -431,7 +447,7 @@ async function findAllUserPropertyAssignmentsComponents({
       and user_id = ${qb.addQueryValue(userId, "String")}
       and type = 'user_property'
       and computed_property_id in (${qb.addQueryValue(
-        userProperties.map((up) => up.id),
+        userPropertyIdsToRead,
         "Array(String)",
       )})
     group by computed_property_id
@@ -449,6 +465,12 @@ async function findAllUserPropertyAssignmentsComponents({
   for (const row of rows) {
     chAssignmentMap.set(row.computed_property_id, row.last_value);
   }
+  await fillUserPropertyAssignmentsCache({
+    workspaceId,
+    userId,
+    userPropertyIds: userPropertyIdsToRead,
+    assignments: chAssignmentMap,
+  });
   return {
     userProperties,
     assignmentMap: chAssignmentMap,

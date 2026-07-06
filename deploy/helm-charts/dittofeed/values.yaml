@@ -340,6 +340,10 @@ env:
     value: "true"
   - name: "REALTIME_SEGMENTS_STATE_CACHE_URL"
     value: "redis://dragonfly-dittofeed-replication.dittofeed.svc.cluster.local:6379"
+  - name: "COMPUTED_PROPERTY_ASSIGNMENTS_CACHE_ENABLED"
+    value: "true"
+  - name: "COMPUTED_PROPERTY_ASSIGNMENTS_CACHE_TTL_SECONDS"
+    value: "300"
 
 nodeSelector: {}
 

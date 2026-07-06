@@ -22,6 +22,10 @@ import {
   command as chCommand,
   query as chQuery,
 } from "./clickhouse";
+import {
+  fillSegmentAssignmentsCache,
+  readCachedSegmentAssignments,
+} from "./computedProperties/assignmentCache";
 import { computedPropertyAssignmentsReadTable } from "./computedProperties/assignmentTables";
 import { enqueueRecompute } from "./computedProperties/computePropertiesWorkflow/lifecycle";
 import config, { assignmentSequentialConsistency } from "./config";
@@ -90,6 +94,23 @@ export async function findAllSegmentAssignmentsByIds({
   segmentIds: string[];
   userId: string;
 }): Promise<{ segmentId: string; inSegment: boolean }[]> {
+  if (segmentIds.length === 0) {
+    return [];
+  }
+  const cachedAssignments = await readCachedSegmentAssignments({
+    workspaceId,
+    userId,
+    segmentIds,
+  });
+  if (cachedAssignments) {
+    return segmentIds.flatMap((segmentId) => {
+      const inSegment = cachedAssignments.get(segmentId);
+      return inSegment === null || inSegment === undefined
+        ? []
+        : [{ segmentId, inSegment }];
+    });
+  }
+
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
@@ -118,6 +139,15 @@ export async function findAllSegmentAssignmentsByIds({
     computed_property_id: string;
     latest_segment_value: boolean;
   }>();
+  const assignmentMap = new Map<string, boolean | null>(
+    rows.map((row) => [row.computed_property_id, row.latest_segment_value]),
+  );
+  await fillSegmentAssignmentsCache({
+    workspaceId,
+    userId,
+    segmentIds,
+    assignments: assignmentMap,
+  });
   return rows.map((row) => ({
     segmentId: row.computed_property_id,
     inSegment: row.latest_segment_value,
@@ -205,6 +235,22 @@ export async function findAllSegmentAssignments({
       segmentIds ? inArray(dbSegment.id, segmentIds) : undefined,
     ),
   });
+  const segmentIdsToRead = segments.map((segment) => segment.id);
+  const cachedAssignments = await readCachedSegmentAssignments({
+    workspaceId,
+    userId,
+    segmentIds: segmentIdsToRead,
+  });
+  if (cachedAssignments) {
+    const result = Object.fromEntries(
+      segments.map((segment) => [
+        segment.name,
+        cachedAssignments.get(segment.id) ?? null,
+      ]),
+    );
+    return result;
+  }
+
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const userIdParam = qb.addQueryValue(userId, "String");
@@ -237,6 +283,15 @@ export async function findAllSegmentAssignments({
     computed_property_id: string;
     latest_segment_value: boolean;
   }>();
+  const cacheAssignmentMap = new Map<string, boolean | null>(
+    rows.map((row) => [row.computed_property_id, row.latest_segment_value]),
+  );
+  await fillSegmentAssignmentsCache({
+    workspaceId,
+    userId,
+    segmentIds: segmentIdsToRead,
+    assignments: cacheAssignmentMap,
+  });
   const assignmentMap = new Map<string, boolean>();
   for (const row of rows) {
     assignmentMap.set(row.computed_property_id, row.latest_segment_value);
@@ -1121,6 +1176,15 @@ export async function getSegmentAssignmentDb({
   segmentId: string;
   userId: string;
 }): Promise<boolean | null> {
+  const cachedAssignments = await readCachedSegmentAssignments({
+    workspaceId,
+    userId,
+    segmentIds: [segmentId],
+  });
+  if (cachedAssignments) {
+    return cachedAssignments.get(segmentId) ?? null;
+  }
+
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
   const segmentIdParam = qb.addQueryValue(segmentId, "String");
@@ -1145,7 +1209,14 @@ export async function getSegmentAssignmentDb({
     },
   });
   const rows = await result.json<{ latest_segment_value: boolean }>();
-  return rows[0]?.latest_segment_value ?? null;
+  const assignment = rows[0]?.latest_segment_value ?? null;
+  await fillSegmentAssignmentsCache({
+    workspaceId,
+    userId,
+    segmentIds: [segmentId],
+    assignments: new Map([[segmentId, assignment]]),
+  });
+  return assignment;
 }
 
 export async function updateSegmentStatus({

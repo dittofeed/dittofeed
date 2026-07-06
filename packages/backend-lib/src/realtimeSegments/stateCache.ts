@@ -1,7 +1,11 @@
 import { Counter } from "@opentelemetry/api";
-import Redis from "ioredis";
 
 import config from "../config";
+import {
+  DragonflyClient,
+  DragonflyValue,
+  getDragonflyClient,
+} from "../dragonfly";
 import { jsonValue } from "../jsonPath";
 import logger from "../logger";
 import { getMeter } from "../openTelemetry";
@@ -10,16 +14,13 @@ import { RealtimeSegmentDependencies } from "./dependencies";
 import type { RealtimeUserState, RealtimeUserTrackEvent } from "./state";
 import { RealtimeSegmentEvalJob } from "./types";
 
-export type RedisValue = string | number | null | RedisValue[];
+export type RedisValue = DragonflyValue;
 
 interface CachedTrackEvent extends RealtimeUserTrackEvent {
   messageId: string;
 }
 
-export interface RealtimeStateCacheClient {
-  command(args: string[]): Promise<RedisValue>;
-  close(): void;
-}
+export type RealtimeStateCacheClient = DragonflyClient;
 
 const CACHE_KEY_PREFIX = "rt";
 const CACHE_EVENT_RETENTION_BUFFER_SECONDS = 24 * 60 * 60;
@@ -52,71 +53,6 @@ function recordCacheOperation({
   stateCacheOperationCounter().add(1, { operation, result });
 }
 
-function isRedisValue(value: unknown): value is RedisValue {
-  return (
-    value === null ||
-    typeof value === "string" ||
-    typeof value === "number" ||
-    (Array.isArray(value) && value.every((item) => isRedisValue(item)))
-  );
-}
-
-function normalizeRedisValue(value: unknown): RedisValue {
-  if (isRedisValue(value)) {
-    return value;
-  }
-  if (Buffer.isBuffer(value)) {
-    return value.toString("utf8");
-  }
-  if (Array.isArray(value)) {
-    return value.map((item) => normalizeRedisValue(item));
-  }
-  if (value === undefined) {
-    return null;
-  }
-  return String(value);
-}
-
-class IoredisStateCacheClient implements RealtimeStateCacheClient {
-  private readonly client: Redis;
-
-  private connecting: Promise<void> | null = null;
-
-  constructor(url: string) {
-    this.client = new Redis(url, {
-      enableOfflineQueue: false,
-      lazyConnect: true,
-      maxRetriesPerRequest: 1,
-    });
-  }
-
-  async command(args: string[]): Promise<RedisValue> {
-    await this.connect();
-    const [command, ...commandArgs] = args;
-    if (!command) {
-      throw new Error("Redis command is empty.");
-    }
-    const result = await this.client.call(command, ...commandArgs);
-    return normalizeRedisValue(result);
-  }
-
-  close(): void {
-    this.client.disconnect();
-  }
-
-  private async connect(): Promise<void> {
-    if (this.client.status === "ready") {
-      return;
-    }
-    if (!this.connecting) {
-      this.connecting = this.client.connect().finally(() => {
-        this.connecting = null;
-      });
-    }
-    await this.connecting;
-  }
-}
-
 function cacheConfig():
   | {
       enabled: true;
@@ -147,7 +83,7 @@ function stateCacheClient(): RealtimeStateCacheClient | null {
     return null;
   }
   if (!STATE_CACHE_CLIENT) {
-    STATE_CACHE_CLIENT = new IoredisStateCacheClient(backendConfig.url);
+    STATE_CACHE_CLIENT = getDragonflyClient(backendConfig.url);
   }
   return STATE_CACHE_CLIENT;
 }

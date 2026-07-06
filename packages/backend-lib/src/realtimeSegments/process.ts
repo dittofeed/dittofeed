@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 
+import { writeThroughSegmentAssignmentsCache } from "../computedProperties/assignmentCache";
 import { enqueueRecompute } from "../computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "../config";
 import { db } from "../db";
@@ -276,6 +277,7 @@ async function processRealtimeSegmentJobUnlocked({
 
   if (writeAssignments) {
     await writeRealtimeSegmentAssignments(assignmentChanges);
+    await writeThroughSegmentAssignmentsCache(assignmentChanges);
     await upsertRealtimeSegmentMemberships(membershipUpdates);
     for (const change of evaluatedChanges) {
       change.written = assignmentChanges.some(
