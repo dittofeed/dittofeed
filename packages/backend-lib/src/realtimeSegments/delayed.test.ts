@@ -73,4 +73,47 @@ describe("computeDelayedReevaluationBoundaries", () => {
       "2026-01-01T00:12:00.000Z",
     ]);
   });
+
+  it("schedules boundaries for exact within-window counts", () => {
+    const firstCheckinAt = new Date("2026-01-01T00:00:00.000Z");
+    const secondCheckinAt = new Date("2026-01-02T00:00:00.000Z");
+    const state: RealtimeUserState = {
+      userOrAnonymousId: "user-1",
+      traits: {},
+      trackEvents: [
+        {
+          event: "CHECKIN_COMPLETED",
+          properties: {},
+          eventTime: secondCheckinAt,
+        },
+        {
+          event: "CHECKIN_COMPLETED",
+          properties: {},
+          eventTime: firstCheckinAt,
+        },
+      ],
+    };
+    const boundaries = computeDelayedReevaluationBoundaries({
+      segments: [
+        segment({
+          entryNode: {
+            type: SegmentNodeType.Performed,
+            id: "exactly-one-checkin",
+            event: "CHECKIN_COMPLETED",
+            times: 1,
+            timesOperator: RelationalOperators.Equals,
+            withinSeconds: 172800,
+          },
+          nodes: [],
+        }),
+      ],
+      state,
+      now: new Date("2026-01-02T01:00:00.000Z"),
+    });
+
+    expect(boundaries.map((b) => b.availableAt.toISOString()).sort()).toEqual([
+      "2026-01-03T00:00:00.000Z",
+      "2026-01-04T00:00:00.000Z",
+    ]);
+  });
 });

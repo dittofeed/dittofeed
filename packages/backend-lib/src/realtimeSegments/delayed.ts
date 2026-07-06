@@ -72,6 +72,7 @@ function shouldSchedulePerformedNode(node: SegmentNode): boolean {
     return false;
   }
   return (
+    node.timesOperator === RelationalOperators.Equals ||
     node.timesOperator === RelationalOperators.LessThan ||
     node.timesOperator === RelationalOperators.GreaterThanOrEqual ||
     node.timesOperator === undefined
