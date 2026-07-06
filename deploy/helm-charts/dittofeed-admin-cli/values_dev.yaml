@@ -1,0 +1,161 @@
+# Default values for dittofeed.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+workspaceName: Dittofeed
+
+replicaCount: 1
+
+image:
+  repository: harbor.gbinfra.io/dittofeed/dittofeed-admin-cli
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "6bad241"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+separateWorker:
+  enabled: true
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources:
+  # Recommended resources for production
+  limits:
+    cpu: 2
+    memory: 2048Mi
+  requests:
+    cpu: 1
+    memory: 512Mi
+env:
+  - name: START_OTEL
+    value: "false"
+  - name: OTEL_COLLECTOR
+    value: "http://jaeger-collector.jaeger.svc.cluster.local:4317"
+  - name: DATABASE_HOST
+    value: "postgresql-dittofeed-dev-cluster-pgbouncer.dittofeed-dev.svc.cluster.local"
+  - name: DATABASE_USER
+    value: "dittofeed"
+  - name: CLICKHOUSE_HOST
+    value: "http://clickhouse-clickhouse-dittofeed-dev.dittofeed-dev.svc.cluster.local:8123"
+  - name: CLICKHOUSE_USER
+    value: "dittofeed"
+  - name: BOOTSTRAP
+    value: "false"
+  - name: BOOTSTRAP_SAFE
+    value: "false"
+  - name: TEMPORAL_ADDRESS
+    value: "dittofeed-temporal-frontend.dittofeed-dev.svc.cluster.local:7233"
+  - name: AUTH_MODE
+    value: "single-tenant"
+  - name: SESSION_COOKIE_SECURE
+    value: "true"
+  - name: WRITE_MODE
+    value: kafka
+  - name: KAFKA_BROKERS
+    value: "dittofeed-dev-kafka-kafka-brokers:9092"
+  - name: KAFKA_USERNAME
+    value: dittofeed-dev
+  - name: KAFKA_SSL
+    value: "false"
+  - name: KAFKA_SASL_MECHANISM
+    value: "scram-sha-512"
+  - name: KAFKA_USER_EVENTS_PARTITIONS
+    value: "3"
+  - name: KAFKA_USER_EVENTS_REPLICATION_FACTOR
+    value: "3"
+  - name: USER_EVENTS_TOPIC_NAME
+    value: dittofeed-user-events
+  - name: REUSE_CONTEXT
+    value: "true"
+  - name: COMPUTE_PROPERTIES_TIMEOUT
+    value: "900000"
+  - name: CLICKHOUSE_COMPUTE_PROPERTIES_REQUEST_TIMEOUT
+    value: "180000"
+  - name: COMPUTE_PROPERTIES_QUEUE_CONCURRENCY
+    value: "10"
+  - name: SKIP_PRUNE_JSON_EXISTS
+    value: "true"
+  - name: COMPUTE_PROPERTIES_INTERVAL
+    value: "5000"
+  - name: COMPUTE_PROPERTIES_SCHEDULER_INTERVAL
+    value: "1000"
+  - name: COMPUTE_PROPERTIES_PERIODIC_SCHEDULER_ENABLED
+    value: "false"
+  - name: COMPUTE_PROPERTIES_PERIODIC_SEGMENTS_ENABLED
+    value: "false"
+  - name: COMPUTE_PROPERTIES_PERIODIC_USER_PROPERTIES_ENABLED
+    value: "true"
+  - name: COMPUTE_PROPERTIES_JITTER_MS
+    value: "0"
+  - name: CLICKHOUSE_MAX_MEMORY_USAGE
+    value: "161061273600"
+  - name: COMPUTED_PROPERTIES_TASK_QUEUE
+    value: "workspace"
+  - name: COMPUTED_PROPERTIES_ACTIVITY_TASK_QUEUE
+    value: "workspace"
+  - name: COMPUTE_PROPERTIES_SPLIT
+    value: "true"
+  - name: "WRITE_COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT"
+    value: "true"
+  - name: "READ_COMPUTED_PROPERTY_ASSIGNMENTS_FROM_CURRENT"
+    value: "true"
+  - name: "REALTIME_SEGMENTS_ENABLED"
+    value: "true"
+  - name: "REALTIME_SEGMENTS_MODE"
+    value: "trigger"
+  - name: "REALTIME_SEGMENTS_QUEUE_BACKEND"
+    value: "nats"
+  - name: "REALTIME_SEGMENTS_NATS_SERVERS"
+    value: "nats://nats.dittofeed-dev.svc.cluster.local:4222"
+  - name: "REALTIME_SEGMENTS_NATS_USERNAME"
+    value: "app"
+  - name: "REALTIME_SEGMENTS_NATS_MAX_ACK_PENDING"
+    value: "1000"
+  - name: REALTIME_SEGMENTS_TRIGGER_JOURNEYS
+    value: "true"
+  - name: "REALTIME_SEGMENTS_DELAYED_REEVALUATION_ENABLED"
+    value: "true"
+  - name: "REALTIME_SEGMENTS_DELAYED_REEVALUATION_BATCH_SIZE"
+    value: "500"
+  - name: "ASSIGNMENT_SEQUENTIAL_CONSISTENCY"
+    value: "true"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: workload
+              operator: In
+              values:
+                - "true"
