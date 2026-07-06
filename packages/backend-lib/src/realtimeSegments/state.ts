@@ -8,6 +8,11 @@ import {
   USER_TRAIT_VALUES_V3_TABLE,
 } from "../userEvents/clickhouse";
 import { RealtimeSegmentDependencies } from "./dependencies";
+import {
+  fillRealtimeUserStateCache,
+  readCachedRealtimeUserState,
+  writeThroughRealtimeUserStateCache,
+} from "./stateCache";
 import { RealtimeSegmentEvalJob } from "./types";
 
 interface TraitRow {
@@ -17,12 +22,14 @@ interface TraitRow {
 
 interface TrackRow {
   event: string;
+  message_id: string;
   properties: string;
   event_time: string;
 }
 
 export interface RealtimeUserTrackEvent {
   event: string;
+  messageId?: string;
   properties: Record<string, JSONValue>;
   eventTime: Date;
 }
@@ -108,6 +115,7 @@ function currentJobTrackEvent(
 
   return {
     event: job.event,
+    messageId: job.messageId,
     properties: asRecord(job.payload.properties),
     eventTime: job.eventTime,
   };
@@ -175,7 +183,7 @@ async function readTrackEvents({
   const eventNames = [...dependencies.eventNames];
   const result = await chQuery({
     query: `
-      SELECT event, properties, event_time
+      SELECT event, message_id, properties, event_time
       FROM ${TRACK_EVENTS_TABLE}
       WHERE
         workspace_id = ${qb.addQueryValue(workspaceId, "String")}
@@ -189,16 +197,17 @@ async function readTrackEvents({
   const rows = await result.json<TrackRow>();
   return rows.map((row) => ({
     event: row.event,
+    messageId: row.message_id,
     properties: parseProperties(row.properties),
     eventTime: new Date(row.event_time),
   }));
 }
 
-export async function readRealtimeUserState({
-  workspaceId,
-  userOrAnonymousId,
-  dependencies,
+async function readClickHouseRealtimeUserState({
   currentJob,
+  dependencies,
+  userOrAnonymousId,
+  workspaceId,
 }: {
   workspaceId: string;
   userOrAnonymousId: string;
@@ -214,15 +223,59 @@ export async function readRealtimeUserState({
     }),
     readTrackEvents({ workspaceId, userOrAnonymousId, dependencies }),
   ]);
-  const jobTrackEvent = currentJobTrackEvent(currentJob);
-
   return {
     userOrAnonymousId,
+    traits,
+    trackEvents,
+  };
+}
+
+export async function readRealtimeUserState({
+  workspaceId,
+  userOrAnonymousId,
+  dependencies,
+  currentJob,
+}: {
+  workspaceId: string;
+  userOrAnonymousId: string;
+  dependencies: RealtimeSegmentDependencies;
+  currentJob?: RealtimeSegmentEvalJob;
+}): Promise<RealtimeUserState> {
+  let state = await readCachedRealtimeUserState({
+    workspaceId,
+    userOrAnonymousId,
+    dependencies,
+  });
+  if (!state) {
+    state = await readClickHouseRealtimeUserState({
+      workspaceId,
+      userOrAnonymousId,
+      dependencies,
+      currentJob,
+    });
+    await fillRealtimeUserStateCache({
+      workspaceId,
+      dependencies,
+      state,
+    });
+  }
+  const jobTrackEvent = currentJobTrackEvent(currentJob);
+  const nextState = {
+    userOrAnonymousId,
     traits: applyIdentifyJobTraits({
-      traits,
+      traits: state.traits,
       dependencies,
       job: currentJob,
     }),
-    trackEvents: jobTrackEvent ? [jobTrackEvent, ...trackEvents] : trackEvents,
+    trackEvents: jobTrackEvent
+      ? [jobTrackEvent, ...state.trackEvents]
+      : state.trackEvents,
   };
+  await writeThroughRealtimeUserStateCache({
+    workspaceId,
+    userOrAnonymousId,
+    dependencies,
+    job: currentJob,
+  });
+  return nextState;
 }

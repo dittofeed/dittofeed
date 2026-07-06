@@ -173,6 +173,14 @@ const BaseRawConfigProps = {
   ),
   realtimeSegmentsWriteHistory: Type.Optional(BoolStr),
   realtimeSegmentsTriggerJourneys: Type.Optional(BoolStr),
+  realtimeSegmentsStateCacheEnabled: Type.Optional(BoolStr),
+  realtimeSegmentsStateCacheUrl: Type.Optional(Type.String()),
+  realtimeSegmentsStateCacheTtlSeconds: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  realtimeSegmentsStateCacheMaxEventsPerUserEvent: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   computePropertiesQueueConcurrency: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
@@ -423,6 +431,10 @@ export type Config = Overwrite<
     realtimeSegmentsNatsMaxAckPending: number;
     realtimeSegmentsWriteHistory: boolean;
     realtimeSegmentsTriggerJourneys: boolean;
+    realtimeSegmentsStateCacheEnabled: boolean;
+    realtimeSegmentsStateCacheUrl?: string;
+    realtimeSegmentsStateCacheTtlSeconds: number;
+    realtimeSegmentsStateCacheMaxEventsPerUserEvent: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -445,6 +457,7 @@ export const SECRETS = new Set<keyof Config>([
   "dashboardWriteKey", // Potentially sensitive
   "realtimeSegmentsNatsPassword",
   "realtimeSegmentsNatsToken",
+  "realtimeSegmentsStateCacheUrl",
 ]);
 
 const defaultDbParams: Record<string, string> = {
@@ -863,6 +876,17 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.realtimeSegmentsWriteHistory !== "false",
     realtimeSegmentsTriggerJourneys:
       rawConfig.realtimeSegmentsTriggerJourneys === "true",
+    realtimeSegmentsStateCacheEnabled:
+      rawConfig.realtimeSegmentsStateCacheEnabled === "true",
+    realtimeSegmentsStateCacheUrl: rawConfig.realtimeSegmentsStateCacheUrl,
+    realtimeSegmentsStateCacheTtlSeconds:
+      rawConfig.realtimeSegmentsStateCacheTtlSeconds
+        ? parseInt(rawConfig.realtimeSegmentsStateCacheTtlSeconds)
+        : 14 * 24 * 60 * 60,
+    realtimeSegmentsStateCacheMaxEventsPerUserEvent:
+      rawConfig.realtimeSegmentsStateCacheMaxEventsPerUserEvent
+        ? parseInt(rawConfig.realtimeSegmentsStateCacheMaxEventsPerUserEvent)
+        : 5000,
     computePropertiesQueueConcurrency:
       rawConfig.computePropertiesQueueConcurrency
         ? parseInt(rawConfig.computePropertiesQueueConcurrency)

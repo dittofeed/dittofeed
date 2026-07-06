@@ -48,6 +48,7 @@ function mergeDependencies(
   const dependencies = {
     traitPaths: new Set<string>(),
     eventNames: new Set<string>(),
+    eventWindowSeconds: new Map<string, number | null>(),
     always: false,
   };
 
@@ -58,6 +59,23 @@ function mergeDependencies(
     }
     for (const event of segmentDependencies.eventNames) {
       dependencies.eventNames.add(event);
+    }
+    for (const [
+      event,
+      windowSeconds,
+    ] of segmentDependencies.eventWindowSeconds) {
+      const currentWindowSeconds = dependencies.eventWindowSeconds.get(event);
+      if (currentWindowSeconds === null) {
+        continue;
+      }
+      if (windowSeconds === null || currentWindowSeconds === undefined) {
+        dependencies.eventWindowSeconds.set(event, windowSeconds);
+        continue;
+      }
+      dependencies.eventWindowSeconds.set(
+        event,
+        Math.max(currentWindowSeconds, windowSeconds),
+      );
     }
     dependencies.always ||= segmentDependencies.always;
   }

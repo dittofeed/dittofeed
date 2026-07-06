@@ -6,12 +6,14 @@ import {
   SavedSegmentResource,
   SegmentNode,
   SegmentNodeType,
+  TimeOperator,
 } from "../types";
 import { RealtimeSegmentEvalJob } from "./types";
 
 export interface RealtimeSegmentDependencies {
   traitPaths: Set<string>;
   eventNames: Set<string>;
+  eventWindowSeconds: Map<string, number | null>;
   always: boolean;
 }
 
@@ -29,10 +31,36 @@ const REALTIME_SEGMENT_DEPENDENCY_CACHE = new Map<
 >();
 
 function addEventDependency(
-  dependencies: Pick<RealtimeSegmentDependencies, "eventNames">,
+  dependencies: Pick<
+    RealtimeSegmentDependencies,
+    "eventNames" | "eventWindowSeconds"
+  >,
   event: string,
+  windowSeconds: number | null = null,
 ): void {
   dependencies.eventNames.add(event);
+  const currentWindowSeconds = dependencies.eventWindowSeconds.get(event);
+  if (currentWindowSeconds === null) {
+    return;
+  }
+  if (windowSeconds === null || currentWindowSeconds === undefined) {
+    dependencies.eventWindowSeconds.set(event, windowSeconds);
+    return;
+  }
+  dependencies.eventWindowSeconds.set(
+    event,
+    Math.max(currentWindowSeconds, windowSeconds),
+  );
+}
+
+function performedWindowSeconds(node: SegmentNode): number | null {
+  if (node.type !== SegmentNodeType.Performed) {
+    return null;
+  }
+  if (node.timeOperator && node.timeOperator !== TimeOperator.Within) {
+    return null;
+  }
+  return node.withinSeconds ?? null;
 }
 
 function collectNodeDependencies({
@@ -40,7 +68,10 @@ function collectNodeDependencies({
   dependencies,
 }: {
   node: SegmentNode;
-  dependencies: Pick<RealtimeSegmentDependencies, "eventNames" | "traitPaths">;
+  dependencies: Pick<
+    RealtimeSegmentDependencies,
+    "eventNames" | "eventWindowSeconds" | "traitPaths"
+  >;
 }): void {
   switch (node.type) {
     case SegmentNodeType.Trait:
@@ -49,6 +80,12 @@ function collectNodeDependencies({
       dependencies.traitPaths.add(node.path);
       return;
     case SegmentNodeType.Performed:
+      addEventDependency(
+        dependencies,
+        node.event,
+        performedWindowSeconds(node),
+      );
+      return;
     case SegmentNodeType.LastPerformed:
     case SegmentNodeType.KeyedPerformed:
       addEventDependency(dependencies, node.event);
@@ -115,6 +152,7 @@ function collectDependencies(
   const dependencies: Omit<RealtimeSegmentDependencies, "always"> = {
     traitPaths: new Set(),
     eventNames: new Set(),
+    eventWindowSeconds: new Map(),
   };
   for (const node of collectSegmentNodes(segment)) {
     collectNodeDependencies({ node, dependencies });
@@ -138,6 +176,7 @@ export function mergeRealtimeSegmentDependencies(
   const dependencies: RealtimeSegmentDependencies = {
     traitPaths: new Set(),
     eventNames: new Set(),
+    eventWindowSeconds: new Map(),
     always: false,
   };
 
@@ -148,6 +187,23 @@ export function mergeRealtimeSegmentDependencies(
     }
     for (const event of segmentDependencies.eventNames) {
       dependencies.eventNames.add(event);
+    }
+    for (const [
+      event,
+      windowSeconds,
+    ] of segmentDependencies.eventWindowSeconds) {
+      const currentWindowSeconds = dependencies.eventWindowSeconds.get(event);
+      if (currentWindowSeconds === null) {
+        continue;
+      }
+      if (windowSeconds === null || currentWindowSeconds === undefined) {
+        dependencies.eventWindowSeconds.set(event, windowSeconds);
+        continue;
+      }
+      dependencies.eventWindowSeconds.set(
+        event,
+        Math.max(currentWindowSeconds, windowSeconds),
+      );
     }
     dependencies.always ||= segmentDependencies.always;
   }
