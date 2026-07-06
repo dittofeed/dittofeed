@@ -1,23 +1,16 @@
-# Default values for dittofeed.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+
+
+
 
 ee:
   enabled: false
-
-# This configuration disables the worker in our primary deployment, which then
-# only runs the API and Dashboard. We then create separate worker deployments
-# for each of the temporal queues utilized by Dittofeed.
 separateWorker:
   enabled: true
   worker:
     image:
       repository: harbor.gbinfra.io/dittofeed/dittofeed-worker
       pullPolicy: IfNotPresent
-      # Overrides the image tag whose default is the chart appVersion.
       tag: "6bad241"
-
-  # The default queue is used to process user journeys.
   default:
     replicaCount: 3
     maxOldSpaceSize: 4096
@@ -41,7 +34,7 @@ separateWorker:
         value: "1000"
 
 
-  # The workspace queue is used to recompute workspaces' segments and user properties, and to process broadcasts.
+
   workspace:
     replicaCount: 3
     maxOldSpaceSize: 4096
@@ -63,7 +56,7 @@ separateWorker:
         value: "240"
       - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
         value: "1000"
-  # Is used to handle secondary scheduled workflows.
+
   global:
     replicaCount: 3
     maxOldSpaceSize: 4096
@@ -111,7 +104,7 @@ separateWorker:
         value: "240"
       - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
         value: "1000"
-  # The bulk_marketing queue is used to process large marketing journey fan-outs separately from the default queue.
+
   bulkmarketing:
     replicaCount: 10
     maxOldSpaceSize: 8192
@@ -138,13 +131,11 @@ separateWorker:
 
 workspaceName: Dittofeed
 replicaCount: 3
-
 maxOldSpaceSize: 4096
-
 image:
   repository: harbor.gbinfra.io/dittofeed/dittofeed-lite
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
+
   tag: "6bad241"
 
 imagePullSecrets: []
@@ -152,29 +143,15 @@ nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
-  # Specifies whether a service account should be created
   create: true
-  # Automatically mount a ServiceAccount's API credentials?
   automount: true
-  # Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
   name: ""
 
 podAnnotations: {}
 podLabels: {}
-
 podSecurityContext: {}
-  # fsGroup: 2000
-
 securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
 
 service:
   type: ClusterIP
@@ -212,7 +189,7 @@ ingress_public_api:
   dashboard_api_base: https://dittofeed-dev.hngcweywe.com
 
 resources:
-  # Recommended resources for production
+
   limits:
     cpu: 8
     memory: 6Gi
@@ -221,9 +198,9 @@ resources:
     memory: 512Mi
 
 clickhouse:
-  # Enable to install ClickHouse as a dependency
+
   enabled: false
-  # Minimal installation for ease of testing.
+
   shards: 1
   replicaCount: 1
   zookeeper:
@@ -244,31 +221,17 @@ clickhouse:
     username: dittofeed
     password: password
     database: dittofeed
-    # uncomment to use an existing secret for the password
-    # existingSecret: "my-clickhouse-secret-name"
-    # existingSecretKey: "password"
 
 postgresql:
-  # Enable to install PostgreSQL as a dependency
   enabled: false
   auth:
     username: postgres
     password: password
     database: dittofeed
-    # uncomment to use an existing secret for the password
-    # existingSecret: "my-pg-secret-name"
-    # userPasswordKey: "password"
 
 temporal:
-  # Enable to install standalone Temporal as a dependency
   enabled: false
   resources: {}
-    # limits:
-    #   cpu: 1
-    #   memory: 1024Mi
-    # requests:
-    #   cpu: 1
-    #   memory: 1024Mi
   env:
     - name: POSTGRES_SEEDS
       value: "demo-postgresql.default.svc.cluster.local"
@@ -276,7 +239,6 @@ temporal:
       value: "postgres"
     - name: POSTGRES_PWD
       value: "password"
-
   image:
     repository: temporalio/auto-setup
     tag: 1.23.1.0
@@ -291,25 +253,10 @@ env:
     value: "postgresql-dittofeed-dev-cluster-pgbouncer.dittofeed-dev.svc.cluster.local"
   - name: DATABASE_USER
     value: "dittofeed"
-  - name: DATABASE_PASSWORD
-    value: "a9v0wWPc9OCcLYd7Zy4wSXxR0vIoOk6y8sTGwbuJeMj5iyeUdfPN0bWsLlBUBuvE"
-  ## - name: DATABASE_PASSWORD
-  #   valueFrom:
-  #     secretKeyRef:
-  #       name: my-pg-secret-name
-  #       key: password
   - name: CLICKHOUSE_HOST
     value: "http://clickhouse-clickhouse-dittofeed-dev.dittofeed-dev.svc.cluster.local:8123"
   - name: CLICKHOUSE_USER
     value: "dittofeed"
-  - name: CLICKHOUSE_PASSWORD
-    value: "54u6tdi7fkyhgcmfyxhtdzgrdtf"
-  # - name: CLICKHOUSE_PASSWORD
-  #   valueFrom:
-  #     secretKeyRef:
-  #       name: my-clickhouse-secret-name
-  #       key: password
-  # BOOTSTRAP should be set to "false" after the first deployment
   - name: BOOTSTRAP
     value: "false"
   - name: BOOTSTRAP_SAFE
@@ -317,38 +264,23 @@ env:
   - name: TEMPORAL_ADDRESS
     value: "dittofeed-temporal-frontend.dittofeed-dev.svc.cluster.local:7233"
   - name: AUTH_MODE
-    value: "single-tenant"   # уже выставляется chart'ом для lite
-  - name: PASSWORD
-    value: "dqk3bqe0thx*dwk-EDH"   # или secretKeyRef
-  - name: SECRET_KEY
-    value: "yOG2b51bouPH3gcmNKGkq0F1ErKaBcRqBiLpYHCX8sQ="   # openssl rand -base64 32
+    value: "single-tenant"
   - name: SESSION_COOKIE_SECURE
     value: "true"
-# necessary to use the write mode
   - name: WRITE_MODE
     value: kafka
-# the kafka host and portnames to write to
   - name: KAFKA_BROKERS
     value: "dittofeed-dev-kafka-kafka-brokers:9092"
-# the username and password to use for the kafka connection
   - name: KAFKA_USERNAME
     value: dittofeed-dev
-  - name: KAFKA_PASSWORD
-    value: "axm6qhg_HMX5zqr1wty"
-# whether to use SSL for the kafka connection
   - name: KAFKA_SSL
     value: "false"
-# the kafka sasl mechanism to use
-# possible values are: plain, scram-sha-256, scram-sha-512
   - name: KAFKA_SASL_MECHANISM
     value: "scram-sha-512"
-# the number of partitions to use for the user events topic when bootstrapping
   - name: KAFKA_USER_EVENTS_PARTITIONS
     value: "3"
-# the replication factor to use for the user events topic when bootstrapping
   - name: KAFKA_USER_EVENTS_REPLICATION_FACTOR
     value: "3"
-# the name of the user events topic to create when bootstrapping
   - name: USER_EVENTS_TOPIC_NAME
     value: dittofeed-user-events
   - name: REUSE_CONTEXT
@@ -395,8 +327,6 @@ env:
     value: "nats://nats.dittofeed-dev.svc.cluster.local:4222"
   - name: "REALTIME_SEGMENTS_NATS_USERNAME"
     value: "app"
-  - name: "REALTIME_SEGMENTS_NATS_PASSWORD"
-    value: "wym4udp*YPA7het4bzr"
   - name: "REALTIME_SEGMENTS_NATS_MAX_ACK_PENDING"
     value: "1000"
   - name: REALTIME_SEGMENTS_TRIGGER_JOURNEYS
@@ -407,6 +337,11 @@ env:
     value: "500"
   - name: "ASSIGNMENT_SEQUENTIAL_CONSISTENCY"
     value: "true"
+  - name: "REALTIME_SEGMENTS_STATE_CACHE_ENABLED"
+    value: "true"
+  - name: "REALTIME_SEGMENTS_STATE_CACHE_URL"
+    value: "redis://dragonfly-dittofeed-dev-replication.dittofeed-dev.svc.cluster.local:6379"
+
 nodeSelector: {}
 
 tolerations: []
@@ -420,7 +355,6 @@ affinity:
           operator: In
           values:
           - "true"
-
 
 livenessProbe:
   enabled: true

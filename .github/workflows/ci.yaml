@@ -26,9 +26,6 @@ concurrency:
 env:
   REGISTRY: harbor.gbinfra.io
   IMAGE_PREFIX: harbor.gbinfra.io/dittofeed
-  HELM_OCI_REGISTRY: oci://harbor.gbinfra.io/helm
-  DITTOFEED_CHART_VERSION: "0.3.3"
-  DITTOFEED_ADMIN_CLI_CHART_VERSION: "0.3.1"
 
 jobs:
   docker:
@@ -82,8 +79,8 @@ jobs:
           echo "target=$TARGET" >> "$GITHUB_OUTPUT"
           if [ "$TARGET" = "dev" ]; then
             echo "namespace=dittofeed-dev" >> "$GITHUB_OUTPUT"
-            echo "admin_cli_values=deploy/helm/admin-cli-values_dev.yaml" >> "$GITHUB_OUTPUT"
-            echo "app_values=deploy/helm/app-values_dev.yaml" >> "$GITHUB_OUTPUT"
+            echo "admin_cli_values=deploy/helm-charts/dittofeed-admin-cli/values_dev.yaml" >> "$GITHUB_OUTPUT"
+            echo "app_values=deploy/helm-charts/dittofeed/values_dev.yaml" >> "$GITHUB_OUTPUT"
           else
             echo "namespace=dittofeed" >> "$GITHUB_OUTPUT"
             echo "admin_cli_values=" >> "$GITHUB_OUTPUT"
@@ -121,20 +118,13 @@ jobs:
         with:
           version: v3.16.4
 
-      - name: Log in to Harbor
-        run: |
-          echo "${{ secrets.HARBOR_PASSWORD }}" | helm registry login "${{ env.REGISTRY }}" \
-            -u 'robot$github-actions' \
-            --password-stdin
-
       - name: Deploy admin-cli
         run: |
           set -euo pipefail
           args=(
             upgrade --install
             -n "${{ steps.target.outputs.namespace }}"
-            dittofeed-admin-cli "${{ env.HELM_OCI_REGISTRY }}/dittofeed-admin-cli"
-            --version "${{ env.DITTOFEED_ADMIN_CLI_CHART_VERSION }}"
+            dittofeed-admin-cli deploy/helm-charts/dittofeed-admin-cli
             --set "image.tag=${{ steps.target.outputs.tag }}"
             --wait --timeout 10m
           )
@@ -149,8 +139,7 @@ jobs:
           args=(
             upgrade
             -n "${{ steps.target.outputs.namespace }}"
-            dittofeed-app "${{ env.HELM_OCI_REGISTRY }}/dittofeed"
-            --version "${{ env.DITTOFEED_CHART_VERSION }}"
+            dittofeed-app deploy/helm-charts/dittofeed
             --set "image.tag=${{ steps.target.outputs.tag }}"
             --set "separateWorker.worker.image.tag=${{ steps.target.outputs.tag }}"
             --wait --timeout 15m
