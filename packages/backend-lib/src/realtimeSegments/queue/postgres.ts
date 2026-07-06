@@ -174,7 +174,9 @@ export class PostgresRealtimeSegmentQueue implements RealtimeSegmentQueue {
         job."payload" AS "payload",
         job."eventTime" AS "eventTime",
         job."processingTime" AS "processingTime",
-        job."attempts" AS "attempts"
+        job."attempts" AS "attempts",
+        "job"."type" as "type",
+        "job"."segment" as "segment"
     `);
 
     return result.rows.map(toClaimedJob);

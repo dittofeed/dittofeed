@@ -137,15 +137,15 @@ export function doesJobAffectSegment({
   dependencies: RealtimeSegmentDependencies;
   segment: SavedSegmentResource;
 }): boolean {
-  if (dependencies.always) {
-    return true;
-  }
-
   if (job.type === "eventReceived") {
     if (job.event && dependencies.eventNames.has(job.event)) {
       return true;
     }
     return job.traitPaths.some((path) => dependencies.traitPaths.has(path));
+  }
+
+  if (dependencies.always) {
+    return true;
   }
 
   return segment.id === job.segment;
