@@ -134,6 +134,37 @@ describe("evaluateRealtimeSegment", () => {
     });
   });
 
+  it("evaluates timestamp traits stored as Unix seconds strings", () => {
+    const createdAt = new Date("2026-07-05T19:13:15.000Z");
+    const result = evaluateRealtimeSegment({
+      segment: segment({
+        entryNode: {
+          type: SegmentNodeType.Trait,
+          id: "trait",
+          path: "created_at",
+          operator: {
+            type: SegmentOperatorType.Within,
+            windowSeconds: 604800,
+          },
+        },
+        nodes: [],
+      }),
+      state: {
+        userOrAnonymousId: "user-1",
+        traits: {
+          created_at: Math.floor(createdAt.getTime() / 1000).toString(),
+        },
+        trackEvents: [],
+      },
+      now: new Date("2026-07-06T07:13:15.000Z"),
+    });
+
+    expect(result).toEqual({
+      inSegment: true,
+      unsupportedNodes: [],
+    });
+  });
+
   it("evaluates persisted withinSeconds performed windows without timeOperator", () => {
     const openedAt = new Date("2026-01-01T00:00:00.000Z");
     const timedState: RealtimeUserState = {

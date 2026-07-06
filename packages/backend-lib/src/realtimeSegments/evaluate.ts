@@ -72,6 +72,15 @@ function toStringValue(value: JSONValue | undefined): string {
   return JSON.stringify(value);
 }
 
+function parseTimestampMillis(value: JSONValue | undefined): number {
+  const numeric = toNumber(value);
+  if (numeric !== null) {
+    // Segment traits commonly store Unix seconds, while JS Date expects millis.
+    return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+  }
+  return new Date(toStringValue(value)).getTime();
+}
+
 function evaluateTimestamp({
   value,
   operator,
@@ -81,7 +90,7 @@ function evaluateTimestamp({
   operator: SegmentOperator;
   now: Date;
 }): boolean {
-  const timestamp = new Date(toStringValue(value)).getTime();
+  const timestamp = parseTimestampMillis(value);
   if (Number.isNaN(timestamp)) {
     return operator.type === SegmentOperatorType.NotWithin;
   }
