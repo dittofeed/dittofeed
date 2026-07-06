@@ -1,0 +1,365 @@
+
+
+
+
+ee:
+  enabled: false
+separateWorker:
+  enabled: true
+  worker:
+    image:
+      repository: harbor.gbinfra.io/dittofeed/dittofeed-worker
+      pullPolicy: IfNotPresent
+      tag: "6bad241"
+  default:
+    replicaCount: 3
+    maxOldSpaceSize: 4096
+    resources:
+      limits:
+        cpu: 8
+        memory: 6Gi
+      requests:
+        cpu: 1
+        memory: 1024Mi
+    additional_env:
+      - name: MAX_CACHED_WORKFLOWS
+        value: "1000"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+        value: "240"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+        value: "1000"
+
+
+
+  workspace:
+    replicaCount: 3
+    maxOldSpaceSize: 4096
+    resources:
+      limits:
+        cpu: 8
+        memory: 6Gi
+      requests:
+        cpu: 1
+        memory: 2048Mi
+    additional_env:
+      - name: MAX_CACHED_WORKFLOWS
+        value: "1000"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+        value: "240"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+        value: "1000"
+
+  global:
+    replicaCount: 3
+    maxOldSpaceSize: 4096
+    resources:
+      limits:
+        cpu: 8
+        memory: 6Gi
+      requests:
+        cpu: 1
+        memory: 1024Mi
+    additional_env:
+      - name: MAX_CACHED_WORKFLOWS
+        value: "1000"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+        value: "240"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+        value: "1000"
+
+  transactional:
+    replicaCount: 3
+    maxOldSpaceSize: 4096
+    resources:
+      limits:
+        cpu: 8
+        memory: 6Gi
+      requests:
+        cpu: 1
+        memory: 1024Mi
+    additional_env:
+      - name: USER_JOURNEY_TASK_QUEUE
+        value: "default"
+      - name: TRANSACTIONAL_TASK_QUEUE
+        value: "transactional"
+      - name: MAX_CACHED_WORKFLOWS
+        value: "1000"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+        value: "240"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+        value: "1000"
+
+  bulkmarketing:
+    replicaCount: 10
+    maxOldSpaceSize: 8192
+    resources:
+      limits:
+        cpu: 8
+        memory: 12Gi
+      requests:
+        cpu: 1
+        memory: 1024Mi
+    additional_env:
+      - name: BULK_MARKETING_TASK_QUEUE
+        value: bulk_marketing
+      - name: MAX_CACHED_WORKFLOWS
+        value: "1000"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_POLLS
+        value: "150"
+      - name: MAX_CONCURRENT_WORKFLOW_TASK_EXECUTIONS
+        value: "240"
+      - name: MAX_CONCURRENT_ACTIVITY_TASK_EXECUTIONS
+        value: "1000"
+
+workspaceName: Dittofeed
+replicaCount: 3
+maxOldSpaceSize: 4096
+image:
+  repository: harbor.gbinfra.io/dittofeed/dittofeed-lite
+  pullPolicy: IfNotPresent
+
+  tag: "6bad241"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns-prod
+  hosts:
+    - host: dittofeed-dev.hngcweywe.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+   - secretName: dittofeed-dev-hngcweywe-com-tls
+     hosts:
+       - dittofeed-dev.hngcweywe.com
+
+ingress_public_api:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns-prod
+  hosts:
+    - host: api-dt-dev.hngcweywe.com
+      paths:
+        - path: /api/public/subscription-management/page
+          pathType: Prefix
+  tls:
+   - secretName: api-dt-hngcweywe-com-tls
+     hosts:
+       - api-dt-dev.hngcweywe.com
+  dashboard_api_base: https://dittofeed-dev.hngcweywe.com
+
+resources:
+
+  limits:
+    cpu: 8
+    memory: 6Gi
+  requests:
+    cpu: 1
+    memory: 512Mi
+
+clickhouse:
+
+  enabled: false
+
+  shards: 1
+  replicaCount: 1
+  zookeeper:
+    enabled: false
+  defaultConfigurationOverrides: |
+    <clickhouse>
+      <macros>
+        <shard>1</shard>
+        <replica>single</replica>
+      </macros>
+    </clickhouse>
+  resources:
+    limits:
+      memory: 1024Mi
+    requests:
+      memory: 1024Mi
+  auth:
+    username: dittofeed
+    password: password
+    database: dittofeed
+
+postgresql:
+  enabled: false
+  auth:
+    username: postgres
+    password: password
+    database: dittofeed
+
+temporal:
+  enabled: false
+  resources: {}
+  env:
+    - name: POSTGRES_SEEDS
+      value: "demo-postgresql.default.svc.cluster.local"
+    - name: POSTGRES_USER
+      value: "postgres"
+    - name: POSTGRES_PWD
+      value: "password"
+  image:
+    repository: temporalio/auto-setup
+    tag: 1.23.1.0
+    pullPolicy: IfNotPresent
+
+env:
+  - name: START_OTEL
+    value: "false"
+  - name: OTEL_COLLECTOR
+    value: "http://jaeger-collector.jaeger.svc.cluster.local:4317"
+  - name: DATABASE_HOST
+    value: "postgresql-dittofeed-dev-cluster-pgbouncer.dittofeed-dev.svc.cluster.local"
+  - name: DATABASE_USER
+    value: "dittofeed"
+  - name: CLICKHOUSE_HOST
+    value: "http://clickhouse-clickhouse-dittofeed-dev.dittofeed-dev.svc.cluster.local:8123"
+  - name: CLICKHOUSE_USER
+    value: "dittofeed"
+  - name: BOOTSTRAP
+    value: "false"
+  - name: BOOTSTRAP_SAFE
+    value: "false"
+  - name: TEMPORAL_ADDRESS
+    value: "dittofeed-temporal-frontend.dittofeed-dev.svc.cluster.local:7233"
+  - name: AUTH_MODE
+    value: "single-tenant"
+  - name: SESSION_COOKIE_SECURE
+    value: "true"
+  - name: WRITE_MODE
+    value: kafka
+  - name: KAFKA_BROKERS
+    value: "dittofeed-dev-kafka-kafka-brokers:9092"
+  - name: KAFKA_USERNAME
+    value: dittofeed-dev
+  - name: KAFKA_SSL
+    value: "false"
+  - name: KAFKA_SASL_MECHANISM
+    value: "scram-sha-512"
+  - name: KAFKA_USER_EVENTS_PARTITIONS
+    value: "3"
+  - name: KAFKA_USER_EVENTS_REPLICATION_FACTOR
+    value: "3"
+  - name: USER_EVENTS_TOPIC_NAME
+    value: dittofeed-user-events
+  - name: REUSE_CONTEXT
+    value: "true"
+  - name: COMPUTE_PROPERTIES_TIMEOUT
+    value: "900000"
+  - name: CLICKHOUSE_COMPUTE_PROPERTIES_REQUEST_TIMEOUT
+    value: "180000"
+  - name: COMPUTE_PROPERTIES_QUEUE_CONCURRENCY
+    value: "10"
+  - name: SKIP_PRUNE_JSON_EXISTS
+    value: "true"
+  - name: COMPUTE_PROPERTIES_INTERVAL
+    value: "5000"
+  - name: COMPUTE_PROPERTIES_SCHEDULER_INTERVAL
+    value: "1000"
+  - name: COMPUTE_PROPERTIES_PERIODIC_SCHEDULER_ENABLED
+    value: "false"
+  - name: COMPUTE_PROPERTIES_PERIODIC_SEGMENTS_ENABLED
+    value: "false"
+  - name: COMPUTE_PROPERTIES_PERIODIC_USER_PROPERTIES_ENABLED
+    value: "true"
+  - name: COMPUTE_PROPERTIES_JITTER_MS
+    value: "0"
+  - name: CLICKHOUSE_MAX_MEMORY_USAGE
+    value: "161061273600"
+  - name: COMPUTED_PROPERTIES_TASK_QUEUE
+    value: "workspace"
+  - name: COMPUTED_PROPERTIES_ACTIVITY_TASK_QUEUE
+    value: "workspace"
+  - name: COMPUTE_PROPERTIES_SPLIT
+    value: "true"
+  - name: "WRITE_COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT"
+    value: "true"
+  - name: "READ_COMPUTED_PROPERTY_ASSIGNMENTS_FROM_CURRENT"
+    value: "true"
+  - name: "REALTIME_SEGMENTS_ENABLED"
+    value: "true"
+  - name: "REALTIME_SEGMENTS_MODE"
+    value: "trigger"
+  - name: "REALTIME_SEGMENTS_QUEUE_BACKEND"
+    value: "nats"
+  - name: "REALTIME_SEGMENTS_NATS_SERVERS"
+    value: "nats://nats.dittofeed-dev.svc.cluster.local:4222"
+  - name: "REALTIME_SEGMENTS_NATS_USERNAME"
+    value: "app"
+  - name: "REALTIME_SEGMENTS_NATS_MAX_ACK_PENDING"
+    value: "1000"
+  - name: REALTIME_SEGMENTS_TRIGGER_JOURNEYS
+    value: "true"
+  - name: "REALTIME_SEGMENTS_DELAYED_REEVALUATION_ENABLED"
+    value: "true"
+  - name: "REALTIME_SEGMENTS_DELAYED_REEVALUATION_BATCH_SIZE"
+    value: "500"
+  - name: "ASSIGNMENT_SEQUENTIAL_CONSISTENCY"
+    value: "true"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: workload
+          operator: In
+          values:
+          - "true"
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 1
+  failureThreshold: 5
+  successThreshold: 1
+  httpGet:
+    path: /api
+    port: 3000
+

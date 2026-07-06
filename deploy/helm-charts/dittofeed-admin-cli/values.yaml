@@ -10,7 +10,7 @@ image:
   repository: harbor.gbinfra.io/dittofeed/dittofeed-admin-cli
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "6bad241"
+  tag: "132c568"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -53,58 +53,30 @@ resources:
     cpu: 1
     memory: 512Mi
 env:
-  - name: START_OTEL
-    value: "false"
-  - name: OTEL_COLLECTOR
-    value: "http://jaeger-collector.jaeger.svc.cluster.local:4317"
   - name: DATABASE_HOST
-    value: "postgresql-dittofeed-dev-cluster-pgbouncer.dittofeed-dev.svc.cluster.local"
+    value: "postgresql-dittofeed-cluster-pgbouncer.dittofeed.svc.cluster.local"
   - name: DATABASE_USER
     value: "dittofeed"
-  - name: DATABASE_PASSWORD
-    value: "a9v0wWPc9OCcLYd7Zy4wSXxR0vIoOk6y8sTGwbuJeMj5iyeUdfPN0bWsLlBUBuvE"
-  ## - name: DATABASE_PASSWORD
-  #   valueFrom:
-  #     secretKeyRef:
-  #       name: my-pg-secret-name
-  #       key: password
   - name: CLICKHOUSE_HOST
-    value: "http://clickhouse-clickhouse-dittofeed-dev.dittofeed-dev.svc.cluster.local:8123"
+    value: "http://chi-clickhouse-dittofeed-dittofeed-click-0-0.dittofeed.svc.cluster.local:8123"
   - name: CLICKHOUSE_USER
     value: "dittofeed"
-  - name: CLICKHOUSE_PASSWORD
-    value: "54u6tdi7fkyhgcmfyxhtdzgrdtf"
-  # - name: CLICKHOUSE_PASSWORD
-  #   valueFrom:
-  #     secretKeyRef:
-  #       name: my-clickhouse-secret-name
-  #       key: password
-  # BOOTSTRAP should be set to "false" after the first deployment
   - name: BOOTSTRAP
     value: "false"
   - name: BOOTSTRAP_SAFE
     value: "false"
   - name: TEMPORAL_ADDRESS
-    value: "dittofeed-temporal-frontend.dittofeed-dev.svc.cluster.local:7233"
+    value: "dittofeed-temporal-frontend.dittofeed.svc.cluster.local:7233"
   - name: AUTH_MODE
     value: "single-tenant"   # уже выставляется chart'ом для lite
-  - name: PASSWORD
-    value: "dqk3bqe0thx*dwk-EDH"   # или secretKeyRef
-  - name: SECRET_KEY
-    value: "yOG2b51bouPH3gcmNKGkq0F1ErKaBcRqBiLpYHCX8sQ="   # openssl rand -base64 32
   - name: SESSION_COOKIE_SECURE
     value: "true"
-# necessary to use the write mode
-  - name: WRITE_MODE
-    value: kafka
 # the kafka host and portnames to write to
   - name: KAFKA_BROKERS
-    value: "dittofeed-dev-kafka-kafka-brokers:9092"
+    value: "dittofeed-kafka-kafka-bootstrap:9092"
 # the username and password to use for the kafka connection
   - name: KAFKA_USERNAME
-    value: dittofeed-dev
-  - name: KAFKA_PASSWORD
-    value: "axm6qhg_HMX5zqr1wty"
+    value: dittofeed
 # whether to use SSL for the kafka connection
   - name: KAFKA_SSL
     value: "false"
@@ -138,19 +110,13 @@ env:
   - name: CLICKHOUSE_COMPUTE_PROPERTIES_REQUEST_TIMEOUT
     value: "180000"
   - name: COMPUTE_PROPERTIES_QUEUE_CONCURRENCY
-    value: "10"
+    value: "50"
   - name: SKIP_PRUNE_JSON_EXISTS
     value: "true"
   - name: COMPUTE_PROPERTIES_INTERVAL
     value: "5000"
   - name: COMPUTE_PROPERTIES_SCHEDULER_INTERVAL
     value: "1000"
-  - name: COMPUTE_PROPERTIES_PERIODIC_SCHEDULER_ENABLED
-    value: "false"
-  - name: COMPUTE_PROPERTIES_PERIODIC_SEGMENTS_ENABLED
-    value: "false"
-  - name: COMPUTE_PROPERTIES_PERIODIC_USER_PROPERTIES_ENABLED
-    value: "true"
   - name: COMPUTE_PROPERTIES_JITTER_MS
     value: "0"
   - name: CLICKHOUSE_MAX_MEMORY_USAGE
@@ -172,15 +138,16 @@ env:
   - name: "REALTIME_SEGMENTS_QUEUE_BACKEND"
     value: "nats"
   - name: "REALTIME_SEGMENTS_NATS_SERVERS"
-    value: "nats://nats.dittofeed-dev.svc.cluster.local:4222"
+    value: "nats://nats.dittofeed.svc.cluster.local:4222"
   - name: "REALTIME_SEGMENTS_NATS_USERNAME"
     value: "app"
-  - name: "REALTIME_SEGMENTS_NATS_PASSWORD"
-    value: "wym4udp*YPA7het4bzr"
   - name: REALTIME_SEGMENTS_TRIGGER_JOURNEYS
     value: "true"
   - name: "ASSIGNMENT_SEQUENTIAL_CONSISTENCY"
     value: "true"
+  - name: "COMPUTE_PROPERTIES_PERIODIC_SCHEDULER_ENABLED"
+    value: "false"
+
 nodeSelector: {}
 
 tolerations: []
