@@ -46,7 +46,6 @@ import {
   RandomBucketSegmentNode,
   RelationalOperators,
   SegmentAbsoluteTimestampOperator,
-  SegmentDefinition,
   SegmentEqualsOperator,
   SegmentGreaterThanOrEqualOperator,
   SegmentHasBeenOperator,
@@ -98,19 +97,38 @@ import {
 import { GreyButton } from "../greyButtonStyle";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
+import { JourneysAutocomplete } from "../journeysAutocomplete";
 import { MessageTemplateAutocomplete } from "../messageTemplateAutocomplete";
 import { SegmentsAutocomplete, SimpleSegment } from "../segmentsAutocomplete";
 import { SubscriptionGroupAutocompleteV2 } from "../subscriptionGroupAutocomplete";
 import TraitAutocomplete from "../traitAutocomplete";
+import {
+  EDITOR_SEGMENT_NODE_TYPE,
+  EditorBodySegmentNode,
+  EditorOnlySegmentNodeType,
+  EditorSegmentDefinition,
+  EditorSegmentNode,
+  fromEditorDefinition,
+  isEditorBodySegmentNode,
+  isUserPerformedJourneyEditorNode,
+  toEditorDefinition,
+  UserPerformedJourneyEditorNode,
+} from "./segmentEditorTransforms";
 
-type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
+type EditableSegmentNodeType = SegmentNodeType | EditorOnlySegmentNodeType;
+
+type SegmentGroupedOption = GroupedOption<EditableSegmentNodeType>;
 
 const selectorWidth = "192px";
 const secondarySelectorWidth = "128px";
 
+interface SegmentEditorResource extends Omit<SegmentResource, "definition"> {
+  definition: EditorSegmentDefinition;
+}
+
 interface SegmentEditorState {
   disabled?: boolean;
-  editedSegment: SegmentResource;
+  editedSegment: SegmentEditorResource;
 }
 
 interface SegmentEditorContextType {
@@ -125,7 +143,7 @@ const SegmentEditorContext = React.createContext<
 function updateEditableSegmentNodeData(
   setState: Updater<SegmentEditorState>,
   nodeId: string,
-  updateNode: (currentValue: Draft<SegmentNode>) => void,
+  updateNode: (currentValue: Draft<EditorSegmentNode>) => void,
 ) {
   setState((draft) => {
     const { definition } = draft.editedSegment;
@@ -143,9 +161,9 @@ function updateEditableSegmentNodeData(
 }
 
 function mapSegmentNodeToNewType(
-  node: SegmentNode,
-  type: SegmentNodeType,
-): { primary: SegmentNode; secondary: BodySegmentNode[] } {
+  node: EditorSegmentNode,
+  type: EditableSegmentNodeType,
+): { primary: EditorSegmentNode; secondary: BodySegmentNode[] } {
   switch (type) {
     case SegmentNodeType.And: {
       let children: string[];
@@ -360,20 +378,35 @@ function mapSegmentNodeToNewType(
         secondary: [],
       };
     }
+    case EDITOR_SEGMENT_NODE_TYPE.UserPerformedJourney: {
+      return {
+        primary: {
+          type: EDITOR_SEGMENT_NODE_TYPE.UserPerformedJourney,
+          id: node.id,
+          journeyId: "",
+          nodeId: "",
+          times: 1,
+          timesOperator: RelationalOperators.GreaterThanOrEqual,
+        },
+        secondary: [],
+      };
+    }
     default: {
       assertUnreachable(type);
     }
   }
 }
 
-function removeOrphanedSegmentNodes(segmentDefinition: SegmentDefinition) {
+function removeOrphanedSegmentNodes(
+  segmentDefinition: EditorSegmentDefinition,
+) {
   const nonOrphanNodes = new Set<string>();
-  const nodesById = new Map<string, SegmentNode>();
+  const nodesById = new Map<string, EditorBodySegmentNode>();
   for (const node of segmentDefinition.nodes) {
     nodesById.set(node.id, node);
   }
 
-  const currentNodes: SegmentNode[] = [segmentDefinition.entryNode];
+  const currentNodes: EditorSegmentNode[] = [segmentDefinition.entryNode];
 
   while (currentNodes.length) {
     const currentNode = currentNodes.pop();
@@ -402,7 +435,7 @@ function removeOrphanedSegmentNodes(segmentDefinition: SegmentDefinition) {
 function updateEditableSegmentNodeType(
   setState: Updater<SegmentEditorState>,
   nodeId: string,
-  nodeType: SegmentNodeType,
+  nodeType: EditableSegmentNodeType,
 ) {
   setState((draft) => {
     const { definition } = draft.editedSegment;
@@ -415,7 +448,7 @@ function updateEditableSegmentNodeType(
       }
       const newType = mapSegmentNodeToNewType(node, nodeType);
       definition.entryNode = newType.primary;
-      definition.nodes = newType.secondary.concat(definition.nodes);
+      definition.nodes = [...newType.secondary, ...definition.nodes];
       // update body node
     } else {
       definition.nodes.forEach((node) => {
@@ -430,14 +463,14 @@ function updateEditableSegmentNodeType(
 
         const newType = mapSegmentNodeToNewType(node, nodeType);
         const { primary } = newType;
-        if (!isBodySegmentNode(primary)) {
+        if (!isEditorBodySegmentNode(primary)) {
           console.error(
             `Unexpected segment node type ${nodeType} for body node.`,
           );
           return;
         }
 
-        definition.nodes = newType.secondary.concat(definition.nodes);
+        definition.nodes = [...newType.secondary, ...definition.nodes];
         definition.nodes = definition.nodes.map((n) =>
           n.id === nodeId ? primary : n,
         );
@@ -554,6 +587,12 @@ const performedOption = {
   label: "User Performed",
 };
 
+const userPerformedJourneyOption = {
+  id: EDITOR_SEGMENT_NODE_TYPE.UserPerformedJourney,
+  group: "User Data",
+  label: "User Performed Journey",
+};
+
 const randomBucketOption = {
   id: SegmentNodeType.RandomBucket,
   group: "User Data",
@@ -611,6 +650,7 @@ const segmentOption = {
 const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
+  userPerformedJourneyOption,
   keyedPerformedOption,
   lastPerformedOption,
   everyoneOption,
@@ -646,6 +686,13 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.NotIncludes]: notIncludesOption,
   [SegmentNodeType.Segment]: segmentOption,
 };
+
+function getSegmentNodeOption(node: EditorSegmentNode): SegmentGroupedOption {
+  if (isUserPerformedJourneyEditorNode(node)) {
+    return userPerformedJourneyOption;
+  }
+  return keyedSegmentOptions[node.type as keyof typeof keyedSegmentOptions];
+}
 
 interface Option {
   id: SegmentOperatorType;
@@ -1791,6 +1838,53 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   );
 }
 
+function UserPerformedJourneySelect({
+  node,
+}: {
+  node: UserPerformedJourneyEditorNode;
+}) {
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
+
+  const handleJourneyChange = (journey: { id: string } | null) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
+      if (isUserPerformedJourneyEditorNode(n)) {
+        n.journeyId = journey?.id ?? "";
+      }
+    });
+  };
+
+  const handleNodeIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
+      if (isUserPerformedJourneyEditorNode(n)) {
+        n.nodeId = e.target.value;
+      }
+    });
+  };
+
+  return (
+    <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
+      <Box sx={{ width: selectorWidth }}>
+        <JourneysAutocomplete
+          journeyId={node.journeyId}
+          disabled={disabled}
+          handler={handleJourneyChange}
+        />
+      </Box>
+      <TextField
+        disabled={disabled}
+        label="Node ID"
+        value={node.nodeId}
+        onChange={handleNodeIdChange}
+        InputLabelProps={{
+          shrink: true,
+        }}
+        sx={{ flex: 1 }}
+      />
+    </Stack>
+  );
+}
+
 function KeyedPerformedSelect({ node }: { node: KeyedPerformedSegmentNode }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
@@ -2913,7 +3007,7 @@ function SegmentNodeComponent({
   parentId,
   isRoot = false,
 }: {
-  node: SegmentNode;
+  node: EditorSegmentNode;
   isRoot?: boolean;
   renderDelete?: boolean;
   parentId?: string;
@@ -2923,7 +3017,7 @@ function SegmentNodeComponent({
   const { disabled, editedSegment } = state;
   const nodeById = useMemo(
     () =>
-      editedSegment.definition.nodes.reduce<Record<string, SegmentNode>>(
+      editedSegment.definition.nodes.reduce<Record<string, EditorSegmentNode>>(
         (memo, segmentNode) => {
           memo[segmentNode.id] = segmentNode;
           return memo;
@@ -2956,7 +3050,7 @@ function SegmentNodeComponent({
     return null;
   }
 
-  const condition = keyedSegmentOptions[node.type];
+  const condition = getSegmentNodeOption(node);
   const conditionSelect = (
     <Box sx={{ width: selectorWidth }}>
       <Autocomplete
@@ -3021,7 +3115,7 @@ function SegmentNodeComponent({
   if (node.type === SegmentNodeType.And || node.type === SegmentNodeType.Or) {
     const rows = node.children.flatMap((childId, i) => {
       const child = nodeById[childId];
-      if (!child || !isBodySegmentNode(child)) {
+      if (!child || !isEditorBodySegmentNode(child)) {
         return [];
       }
 
@@ -3080,6 +3174,15 @@ function SegmentNodeComponent({
         {conditionSelect}
         <PerformedSelect node={node} />
         {deleteButton}
+      </Stack>
+    );
+  } else if (isUserPerformedJourneyEditorNode(node)) {
+    el = (
+      <Stack direction="row" spacing={1} sx={{ pr: 2 }}>
+        {labelEl}
+        {conditionSelect}
+        {deleteButton}
+        <UserPerformedJourneySelect node={node} />
       </Stack>
     );
   } else if (node.type === SegmentNodeType.LastPerformed) {
@@ -3187,12 +3290,15 @@ export default function SegmentEditor({
     segment
       ? {
           disabled,
-          editedSegment: segment,
+          editedSegment: {
+            ...segment,
+            definition: toEditorDefinition(segment.definition),
+          },
         }
       : null,
   );
 
-  const prevEditedSegmentRef = useRef<SegmentResource | null>(null);
+  const prevEditedSegmentRef = useRef<SegmentEditorResource | null>(null);
 
   // Call onSegmentChange only if the segment has changed from a non-null value to another non-null value
   useEffect(() => {
@@ -3201,7 +3307,10 @@ export default function SegmentEditor({
 
     // Call only if changed from a non-null value to another non-null value
     if (currentSegment && prevSegment && currentSegment !== prevSegment) {
-      onSegmentChange?.(currentSegment);
+      onSegmentChange?.({
+        ...currentSegment,
+        definition: fromEditorDefinition(currentSegment.definition),
+      });
     }
 
     // Update the ref to store the current segment for the next render
@@ -3212,7 +3321,10 @@ export default function SegmentEditor({
     if (segment && state === null) {
       setState({
         disabled,
-        editedSegment: segment,
+        editedSegment: {
+          ...segment,
+          definition: toEditorDefinition(segment.definition),
+        },
       });
     }
   }, [segment, setState, state, disabled]);
