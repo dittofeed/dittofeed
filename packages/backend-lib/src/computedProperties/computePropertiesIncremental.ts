@@ -4530,15 +4530,13 @@ export async function computeAssignments({
       });
     }
 
-    await Promise.all(
-      [...segmentQueries, ...userPropertyQueries].map((group) =>
-        execAssignmentQueryGroup({
-          workspaceId,
-          group,
-          clickhouseClient,
-        }),
-      ),
-    );
+    for (const group of [...segmentQueries, ...userPropertyQueries]) {
+      await execAssignmentQueryGroup({
+        workspaceId,
+        group,
+        clickhouseClient,
+      });
+    }
 
     await createPeriods({
       workspaceId,

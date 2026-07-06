@@ -59,6 +59,8 @@ import {
   SegmentOperator,
   SegmentOperatorType,
   SegmentResource,
+  SegmentSegmentNode,
+  SegmentSegmentOperatorType,
   SegmentWithinOperator,
   SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
@@ -97,6 +99,7 @@ import { GreyButton } from "../greyButtonStyle";
 import { SubtleHeader } from "../headers";
 import InfoTooltip from "../infoTooltip";
 import { MessageTemplateAutocomplete } from "../messageTemplateAutocomplete";
+import { SegmentsAutocomplete, SimpleSegment } from "../segmentsAutocomplete";
 import { SubscriptionGroupAutocompleteV2 } from "../subscriptionGroupAutocomplete";
 import TraitAutocomplete from "../traitAutocomplete";
 
@@ -346,13 +349,13 @@ function mapSegmentNodeToNewType(
         secondary: [],
       };
     }
-    case SegmentNodeType.Segment: { // TODO FIX ME PLS
+    case SegmentNodeType.Segment: {
       return {
         primary: {
-          type: SegmentNodeType.NotIncludes,
+          type: SegmentNodeType.Segment,
           id: node.id,
-          path: "",
-          item: "",
+          segmentId: "",
+          operator: SegmentSegmentOperatorType.In,
         },
         secondary: [],
       };
@@ -599,6 +602,12 @@ const notIncludesOption = {
   label: "Not Includes",
 };
 
+const segmentOption = {
+  id: SegmentNodeType.Segment,
+  group: "Segment",
+  label: "Segment",
+};
+
 const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
@@ -612,6 +621,7 @@ const SEGMENT_OPTIONS: SegmentGroupedOption[] = [
   andGroupedOption,
   orGroupedOption,
   emailOption,
+  segmentOption,
 ];
 
 const keyedSegmentOptions: Record<
@@ -634,7 +644,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.RandomBucket]: randomBucketOption,
   [SegmentNodeType.Includes]: includesOption,
   [SegmentNodeType.NotIncludes]: notIncludesOption,
-  [SegmentNodeType.Segment]: notIncludesOption, // TODO FIX ME PLS
+  [SegmentNodeType.Segment]: segmentOption,
 };
 
 interface Option {
@@ -757,6 +767,34 @@ const keyedHasBeenComparatorOptions: Record<
   [SegmentHasBeenOperatorComparator.GTE]: hasBeenComparatorOptionGTE,
   [SegmentHasBeenOperatorComparator.LT]: hasBeenComparatorOptionLT,
 };
+
+interface SegmentSegmentOption {
+  id: SegmentSegmentOperatorType;
+  label: string;
+}
+
+const inSegmentOperatorOption: SegmentSegmentOption = {
+  id: SegmentSegmentOperatorType.In,
+  label: "In",
+};
+
+const notInSegmentOperatorOption: SegmentSegmentOption = {
+  id: SegmentSegmentOperatorType.NotIn,
+  label: "Not In",
+};
+
+const segmentSegmentOperatorOptions: Record<
+  SegmentSegmentOperatorType,
+  SegmentSegmentOption
+> = {
+  [SegmentSegmentOperatorType.In]: inSegmentOperatorOption,
+  [SegmentSegmentOperatorType.NotIn]: notInSegmentOperatorOption,
+};
+
+const segmentSegmentOperatorOptionsList: SegmentSegmentOption[] = [
+  inSegmentOperatorOption,
+  notInSegmentOperatorOption,
+];
 
 function ValueSelect({
   nodeId,
@@ -2816,6 +2854,58 @@ function ManualNodeComponent({ node: _node }: { node: ManualSegmentNode }) {
   );
 }
 
+function SegmentSegmentNodeComponent({ node }: { node: SegmentSegmentNode }) {
+  const { segmentId, operator } = node;
+  const { state, setState } = useSegmentEditorContext();
+  const { disabled } = state;
+
+  const segmentSegmentOnChange = (newValue: SimpleSegment | null) => {
+    if (newValue === null) return;
+
+    updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
+      if (segmentNode.type === SegmentNodeType.Segment) {
+        segmentNode.segmentId = newValue.id;
+      }
+    });
+  };
+  return (
+    <>
+      <Box sx={{ width: secondarySelectorWidth }}>
+        <Autocomplete
+          value={segmentSegmentOperatorOptions[operator]}
+          disabled={disabled}
+          onChange={(_event: unknown, newValue: SegmentSegmentOption) => {
+            updateEditableSegmentNodeData(setState, node.id, (segmentNode) => {
+              if (segmentNode.type === SegmentNodeType.Segment) {
+                segmentNode.operator = newValue.id;
+              }
+            });
+          }}
+          disableClearable
+          options={segmentSegmentOperatorOptionsList}
+          renderInput={(params) => (
+            <TextField
+              label="Operator"
+              {...params}
+              variant="outlined"
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
+          )}
+        />
+      </Box>
+      <Box sx={{ width: selectorWidth }}>
+        <SegmentsAutocomplete
+          segmentId={segmentId}
+          handler={segmentSegmentOnChange}
+          disabled={disabled}
+        />
+      </Box>
+    </>
+  );
+}
+
 function SegmentNodeComponent({
   node,
   label,
@@ -3061,11 +3151,13 @@ function SegmentNodeComponent({
         {conditionSelect}
       </Stack>
     );
-  } else if (node.type === SegmentNodeType.Segment) { // TODO FIX ME PLS
+  } else if (node.type === SegmentNodeType.Segment) {
     el = (
       <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
+        <SegmentSegmentNodeComponent node={node} />
+        {deleteButton}
       </Stack>
     );
   } else {

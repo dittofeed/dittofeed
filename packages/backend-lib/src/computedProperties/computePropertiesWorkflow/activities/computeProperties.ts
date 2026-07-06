@@ -148,25 +148,6 @@ export async function computePropertiesIncremental(
       await computeState(prunedArgs);
       await computeAssignments(prunedArgs);
       await processAssignments(preparedArgs);
-
-      if (segments.length > 0) {
-        const allSegments = await findSegmentResources({
-          workspaceId: preparedArgs.workspaceId,
-        });
-        const dependents = findDependentSegments({
-          allSegments,
-          changedSegmentIds: new Set(segments.map((segment) => segment.id)),
-        });
-        if (dependents.length > 0) {
-          await enqueueRecompute({
-            items: dependents.map((segment) => ({
-              type: WorkspaceQueueItemType.Segment,
-              workspaceId: preparedArgs.workspaceId,
-              id: segment.id,
-            })),
-          });
-        }
-      }
     } catch (e) {
       logger().error(
         {

@@ -14,6 +14,22 @@ x-backend-app-env: &backend-app-env
   TEMPORAL_ADDRESS: "temporal:7233"
   API_HOST: "0.0.0.0"
   LOG_CONFIG: true
+  AUTH_MODE: "single-tenant"
+  DASHBOARD_URL: "http://localhost:3001"
+  SESSION_COOKIE_SECURE: true
+  BOOTSTRAP_EVENTS: true
+  BOOTSTRAP_WORKER: true
+  REALTIME_SEGMENTS_ENABLED: true
+  REALTIME_SEGMENTS_MODE: trigger
+  REALTIME_SEGMENTS_QUEUE_BACKEND: nats
+  REALTIME_SEGMENTS_NATS_SERVERS: "nats://nats:4222"
+  REALTIME_SEGMENTS_NATS_USERNAME: "app"
+  REALTIME_SEGMENTS_NATS_PASSWORD: "password"
+  REALTIME_SEGMENTS_TRIGGER_JOURNEYS: true
+  READ_COMPUTED_PROPERTY_ASSIGNMENTS_FROM_CURRENT: true
+  WRITE_COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT: true
+  REALTIME_SEGMENTS_WRITE_HISTORY: true
+  TRACK_JOURNEY_NODE_PROCESSED_EVENTS: true
 services:
   dashboard:
     build:
@@ -29,6 +45,7 @@ services:
       - temporal
       - api
       - clickhouse-server
+      - nats
     environment:
       <<: *backend-app-env
     networks:
@@ -46,6 +63,7 @@ services:
       - postgres
       - clickhouse-server
       - temporal
+      - nats
     environment:
       <<: *backend-app-env
       BOOTSTRAP_EVENTS: true
@@ -62,27 +80,9 @@ services:
       - postgres
       - temporal
       - clickhouse-server
+      - nats
     environment:
       <<: *backend-app-env
-    networks:
-      - dittofeed-network-dev
-  lite:
-    build:
-      context: .
-      dockerfile: ./packages/lite/Dockerfile
-    profiles: ["apps-lite"]
-    volumes:
-      - ./mnt:/dittofeed-mnt
-    ports:
-      - "3000:3000"
-    depends_on:
-      - postgres
-      - temporal
-      - clickhouse-server
-    environment:
-      <<: *backend-app-env
-      DASHBOARD_URL: "http://localhost:3000"
-      DASHBOARD_API_BASE: "http://localhost:3000"
     networks:
       - dittofeed-network-dev
   admin-cli:
@@ -97,6 +97,7 @@ services:
       - postgres
       - temporal
       - clickhouse-server
+      - nats
     environment:
       <<: *backend-app-env
     volumes:
@@ -277,6 +278,21 @@ services:
         rpk cluster config set superusers '["admin"]' --brokers kafka:29092 --api-urls http://kafka:9644
     networks:
       - dittofeed-network-dev
+  nats:
+    image: nats:2.10-alpine
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command:
+      - "--jetstream"
+      - "--store_dir=/data"
+      - "--http_port=8222"
+      - "--user=app"
+      - "--pass=password"
+    volumes:
+      - nats:/data
+    networks:
+      - dittofeed-network-dev
   clickhouse-server:
     image: clickhouse/clickhouse-server:24.12.6.70-alpine
     ports:
@@ -360,6 +376,7 @@ services:
 
 volumes:
   postgres:
+  nats:
   kafka:
   clickhouse_lib:
   clickhouse_log:
