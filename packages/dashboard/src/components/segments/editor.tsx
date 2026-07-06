@@ -114,6 +114,7 @@ import {
   toEditorDefinition,
   UserPerformedJourneyEditorNode,
 } from "./segmentEditorTransforms";
+import { JourneyNodePickerModal } from "./journeyNodePickerModal";
 
 type EditableSegmentNodeType = SegmentNodeType | EditorOnlySegmentNodeType;
 
@@ -1845,11 +1846,15 @@ function UserPerformedJourneySelect({
 }) {
   const { state, setState } = useSegmentEditorContext();
   const { disabled } = state;
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const handleJourneyChange = (journey: { id: string } | null) => {
     updateEditableSegmentNodeData(setState, node.id, (n) => {
       if (isUserPerformedJourneyEditorNode(n)) {
         n.journeyId = journey?.id ?? "";
+        if (journey?.id !== node.journeyId) {
+          n.nodeId = "";
+        }
       }
     });
   };
@@ -1862,26 +1867,54 @@ function UserPerformedJourneySelect({
     });
   };
 
+  const handleNodeIdSelect = (nodeId: string) => {
+    updateEditableSegmentNodeData(setState, node.id, (n) => {
+      if (isUserPerformedJourneyEditorNode(n)) {
+        n.nodeId = nodeId;
+      }
+    });
+  };
+
   return (
-    <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
-      <Box sx={{ width: selectorWidth }}>
-        <JourneysAutocomplete
-          journeyId={node.journeyId}
+    <>
+      <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
+        <Box sx={{ width: selectorWidth }}>
+          <JourneysAutocomplete
+            journeyId={node.journeyId}
+            disabled={disabled}
+            handler={handleJourneyChange}
+          />
+        </Box>
+        <TextField
           disabled={disabled}
-          handler={handleJourneyChange}
+          label="Node ID"
+          value={node.nodeId}
+          onChange={handleNodeIdChange}
+          InputLabelProps={{
+            shrink: true,
+          }}
+          sx={{ flex: 1 }}
         />
-      </Box>
-      <TextField
-        disabled={disabled}
-        label="Node ID"
-        value={node.nodeId}
-        onChange={handleNodeIdChange}
-        InputLabelProps={{
-          shrink: true,
+        <Button
+          disabled={disabled || !node.journeyId}
+          variant="outlined"
+          onClick={() => setPickerOpen(true)}
+          sx={{ whiteSpace: "nowrap" }}
+        >
+          Select Node
+        </Button>
+      </Stack>
+      <JourneyNodePickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        journeyId={node.journeyId}
+        selectedNodeId={node.nodeId}
+        onConfirm={(nodeId) => {
+          handleNodeIdSelect(nodeId);
+          setPickerOpen(false);
         }}
-        sx={{ flex: 1 }}
       />
-    </Stack>
+    </>
   );
 }
 
