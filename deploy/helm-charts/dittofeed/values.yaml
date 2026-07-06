@@ -336,6 +336,10 @@ env:
     value: "true"
   - name: "COMPUTE_PROPERTIES_PERIODIC_SCHEDULER_ENABLED"
     value: "false"
+  - name: "REALTIME_SEGMENTS_STATE_CACHE_ENABLED"
+    value: "true"
+  - name: "REALTIME_SEGMENTS_STATE_CACHE_URL"
+    value: "redis://dragonfly-dittofeed-replication.dittofeed.svc.cluster.local:6379"
 
 nodeSelector: {}
 

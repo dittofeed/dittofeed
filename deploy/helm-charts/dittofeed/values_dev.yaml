@@ -337,6 +337,10 @@ env:
     value: "500"
   - name: "ASSIGNMENT_SEQUENTIAL_CONSISTENCY"
     value: "true"
+  - name: "REALTIME_SEGMENTS_STATE_CACHE_ENABLED"
+    value: "true"
+  - name: "REALTIME_SEGMENTS_STATE_CACHE_URL"
+    value: "redis://dragonfly-dittofeed-dev-replication.dittofeed-dev.svc.cluster.local:6379"
 
 nodeSelector: {}
 
