@@ -1,3 +1,4 @@
+import { Counter, Histogram } from "@opentelemetry/api";
 import { stableJsonStringify } from "isomorphic-lib/src/equality";
 import { doesEventNameMatch } from "isomorphic-lib/src/events";
 import { fileUserPropertyToPerformed } from "isomorphic-lib/src/userProperties";
@@ -14,24 +15,19 @@ import {
 import config from "../config";
 import { jsonValue } from "../jsonPath";
 import logger from "../logger";
-import {
-  readRealtimeUserState,
-  RealtimeUserTrackEvent,
-} from "../realtimeSegments/state";
-import { RealtimeSegmentEvalJob } from "../realtimeSegments/types";
+import { getMeter } from "../openTelemetry";
+import { RealtimeUserTrackEvent } from "../realtimeSegments/state";
 import {
   EventType,
   GroupChildrenUserPropertyDefinitions,
   JSONValue,
   PerformedUserPropertyDefinition,
-  SavedUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "../types";
 import {
   COMPUTED_PROPERTY_ASSIGNMENTS_CURRENT_TABLE,
   COMPUTED_PROPERTY_ASSIGNMENTS_TABLE,
-  TRACK_EVENTS_TABLE,
 } from "../userEvents/clickhouse";
 import {
   doesJobAffectUserPropertyDependencies,
@@ -57,9 +53,73 @@ interface LatestAssignmentRow {
   max_event_time: string;
 }
 
+let MATERIALIZER_COUNTER: Counter | null = null;
+let MATERIALIZER_DURATION_HISTOGRAM: Histogram | null = null;
+let MATERIALIZER_CLICKHOUSE_FALLBACK_COUNTER: Counter | null = null;
+
 export interface RealtimeUserPropertyMaterializeResult {
   candidateCount: number;
   writtenCount: number;
+}
+
+function materializerCounter(): Counter {
+  if (MATERIALIZER_COUNTER) {
+    return MATERIALIZER_COUNTER;
+  }
+  MATERIALIZER_COUNTER = getMeter().createCounter(
+    "realtime_user_property_materializer_runs",
+    {
+      description: "Realtime user property materializer outcomes",
+      unit: "1",
+    },
+  );
+  return MATERIALIZER_COUNTER;
+}
+
+function materializerDurationHistogram(): Histogram {
+  if (MATERIALIZER_DURATION_HISTOGRAM) {
+    return MATERIALIZER_DURATION_HISTOGRAM;
+  }
+  MATERIALIZER_DURATION_HISTOGRAM = getMeter().createHistogram(
+    "realtime_user_property_materializer_duration_ms",
+    {
+      description: "Realtime user property materializer duration",
+      unit: "ms",
+    },
+  );
+  return MATERIALIZER_DURATION_HISTOGRAM;
+}
+
+function materializerClickHouseFallbackCounter(): Counter {
+  if (MATERIALIZER_CLICKHOUSE_FALLBACK_COUNTER) {
+    return MATERIALIZER_CLICKHOUSE_FALLBACK_COUNTER;
+  }
+  MATERIALIZER_CLICKHOUSE_FALLBACK_COUNTER = getMeter().createCounter(
+    "realtime_user_property_materializer_clickhouse_fallbacks",
+    {
+      description:
+        "ClickHouse fallback reads from realtime user property materializer",
+      unit: "1",
+    },
+  );
+  return MATERIALIZER_CLICKHOUSE_FALLBACK_COUNTER;
+}
+
+function recordMaterializerRun({
+  durationMs,
+  result,
+}: {
+  durationMs: number;
+  result:
+    | "disabled"
+    | "unaffected"
+    | "no_candidates"
+    | "no_supported_candidates"
+    | "success"
+    | "error";
+}): void {
+  materializerCounter().add(1, { result });
+  materializerDurationHistogram().record(durationMs, { result });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -206,6 +266,9 @@ function evaluateDefinition({
       });
     }
     case UserPropertyDefinitionType.PerformedMany: {
+      if (!config().realtimeUserPropertiesPerformedManyEnabled) {
+        return null;
+      }
       const eventNames = new Set(definition.or.map((event) => event.event));
       const value = events
         .filter((event) => eventNames.has(event.event))
@@ -284,112 +347,38 @@ function candidateIdsForJob({
   return ids;
 }
 
-function collectStateDependencies({
+function supportsRealtimeMaterialization({
   definition,
-  eventNames,
-  traitPaths,
 }: {
   definition: UserPropertyDefinition | GroupChildrenUserPropertyDefinitions;
-  eventNames: Set<string>;
-  traitPaths: Set<string>;
-}): void {
+}): boolean {
   switch (definition.type) {
     case UserPropertyDefinitionType.Trait:
-      traitPaths.add(definition.path);
-      break;
+      return true;
     case UserPropertyDefinitionType.Performed:
+      return definition.skipReCompute !== true;
     case UserPropertyDefinitionType.KeyedPerformed:
-      eventNames.add(definition.event);
-      break;
+      return true;
     case UserPropertyDefinitionType.File:
-      eventNames.add(
-        fileUserPropertyToPerformed({ userProperty: definition }).event,
-      );
-      break;
+      return definition.skipReCompute !== true;
     case UserPropertyDefinitionType.PerformedMany:
-      for (const item of definition.or) {
-        eventNames.add(item.event);
-      }
-      break;
+      return config().realtimeUserPropertiesPerformedManyEnabled;
     case UserPropertyDefinitionType.Group:
       for (const node of definition.nodes) {
-        collectStateDependencies({ definition: node, eventNames, traitPaths });
+        if (
+          node.type !== UserPropertyDefinitionType.AnyOf &&
+          supportsRealtimeMaterialization({ definition: node })
+        ) {
+          return true;
+        }
       }
-      break;
+      return false;
     case UserPropertyDefinitionType.Id:
     case UserPropertyDefinitionType.AnonymousId:
+      return true;
     case UserPropertyDefinitionType.AnyOf:
-      break;
+      return false;
   }
-}
-
-function candidateStateDependencies(candidates: SavedUserPropertyResource[]): {
-  eventNames: Set<string>;
-  eventWindowSeconds: Map<string, number | null>;
-  traitPaths: Set<string>;
-} {
-  const eventNames = new Set<string>();
-  const traitPaths = new Set<string>();
-  for (const candidate of candidates) {
-    collectStateDependencies({
-      definition: candidate.definition,
-      eventNames,
-      traitPaths,
-    });
-  }
-  return {
-    eventNames,
-    eventWindowSeconds: new Map([...eventNames].map((event) => [event, null])),
-    traitPaths,
-  };
-}
-
-function collectPerformedManyEventNames({
-  definition,
-  eventNames,
-}: {
-  definition: UserPropertyDefinition | GroupChildrenUserPropertyDefinitions;
-  eventNames: Set<string>;
-}): void {
-  switch (definition.type) {
-    case UserPropertyDefinitionType.PerformedMany:
-      for (const item of definition.or) {
-        eventNames.add(item.event);
-      }
-      break;
-    case UserPropertyDefinitionType.Group:
-      for (const node of definition.nodes) {
-        collectPerformedManyEventNames({ definition: node, eventNames });
-      }
-      break;
-    case UserPropertyDefinitionType.Trait:
-    case UserPropertyDefinitionType.Id:
-    case UserPropertyDefinitionType.AnonymousId:
-    case UserPropertyDefinitionType.Performed:
-    case UserPropertyDefinitionType.File:
-    case UserPropertyDefinitionType.KeyedPerformed:
-    case UserPropertyDefinitionType.AnyOf:
-      break;
-  }
-}
-
-function toRealtimeSegmentEvalJob(
-  job: RealtimeUserPropertyJob,
-): RealtimeSegmentEvalJob {
-  return {
-    anonymousId: job.anonymousId,
-    event: job.event,
-    eventTime: job.eventTime,
-    eventType: job.eventType,
-    messageId: job.messageId,
-    payload: job.payload,
-    processingTime: job.processingTime ?? new Date(),
-    propertyPaths: Object.keys(asRecord(job.payload.properties)),
-    traitPaths: Object.keys(asRecord(job.payload.traits)),
-    userId: job.userId,
-    userOrAnonymousId: job.userOrAnonymousId,
-    workspaceId: job.workspaceId,
-  };
 }
 
 async function readLatestAssignments({
@@ -414,9 +403,13 @@ async function readLatestAssignments({
       ]),
     );
   }
+  if (!config().realtimeUserPropertiesClickHouseFallbackEnabled) {
+    return new Map();
+  }
   if (userPropertyIds.length === 0) {
     return new Map();
   }
+  materializerClickHouseFallbackCounter().add(1);
   const qb = new ClickHouseQueryBuilder();
   const result = await chQuery({
     query: `
@@ -443,64 +436,6 @@ async function readLatestAssignments({
         value: row.last_value,
       },
     ]),
-  );
-}
-
-async function fillPerformedManyEventsFromClickHouse({
-  candidates,
-  events,
-  job,
-}: {
-  candidates: SavedUserPropertyResource[];
-  events: RealtimeUserTrackEvent[];
-  job: RealtimeUserPropertyJob;
-}): Promise<RealtimeUserTrackEvent[]> {
-  const performedManyEventNames = new Set<string>();
-  for (const candidate of candidates) {
-    collectPerformedManyEventNames({
-      definition: candidate.definition,
-      eventNames: performedManyEventNames,
-    });
-  }
-  if (performedManyEventNames.size === 0) {
-    return events;
-  }
-  const qb = new ClickHouseQueryBuilder();
-  const result = await chQuery({
-    query: `
-      SELECT event, message_id, properties, event_time
-      FROM ${TRACK_EVENTS_TABLE}
-      WHERE
-        workspace_id = ${qb.addQueryValue(job.workspaceId, "String")}
-        AND user_or_anonymous_id = ${qb.addQueryValue(job.userOrAnonymousId, "String")}
-        AND event IN ${qb.addQueryValue([...performedManyEventNames], "Array(String)")}
-      ORDER BY event_time DESC, processing_time DESC
-      LIMIT 5000
-    `,
-    query_params: qb.getQueries(),
-  });
-  const rows = await result.json<{
-    event: string;
-    event_time: string;
-    message_id: string;
-    properties: string;
-  }>();
-  const byMessageId = new Map<string, RealtimeUserTrackEvent>();
-  for (const event of events) {
-    if (event.messageId) {
-      byMessageId.set(event.messageId, event);
-    }
-  }
-  for (const row of rows) {
-    byMessageId.set(row.message_id, {
-      event: row.event,
-      eventTime: new Date(row.event_time),
-      messageId: row.message_id,
-      properties: asRecord(JSON.parse(row.properties)),
-    });
-  }
-  return [...byMessageId.values()].sort(
-    (a, b) => b.eventTime.getTime() - a.eventTime.getTime(),
   );
 }
 
@@ -554,78 +489,104 @@ export async function materializeRealtimeUserProperties({
 }: {
   job: RealtimeUserPropertyJob;
 }): Promise<RealtimeUserPropertyMaterializeResult> {
-  if (!config().realtimeUserPropertiesMaterializationEnabled) {
-    return { candidateCount: 0, writtenCount: 0 };
-  }
-  const dependencies = await getCachedRealtimeUserPropertyDependencies({
-    workspaceId: job.workspaceId,
-  });
-  if (!doesJobAffectUserPropertyDependencies({ dependencies, job })) {
-    return { candidateCount: 0, writtenCount: 0 };
-  }
-  const candidateIds = candidateIdsForJob({ dependencies, job });
-  const candidates = dependencies.userProperties.filter((userProperty) =>
-    candidateIds.has(userProperty.id),
-  );
-  if (candidates.length === 0) {
-    return { candidateCount: 0, writtenCount: 0 };
-  }
-
-  const stateDependencies = candidateStateDependencies(candidates);
-  const state = await readRealtimeUserState({
-    workspaceId: job.workspaceId,
-    userOrAnonymousId: job.userOrAnonymousId,
-    dependencies: {
-      always: false,
-      eventNames: stateDependencies.eventNames,
-      eventWindowSeconds: stateDependencies.eventWindowSeconds,
-      traitPaths: stateDependencies.traitPaths,
-    },
-    currentJob: toRealtimeSegmentEvalJob(job),
-  });
-  const trackEvents = await fillPerformedManyEventsFromClickHouse({
-    candidates,
-    events: state.trackEvents,
-    job,
-  });
-  const latestAssignments = await readLatestAssignments({
-    userId: job.userOrAnonymousId,
-    userPropertyIds: candidates.map((candidate) => candidate.id),
-    workspaceId: job.workspaceId,
-  });
-  const assignedAt = new Date();
-  const rows: UserPropertyAssignmentRow[] = [];
-
-  for (const candidate of candidates) {
-    const value = evaluateDefinition({
-      anonymousId: job.anonymousId,
-      definition: candidate.definition,
-      events: trackEvents,
-      traits: state.traits,
-      userId: job.userOrAnonymousId,
+  const startedAt = Date.now();
+  const finish = (
+    result:
+      | "disabled"
+      | "unaffected"
+      | "no_candidates"
+      | "no_supported_candidates"
+      | "success",
+    materializeResult: RealtimeUserPropertyMaterializeResult,
+  ) => {
+    recordMaterializerRun({
+      durationMs: Date.now() - startedAt,
+      result,
     });
-    if (value === null || value === "") {
-      continue;
-    }
-    const serialized = serializeValue(value);
-    const current = latestAssignments.get(candidate.id);
-    if (current?.maxEventTime && current.maxEventTime > job.eventTime) {
-      continue;
-    }
-    if (current?.value === serialized) {
-      continue;
-    }
-    rows.push(
-      toAssignmentRow({
-        assignedAt,
-        job,
-        userPropertyId: candidate.id,
-        value: serialized,
-      }),
-    );
+    return materializeResult;
+  };
+  if (!config().realtimeUserPropertiesMaterializationEnabled) {
+    return finish("disabled", { candidateCount: 0, writtenCount: 0 });
   }
-
   try {
+    const dependencies = await getCachedRealtimeUserPropertyDependencies({
+      workspaceId: job.workspaceId,
+    });
+    if (!doesJobAffectUserPropertyDependencies({ dependencies, job })) {
+      return finish("unaffected", { candidateCount: 0, writtenCount: 0 });
+    }
+    const candidateIds = candidateIdsForJob({ dependencies, job });
+    const candidates = dependencies.userProperties.filter((userProperty) =>
+      candidateIds.has(userProperty.id),
+    );
+    if (candidates.length === 0) {
+      return finish("no_candidates", { candidateCount: 0, writtenCount: 0 });
+    }
+
+    const realtimeCandidates = candidates.filter((candidate) =>
+      supportsRealtimeMaterialization({ definition: candidate.definition }),
+    );
+    if (realtimeCandidates.length === 0) {
+      return finish("no_supported_candidates", {
+        candidateCount: candidates.length,
+        writtenCount: 0,
+      });
+    }
+    const traits =
+      job.eventType === String(EventType.Identify)
+        ? asRecord(job.payload.traits)
+        : {};
+    const trackEvents: RealtimeUserTrackEvent[] =
+      job.event &&
+      (job.eventType === String(EventType.Track) ||
+        job.eventType === String(EventType.Page) ||
+        job.eventType === String(EventType.Screen))
+        ? [
+            {
+              event: job.event,
+              eventTime: job.eventTime,
+              messageId: job.messageId,
+              properties: asRecord(job.payload.properties),
+            },
+          ]
+        : [];
+    const latestAssignments = await readLatestAssignments({
+      userId: job.userOrAnonymousId,
+      userPropertyIds: realtimeCandidates.map((candidate) => candidate.id),
+      workspaceId: job.workspaceId,
+    });
+    const assignedAt = new Date();
+    const rows: UserPropertyAssignmentRow[] = [];
+
+    for (const candidate of realtimeCandidates) {
+      const value = evaluateDefinition({
+        anonymousId: job.anonymousId,
+        definition: candidate.definition,
+        events: trackEvents,
+        traits,
+        userId: job.userOrAnonymousId,
+      });
+      if (value === null || value === "") {
+        continue;
+      }
+      const serialized = serializeValue(value);
+      const current = latestAssignments.get(candidate.id);
+      if (current?.maxEventTime && current.maxEventTime > job.eventTime) {
+        continue;
+      }
+      if (current?.value === serialized) {
+        continue;
+      }
+      rows.push(
+        toAssignmentRow({
+          assignedAt,
+          job,
+          userPropertyId: candidate.id,
+          value: serialized,
+        }),
+      );
+    }
+
     await writeAssignments(rows);
     await writeThroughUserPropertyAssignmentsCache(
       rows.map((row) => ({
@@ -635,7 +596,15 @@ export async function materializeRealtimeUserProperties({
         workspaceId: row.workspace_id,
       })),
     );
+    return finish("success", {
+      candidateCount: realtimeCandidates.length,
+      writtenCount: rows.length,
+    });
   } catch (err) {
+    recordMaterializerRun({
+      durationMs: Date.now() - startedAt,
+      result: "error",
+    });
     logger().error(
       {
         err,
@@ -646,9 +615,4 @@ export async function materializeRealtimeUserProperties({
     );
     throw err;
   }
-
-  return {
-    candidateCount: candidates.length,
-    writtenCount: rows.length,
-  };
 }

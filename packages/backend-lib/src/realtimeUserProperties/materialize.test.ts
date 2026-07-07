@@ -1,5 +1,4 @@
 import config from "../config";
-import { readRealtimeUserState } from "../realtimeSegments/state";
 import {
   EventType,
   SavedUserPropertyResource,
@@ -13,7 +12,6 @@ const mockInsert = jest.fn((_params: { values: Record<string, unknown>[] }) =>
 );
 const mockQuery = jest.fn();
 const mockFindAllUserPropertyResources = jest.fn();
-const mockReadRealtimeUserState = jest.mocked(readRealtimeUserState);
 const mockConfig = jest.mocked(config);
 
 jest.mock("../config", () => ({
@@ -22,6 +20,9 @@ jest.mock("../config", () => ({
     computedPropertyAssignmentsCacheEnabled: false,
     computedPropertyAssignmentsCacheTtlSeconds: 300,
     readComputedPropertyAssignmentsFromCurrent: false,
+    realtimeUserPropertiesClickHouseFallbackEnabled: false,
+    realtimeUserPropertiesMaterializationEnabled: true,
+    realtimeUserPropertiesPerformedManyEnabled: false,
     realtimeSegmentsStateCacheEnabled: false,
     realtimeSegmentsStateCacheMaxEventsPerUserEvent: 5000,
     realtimeSegmentsStateCacheTtlSeconds: 1209600,
@@ -41,10 +42,6 @@ jest.mock("../clickhouse", () => {
     query: mockQuery,
   };
 });
-
-jest.mock("../realtimeSegments/state", () => ({
-  readRealtimeUserState: jest.fn(),
-}));
 
 jest.mock("../userProperties", () => ({
   findAllUserPropertyResources: mockFindAllUserPropertyResources,
@@ -88,6 +85,9 @@ describe("materializeRealtimeUserProperties", () => {
       computedPropertyAssignmentsCacheEnabled: false,
       computedPropertyAssignmentsCacheTtlSeconds: 300,
       readComputedPropertyAssignmentsFromCurrent: false,
+      realtimeUserPropertiesClickHouseFallbackEnabled: false,
+      realtimeUserPropertiesMaterializationEnabled: true,
+      realtimeUserPropertiesPerformedManyEnabled: false,
       realtimeSegmentsStateCacheEnabled: false,
       realtimeSegmentsStateCacheMaxEventsPerUserEvent: 5000,
       realtimeSegmentsStateCacheTtlSeconds: 1209600,
@@ -103,12 +103,6 @@ describe("materializeRealtimeUserProperties", () => {
         name: "plan",
       }),
     ]);
-    mockReadRealtimeUserState.mockResolvedValue({
-      userOrAnonymousId: "user-1",
-      traits: { plan: "gold" },
-      trackEvents: [],
-    });
-    mockLatestAssignments([]);
 
     const result = await materializeRealtimeUserProperties({
       job: {
@@ -133,6 +127,7 @@ describe("materializeRealtimeUserProperties", () => {
         user_property_value: JSON.stringify("gold"),
       }),
     ]);
+    expect(mockQuery).not.toHaveBeenCalled();
   });
 
   it("writes performed and keyed performed assignments from current track events", async () => {
@@ -157,19 +152,6 @@ describe("materializeRealtimeUserProperties", () => {
         name: "keyedAmount",
       }),
     ]);
-    mockReadRealtimeUserState.mockResolvedValue({
-      userOrAnonymousId: "user-1",
-      traits: {},
-      trackEvents: [
-        {
-          event: "Purchase",
-          eventTime: new Date("2026-01-01T00:00:00.000Z"),
-          messageId: "track-1",
-          properties: { amount: 42, orderId: "order-1" },
-        },
-      ],
-    });
-    mockLatestAssignments([]);
 
     await materializeRealtimeUserProperties({
       job: {
@@ -198,9 +180,10 @@ describe("materializeRealtimeUserProperties", () => {
         }),
       ]),
     );
+    expect(mockQuery).not.toHaveBeenCalled();
   });
 
-  it("includes the current event in performedMany assignments", async () => {
+  it("does not materialize performedMany or query ClickHouse by default", async () => {
     mockFindAllUserPropertyResources.mockResolvedValue([
       userProperty({
         definition: {
@@ -211,24 +194,8 @@ describe("materializeRealtimeUserProperties", () => {
         name: "purchases",
       }),
     ]);
-    mockReadRealtimeUserState.mockResolvedValue({
-      userOrAnonymousId: "user-1",
-      traits: {},
-      trackEvents: [
-        {
-          event: "Purchase",
-          eventTime: new Date("2026-01-01T00:00:00.000Z"),
-          messageId: "track-1",
-          properties: { amount: 42 },
-        },
-      ],
-    });
-    mockLatestAssignments([]);
-    mockQuery.mockResolvedValueOnce({
-      json: jest.fn(() => Promise.resolve([])),
-    });
 
-    await materializeRealtimeUserProperties({
+    const result = await materializeRealtimeUserProperties({
       job: {
         event: "Purchase",
         eventTime: new Date("2026-01-01T00:00:00.000Z"),
@@ -243,32 +210,32 @@ describe("materializeRealtimeUserProperties", () => {
       },
     });
 
-    expect(insertedRows()[0]).toEqual(
-      expect.objectContaining({
-        computed_property_id: "performed-many-property",
-        user_property_value: JSON.stringify([
-          {
-            event: "Purchase",
-            properties: JSON.stringify({ amount: 42 }),
-            timestamp: "2026-01-01T00:00:00",
-          },
-        ]),
-      }),
-    );
+    expect(result).toEqual({ candidateCount: 1, writtenCount: 0 });
+    expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockQuery).not.toHaveBeenCalled();
   });
 
-  it("skips stale writes when ClickHouse has a newer assignment", async () => {
+  it("skips stale writes when ClickHouse fallback has a newer assignment", async () => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    mockConfig.mockReturnValue({
+      computedPropertyAssignmentsCacheEnabled: false,
+      computedPropertyAssignmentsCacheTtlSeconds: 300,
+      readComputedPropertyAssignmentsFromCurrent: false,
+      realtimeUserPropertiesClickHouseFallbackEnabled: true,
+      realtimeUserPropertiesMaterializationEnabled: true,
+      realtimeUserPropertiesPerformedManyEnabled: false,
+      realtimeSegmentsStateCacheEnabled: false,
+      realtimeSegmentsStateCacheMaxEventsPerUserEvent: 5000,
+      realtimeSegmentsStateCacheTtlSeconds: 1209600,
+      realtimeSegmentsStateCacheUrl: "redis://localhost:6379",
+      writeComputedPropertyAssignmentsCurrent: false,
+    } as ReturnType<typeof config>);
     mockFindAllUserPropertyResources.mockResolvedValue([
       userProperty({
         id: "plan-property",
         name: "plan",
       }),
     ]);
-    mockReadRealtimeUserState.mockResolvedValue({
-      userOrAnonymousId: "user-1",
-      traits: { plan: "gold" },
-      trackEvents: [],
-    });
     mockLatestAssignments([
       {
         computed_property_id: "plan-property",

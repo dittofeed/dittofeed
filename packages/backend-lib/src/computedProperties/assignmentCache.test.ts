@@ -184,14 +184,21 @@ describe("computed property assignment cache", () => {
         userPropertyId: "plan",
         value: JSON.stringify("gold"),
       },
+      {
+        workspaceId: "workspace-1",
+        userId: "user-1",
+        userPropertyId: "tier",
+        value: "",
+      },
     ]);
 
     const assignments = await readCachedUserPropertyAssignments({
       workspaceId: "workspace-1",
       userId: "user-1",
-      userPropertyIds: ["plan"],
+      userPropertyIds: ["plan", "tier"],
     });
     expect(assignments?.get("plan")).toBe(JSON.stringify("gold"));
+    expect(assignments?.get("tier")).toBe("");
   });
 
   it("falls back on cache command errors", async () => {

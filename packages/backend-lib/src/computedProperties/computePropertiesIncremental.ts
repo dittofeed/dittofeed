@@ -65,6 +65,7 @@ import {
   TRACK_EVENTS_TABLE,
   USER_TRAIT_VALUES_CURRENT_VIEW,
 } from "../userEvents/clickhouse";
+import { writeThroughUserPropertyAssignmentsCache } from "./assignmentCache";
 import {
   computedPropertyAssignmentsReadTable,
   computedPropertyAssignmentsWriteQueries,
@@ -4053,6 +4054,53 @@ interface AssignmentQueryGroup {
   qb: ClickHouseQueryBuilder;
 }
 
+async function writeThroughComputedUserPropertyAssignments({
+  userPropertyIds,
+  workspaceId,
+}: {
+  userPropertyIds: string[];
+  workspaceId: string;
+}): Promise<void> {
+  const uniqueUserPropertyIds = [...new Set(userPropertyIds)];
+  if (
+    uniqueUserPropertyIds.length === 0 ||
+    !config().computedPropertyAssignmentsCacheEnabled ||
+    !config().realtimeSegmentsStateCacheUrl
+  ) {
+    return;
+  }
+  const qb = new ClickHouseQueryBuilder();
+  const assignmentsReadTable = computedPropertyAssignmentsReadTable();
+  const result = await chQuery({
+    query: `
+      SELECT
+        computed_property_id,
+        user_id,
+        argMax(user_property_value, assigned_at) AS last_value
+      FROM ${assignmentsReadTable}
+      WHERE
+        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+        AND type = 'user_property'
+        AND computed_property_id IN ${qb.addQueryValue(uniqueUserPropertyIds, "Array(String)")}
+      GROUP BY computed_property_id, user_id
+    `,
+    query_params: qb.getQueries(),
+  });
+  const rows = await result.json<{
+    computed_property_id: string;
+    last_value: string;
+    user_id: string;
+  }>();
+  await writeThroughUserPropertyAssignmentsCache(
+    rows.map((row) => ({
+      userId: row.user_id,
+      userPropertyId: row.computed_property_id,
+      value: row.last_value,
+      workspaceId,
+    })),
+  );
+}
+
 async function execAssignmentQueryGroup({
   workspaceId,
   group,
@@ -4473,6 +4521,16 @@ export async function computeAssignments({
         }),
       ),
     );
+    await writeThroughComputedUserPropertyAssignments({
+      workspaceId,
+      userPropertyIds: userPropertyQueries.flatMap((group) =>
+        group.queries.flatMap((query) =>
+          Array.isArray(query)
+            ? query.map((item) => item.computedPropertyId)
+            : [query.computedPropertyId],
+        ),
+      ),
+    });
 
     await createPeriods({
       workspaceId,

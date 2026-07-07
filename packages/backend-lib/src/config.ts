@@ -174,6 +174,8 @@ const BaseRawConfigProps = {
   realtimeSegmentsWriteHistory: Type.Optional(BoolStr),
   realtimeSegmentsTriggerJourneys: Type.Optional(BoolStr),
   realtimeUserPropertiesMaterializationEnabled: Type.Optional(BoolStr),
+  realtimeUserPropertiesClickHouseFallbackEnabled: Type.Optional(BoolStr),
+  realtimeUserPropertiesPerformedManyEnabled: Type.Optional(BoolStr),
   realtimeSegmentsStateCacheEnabled: Type.Optional(BoolStr),
   realtimeSegmentsStateCacheUrl: Type.Optional(Type.String()),
   realtimeSegmentsStateCacheTtlSeconds: Type.Optional(
@@ -437,6 +439,8 @@ export type Config = Overwrite<
     realtimeSegmentsWriteHistory: boolean;
     realtimeSegmentsTriggerJourneys: boolean;
     realtimeUserPropertiesMaterializationEnabled: boolean;
+    realtimeUserPropertiesClickHouseFallbackEnabled: boolean;
+    realtimeUserPropertiesPerformedManyEnabled: boolean;
     realtimeSegmentsStateCacheEnabled: boolean;
     realtimeSegmentsStateCacheUrl?: string;
     realtimeSegmentsStateCacheTtlSeconds: number;
@@ -886,6 +890,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.realtimeSegmentsTriggerJourneys === "true",
     realtimeUserPropertiesMaterializationEnabled:
       rawConfig.realtimeUserPropertiesMaterializationEnabled !== "false",
+    realtimeUserPropertiesClickHouseFallbackEnabled:
+      rawConfig.realtimeUserPropertiesClickHouseFallbackEnabled !== "false",
+    realtimeUserPropertiesPerformedManyEnabled:
+      rawConfig.realtimeUserPropertiesPerformedManyEnabled !== "false",
     realtimeSegmentsStateCacheEnabled:
       rawConfig.realtimeSegmentsStateCacheEnabled === "true",
     realtimeSegmentsStateCacheUrl: rawConfig.realtimeSegmentsStateCacheUrl,
