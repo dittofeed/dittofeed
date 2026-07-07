@@ -5,6 +5,7 @@ import { enqueueRecompute } from "../computedProperties/computePropertiesWorkflo
 import config from "../config";
 import { db } from "../db";
 import logger from "../logger";
+import { materializeRealtimeUserProperties } from "../realtimeUserProperties/materialize";
 import { findAllSegmentAssignmentsByIds } from "../segments";
 import { WorkspaceQueueItemType } from "../types";
 import {
@@ -279,6 +280,7 @@ async function processRealtimeSegmentJobUnlocked({
     await writeRealtimeSegmentAssignments(assignmentChanges);
     await writeThroughSegmentAssignmentsCache(assignmentChanges);
     await upsertRealtimeSegmentMemberships(membershipUpdates);
+    await materializeRealtimeUserProperties({ job });
     for (const change of evaluatedChanges) {
       change.written = assignmentChanges.some(
         (assignment) => assignment.segmentId === change.segmentId,

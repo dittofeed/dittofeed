@@ -7,6 +7,7 @@ import {
   readCachedUserPropertyAssignments,
   setComputedPropertyAssignmentCacheClientForTest,
   writeThroughSegmentAssignmentsCache,
+  writeThroughUserPropertyAssignmentsCache,
 } from "./assignmentCache";
 
 jest.mock("../config", () => ({
@@ -170,6 +171,27 @@ describe("computed property assignment cache", () => {
       segmentIds: ["segment-1"],
     });
     expect(assignments?.get("segment-1")).toBe(true);
+  });
+
+  it("writes through realtime user property assignment changes", async () => {
+    const fakeClient = new FakeAssignmentCacheClient();
+    enableAssignmentCache(fakeClient);
+
+    await writeThroughUserPropertyAssignmentsCache([
+      {
+        workspaceId: "workspace-1",
+        userId: "user-1",
+        userPropertyId: "plan",
+        value: JSON.stringify("gold"),
+      },
+    ]);
+
+    const assignments = await readCachedUserPropertyAssignments({
+      workspaceId: "workspace-1",
+      userId: "user-1",
+      userPropertyIds: ["plan"],
+    });
+    expect(assignments?.get("plan")).toBe(JSON.stringify("gold"));
   });
 
   it("falls back on cache command errors", async () => {

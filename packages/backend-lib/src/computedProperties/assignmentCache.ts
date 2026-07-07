@@ -544,3 +544,73 @@ export async function writeThroughSegmentAssignmentsCache(
     });
   }
 }
+
+export async function writeThroughUserPropertyAssignmentsCache(
+  assignments: {
+    userId: string;
+    userPropertyId: string;
+    value: string;
+    workspaceId: string;
+  }[],
+): Promise<void> {
+  const client = assignmentCacheClient();
+  const backendConfig = cacheConfig();
+  if (!client || !backendConfig.enabled || assignments.length === 0) {
+    return;
+  }
+  const byUser = new Map<
+    string,
+    {
+      assignments: Map<string, string>;
+      userId: string;
+      userPropertyIds: string[];
+      workspaceId: string;
+    }
+  >();
+  for (const assignment of assignments) {
+    const key = `${assignment.workspaceId}:${assignment.userId}`;
+    const group =
+      byUser.get(key) ??
+      ({
+        assignments: new Map<string, string>(),
+        userId: assignment.userId,
+        userPropertyIds: [],
+        workspaceId: assignment.workspaceId,
+      } satisfies {
+        assignments: Map<string, string>;
+        userId: string;
+        userPropertyIds: string[];
+        workspaceId: string;
+      });
+    group.assignments.set(assignment.userPropertyId, assignment.value);
+    group.userPropertyIds.push(assignment.userPropertyId);
+    byUser.set(key, group);
+  }
+  try {
+    await Promise.all(
+      [...byUser.values()].map((group) =>
+        fillUserPropertyAssignmentsCache({
+          assignments: group.assignments,
+          userId: group.userId,
+          userPropertyIds: group.userPropertyIds,
+          workspaceId: group.workspaceId,
+        }),
+      ),
+    );
+    recordCacheOperation({
+      operation: "write",
+      result: "success",
+      type: USER_PROPERTY_TYPE,
+    });
+  } catch (err) {
+    logger().warn(
+      { err },
+      "Failed to write through computed user property assignment cache.",
+    );
+    recordCacheOperation({
+      operation: "write",
+      result: "error",
+      type: USER_PROPERTY_TYPE,
+    });
+  }
+}
