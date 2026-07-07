@@ -280,7 +280,9 @@ async function processRealtimeSegmentJobUnlocked({
     await writeRealtimeSegmentAssignments(assignmentChanges);
     await writeThroughSegmentAssignmentsCache(assignmentChanges);
     await upsertRealtimeSegmentMemberships(membershipUpdates);
-    await materializeRealtimeUserProperties({ job });
+    if (triggerJourneys && assignmentChanges.length > 0) {
+      await materializeRealtimeUserProperties({ job });
+    }
     for (const change of evaluatedChanges) {
       change.written = assignmentChanges.some(
         (assignment) => assignment.segmentId === change.segmentId,

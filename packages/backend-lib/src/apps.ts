@@ -8,42 +8,16 @@ import {
   triggerEventEntryJourneys,
   TriggerEventEntryJourneysOptions,
 } from "./journeys";
-import { materializeRealtimeUserProperties } from "./realtimeUserProperties/materialize";
 import {
   BatchItem,
   EventType,
   GroupData,
   IdentifyData,
-  JSONValue,
   PageData,
   ScreenData,
   TrackData,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
-
-interface TrackTrigger {
-  event: TrackData;
-  userId: string;
-  workspaceId: string;
-}
-
-function trackJobPayload({
-  data,
-  properties,
-}: {
-  data: TrackData;
-  properties: Record<string, JSONValue>;
-}): Record<string, JSONValue> {
-  return {
-    event: data.event,
-    messageId: data.messageId,
-    properties,
-    timestamp: data.timestamp ?? null,
-    type: EventType.Track,
-    userId: "userId" in data ? data.userId : null,
-    anonymousId: "anonymousId" in data ? data.anonymousId : null,
-  };
-}
 
 export async function submitIdentify({
   workspaceId,
@@ -104,19 +78,6 @@ export async function submitTrackWithTriggers({
   }
 
   if (userOrAnonymousId) {
-    await materializeRealtimeUserProperties({
-      job: {
-        anonymousId: "anonymousId" in data ? data.anonymousId : undefined,
-        event: data.event,
-        eventTime: new Date(data.timestamp ?? new Date().toISOString()),
-        eventType: EventType.Track,
-        messageId: data.messageId,
-        payload: trackJobPayload({ data, properties }),
-        userId: "userId" in data ? data.userId : undefined,
-        userOrAnonymousId,
-        workspaceId,
-      },
-    });
     await triggerEventEntryJourneys({
       workspaceId,
       event: {
@@ -156,53 +117,30 @@ export async function submitBatchWithTriggers({
   };
   await submitBatch({ workspaceId, data });
 
-  const triggers: TrackTrigger[] = data.batch.flatMap((message) => {
-    if (message.type !== EventType.Track) {
-      return [];
-    }
-    let userOrAnonymousId: string | null = null;
-    if ("userId" in message) {
-      userOrAnonymousId = message.userId;
-    } else if ("anonymousId" in message) {
-      userOrAnonymousId = message.anonymousId;
-    }
-    if (!userOrAnonymousId) {
-      return [];
-    }
-    return {
-      workspaceId,
-      event: message,
-      userId: userOrAnonymousId,
-    } satisfies TrackTrigger;
-  });
+  const triggers: TriggerEventEntryJourneysOptions[] = data.batch.flatMap(
+    (message) => {
+      if (message.type !== EventType.Track) {
+        return [];
+      }
+      let userOrAnonymousId: string | null = null;
+      if ("userId" in message) {
+        userOrAnonymousId = message.userId;
+      } else if ("anonymousId" in message) {
+        userOrAnonymousId = message.anonymousId;
+      }
+      if (!userOrAnonymousId) {
+        return [];
+      }
+      return {
+        workspaceId,
+        event: message,
+        userId: userOrAnonymousId,
+      } satisfies TriggerEventEntryJourneysOptions;
+    },
+  );
 
   await Promise.all(
-    triggers.map(async (trigger) => {
-      await materializeRealtimeUserProperties({
-        job: {
-          anonymousId:
-            "anonymousId" in trigger.event
-              ? trigger.event.anonymousId
-              : undefined,
-          event: trigger.event.event,
-          eventTime: new Date(
-            trigger.event.timestamp ?? new Date().toISOString(),
-          ),
-          eventType: EventType.Track,
-          messageId: trigger.event.messageId,
-          payload: trackJobPayload({
-            data: trigger.event,
-            properties: trigger.event.properties ?? {},
-          }),
-          userId: "userId" in trigger.event ? trigger.event.userId : undefined,
-          userOrAnonymousId: trigger.userId,
-          workspaceId: trigger.workspaceId,
-        },
-      });
-      return triggerEventEntryJourneys(
-        trigger satisfies TriggerEventEntryJourneysOptions,
-      );
-    }),
+    triggers.map((trigger) => triggerEventEntryJourneys(trigger)),
   );
 }
 

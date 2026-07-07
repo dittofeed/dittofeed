@@ -49,6 +49,7 @@ import {
 } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import { getMeter } from "./openTelemetry";
+import { materializeRealtimeUserProperties } from "./realtimeUserProperties/materialize";
 import { restartUserJourneyWorkflow } from "./restartUserJourneyWorkflow/lifecycle";
 import { findManySegmentResourcesSafe, findSegmentResource } from "./segments";
 import { getContext } from "./temporal/activity";
@@ -61,6 +62,7 @@ import {
   DeleteMessageTemplateRequest,
   EmailStats,
   EnrichedJourney,
+  EventType,
   HasStartedJourneyResource,
   InternalEventType,
   Journey,
@@ -72,6 +74,7 @@ import {
   JourneyType,
   JourneyUpsertValidationError,
   JourneyUpsertValidationErrorType,
+  JSONValue,
   MessageChannelStats,
   MessageTemplate,
   NodeStatsType,
@@ -705,6 +708,18 @@ export type TriggerEventEntryJourneysOptions = Omit<
   "definition" | "journeyId"
 >;
 
+function triggerEventPayload(
+  event: StartKeyedUserJourneyProps["event"],
+): Record<string, JSONValue> {
+  return {
+    event: event.event,
+    messageId: event.messageId,
+    properties: event.properties ?? {},
+    timestamp: event.timestamp ?? null,
+    type: EventType.Track,
+  };
+}
+
 /**
  * Abstracts the triggerEventEntryJourneys function for ease of testing.
  * @param journeyCache - A cache of journey details for a given workspace.
@@ -759,23 +774,30 @@ export function triggerEventEntryJourneysFactory({
       journeyCache.set(workspaceId, journeyDetails);
     }
 
-    const starts: Promise<unknown>[] = journeyDetails.flatMap(
-      ({
-        journeyId,
-        journeyName,
-        journeyType,
-        event: journeyEvent,
-        definition,
-      }) => {
-        const isMatch = doesEventNameMatch({
-          pattern: journeyEvent,
-          event: triggerEvent.event,
-        });
+    const matchingJourneyDetails = journeyDetails.filter(({ event }) =>
+      doesEventNameMatch({
+        pattern: event,
+        event: triggerEvent.event,
+      }),
+    );
+    if (matchingJourneyDetails.length === 0) {
+      return;
+    }
 
-        if (!isMatch) {
-          return [];
-        }
+    await materializeRealtimeUserProperties({
+      job: {
+        event: triggerEvent.event,
+        eventTime: new Date(triggerEvent.timestamp ?? new Date().toISOString()),
+        eventType: EventType.Track,
+        messageId: triggerEvent.messageId,
+        payload: triggerEventPayload(triggerEvent),
+        userOrAnonymousId: userId,
+        workspaceId,
+      },
+    });
 
+    const starts: Promise<unknown>[] = matchingJourneyDetails.flatMap(
+      ({ journeyId, journeyName, journeyType, definition }) => {
         const counter = journeyTriggerCounter();
         if (definition.entryNode.type !== JourneyNodeType.EventEntryNode) {
           logger().error(

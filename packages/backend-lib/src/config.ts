@@ -173,6 +173,7 @@ const BaseRawConfigProps = {
   ),
   realtimeSegmentsWriteHistory: Type.Optional(BoolStr),
   realtimeSegmentsTriggerJourneys: Type.Optional(BoolStr),
+  realtimeUserPropertiesMaterializationEnabled: Type.Optional(BoolStr),
   realtimeSegmentsStateCacheEnabled: Type.Optional(BoolStr),
   realtimeSegmentsStateCacheUrl: Type.Optional(Type.String()),
   realtimeSegmentsStateCacheTtlSeconds: Type.Optional(
@@ -435,6 +436,7 @@ export type Config = Overwrite<
     realtimeSegmentsNatsMaxAckPending: number;
     realtimeSegmentsWriteHistory: boolean;
     realtimeSegmentsTriggerJourneys: boolean;
+    realtimeUserPropertiesMaterializationEnabled: boolean;
     realtimeSegmentsStateCacheEnabled: boolean;
     realtimeSegmentsStateCacheUrl?: string;
     realtimeSegmentsStateCacheTtlSeconds: number;
@@ -882,6 +884,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.realtimeSegmentsWriteHistory !== "false",
     realtimeSegmentsTriggerJourneys:
       rawConfig.realtimeSegmentsTriggerJourneys === "true",
+    realtimeUserPropertiesMaterializationEnabled:
+      rawConfig.realtimeUserPropertiesMaterializationEnabled !== "false",
     realtimeSegmentsStateCacheEnabled:
       rawConfig.realtimeSegmentsStateCacheEnabled === "true",
     realtimeSegmentsStateCacheUrl: rawConfig.realtimeSegmentsStateCacheUrl,

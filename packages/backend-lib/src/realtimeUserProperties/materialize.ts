@@ -24,6 +24,7 @@ import {
   GroupChildrenUserPropertyDefinitions,
   JSONValue,
   PerformedUserPropertyDefinition,
+  SavedUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "../types";
@@ -283,6 +284,95 @@ function candidateIdsForJob({
   return ids;
 }
 
+function collectStateDependencies({
+  definition,
+  eventNames,
+  traitPaths,
+}: {
+  definition: UserPropertyDefinition | GroupChildrenUserPropertyDefinitions;
+  eventNames: Set<string>;
+  traitPaths: Set<string>;
+}): void {
+  switch (definition.type) {
+    case UserPropertyDefinitionType.Trait:
+      traitPaths.add(definition.path);
+      break;
+    case UserPropertyDefinitionType.Performed:
+    case UserPropertyDefinitionType.KeyedPerformed:
+      eventNames.add(definition.event);
+      break;
+    case UserPropertyDefinitionType.File:
+      eventNames.add(
+        fileUserPropertyToPerformed({ userProperty: definition }).event,
+      );
+      break;
+    case UserPropertyDefinitionType.PerformedMany:
+      for (const item of definition.or) {
+        eventNames.add(item.event);
+      }
+      break;
+    case UserPropertyDefinitionType.Group:
+      for (const node of definition.nodes) {
+        collectStateDependencies({ definition: node, eventNames, traitPaths });
+      }
+      break;
+    case UserPropertyDefinitionType.Id:
+    case UserPropertyDefinitionType.AnonymousId:
+    case UserPropertyDefinitionType.AnyOf:
+      break;
+  }
+}
+
+function candidateStateDependencies(candidates: SavedUserPropertyResource[]): {
+  eventNames: Set<string>;
+  eventWindowSeconds: Map<string, number | null>;
+  traitPaths: Set<string>;
+} {
+  const eventNames = new Set<string>();
+  const traitPaths = new Set<string>();
+  for (const candidate of candidates) {
+    collectStateDependencies({
+      definition: candidate.definition,
+      eventNames,
+      traitPaths,
+    });
+  }
+  return {
+    eventNames,
+    eventWindowSeconds: new Map([...eventNames].map((event) => [event, null])),
+    traitPaths,
+  };
+}
+
+function collectPerformedManyEventNames({
+  definition,
+  eventNames,
+}: {
+  definition: UserPropertyDefinition | GroupChildrenUserPropertyDefinitions;
+  eventNames: Set<string>;
+}): void {
+  switch (definition.type) {
+    case UserPropertyDefinitionType.PerformedMany:
+      for (const item of definition.or) {
+        eventNames.add(item.event);
+      }
+      break;
+    case UserPropertyDefinitionType.Group:
+      for (const node of definition.nodes) {
+        collectPerformedManyEventNames({ definition: node, eventNames });
+      }
+      break;
+    case UserPropertyDefinitionType.Trait:
+    case UserPropertyDefinitionType.Id:
+    case UserPropertyDefinitionType.AnonymousId:
+    case UserPropertyDefinitionType.Performed:
+    case UserPropertyDefinitionType.File:
+    case UserPropertyDefinitionType.KeyedPerformed:
+    case UserPropertyDefinitionType.AnyOf:
+      break;
+  }
+}
+
 function toRealtimeSegmentEvalJob(
   job: RealtimeUserPropertyJob,
 ): RealtimeSegmentEvalJob {
@@ -357,25 +447,20 @@ async function readLatestAssignments({
 }
 
 async function fillPerformedManyEventsFromClickHouse({
+  candidates,
   events,
   job,
 }: {
+  candidates: SavedUserPropertyResource[];
   events: RealtimeUserTrackEvent[];
   job: RealtimeUserPropertyJob;
 }): Promise<RealtimeUserTrackEvent[]> {
   const performedManyEventNames = new Set<string>();
-  const dependencies = await getCachedRealtimeUserPropertyDependencies({
-    workspaceId: job.workspaceId,
-  });
-  for (const userProperty of dependencies.userProperties) {
-    if (
-      userProperty.definition.type !== UserPropertyDefinitionType.PerformedMany
-    ) {
-      continue;
-    }
-    for (const item of userProperty.definition.or) {
-      performedManyEventNames.add(item.event);
-    }
+  for (const candidate of candidates) {
+    collectPerformedManyEventNames({
+      definition: candidate.definition,
+      eventNames: performedManyEventNames,
+    });
   }
   if (performedManyEventNames.size === 0) {
     return events;
@@ -469,6 +554,9 @@ export async function materializeRealtimeUserProperties({
 }: {
   job: RealtimeUserPropertyJob;
 }): Promise<RealtimeUserPropertyMaterializeResult> {
+  if (!config().realtimeUserPropertiesMaterializationEnabled) {
+    return { candidateCount: 0, writtenCount: 0 };
+  }
   const dependencies = await getCachedRealtimeUserPropertyDependencies({
     workspaceId: job.workspaceId,
   });
@@ -483,20 +571,20 @@ export async function materializeRealtimeUserProperties({
     return { candidateCount: 0, writtenCount: 0 };
   }
 
+  const stateDependencies = candidateStateDependencies(candidates);
   const state = await readRealtimeUserState({
     workspaceId: job.workspaceId,
     userOrAnonymousId: job.userOrAnonymousId,
     dependencies: {
       always: false,
-      eventNames: dependencies.eventNames,
-      eventWindowSeconds: new Map(
-        [...dependencies.eventNames].map((event) => [event, null]),
-      ),
-      traitPaths: dependencies.traitPaths,
+      eventNames: stateDependencies.eventNames,
+      eventWindowSeconds: stateDependencies.eventWindowSeconds,
+      traitPaths: stateDependencies.traitPaths,
     },
     currentJob: toRealtimeSegmentEvalJob(job),
   });
   const trackEvents = await fillPerformedManyEventsFromClickHouse({
+    candidates,
     events: state.trackEvents,
     job,
   });
