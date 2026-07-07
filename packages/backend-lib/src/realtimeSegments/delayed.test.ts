@@ -4,7 +4,10 @@ import {
   SegmentNodeType,
   SegmentStatusEnum,
 } from "../types";
-import { computeDelayedReevaluationBoundaries } from "./delayed";
+import {
+  computeDelayedReevaluationBoundaries,
+  isIdentifiedDelayedReevaluation,
+} from "./delayed";
 import { RealtimeUserState } from "./state";
 
 function segment(
@@ -115,5 +118,13 @@ describe("computeDelayedReevaluationBoundaries", () => {
       "2026-01-03T00:00:00.000Z",
       "2026-01-04T00:00:00.000Z",
     ]);
+  });
+});
+
+describe("isIdentifiedDelayedReevaluation", () => {
+  it("only treats delayed reevaluations with a userId as identified", () => {
+    expect(isIdentifiedDelayedReevaluation({ userId: "user-1" })).toBe(true);
+    expect(isIdentifiedDelayedReevaluation({ userId: "" })).toBe(false);
+    expect(isIdentifiedDelayedReevaluation({})).toBe(false);
   });
 });

@@ -209,6 +209,12 @@ function toRealtimeJob(
   };
 }
 
+export function isIdentifiedDelayedReevaluation(
+  row: Pick<DelayedReevaluation, "userId">,
+): boolean {
+  return Boolean(row.userId);
+}
+
 async function claimDueDelayedReevaluations({
   lockId,
   batchSize,
@@ -331,15 +337,33 @@ export async function enqueueDueDelayedReevaluations({
     return 0;
   }
 
-  const ids = claimed.map((row) => row.id);
+  const identified = claimed.filter(isIdentifiedDelayedReevaluation);
+  const skipped = claimed.filter(
+    (row) => !isIdentifiedDelayedReevaluation(row),
+  );
+  const ids = identified.map((row) => row.id);
+  if (skipped.length > 0) {
+    await markDelayedReevaluationsComplete({
+      ids: skipped.map((row) => row.id),
+      lockId,
+    });
+    logger().info(
+      { skippedCount: skipped.length },
+      "Skipped delayed realtime segment reevaluations without userId.",
+    );
+  }
+  if (identified.length === 0) {
+    return 0;
+  }
+
   try {
-    await getRealtimeSegmentQueue().enqueue(claimed.map(toRealtimeJob));
+    await getRealtimeSegmentQueue().enqueue(identified.map(toRealtimeJob));
     await markDelayedReevaluationsComplete({ ids, lockId });
-    return claimed.length;
+    return identified.length;
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     logger().error(
-      { err: error, delayedReevaluationCount: claimed.length },
+      { err: error, delayedReevaluationCount: identified.length },
       "Failed to enqueue delayed realtime segment reevaluations.",
     );
     await markDelayedReevaluationsFailed({

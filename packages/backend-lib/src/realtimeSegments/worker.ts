@@ -18,9 +18,30 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
+export function shouldSkipRealtimeSegmentJob(
+  job: Pick<ClaimedRealtimeSegmentEvalJob, "userId">,
+): boolean {
+  return !job.userId;
+}
+
 async function processRealtimeSegmentEvalJob(
   job: ClaimedRealtimeSegmentEvalJob,
 ): Promise<void> {
+  if (shouldSkipRealtimeSegmentJob(job)) {
+    logger().info(
+      {
+        workspaceId: job.workspaceId,
+        messageId: job.messageId,
+        anonymousId: job.anonymousId,
+        userOrAnonymousId: job.userOrAnonymousId,
+        eventType: job.eventType,
+        event: job.event,
+      },
+      "Skipping realtime segment job without userId.",
+    );
+    return;
+  }
+
   const mode = config().realtimeSegmentsMode;
   const writeAssignments =
     mode === "write" || mode === "trigger" || mode === "read";
