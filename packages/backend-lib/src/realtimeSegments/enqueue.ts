@@ -61,7 +61,8 @@ export function buildRealtimeSegmentEvalJobs({
   userEvents: InsertUserEvent[];
 }): RealtimeSegmentEvalJob[] {
   const now = new Date();
-  return userEvents.flatMap((event) => {
+  let skippedAnonymousOnlyCount = 0;
+  const jobs = userEvents.flatMap((event) => {
     const raw = parseMessageRaw(event.messageRaw);
     if (!raw?.type) {
       return [];
@@ -70,8 +71,10 @@ export function buildRealtimeSegmentEvalJobs({
     if (!messageId) {
       return [];
     }
-    const userOrAnonymousId = raw.userId ?? raw.anonymousId;
-    if (!userOrAnonymousId) {
+    if (!raw.userId) {
+      if (raw.anonymousId) {
+        skippedAnonymousOnlyCount += 1;
+      }
       return [];
     }
 
@@ -88,7 +91,7 @@ export function buildRealtimeSegmentEvalJobs({
       messageId,
       userId: raw.userId,
       anonymousId: raw.anonymousId,
-      userOrAnonymousId,
+      userOrAnonymousId: raw.userId,
       eventType: raw.type,
       event: typeof raw.event === "string" ? raw.event : undefined,
       traitPaths: Object.keys(traits),
@@ -100,6 +103,13 @@ export function buildRealtimeSegmentEvalJobs({
         : now,
     };
   });
+  if (skippedAnonymousOnlyCount > 0) {
+    logger().debug(
+      { workspaceId, skippedAnonymousOnlyCount },
+      "Skipped anonymous-only realtime segment events.",
+    );
+  }
+  return jobs;
 }
 
 export async function filterRealtimeSegmentEvalJobs({

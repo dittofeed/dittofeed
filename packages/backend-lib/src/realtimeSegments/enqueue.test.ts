@@ -1,3 +1,4 @@
+import { findSegmentResources } from "../segments";
 import {
   EventType,
   RelationalOperators,
@@ -6,12 +7,11 @@ import {
   SegmentOperatorType,
   SegmentStatusEnum,
 } from "../types";
-import { findSegmentResources } from "../segments";
+import { clearRealtimeSegmentDependencyCache } from "./dependencies";
 import {
   buildRealtimeSegmentEvalJobs,
   enqueueRealtimeSegmentEvalJobs,
 } from "./enqueue";
-import { clearRealtimeSegmentDependencyCache } from "./dependencies";
 import { getRealtimeSegmentQueue } from "./queue";
 import { RealtimeSegmentEvalJob } from "./types";
 
@@ -26,10 +26,8 @@ jest.mock("../segments", () => ({
 const mockEnqueue = jest.fn<Promise<void>, [RealtimeSegmentEvalJob[]]>(() =>
   Promise.resolve(undefined),
 );
-const mockFindSegmentResources =
-  findSegmentResources as jest.MockedFunction<typeof findSegmentResources>;
-const mockGetRealtimeSegmentQueue =
-  getRealtimeSegmentQueue as jest.MockedFunction<typeof getRealtimeSegmentQueue>;
+const mockFindSegmentResources = jest.mocked(findSegmentResources);
+const mockGetRealtimeSegmentQueue = jest.mocked(getRealtimeSegmentQueue);
 
 function segment(
   definition: SavedSegmentResource["definition"],
@@ -138,6 +136,7 @@ describe("buildRealtimeSegmentEvalJobs", () => {
           messageRaw: JSON.stringify({
             type: EventType.Track,
             messageId: "track-message",
+            userId: "user-1",
             anonymousId: "anon-1",
             event: "Purchase",
             properties: {
@@ -154,8 +153,9 @@ describe("buildRealtimeSegmentEvalJobs", () => {
     expect(jobs[0]).toEqual(
       expect.objectContaining({
         messageId: "track-message",
+        userId: "user-1",
         anonymousId: "anon-1",
-        userOrAnonymousId: "anon-1",
+        userOrAnonymousId: "user-1",
         eventType: EventType.Track,
         event: "Purchase",
         traitPaths: [],
@@ -164,7 +164,50 @@ describe("buildRealtimeSegmentEvalJobs", () => {
     );
   });
 
-  it("skips events without a user or anonymous identifier", () => {
+  it("skips anonymous-only track events", () => {
+    const jobs = buildRealtimeSegmentEvalJobs({
+      workspaceId: "00000000-0000-0000-0000-000000000001",
+      userEvents: [
+        {
+          messageId: "anonymous-track-message",
+          messageRaw: JSON.stringify({
+            type: EventType.Track,
+            messageId: "anonymous-track-message",
+            anonymousId: "anon-1",
+            event: "Purchase",
+            properties: {
+              amount: 100,
+            },
+          }),
+        },
+      ],
+    });
+
+    expect(jobs).toEqual([]);
+  });
+
+  it("skips anonymous-only identify events", () => {
+    const jobs = buildRealtimeSegmentEvalJobs({
+      workspaceId: "00000000-0000-0000-0000-000000000001",
+      userEvents: [
+        {
+          messageId: "anonymous-identify-message",
+          messageRaw: JSON.stringify({
+            type: EventType.Identify,
+            messageId: "anonymous-identify-message",
+            anonymousId: "anon-1",
+            traits: {
+              plan: "gold",
+            },
+          }),
+        },
+      ],
+    });
+
+    expect(jobs).toEqual([]);
+  });
+
+  it("skips events without a user identifier", () => {
     const jobs = buildRealtimeSegmentEvalJobs({
       workspaceId: "00000000-0000-0000-0000-000000000001",
       userEvents: [
@@ -184,6 +227,26 @@ describe("buildRealtimeSegmentEvalJobs", () => {
 });
 
 describe("enqueueRealtimeSegmentEvalJobs", () => {
+  it("does not enqueue anonymous-only realtime jobs", async () => {
+    await enqueueRealtimeSegmentEvalJobs({
+      workspaceId: "00000000-0000-0000-0000-000000000001",
+      userEvents: [
+        {
+          messageId: "anonymous-track-message",
+          messageRaw: JSON.stringify({
+            type: EventType.Track,
+            messageId: "anonymous-track-message",
+            anonymousId: "anon-1",
+            event: "Purchase",
+          }),
+        },
+      ],
+    });
+
+    expect(mockFindSegmentResources).not.toHaveBeenCalled();
+    expect(mockEnqueue).not.toHaveBeenCalled();
+  });
+
   it("does not enqueue identify jobs that cannot affect any segment", async () => {
     mockFindSegmentResources.mockResolvedValue([traitSegment("plan")]);
 
