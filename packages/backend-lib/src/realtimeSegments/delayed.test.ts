@@ -2,6 +2,7 @@ import {
   RelationalOperators,
   SavedSegmentResource,
   SegmentNodeType,
+  SegmentOperatorType,
   SegmentStatusEnum,
 } from "../types";
 import {
@@ -118,6 +119,120 @@ describe("computeDelayedReevaluationBoundaries", () => {
       "2026-01-03T00:00:00.000Z",
       "2026-01-04T00:00:00.000Z",
     ]);
+  });
+
+  it("schedules trait within expiry boundaries", () => {
+    const lastVisit = "2026-01-01T00:00:00.000Z";
+    const state: RealtimeUserState = {
+      userOrAnonymousId: "user-1",
+      traits: { lastVisit },
+      trackEvents: [],
+    };
+
+    const boundaries = computeDelayedReevaluationBoundaries({
+      segments: [
+        segment({
+          entryNode: {
+            type: SegmentNodeType.Trait,
+            id: "last-visit-within-two-days",
+            path: "lastVisit",
+            operator: {
+              type: SegmentOperatorType.Within,
+              windowSeconds: 172800,
+            },
+          },
+          nodes: [],
+        }),
+      ],
+      state,
+      now: new Date("2026-01-02T00:00:00.000Z"),
+    });
+
+    expect(boundaries).toEqual([
+      expect.objectContaining({
+        event: "trait:lastVisit",
+        availableAt: new Date("2026-01-03T00:00:00.000Z"),
+        eventTime: new Date("2026-01-03T00:00:00.000Z"),
+      }),
+    ]);
+  });
+
+  it("schedules trait notWithin entry boundaries", () => {
+    const state: RealtimeUserState = {
+      userOrAnonymousId: "user-1",
+      traits: { lastVisit: 1767225600 },
+      trackEvents: [],
+    };
+
+    const boundaries = computeDelayedReevaluationBoundaries({
+      segments: [
+        segment({
+          entryNode: {
+            type: SegmentNodeType.Trait,
+            id: "last-visit-not-within-two-days",
+            path: "lastVisit",
+            operator: {
+              type: SegmentOperatorType.NotWithin,
+              windowSeconds: 172800,
+            },
+          },
+          nodes: [],
+        }),
+      ],
+      state,
+      now: new Date("2026-01-02T00:00:00.000Z"),
+    });
+
+    expect(boundaries.map((b) => b.availableAt.toISOString())).toEqual([
+      "2026-01-03T00:00:00.000Z",
+    ]);
+  });
+
+  it("does not schedule expired or invalid trait timestamp boundaries", () => {
+    const state: RealtimeUserState = {
+      userOrAnonymousId: "user-1",
+      traits: {
+        expiredLastVisit: "2026-01-01T00:00:00.000Z",
+        invalidLastVisit: "not-a-date",
+      },
+      trackEvents: [],
+    };
+
+    const boundaries = computeDelayedReevaluationBoundaries({
+      segments: [
+        segment({
+          entryNode: {
+            type: SegmentNodeType.Or,
+            id: "or",
+            children: ["expired", "invalid"],
+          },
+          nodes: [
+            {
+              type: SegmentNodeType.Trait,
+              id: "expired",
+              path: "expiredLastVisit",
+              operator: {
+                type: SegmentOperatorType.Within,
+                windowSeconds: 172800,
+              },
+            },
+            {
+              type: SegmentNodeType.Trait,
+              id: "invalid",
+              path: "invalidLastVisit",
+              operator: {
+                type: SegmentOperatorType.Within,
+                windowSeconds: 172800,
+              },
+            },
+          ],
+        }),
+      ],
+      state,
+      now: new Date("2026-01-04T00:00:00.000Z"),
+    });
+
+    expect(boundaries).toEqual([]);
   });
 });
 

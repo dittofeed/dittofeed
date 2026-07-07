@@ -5,10 +5,12 @@ import { db } from "../db";
 import { realtimeSegmentDelayedEval as dbRealtimeSegmentDelayedEval } from "../db/schema";
 import logger from "../logger";
 import {
+  JSONValue,
   RelationalOperators,
   SavedSegmentResource,
   SegmentNode,
   SegmentNodeType,
+  SegmentOperatorType,
   TimeOperator,
 } from "../types";
 import { getRealtimeSegmentQueue } from "./queue";
@@ -67,16 +69,67 @@ function performedWindowSeconds(node: SegmentNode): number | null {
   return node.withinSeconds ?? null;
 }
 
-function shouldSchedulePerformedNode(node: SegmentNode): boolean {
-  if (node.type !== SegmentNodeType.Performed) {
-    return false;
+function toStringValue(value: JSONValue | undefined): string {
+  if (value === undefined || value === null) {
+    return "";
   }
-  return (
-    node.timesOperator === RelationalOperators.Equals ||
-    node.timesOperator === RelationalOperators.LessThan ||
-    node.timesOperator === RelationalOperators.GreaterThanOrEqual ||
-    node.timesOperator === undefined
-  );
+  if (typeof value === "string") {
+    return value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return JSON.stringify(value);
+}
+
+function parseTimestampMillis(value: JSONValue | undefined): number {
+  if (typeof value === "number") {
+    return value < 1_000_000_000_000 ? value * 1000 : value;
+  }
+  if (typeof value === "string") {
+    const numeric = Number(value);
+    if (!Number.isNaN(numeric)) {
+      return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+    }
+  }
+  return new Date(toStringValue(value)).getTime();
+}
+
+function traitWindowBoundary({
+  node,
+  state,
+}: {
+  node: SegmentNode;
+  state: RealtimeUserState;
+}): { availableAt: Date; event: string } | null {
+  if (
+    node.type !== SegmentNodeType.Trait ||
+    (node.operator.type !== SegmentOperatorType.Within &&
+      node.operator.type !== SegmentOperatorType.NotWithin)
+  ) {
+    return null;
+  }
+  const timestamp = parseTimestampMillis(state.traits[node.path]);
+  if (Number.isNaN(timestamp)) {
+    return null;
+  }
+  return {
+    event: `trait:${node.path}`,
+    availableAt: new Date(timestamp + node.operator.windowSeconds * 1000),
+  };
+}
+
+function shouldSchedulePerformedNode({
+  timesOperator,
+}: {
+  timesOperator?: RelationalOperators;
+}): boolean {
+  return new Set<RelationalOperators | undefined>([
+    RelationalOperators.Equals,
+    RelationalOperators.LessThan,
+    RelationalOperators.GreaterThanOrEqual,
+    undefined,
+  ]).has(timesOperator);
 }
 
 export function computeDelayedReevaluationBoundaries({
@@ -93,6 +146,20 @@ export function computeDelayedReevaluationBoundaries({
 
   for (const segment of segments) {
     for (const node of segmentNodes(segment)) {
+      const traitBoundary = traitWindowBoundary({ node, state });
+      if (traitBoundary) {
+        const { availableAt, event } = traitBoundary;
+        if (availableAt.getTime() > nowMs) {
+          const key = `${segment.id}:${state.userOrAnonymousId}:${availableAt.getTime()}`;
+          boundaries.set(key, {
+            segmentId: segment.id,
+            event,
+            eventTime: availableAt,
+            availableAt,
+          });
+        }
+        continue;
+      }
       if (node.type !== SegmentNodeType.Performed) {
         continue;
       }
