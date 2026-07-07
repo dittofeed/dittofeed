@@ -344,6 +344,10 @@ env:
     value: "true"
   - name: "COMPUTED_PROPERTY_ASSIGNMENTS_CACHE_TTL_SECONDS"
     value: "300"
+  - name: "REALTIME_SEGMENTS_STATE_CACHE_TTL_SECONDS"
+    value: "86400"
+  - name: "REALTIME_SEGMENTS_STATE_CACHE_MAX_EVENTS_PER_USER_EVENT"
+    value: "10"
 
 nodeSelector: {}
 

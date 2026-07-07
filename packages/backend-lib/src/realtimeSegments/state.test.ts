@@ -1,6 +1,6 @@
 import { query } from "../clickhouse";
 import config from "../config";
-import { EventType } from "../types";
+import { EventType, InternalEventType } from "../types";
 import { readRealtimeUserState } from "./state";
 import {
   RealtimeStateCacheClient,
@@ -371,6 +371,53 @@ describe("readRealtimeUserState", () => {
     ).toBe(true);
   });
 
+  it("stores compact internal message sent events in the state cache", async () => {
+    const fakeClient = new FakeStateCacheClient();
+    enableStateCache(fakeClient);
+    mockClickHouseRows([]);
+    mockClickHouseRows([
+      {
+        event: InternalEventType.MessageSent,
+        message_id: "message-sent-1",
+        properties: JSON.stringify({
+          templateId: "template-1",
+          body: "x".repeat(10_000),
+          variant: {
+            type: "email",
+            subject: "large subject",
+          },
+        }),
+        event_time: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+
+    await readRealtimeUserState({
+      workspaceId: "workspace-1",
+      userOrAnonymousId: "user-1",
+      dependencies: {
+        traitPaths: new Set(),
+        eventNames: new Set([InternalEventType.MessageSent]),
+        eventWindowSeconds: new Map([[InternalEventType.MessageSent, null]]),
+        always: false,
+      },
+    });
+
+    const raw = fakeClient.hashes
+      .get(
+        `rt:workspace-1:user:user-1:events:${InternalEventType.MessageSent}:data`,
+      )
+      ?.get("message-sent-1");
+    expect(raw).toBeDefined();
+    expect(JSON.parse(raw ?? "{}")).toEqual({
+      event: InternalEventType.MessageSent,
+      eventTime: "2026-01-01T00:00:00.000Z",
+      messageId: "message-sent-1",
+      properties: {
+        templateId: "template-1",
+      },
+    });
+  });
+
   it("writes identify traits through to the state cache", async () => {
     const fakeClient = new FakeStateCacheClient();
     enableStateCache(fakeClient);
@@ -503,6 +550,66 @@ describe("readRealtimeUserState", () => {
         .get("rt:workspace-1:user:user-1:events:LOGIN")
         ?.has("new-message"),
     ).toBe(true);
+  });
+
+  it("writes compact internal message sent events through to the state cache", async () => {
+    const fakeClient = new FakeStateCacheClient();
+    enableStateCache(fakeClient);
+    await fakeClient.command([
+      "HSET",
+      "rt:workspace-1:user:user-1:meta",
+      "traitPaths",
+      JSON.stringify([]),
+      "eventNames",
+      JSON.stringify([InternalEventType.MessageSent]),
+    ]);
+    const job: RealtimeSegmentEvalJob = {
+      workspaceId: "workspace-1",
+      messageId: "message-sent-2",
+      userId: "user-1",
+      userOrAnonymousId: "user-1",
+      eventType: EventType.Track,
+      event: InternalEventType.MessageSent,
+      traitPaths: [],
+      propertyPaths: [],
+      payload: {
+        properties: {
+          templateId: "template-2",
+          body: "x".repeat(10_000),
+          variant: {
+            type: "email",
+          },
+        },
+      },
+      eventTime: new Date("2026-01-01T00:00:00.000Z"),
+      processingTime: new Date("2026-01-01T00:00:00.000Z"),
+    };
+
+    await readRealtimeUserState({
+      workspaceId: "workspace-1",
+      userOrAnonymousId: "user-1",
+      dependencies: {
+        traitPaths: new Set(),
+        eventNames: new Set([InternalEventType.MessageSent]),
+        eventWindowSeconds: new Map([[InternalEventType.MessageSent, null]]),
+        always: false,
+      },
+      currentJob: job,
+    });
+
+    const raw = fakeClient.hashes
+      .get(
+        `rt:workspace-1:user:user-1:events:${InternalEventType.MessageSent}:data`,
+      )
+      ?.get("message-sent-2");
+    expect(raw).toBeDefined();
+    expect(JSON.parse(raw ?? "{}")).toEqual(
+      expect.objectContaining({
+        properties: {
+          templateId: "template-2",
+        },
+      }),
+    );
   });
 
   it("falls back to ClickHouse when the state cache fails", async () => {

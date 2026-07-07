@@ -9,7 +9,7 @@ import {
 import { jsonValue } from "../jsonPath";
 import logger from "../logger";
 import { getMeter } from "../openTelemetry";
-import { EventType, JSONValue } from "../types";
+import { EventType, InternalEventType, JSONValue } from "../types";
 import { RealtimeSegmentDependencies } from "./dependencies";
 import type { RealtimeUserState, RealtimeUserTrackEvent } from "./state";
 import { RealtimeSegmentEvalJob } from "./types";
@@ -24,6 +24,7 @@ export type RealtimeStateCacheClient = DragonflyClient;
 
 const CACHE_KEY_PREFIX = "rt";
 const CACHE_EVENT_RETENTION_BUFFER_SECONDS = 24 * 60 * 60;
+const INTERNAL_MESSAGE_SENT_EVENT: string = InternalEventType.MessageSent;
 
 let STATE_CACHE_CLIENT: RealtimeStateCacheClient | null = null;
 let STATE_CACHE_OPERATION_COUNTER: Counter | null = null;
@@ -252,12 +253,22 @@ function cachedEventId(event: CachedTrackEvent): string {
   return event.messageId;
 }
 
+function compactEventPropertiesForCache(
+  event: CachedTrackEvent,
+): Record<string, JSONValue> {
+  if (event.event !== INTERNAL_MESSAGE_SENT_EVENT) {
+    return event.properties;
+  }
+  const { templateId } = event.properties;
+  return typeof templateId === "string" ? { templateId } : {};
+}
+
 function serializeEvent(event: CachedTrackEvent): string {
   return JSON.stringify({
     event: event.event,
     eventTime: event.eventTime.toISOString(),
     messageId: event.messageId,
-    properties: event.properties,
+    properties: compactEventPropertiesForCache(event),
   });
 }
 
