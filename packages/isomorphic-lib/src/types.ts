@@ -1328,6 +1328,7 @@ export const SegmentResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
   name: Type.String(),
+  description: Type.Optional(Type.String()),
   definition: SegmentDefinition,
   subscriptionGroupId: Type.Optional(Type.String()),
   updatedAt: Type.Number(),

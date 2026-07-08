@@ -156,6 +156,7 @@ export async function duplicateResource({
           .values({
             workspaceId: original.workspaceId,
             name: duplicateName,
+            description: original.description,
             definition: original.definition,
             resourceType: original.resourceType,
             subscriptionGroupId: original.subscriptionGroupId,

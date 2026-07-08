@@ -16,6 +16,7 @@ import {
   Pause as PauseIcon,
   PlayArrow as PlayArrowIcon,
   Replay as ReplayIcon,
+  Search as SearchIcon,
   UnfoldMore,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
@@ -28,6 +29,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  InputAdornment,
   Menu,
   MenuItem,
   Paper,
@@ -51,8 +53,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   CellContext,
   ColumnDef,
+  FilterFn,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   SortingState,
@@ -92,7 +96,10 @@ import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { RelatedResourceSelect } from "../resourceTable";
 
 export type SegmentsAllowedColumn =
+  | "id"
   | "name"
+  | "description"
+  | "totalUsers"
   | "status"
   | "journeysUsedBy"
   | "lastRecomputed"
@@ -101,7 +108,10 @@ export type SegmentsAllowedColumn =
   | "actions";
 
 export const DEFAULT_ALLOWED_SEGMENTS_COLUMNS: SegmentsAllowedColumn[] = [
+  "id",
   "name",
+  "description",
+  "totalUsers",
   "status",
   "journeysUsedBy",
   "lastRecomputed",
@@ -114,6 +124,78 @@ type Row = SegmentResource & {
   journeysUsedBy: MinimalJourneysResource[];
   lastRecomputedAt?: number;
 };
+
+const segmentSearchFilter: FilterFn<Row> = (row, _columnId, filterValue) => {
+  const search = String(filterValue).toLowerCase().trim();
+  if (!search) {
+    return true;
+  }
+  const { id, name, description } = row.original;
+  return (
+    id.toLowerCase().includes(search) ||
+    name.toLowerCase().includes(search) ||
+    (description?.toLowerCase().includes(search) ?? false)
+  );
+};
+
+function IdCell({ getValue }: CellContext<Row, unknown>) {
+  const id = getValue<string>();
+
+  return (
+    <Tooltip title={id} placement="bottom-start">
+      <Typography
+        variant="body2"
+        sx={{
+          fontFamily: "monospace",
+          maxWidth: "120px",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {id}
+      </Typography>
+    </Tooltip>
+  );
+}
+
+function DescriptionCell({ getValue }: CellContext<Row, unknown>) {
+  const description = getValue<string | undefined>();
+
+  if (!description) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        —
+      </Typography>
+    );
+  }
+
+  return (
+    <Tooltip title={description} placement="bottom-start">
+      <Typography
+        variant="body2"
+        sx={{
+          maxWidth: "250px",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {description}
+      </Typography>
+    </Tooltip>
+  );
+}
+
+function TotalUsersCell({ getValue }: CellContext<Row, unknown>) {
+  const totalUsers = getValue<number | undefined>();
+
+  return (
+    <Typography variant="body2">
+      {(totalUsers ?? 0).toLocaleString()}
+    </Typography>
+  );
+}
 
 // TimeCell for displaying timestamps like createdAt
 function TimeCell({ getValue }: CellContext<Row, unknown>) {
@@ -382,7 +464,9 @@ function NameCell({ row, getValue }: CellContext<Row, unknown>) {
   const name = getValue<string>();
   const segmentId = row.original.id;
   const universalRouter = useUniversalRouter();
-  const href = universalRouter.mapUrl("/segments/v1", { id: segmentId });
+  const href = universalRouter.mapUrl(`/segments/${segmentId}`, undefined, {
+    excludeQueryParams: true,
+  });
 
   return (
     <Stack
@@ -449,6 +533,8 @@ export function SegmentsTable({
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [segmentName, setSegmentName] = useState("");
+  const [segmentDescription, setSegmentDescription] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -572,9 +658,8 @@ export function SegmentsTable({
       setSnackbarOpen(true);
       setDialogOpen(false);
       setSegmentName("");
-      universalRouter.push("/segments/v1", {
-        id: data.id,
-      }); // Redirect to the edit page
+      setSegmentDescription("");
+      universalRouter.push(`/segments/${data.id}`);
     },
     onError: (error) => {
       console.error("Failed to create segment:", error);
@@ -609,6 +694,7 @@ export function SegmentsTable({
       createSegmentMutation.mutate({
         id: newSegmentId,
         name: segmentName.trim(),
+        description: segmentDescription.trim() || undefined,
         definition,
       });
     }
@@ -618,15 +704,35 @@ export function SegmentsTable({
   const closeDialog = () => {
     setDialogOpen(false);
     setSegmentName("");
+    setSegmentDescription("");
   };
 
   const columns = useMemo<ColumnDef<Row>[]>(() => {
     const columnDefinitions: Record<SegmentsAllowedColumn, ColumnDef<Row>> = {
+      id: {
+        id: "id",
+        header: "ID",
+        accessorKey: "id",
+        cell: IdCell,
+      },
       name: {
         id: "name",
         header: "Name",
         accessorKey: "name",
         cell: NameCell,
+      },
+      description: {
+        id: "description",
+        header: "Description",
+        accessorKey: "description",
+        cell: DescriptionCell,
+        enableSorting: false,
+      },
+      totalUsers: {
+        id: "totalUsers",
+        header: "Total Users",
+        accessorKey: "totalUsers",
+        cell: TotalUsersCell,
       },
       status: {
         id: "status",
@@ -676,11 +782,15 @@ export function SegmentsTable({
     data: segmentsData,
     autoResetPageIndex: false,
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: segmentSearchFilter,
+    onGlobalFilterChange: setSearchQuery,
     onPaginationChange: setPagination,
     onSortingChange: setSorting,
     state: {
+      globalFilter: searchQuery,
       pagination,
       sorting,
     },
@@ -757,6 +867,25 @@ export function SegmentsTable({
             </Button>
           </Stack>
         </Stack>
+        <TextField
+          id="segment-search"
+          type="search"
+          label="Search by name, ID, or description"
+          placeholder="Search segments..."
+          value={searchQuery}
+          onChange={(event) => {
+            setSearchQuery(event.target.value);
+            table.setPageIndex(0);
+          }}
+          fullWidth
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
         <TableContainer component={Paper}>
           <Table stickyHeader>
             <TableHead>
@@ -837,17 +966,23 @@ export function SegmentsTable({
                 </TableRow>
               ))}
               {/* Handle empty state only when not loading and data is truly empty */}
-              {!isFetching && segmentsData.length === 0 && (
+              {!isFetching && table.getRowModel().rows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={columns.length} align="center">
-                    No segments found.{" "}
-                    <Button
-                      size="small"
-                      onClick={() => setDialogOpen(true)}
-                      sx={greyButtonStyle}
-                    >
-                      Create One
-                    </Button>
+                    {segmentsData.length === 0 ? (
+                      <>
+                        No segments found.{" "}
+                        <Button
+                          size="small"
+                          onClick={() => setDialogOpen(true)}
+                          sx={greyButtonStyle}
+                        >
+                          Create One
+                        </Button>
+                      </>
+                    ) : (
+                      "No segments match your search."
+                    )}
                   </TableCell>
                 </TableRow>
               )}
@@ -945,23 +1080,40 @@ export function SegmentsTable({
       >
         <DialogTitle>Create New Segment</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            label="Segment Name"
-            type="text"
-            fullWidth
-            variant="standard"
-            value={segmentName}
-            onChange={(e) => setSegmentName(e.target.value)}
-            inputRef={nameInputRef}
-            onKeyPress={(e) => {
-              if (e.key === "Enter") {
-                handleCreateSegment();
-              }
-            }}
-          />
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              label="Segment Name"
+              type="text"
+              fullWidth
+              variant="standard"
+              value={segmentName}
+              onChange={(e) => setSegmentName(e.target.value)}
+              inputRef={nameInputRef}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  handleCreateSegment();
+                }
+              }}
+            />
+            <TextField
+              margin="dense"
+              id="description"
+              label="Description (optional)"
+              type="text"
+              fullWidth
+              variant="standard"
+              value={segmentDescription}
+              onChange={(e) => setSegmentDescription(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  handleCreateSegment();
+                }
+              }}
+            />
+          </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeDialog}>Cancel</Button>

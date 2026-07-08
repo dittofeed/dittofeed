@@ -4,14 +4,12 @@ import {
   ContentCopyTwoTone,
   Home,
 } from "@mui/icons-material";
-import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
-import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
 import {
   Box,
-  IconButton,
   Snackbar,
   Stack,
   SxProps,
+  TextField,
   Theme,
   Tooltip,
   Typography,
@@ -22,7 +20,7 @@ import {
   DuplicateResourceTypeEnum,
   SegmentResource,
 } from "isomorphic-lib/src/types";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { useImmer } from "use-immer";
 
@@ -34,13 +32,8 @@ import { useSegmentQuery } from "../../lib/useSegmentQuery";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import { EditableNameProps, EditableTitle } from "../editableName/v2";
 import { GreyButton } from "../greyButtonStyle";
-import { InlineDrawer } from "../inlineDrawer";
 import { SettingsCommand, SettingsMenu } from "../settingsMenu";
-import UsersTableV2 from "../usersTableV2";
 import SegmentEditor, { SegmentEditorProps } from "./editor";
-
-const MAX_DRAWER_HEIGHT = "440px";
-const DRAWER_HEADER_HEIGHT = "48px";
 
 function LastRecomputedAt({ lastRecomputedAt }: { lastRecomputedAt: string }) {
   const date = new Date(lastRecomputedAt);
@@ -97,6 +90,51 @@ function LastRecomputedAt({ lastRecomputedAt }: { lastRecomputedAt: string }) {
     <Tooltip title={tooltipContent} placement="bottom-start" arrow>
       <Typography variant="body2">Last Recomputed {formatted}</Typography>
     </Tooltip>
+  );
+}
+
+function SegmentMetadata({ segmentId }: { segmentId: string }) {
+  const { data: segment } = useSegmentQuery(segmentId);
+  const { data: computedPropertyPeriods } = useComputedPropertyPeriodsQuery({
+    step: "ComputeAssignments",
+  });
+
+  const lastRecomputedAt = useMemo(() => {
+    return computedPropertyPeriods?.periods.find(
+      (p) => p.type === "Segment" && p.id === segmentId,
+    )?.lastRecomputed;
+  }, [computedPropertyPeriods, segmentId]);
+
+  if (!segment) {
+    return null;
+  }
+
+  return (
+    <Stack direction="row" spacing={3} flexWrap="wrap" alignItems="center">
+      {lastRecomputedAt ? (
+        <LastRecomputedAt lastRecomputedAt={lastRecomputedAt} />
+      ) : (
+        <Typography variant="body2" color="text.secondary">
+          Not computed yet
+        </Typography>
+      )}
+      {segment.status ? (
+        <Typography variant="body2">Status: {segment.status}</Typography>
+      ) : null}
+      {segment.updatedAt ? (
+        <Typography variant="body2">
+          Updated{" "}
+          {formatDistanceToNow(new Date(segment.updatedAt), {
+            addSuffix: true,
+          })}
+        </Typography>
+      ) : null}
+      {segment.realtimeStatus ? (
+        <Typography variant="body2">
+          Live updates: {segment.realtimeStatus.mode}
+        </Typography>
+      ) : null}
+    </Stack>
   );
 }
 
@@ -162,72 +200,7 @@ export function getSegmentCommands(
   ];
 }
 
-function UsersDrawerHeader({
-  segmentId,
-  isDrawerOpen,
-  setIsDrawerOpen,
-}: {
-  segmentId: string;
-  isDrawerOpen: boolean;
-  setIsDrawerOpen: (isDrawerOpen: boolean) => void;
-}) {
-  const { data: computedPropertyPeriods } = useComputedPropertyPeriodsQuery({
-    step: "ComputeAssignments",
-  });
-  const lastRecomputedAt = useMemo(() => {
-    return computedPropertyPeriods?.periods.find(
-      (p) => p.type === "Segment" && p.id === segmentId,
-    )?.lastRecomputed;
-  }, [computedPropertyPeriods, segmentId]);
-  return (
-    <Stack>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{
-          p: 1,
-          borderBottom: 1,
-          borderColor: "divider",
-          backgroundColor: "background.paper",
-          height: DRAWER_HEADER_HEIGHT,
-        }}
-      >
-        <Typography variant="h6">Users</Typography>
-        <Stack direction="row" spacing={1} alignItems="center">
-          {lastRecomputedAt ? (
-            <LastRecomputedAt lastRecomputedAt={lastRecomputedAt} />
-          ) : (
-            <Typography variant="body2">Not computed yet</Typography>
-          )}
-
-          <IconButton onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
-            {isDrawerOpen ? (
-              <KeyboardDoubleArrowDownRoundedIcon />
-            ) : (
-              <KeyboardDoubleArrowUpRoundedIcon />
-            )}
-          </IconButton>
-        </Stack>
-      </Stack>
-    </Stack>
-  );
-}
-
-function UsersDrawerContent({ segmentId }: { segmentId: string }) {
-  return (
-    <Box sx={{ flex: 1, overflow: "auto" }}>
-      <UsersTableV2
-        limit={5}
-        segmentFilter={[segmentId]}
-        hideControls
-        autoReloadByDefault
-      />
-    </Box>
-  );
-}
 interface SegmentEditorV2State {
-  isDrawerOpen: boolean;
   snackbarOpen: boolean;
   snackbarMessage: string;
   editedSegment: SegmentResource | null;
@@ -241,13 +214,20 @@ export function SegmentEditorV2({
   sx?: SxProps<Theme>;
 }) {
   const { data: segment } = useSegmentQuery(id);
+  const [description, setDescription] = useState("");
 
   const [state, setState] = useImmer<SegmentEditorV2State>({
-    isDrawerOpen: true,
     snackbarOpen: false,
     snackbarMessage: "",
     editedSegment: null,
   });
+
+  useEffect(() => {
+    if (segment) {
+      setDescription(segment.description ?? "");
+    }
+  }, [segment?.id, segment?.description]);
+
   const hasUnsavedChanges = useMemo(() => {
     if (!segment || !state.editedSegment) {
       return false;
@@ -322,6 +302,30 @@ export function SegmentEditorV2({
     500,
   );
 
+  const handleDescriptionSave = useDebouncedCallback((value: string) => {
+    if (!id || !segment) {
+      return;
+    }
+    const trimmed = value.trim();
+    const currentDescription = segment.description ?? "";
+    if (trimmed === currentDescription) {
+      return;
+    }
+    segmentsUpdateMutation.mutate({
+      id,
+      name: segment.name,
+      description: trimmed || undefined,
+    });
+  }, 500);
+
+  const handleDescriptionChange = useCallback(
+    (value: string) => {
+      setDescription(value);
+      handleDescriptionSave(value);
+    },
+    [handleDescriptionSave],
+  );
+
   const handleDefinitionUpdate: SegmentEditorProps["onSegmentChange"] =
     useCallback(
       (s: SegmentResource) => {
@@ -331,27 +335,20 @@ export function SegmentEditorV2({
       },
       [setState],
     );
+
   const handleSnackbarClose = useCallback(() => {
     setState((draft) => {
       draft.snackbarOpen = false;
     });
   }, [setState]);
 
-  const handleIsDrawerOpenChange = useCallback(
-    (isDrawerOpen: boolean) => {
-      setState((draft) => {
-        draft.isDrawerOpen = isDrawerOpen;
-      });
-    },
-    [setState],
-  );
-
   if (!segment) {
     return null;
   }
+
   return (
     <Box sx={{ position: "relative", height: "100%", width: "100%" }}>
-      <Stack spacing={1} sx={sx}>
+      <Stack spacing={2} sx={sx}>
         <Stack
           direction="row"
           justifyContent="space-between"
@@ -374,24 +371,19 @@ export function SegmentEditorV2({
             <SettingsMenu commands={commands} />
           </Stack>
         </Stack>
-        <SegmentEditor
-          segmentId={id}
-          onSegmentChange={handleDefinitionUpdate}
+        <TextField
+          label="Description"
+          value={description}
+          onChange={(e) => handleDescriptionChange(e.target.value)}
+          fullWidth
+          multiline
+          minRows={2}
+          variant="outlined"
+          placeholder="Optional description"
         />
+        <SegmentMetadata segmentId={id} />
+        <SegmentEditor segmentId={id} onSegmentChange={handleDefinitionUpdate} />
       </Stack>
-      <InlineDrawer
-        open={state.isDrawerOpen}
-        header={
-          <UsersDrawerHeader
-            segmentId={id}
-            isDrawerOpen={state.isDrawerOpen}
-            setIsDrawerOpen={handleIsDrawerOpenChange}
-          />
-        }
-        maxHeight={MAX_DRAWER_HEIGHT}
-      >
-        <UsersDrawerContent segmentId={id} />
-      </InlineDrawer>
       <Snackbar
         open={state.snackbarOpen}
         autoHideDuration={6000}

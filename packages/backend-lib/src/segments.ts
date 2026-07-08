@@ -330,13 +330,14 @@ export function toSegmentResource(
   if (result.isErr()) {
     return err(result.error);
   }
-  const { id, name, workspaceId, definition, subscriptionGroupId } =
+  const { id, name, workspaceId, definition, subscriptionGroupId, description } =
     result.value;
   return ok({
     id,
     name,
     workspaceId,
     definition,
+    description: description ?? undefined,
     subscriptionGroupId: subscriptionGroupId ?? undefined,
     updatedAt: segment.updatedAt.getTime(),
     definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
@@ -589,6 +590,7 @@ export async function upsertSegment(
           .set({
             definition: params.definition,
             name: params.name,
+            description: params.description,
             resourceType: params.resourceType,
             definitionUpdatedAt: wasDefinitionUpdated
               ? new Date()
@@ -626,6 +628,7 @@ export async function upsertSegment(
       id: params.id,
       workspaceId: params.workspaceId,
       name: params.name,
+      description: params.description,
       definition: params.definition,
       resourceType: params.resourceType,
       status,

@@ -797,6 +797,7 @@ export const segment = pgTable(
     id: uuid().primaryKey().defaultRandom().notNull(),
     workspaceId: uuid().notNull(),
     name: text().notNull(),
+    description: text(),
     definition: jsonb().notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })

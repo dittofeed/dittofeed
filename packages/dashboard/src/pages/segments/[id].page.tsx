@@ -1,25 +1,27 @@
-import { GetServerSideProps } from "next";
-import qs from "qs";
-import { validate } from "uuid";
+import { Stack, useTheme } from "@mui/material";
+import { useRouter } from "next/router";
 
-// Redirect to the new segment editor page passing the id as a query param
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const id = ctx.params?.id;
-  if (typeof id !== "string" || !validate(id)) {
-    return {
-      notFound: true,
-    };
+import { SegmentEditorV2 } from "../../components/segments/editorV2";
+import getSegmentServerSideProps from "./[id]/getSegmentServerSideProps";
+import SegmentLayout from "./[id]/segmentLayout";
+
+export const getServerSideProps = getSegmentServerSideProps;
+
+export default function SegmentMain() {
+  const router = useRouter();
+  const theme = useTheme();
+  const segmentId =
+    typeof router.query.id === "string" ? router.query.id : null;
+
+  if (!segmentId) {
+    return null;
   }
-  const queryParams = { ...ctx.query, id };
-  const url = `/segments/v1?${qs.stringify(queryParams)}`;
-  return {
-    redirect: {
-      destination: url,
-      permanent: false,
-    },
-  };
-};
 
-export default function NewSegment() {
-  return null;
+  return (
+    <SegmentLayout segmentId={segmentId} tab="main">
+      <Stack sx={{ padding: theme.spacing(3), height: "100%" }}>
+        <SegmentEditorV2 id={segmentId} />
+      </Stack>
+    </SegmentLayout>
+  );
 }

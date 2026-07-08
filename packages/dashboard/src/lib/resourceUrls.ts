@@ -22,7 +22,7 @@ export function getResourceUrl(
 ): string {
   switch (resourceType) {
     case ResourceType.Segment:
-      return `/segments/v1?id=${resourceId}`;
+      return `/segments/${resourceId}`;
     case ResourceType.SubscriptionGroup:
       return `/subscription-groups/${resourceId}`;
     case ResourceType.MessageTemplate: {

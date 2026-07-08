@@ -1,24 +1,21 @@
-import { Stack, useTheme } from "@mui/material";
-import { useRouter } from "next/router";
+import { GetServerSideProps } from "next";
+import { validate } from "uuid";
 
-import DashboardContent from "../../components/dashboardContent";
-import { SegmentEditorV2 } from "../../components/segments/editorV2";
-import getSegmentServerSideProps from "./[id]/getSegmentServerSideProps";
-
-export const getServerSideProps = getSegmentServerSideProps;
-
-export default function NewSegment() {
-  const router = useRouter();
-  const id = typeof router.query.id === "string" ? router.query.id : undefined;
-  const theme = useTheme();
-  if (!id) {
-    return null;
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const id = ctx.query.id;
+  if (typeof id !== "string" || !validate(id)) {
+    return {
+      notFound: true,
+    };
   }
-  return (
-    <DashboardContent>
-      <Stack sx={{ padding: theme.spacing(3) }}>
-        <SegmentEditorV2 id={id} />
-      </Stack>
-    </DashboardContent>
-  );
+  return {
+    redirect: {
+      destination: `/segments/${id}`,
+      permanent: false,
+    },
+  };
+};
+
+export default function SegmentV1Redirect() {
+  return null;
 }
