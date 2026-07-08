@@ -494,6 +494,7 @@ export async function computePropertiesContainedV2({
         segmentIds,
         userPropertyIds,
         now,
+        split: config().computePropertiesSplit,
       });
     }
     default:
