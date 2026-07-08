@@ -99,7 +99,6 @@ export type SegmentsAllowedColumn =
   | "id"
   | "name"
   | "description"
-  | "totalUsers"
   | "status"
   | "journeysUsedBy"
   | "lastRecomputed"
@@ -111,7 +110,6 @@ export const DEFAULT_ALLOWED_SEGMENTS_COLUMNS: SegmentsAllowedColumn[] = [
   "id",
   "name",
   "description",
-  "totalUsers",
   "status",
   "journeysUsedBy",
   "lastRecomputed",
@@ -184,16 +182,6 @@ function DescriptionCell({ getValue }: CellContext<Row, unknown>) {
         {description}
       </Typography>
     </Tooltip>
-  );
-}
-
-function TotalUsersCell({ getValue }: CellContext<Row, unknown>) {
-  const totalUsers = getValue<number | undefined>();
-
-  return (
-    <Typography variant="body2">
-      {(totalUsers ?? 0).toLocaleString()}
-    </Typography>
   );
 }
 
@@ -727,12 +715,6 @@ export function SegmentsTable({
         accessorKey: "description",
         cell: DescriptionCell,
         enableSorting: false,
-      },
-      totalUsers: {
-        id: "totalUsers",
-        header: "Total Users",
-        accessorKey: "totalUsers",
-        cell: TotalUsersCell,
       },
       status: {
         id: "status",

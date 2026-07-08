@@ -1,14 +1,8 @@
 import { Typography, useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
-import { Static } from "@sinclair/typebox";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
 
-import UsersTableV2, {
-  usersTablePaginationHandler,
-  UsersTableParams,
-} from "../../../components/usersTableV2";
+import UsersTableV2 from "../../../components/usersTableV2";
 import { useSegmentQuery } from "../../../lib/useSegmentQuery";
 import getSegmentServerSideProps from "./getSegmentServerSideProps";
 import SegmentLayout from "./segmentLayout";
