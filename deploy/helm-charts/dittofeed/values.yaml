@@ -20,7 +20,7 @@ separateWorker:
   
   default:
     replicaCount: 15
-    maxOldSpaceSize: 8192
+    maxOldSpaceSize: 14336
     resources:
       limits:
         cpu: 8
@@ -32,7 +32,7 @@ separateWorker:
   
   workspace:
     replicaCount: 25
-    maxOldSpaceSize: 8192
+    maxOldSpaceSize: 14336
     resources:
       limits:
         cpu: 8
@@ -55,7 +55,7 @@ separateWorker:
   
   global:
     replicaCount: 3
-    maxOldSpaceSize: 8192
+    maxOldSpaceSize: 14336
     resources:
       limits:
         cpu: 8
@@ -77,7 +77,7 @@ separateWorker:
 
   transactional:
     replicaCount: 10
-    maxOldSpaceSize: 8192
+    maxOldSpaceSize: 14336
     resources:
       limits:
         cpu: 8
@@ -103,7 +103,7 @@ separateWorker:
 
   bulkmarketing:
     replicaCount: 30
-    maxOldSpaceSize: 8192
+    maxOldSpaceSize: 14336
     resources:
       limits:
         cpu: 8
@@ -130,7 +130,7 @@ separateWorker:
 workspaceName: Dittofeed
 replicaCount: 15
 
-maxOldSpaceSize: 8192
+maxOldSpaceSize: 14336
 
 image:
   repository: harbor.gbinfra.io/dittofeed/dittofeed-lite
@@ -194,7 +194,7 @@ ingress_public_api:
 resources:
   limits:
     cpu: 8
-    memory: 12Gi
+    memory: 16Gi
   requests:
     cpu: 1
     memory: 512Mi
