@@ -1,5 +1,6 @@
 import { Typography, useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
+import { Static } from "@sinclair/typebox";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
@@ -11,7 +12,6 @@ import UsersTableV2, {
 import { useSegmentQuery } from "../../../lib/useSegmentQuery";
 import getSegmentServerSideProps from "./getSegmentServerSideProps";
 import SegmentLayout from "./segmentLayout";
-import { Static } from "@sinclair/typebox";
 
 export const getServerSideProps = getSegmentServerSideProps;
 
@@ -43,9 +43,7 @@ export default function SegmentUsers() {
             <Typography variant="h4">
               Users in &quot;{segment.name}&quot;
             </Typography>
-            <UsersTableV2
-              segmentFilter={[segmentId]}
-             />
+            <UsersTableV2 segmentFilter={[segmentId]} />
           </>
         ) : null}
       </Stack>
