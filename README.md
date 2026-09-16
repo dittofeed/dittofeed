@@ -75,6 +75,10 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 <a href="https://render.com/deploy?repo=https://github.com/dittofeed/dittofeed" target="_blank" rel="nofollow"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy To Render"></a>
 
+[Easypanel](https://easypanel.io) is a self-hosted Docker deployment platform. It also has a one-click Dittofeed template:
+
+<a href="https://easypanel.io/templates/dittofeed" target="_blank" rel="nofollow"><img src="https://easypanel.io/img/deploy-on-easypanel-40.svg" alt="Deploy on Easypanel"></a>
+
 ## Roadmap
 
 ☑️ = in development | ✅ = in production
