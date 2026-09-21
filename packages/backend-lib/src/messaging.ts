@@ -45,6 +45,7 @@ import {
 import { sendMail as sendMailMailchimp } from "./destinations/mailchimp";
 import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import {
+  encodeResendTagValue,
   ResendRequiredData,
   sendMail as sendMailResend,
 } from "./destinations/resend";
@@ -1501,7 +1502,7 @@ export async function sendEmail({
         tags: messageTags
           ? Object.entries(messageTags).map(([name, value]) => ({
               name,
-              value,
+              value: encodeResendTagValue(value),
             }))
           : [],
         attachments: resendAttachments,
