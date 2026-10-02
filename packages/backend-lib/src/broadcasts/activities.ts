@@ -29,6 +29,7 @@ import {
 import {
   BackendMessageSendResult,
   BatchTrackData,
+  BroadcastLastError,
   BroadcastResourceV2,
   BroadcastV2Config,
   BroadcastV2Status,
@@ -38,6 +39,7 @@ import {
   GetUsersResponseItem,
   InternalEventType,
   JSONValue,
+  MessageSendFailure,
   MessageTags,
   SavedSegmentResource,
   TrackData,
@@ -45,6 +47,60 @@ import {
 import { getUsers } from "../users";
 
 export { markBroadcastStatus } from "../broadcasts";
+
+/**
+ * Persist a human-readable lastError onto the broadcast config so the dashboard
+ * can surface provider failures (e.g. Resend unverified domain) without querying
+ * ClickHouse delivery events.
+ */
+export async function recordBroadcastLastError({
+  workspaceId,
+  broadcastId,
+  lastError,
+}: {
+  workspaceId: string;
+  broadcastId: string;
+  lastError: BroadcastLastError;
+}): Promise<void> {
+  const existing = await db().query.broadcast.findFirst({
+    where: and(
+      eq(schema.broadcast.id, broadcastId),
+      eq(schema.broadcast.workspaceId, workspaceId),
+    ),
+  });
+  if (!existing) {
+    logger().error(
+      { workspaceId, broadcastId },
+      "broadcast not found while recording lastError",
+    );
+    return;
+  }
+  const configResult = schemaValidateWithErr(existing.config, BroadcastV2Config);
+  if (configResult.isErr()) {
+    logger().error(
+      { err: configResult.error, workspaceId, broadcastId },
+      "broadcast config invalid while recording lastError",
+    );
+    return;
+  }
+  const nextConfig: BroadcastV2Config = {
+    ...configResult.value,
+    lastError,
+  };
+  await db()
+    .update(schema.broadcast)
+    .set({
+      config: nextConfig,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(schema.broadcast.id, broadcastId),
+        eq(schema.broadcast.workspaceId, workspaceId),
+      ),
+    );
+}
+
 
 /**
  * Computes the timezones for all users in a broadcast using timezone, lat/lon,
@@ -133,6 +189,64 @@ export interface SendMessagesResponse {
   messagesSent: number;
   nextCursor?: string;
   includesNonRetryableError: boolean;
+  nonRetryableError?: BroadcastLastError;
+}
+
+function summarizeMessageSendFailure(
+  error: MessageSendFailure,
+): BroadcastLastError {
+  const occurredAt = Date.now();
+  switch (error.type) {
+    case InternalEventType.MessageFailure: {
+      const { variant } = error;
+      if (variant.type === ChannelType.Email) {
+        const { provider } = variant;
+        if ("message" in provider && typeof provider.message === "string") {
+          return {
+            message: provider.message,
+            provider: provider.type,
+            occurredAt,
+          };
+        }
+        if ("body" in provider && typeof provider.body === "string") {
+          return {
+            message: provider.body,
+            provider: provider.type,
+            occurredAt,
+          };
+        }
+        return {
+          message: `Email send failed via ${provider.type}`,
+          provider: provider.type,
+          occurredAt,
+        };
+      }
+      return {
+        message: `${variant.type} send failed`,
+        occurredAt,
+      };
+    }
+    case InternalEventType.BadWorkspaceConfiguration: {
+      const detail =
+        "message" in error.variant && typeof error.variant.message === "string"
+          ? error.variant.message
+          : error.variant.type;
+      return {
+        message: `Configuration error: ${detail}`,
+        occurredAt,
+      };
+    }
+    case InternalEventType.MessageSkipped:
+      return {
+        message: "Message skipped",
+        occurredAt,
+      };
+    default:
+      return {
+        message: "Unknown non-retryable send failure",
+        occurredAt,
+      };
+  }
 }
 
 interface SendMessagesParams {
@@ -416,15 +530,21 @@ export function sendMessagesFactory(sender: Sender) {
           batch: events,
         },
       });
-      const includesNonRetryableError =
-        config.errorHandling === "PauseOnError" &&
-        results.some(
-          ({ result }) => result.isErr() && isNonRetryableError(result.error),
-        );
+      let nonRetryableError: BroadcastLastError | undefined;
+      if (config.errorHandling === "PauseOnError") {
+        for (const { result } of results) {
+          if (result.isErr() && isNonRetryableError(result.error)) {
+            nonRetryableError = summarizeMessageSendFailure(result.error);
+            break;
+          }
+        }
+      }
+      const includesNonRetryableError = nonRetryableError !== undefined;
       return {
         messagesSent: results.length,
         nextCursor,
         includesNonRetryableError,
+        nonRetryableError,
       };
     });
   };

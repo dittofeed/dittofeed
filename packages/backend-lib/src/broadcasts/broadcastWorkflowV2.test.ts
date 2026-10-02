@@ -554,6 +554,12 @@ describe("broadcastWorkflowV2", () => {
         broadcastId: broadcast.id,
       });
       expect(updatedBroadcast?.status).toBe("Paused");
+      expect(updatedBroadcast?.config.lastError?.message).toContain(
+        "missing permissions",
+      );
+      expect(updatedBroadcast?.config.lastError?.provider).toBe(
+        EmailProviderType.SendGrid,
+      );
 
       shouldError = false;
       await handle.signal(resumeBroadcastSignal);

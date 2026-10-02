@@ -5991,6 +5991,14 @@ export const BroadcastSmsMessageVariant = Type.Union([
 export type BroadcastSmsMessageVariant = Static<
   typeof BroadcastSmsMessageVariant
 >;
+export const BroadcastLastError = Type.Object({
+  message: Type.String(),
+  provider: Type.Optional(Type.String()),
+  occurredAt: Type.Number(),
+});
+
+export type BroadcastLastError = Static<typeof BroadcastLastError>;
+
 export const BroadcastV2Config = Type.Object({
   type: Type.Literal(BroadcastConfigTypeEnum.V2),
   // messages per second
@@ -5999,6 +6007,8 @@ export const BroadcastV2Config = Type.Object({
   useIndividualTimezone: Type.Optional(Type.Boolean()),
   errorHandling: Type.Optional(BroadcastErrorHandling),
   batchSize: Type.Optional(Type.Number()),
+  // Populated when PauseOnError / send failures occur so the UI can surface why.
+  lastError: Type.Optional(BroadcastLastError),
   message: Type.Union([
     // Defined separately to allow workspace member specific providers.
     BroadcastEmailMessageVariant,
