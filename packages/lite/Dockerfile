@@ -1,4 +1,4 @@
-FROM node:20.19.5-bullseye AS builder
+FROM node:24.21.0-trixie AS builder
 
 # Accept the build argument in the builder stage
 ARG APP_VERSION
@@ -44,7 +44,7 @@ COPY ./packages/lite/ ./packages/lite
 RUN yarn workspace lite build
 
 # Production image
-FROM node:20.19.5-bullseye-slim AS runner
+FROM node:24.21.0-trixie-slim AS runner
 
 # Redefine the ARG in the production stage
 ARG APP_VERSION
