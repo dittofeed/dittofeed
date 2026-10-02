@@ -75,6 +75,8 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 <a href="https://render.com/deploy?repo=https://github.com/dittofeed/dittofeed" target="_blank" rel="nofollow"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy To Render"></a>
 
+<a href="https://repocloud.io/details/Dittofeed/" target="_blank" rel="nofollow"><img src="https://d16t0pc4846x52.cloudfront.net/deploylobe.svg" alt="Deploy on RepoCloud"></a>
+
 ## Roadmap
 
 ☑️ = in development | ✅ = in production
