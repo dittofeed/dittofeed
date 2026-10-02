@@ -4,7 +4,11 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import config, { type Config } from "../config";
 import { db, insert } from "../db";
-import { segment as dbSegment, workspace as dbWorkspace } from "../db/schema";
+import {
+  computedPropertyPeriod as dbComputedPropertyPeriod,
+  segment as dbSegment,
+  workspace as dbWorkspace,
+} from "../db/schema";
 import { toSegmentResource } from "../segments";
 import {
   ComputedPropertyStepEnum,
@@ -18,6 +22,7 @@ import {
   findDueWorkspaceMinTos,
   getEarliestComputePropertyPeriod,
   getPeriodsByComputedPropertyId,
+  PERIOD_CHUNK_SIZE,
 } from "./periods";
 
 interface ActualConfigModule {
@@ -479,5 +484,61 @@ describe("periods", () => {
         resetConfigMock();
       }
     });
+  });
+
+  describe("createPeriods", () => {
+    it(
+      "inserts every period when there are more computed properties than fit " +
+        "in a single query's bind parameter budget",
+      async () => {
+        const segmentDb = unwrap(
+          await insert({
+            table: dbSegment,
+            values: {
+              id: randomUUID(),
+              workspaceId: workspace.id,
+              name: `segment-${randomUUID()}`,
+              definition: {
+                entryNode: {
+                  id: "1",
+                  type: SegmentNodeType.Trait,
+                  path: "email",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "example@test.com",
+                  },
+                },
+                nodes: [],
+              },
+              updatedAt: new Date(),
+            },
+          }),
+        );
+        const baseSegment = unwrap(toSegmentResource(segmentDb));
+        // Two chunks. 10,000 rows is 90,000 bind parameters, well past the
+        // 65,535 postgres accepts in one query, so an unchunked insert would
+        // corrupt the wire protocol instead of erroring.
+        const segments: SavedSegmentResource[] = Array.from(
+          { length: PERIOD_CHUNK_SIZE * 2 },
+          () => ({ ...baseSegment, id: randomUUID() }),
+        );
+
+        await createPeriods({
+          workspaceId: workspace.id,
+          segments,
+          userProperties: [],
+          now: Date.now(),
+          step: ComputedPropertyStepEnum.ComputeAssignments,
+        });
+
+        const created = await db()
+          .select({ id: dbComputedPropertyPeriod.id })
+          .from(dbComputedPropertyPeriod)
+          .where(eq(dbComputedPropertyPeriod.workspaceId, workspace.id));
+
+        expect(created).toHaveLength(segments.length);
+      },
+      30000,
+    );
   });
 });
