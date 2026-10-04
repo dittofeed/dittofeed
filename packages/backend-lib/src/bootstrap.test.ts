@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
 
+import { eq } from "drizzle-orm";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { bootstrapPostgres } from "./bootstrap";
+import { db } from "./db";
+import { workspace } from "./db/schema";
 import { CreateWorkspaceErrorType } from "./types";
 
 describe("bootstrap", () => {
@@ -20,9 +23,10 @@ describe("bootstrap", () => {
       );
     });
 
-    it("should reject invalid domain with .com", async () => {
+    it("should reject invalid domain with .com without creating a workspace", async () => {
+      const workspaceName = randomUUID();
       const workspaceResult = await bootstrapPostgres({
-        workspaceName: randomUUID(),
+        workspaceName,
         workspaceDomain: "gmail.com",
       });
       if (workspaceResult.isOk()) {
@@ -31,6 +35,11 @@ describe("bootstrap", () => {
       expect(workspaceResult.error.type).toBe(
         CreateWorkspaceErrorType.InvalidDomain,
       );
+      expect(
+        await db().query.workspace.findFirst({
+          where: eq(workspace.name, workspaceName),
+        }),
+      ).toBeUndefined();
     });
 
     it("it should not reject similar domains", async () => {
