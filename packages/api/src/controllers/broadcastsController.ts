@@ -38,7 +38,7 @@ import {
   UpdateBroadcastRequest,
   UpsertBroadcastV2Request,
 } from "backend-lib/src/types";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 import { v5 as uuidv5 } from "uuid";
 
@@ -123,7 +123,12 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         .set({
           name: request.body.name,
         })
-        .where(eq(schema.broadcast.id, request.body.id))
+        .where(
+          and(
+            eq(schema.broadcast.id, request.body.id),
+            eq(schema.broadcast.workspaceId, request.body.workspaceId),
+          ),
+        )
         .returning();
       if (!broadcast) {
         return reply.status(404).send({
