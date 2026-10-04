@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
 
 import { encodeMockJwt } from "../test/factories/jwt";
 import { db } from "./db";
@@ -75,6 +76,78 @@ describe("requestContext", () => {
     });
   });
   describe("findAndCreateRoles", () => {
+    describe("when a workspace has a public email domain", () => {
+      it.each(["gmail.com", "yahoo.com", "outlook.com", "foo.gmail.com"])(
+        "does not auto-join %s or persist a role",
+        async (domain) => {
+          await db().insert(dbWorkspace).values({ name: randomUUID(), domain });
+          const [member] = await db()
+            .insert(dbWorkspaceMember)
+            .values({
+              email: `${randomUUID()}@${domain}`,
+              emailVerified: true,
+            })
+            .returning();
+          if (!member) throw new Error("Expected member");
+
+          const result = await findAndCreateRoles(member);
+
+          expect(result.workspace).toBeNull();
+          expect(result.memberRoles).toEqual([]);
+          const roles = await db()
+            .select()
+            .from(dbWorkspaceMemberRole)
+            .where(eq(dbWorkspaceMemberRole.workspaceMemberId, member.id));
+          expect(roles).toEqual([]);
+        },
+      );
+
+      it("preserves explicit membership without joining other Gmail workspaces", async () => {
+        const [workspace] = await db()
+          .insert(dbWorkspace)
+          .values({
+            name: randomUUID(),
+            domain: "gmail.com",
+          })
+          .returning();
+        await db()
+          .insert(dbWorkspace)
+          .values({ name: randomUUID(), domain: "gmail.com" });
+        const [member] = await db()
+          .insert(dbWorkspaceMember)
+          .values({
+            email: `${randomUUID()}@gmail.com`,
+            emailVerified: true,
+          })
+          .returning();
+        if (!workspace || !member)
+          throw new Error("Expected workspace and member");
+        const [role] = await db()
+          .insert(dbWorkspaceMemberRole)
+          .values({
+            workspaceId: workspace.id,
+            workspaceMemberId: member.id,
+            role: RoleEnum.Admin,
+          })
+          .returning();
+
+        const result = await findAndCreateRoles(member);
+
+        expect(result.workspace?.id).toBe(workspace.id);
+        expect(result.memberRoles).toEqual([
+          expect.objectContaining({
+            workspaceId: workspace.id,
+            workspaceMemberId: member.id,
+            role: RoleEnum.Admin,
+          }),
+        ]);
+        const roles = await db()
+          .select()
+          .from(dbWorkspaceMemberRole)
+          .where(eq(dbWorkspaceMemberRole.workspaceMemberId, member.id));
+        expect(roles).toEqual([role]);
+      });
+    });
     describe("when a user is an admin of a parent workspace", () => {
       let parent: Workspace;
       let child: Workspace;

@@ -15,6 +15,7 @@ import {
   workspaceMemberRole as dbWorkspaceMemberRole,
 } from "./db/schema";
 import logger from "./logger";
+import { isProfileEmailVerified } from "./openIdProfile";
 import { withSpan } from "./openTelemetry";
 import { requestContextPostProcessor } from "./requestContextPostProcessor";
 import {
@@ -33,7 +34,7 @@ import {
   WorkspaceTypeApp,
   WorkspaceTypeAppEnum,
 } from "./types";
-import { isProfileEmailVerified } from "./openIdProfile";
+import { isValidWorkspaceDomain } from "./workspaceDomain";
 
 export const SESSION_KEY = "df-session-key";
 
@@ -52,6 +53,10 @@ export async function findAndCreateRoles(
   member: WorkspaceMember,
 ): Promise<RolesWithWorkspace> {
   const domain = member.email?.split("@")[1];
+  // Stored domains may predate validation. Never grant access through a public
+  // email provider, but continue honoring explicit workspace memberships.
+  const autoJoinDomain =
+    domain && isValidWorkspaceDomain(domain) ? domain : undefined;
 
   const workspaces = await db()
     .select()
@@ -68,7 +73,7 @@ export async function findAndCreateRoles(
         eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active),
         or(
           eq(dbWorkspaceMemberRole.workspaceMemberId, member.id),
-          domain ? eq(dbWorkspace.domain, domain) : undefined,
+          autoJoinDomain ? eq(dbWorkspace.domain, autoJoinDomain) : undefined,
         ),
       ),
     );
