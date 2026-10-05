@@ -127,4 +127,25 @@ describe("resend", () => {
       });
     });
   });
+
+  describe("tag value encoding & decoding", () => {
+    it("preserves alphanumeric, dash, and underscore values", async () => {
+      const { encodeResendTagValue, decodeResendTagValue } = await import(
+        "./resend"
+      );
+      const safe = "123e4567-e89b-12d3-a456-426614174000_workspace123";
+      expect(encodeResendTagValue(safe)).toBe(safe);
+      expect(decodeResendTagValue(safe)).toBe(safe);
+    });
+
+    it("encodes out-of-charset characters like emails reversibly", async () => {
+      const { encodeResendTagValue, decodeResendTagValue } = await import(
+        "./resend"
+      );
+      const emailUser = "someone@example.com";
+      const encoded = encodeResendTagValue(emailUser);
+      expect(encoded).toMatch(/^[A-Za-z0-9_-]{1,256}$/);
+      expect(decodeResendTagValue(encoded)).toBe(emailUser);
+    });
+  });
 });
