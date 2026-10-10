@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # prep for clickhouse-client
-apt-get install -y apt-transport-https ca-certificates dirmngr
+# (the slim base image ships without apt indexes, so refresh them first)
+apt-get update && apt-get install -y apt-transport-https ca-certificates dirmngr
 CLICKHOUSE_GNUPG_HOME=$(mktemp -d)
 trap 'rm -rf "$CLICKHOUSE_GNUPG_HOME"' EXIT
 gpg --homedir "$CLICKHOUSE_GNUPG_HOME" --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8919F6BD2B48D754
@@ -16,3 +17,8 @@ echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg] https://package
 apt-get update && apt-get install -y \
     postgresql-client \
     clickhouse-client
+
+# The apt indexes and cached .deb files are only needed while installing -
+# keeping them would add hundreds of MB to the image for nothing.
+apt-get clean
+rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
