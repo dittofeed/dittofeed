@@ -121,7 +121,7 @@ services:
       - POSTGRES_PWD=password
       - POSTGRES_SEEDS=postgres
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/dev.yaml
-    image: temporalio/auto-setup:1.18.5
+    image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}
     labels:
       kompose.volume.type: configMap
     networks:
