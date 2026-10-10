@@ -105,7 +105,11 @@ export async function getManualSegmentStatus({
   if (!segment) {
     return null;
   }
-  const version = segment.definitionUpdatedAt.toString();
+  // The period version is stored as the segment's definitionUpdatedAt in
+  // epoch milliseconds (see createPeriods), so mirror that here. The raw
+  // DB row exposes definitionUpdatedAt as a Date, whose toString() would
+  // not match.
+  const version = segment.definitionUpdatedAt.getTime().toString();
   const period = periods.get({
     computedPropertyId: segment.id,
     version,
