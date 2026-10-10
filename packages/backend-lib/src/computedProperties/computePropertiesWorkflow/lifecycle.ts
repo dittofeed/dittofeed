@@ -285,10 +285,12 @@ export async function startComputePropertiesWorkflowGlobal() {
 
 export async function signalComputePropertiesEarly({
   workspaceId,
+  client,
 }: {
   workspaceId: string;
+  client?: WorkflowClient;
 }) {
-  const client = await connectWorkflowClient();
+  const workflowClient = client ?? (await connectWorkflowClient());
   try {
     logger().info(
       {
@@ -296,7 +298,7 @@ export async function signalComputePropertiesEarly({
       },
       "Sending compute properties early signal",
     );
-    await client
+    await workflowClient
       .getHandle(generateComputePropertiesId(workspaceId))
       .signal(computePropertiesEarlySignal);
   } catch (e) {

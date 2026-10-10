@@ -4,6 +4,7 @@ import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
 import {
   BatchItem,
   EventType,
+  FeatureNamesEnum,
   InternalEventType,
   ManualSegmentNode,
   SavedSegmentResource,
@@ -15,10 +16,14 @@ import { v5 as uuidv5, validate as validateUuid } from "uuid";
 
 import { submitBatch } from "../../apps/batch";
 import { computePropertiesIncremental } from "../../computedProperties/computePropertiesWorkflow/activities";
-import { enqueueRecompute } from "../../computedProperties/computePropertiesWorkflow/lifecycle";
+import {
+  enqueueRecompute,
+  signalComputePropertiesEarly,
+} from "../../computedProperties/computePropertiesWorkflow/lifecycle";
 import config from "../../config";
 import { db } from "../../db";
 import * as schema from "../../db/schema";
+import { getFeature } from "../../features";
 import { findAllIntegrationResources } from "../../integrations";
 import { findRunningJourneys, getSubscribedSegments } from "../../journeys";
 import logger from "../../logger";
@@ -74,12 +79,23 @@ async function computePropertiesForManualSegment({
   segment: SavedSegmentResource;
   now: number;
 }) {
-  // Enqueue a follow-up full workspace recompute through the queue workflow
+  // Trigger a follow-up full workspace recompute using the mode-aware
+  // mechanism: the global queue workflow when ComputePropertiesGlobal is
+  // enabled, otherwise the per-workspace workflow's early signal. Mirrors
+  // triggerWorkspaceRecompute in computedProperties/periods.ts.
   const { workflowClient } = getContext();
-  await enqueueRecompute({
-    items: [{ id: workspaceId }],
-    client: workflowClient,
+  const useGlobal = await getFeature({
+    name: FeatureNamesEnum.ComputePropertiesGlobal,
+    workspaceId,
   });
+  if (useGlobal) {
+    await enqueueRecompute({
+      items: [{ id: workspaceId }],
+      client: workflowClient,
+    });
+  } else {
+    await signalComputePropertiesEarly({ workspaceId, client: workflowClient });
+  }
 
   // Gather dependencies for targeted recompute: subscribed journeys, integrations, and core user properties
   const [journeys, integrations, userProperties] = await Promise.all([
