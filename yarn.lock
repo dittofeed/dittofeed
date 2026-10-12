@@ -7580,6 +7580,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@playwright/test@npm:1.62.0":
+  version: 1.62.0
+  resolution: "@playwright/test@npm:1.62.0"
+  dependencies:
+    playwright: "npm:1.62.0"
+  bin:
+    playwright: cli.js
+  checksum: 10/90b504f3933b97687580d7e6ba42ce9e73a9cdd41da5ae59441104b3dfa1508142ed17e5742acc70fdc2aef79078365859c6a463cebf46a8f7db9506a3ece1d6
+  languageName: node
+  linkType: hard
+
 "@popperjs/core@npm:^2.11.8, @popperjs/core@npm:^2.9.0":
   version: 2.11.8
   resolution: "@popperjs/core@npm:2.11.8"
@@ -16835,6 +16846,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dashboard-e2e@workspace:packages/dashboard-e2e":
+  version: 0.0.0-use.local
+  resolution: "dashboard-e2e@workspace:packages/dashboard-e2e"
+  dependencies:
+    "@playwright/test": "npm:1.62.0"
+  languageName: unknown
+  linkType: soft
+
 "dashboard@npm:0.1.0, dashboard@workspace:packages/dashboard":
   version: 0.0.0-use.local
   resolution: "dashboard@workspace:packages/dashboard"
@@ -19916,7 +19935,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fsevents@npm:^2.3.2, fsevents@npm:~2.3.2":
+"fsevents@npm:2.3.2, fsevents@npm:^2.3.2, fsevents@npm:~2.3.2":
   version: 2.3.2
   resolution: "fsevents@npm:2.3.2"
   dependencies:
@@ -19936,7 +19955,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fsevents@patch:fsevents@npm%3A^2.3.2#optional!builtin<compat/fsevents>, fsevents@patch:fsevents@npm%3A~2.3.2#optional!builtin<compat/fsevents>":
+"fsevents@patch:fsevents@npm%3A2.3.2#optional!builtin<compat/fsevents>, fsevents@patch:fsevents@npm%3A^2.3.2#optional!builtin<compat/fsevents>, fsevents@patch:fsevents@npm%3A~2.3.2#optional!builtin<compat/fsevents>":
   version: 2.3.2
   resolution: "fsevents@patch:fsevents@npm%3A2.3.2#optional!builtin<compat/fsevents>::version=2.3.2&hash=df0bf1"
   dependencies:
@@ -26682,6 +26701,30 @@ __metadata:
   dependencies:
     find-up: "npm:^4.0.0"
   checksum: 10/9863e3f35132bf99ae1636d31ff1e1e3501251d480336edb1c211133c8d58906bed80f154a1d723652df1fda91e01c7442c2eeaf9dc83157c7ae89087e43c8d6
+  languageName: node
+  linkType: hard
+
+"playwright-core@npm:1.62.0":
+  version: 1.62.0
+  resolution: "playwright-core@npm:1.62.0"
+  bin:
+    playwright-core: cli.js
+  checksum: 10/1cf036e9ed51ea80d311ac25a871dddbc57d5e7e7a5ad23fc2741452aa8406c95e820901ec38aeecc6fca2ddc383ccc8acb0e2f29a4c12942dd0a1a63e7134a2
+  languageName: node
+  linkType: hard
+
+"playwright@npm:1.62.0":
+  version: 1.62.0
+  resolution: "playwright@npm:1.62.0"
+  dependencies:
+    fsevents: "npm:2.3.2"
+    playwright-core: "npm:1.62.0"
+  dependenciesMeta:
+    fsevents:
+      optional: true
+  bin:
+    playwright: cli.js
+  checksum: 10/52401b5f2b67abcb555c1b1c229e5204a3ac72a604343a99e60b00bd0cd46ad661a9471ced4e6c3ff39de957a0b1f413810d191ce81cd40e455700d73a6a80a5
   languageName: node
   linkType: hard
 
