@@ -208,4 +208,70 @@ describe("testTemplate", () => {
       expect(result.value.type).toBe(InternalEventType.MessageSent);
     }
   });
+
+  it("should not send a message template belonging to another workspace", async () => {
+    const otherWorkspace = unwrap(
+      await insert({
+        table: dbWorkspace,
+        values: {
+          id: randomUUID(),
+          name: `workspace-${randomUUID()}`,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+        },
+      }),
+    );
+
+    // Create webhook secret in the template's workspace
+    await insert({
+      table: dbSecret,
+      values: {
+        id: randomUUID(),
+        workspaceId: workspace.id,
+        name: SecretNames.Webhook,
+        configValue: {
+          type: ChannelType.Webhook,
+          ApiKey: "test-key",
+        },
+      },
+    });
+
+    // Create webhook template in the template's workspace
+    const template = unwrap(
+      await upsertMessageTemplate({
+        name: randomUUID(),
+        workspaceId: workspace.id,
+        definition: {
+          type: ChannelType.Webhook,
+          identifierKey: "id",
+          body: JSON.stringify({
+            config: {
+              url: "https://example.com/webhook",
+              method: "POST",
+              responseType: "json",
+              data: {
+                message: "test message",
+              },
+            },
+          } satisfies ParsedWebhookBody),
+        } satisfies WebhookTemplateResource,
+      }),
+    );
+
+    // A different workspace must not be able to test/send the other workspace's template
+    const result = await testTemplate({
+      workspaceId: otherWorkspace.id,
+      templateId: template.id,
+      channel: ChannelType.Webhook,
+      userProperties: { id: "test-user" },
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.type).toBe(
+        InternalEventType.BadWorkspaceConfiguration,
+      );
+    }
+    expect(mockAxios.request.mock.calls.length).toBe(0);
+  });
 });

@@ -182,9 +182,11 @@ export function enrichMessageTemplate({
 
 export async function findMessageTemplate({
   id,
+  workspaceId,
   channel,
 }: {
   id: string;
+  workspaceId: string;
   channel: ChannelType;
 }): Promise<Result<MessageTemplateResource | null, Error>> {
   if (!validateUuid(id)) {
@@ -192,7 +194,10 @@ export async function findMessageTemplate({
     return ok(null);
   }
   const template = await db().query.messageTemplate.findFirst({
-    where: eq(dbMessageTemplate.id, id),
+    where: and(
+      eq(dbMessageTemplate.id, id),
+      eq(dbMessageTemplate.workspaceId, workspaceId),
+    ),
   });
   if (!template) {
     return ok(null);
@@ -438,6 +443,7 @@ async function getSendMessageModels({
   const [messageTemplateResult, subscriptionGroupSecret] = await Promise.all([
     findMessageTemplate({
       id: templateId,
+      workspaceId,
       channel,
     }),
     db().query.secret.findFirst({
@@ -2424,7 +2430,10 @@ export async function testTemplate(
 ): Promise<BackendMessageSendResult> {
   // Look up the first subscription group for the template's channel
   const messageTemplate = await db().query.messageTemplate.findFirst({
-    where: eq(dbMessageTemplate.id, request.templateId),
+    where: and(
+      eq(dbMessageTemplate.id, request.templateId),
+      eq(dbMessageTemplate.workspaceId, request.workspaceId),
+    ),
   });
 
   let firstSubscriptionGroup:
