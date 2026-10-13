@@ -1,0 +1,14 @@
+{
+  "name": "dashboard-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end tests for the Dittofeed dashboard, powered by Playwright.",
+  "scripts": {
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "1.62.0"
+  }
+}
