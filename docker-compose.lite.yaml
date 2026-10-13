@@ -136,6 +136,7 @@ services:
       - "9000:9000"
       - "9009:9009"
     volumes:
+      - ./packages/backend-lib/clickhouse_config.d:/etc/clickhouse-server/config.d
       - clickhouse_lib:/var/lib/clickhouse
       - clickhouse_log:/var/log/clickhouse-server
     networks:

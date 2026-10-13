@@ -78,6 +78,7 @@ services:
     volumes:
       # uncomment when using blob storage
       # - ./packages/backend-lib/clickhouse_config.dev.xml:/etc/clickhouse-server/config.xml
+      - ./packages/backend-lib/clickhouse_config.d:/etc/clickhouse-server/config.d
       - clickhouse_lib:/var/lib/clickhouse
       - clickhouse_log:/var/log/clickhouse-server
     networks:

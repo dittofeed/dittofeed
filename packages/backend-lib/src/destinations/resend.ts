@@ -21,6 +21,22 @@ import {
 export type ResendRequiredData = Parameters<Resend["emails"]["send"]>["0"];
 export type ResendResponse = Awaited<ReturnType<Resend["emails"]["send"]>>;
 
+export function encodeResendTagValue(val: string): string {
+  if (/^[A-Za-z0-9_-]{1,256}$/.test(val)) {
+    return val;
+  }
+  const encoded = val.replace(/[^A-Za-z0-9_]/g, (ch) => {
+    return `-${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`;
+  });
+  return encoded.slice(0, 256);
+}
+
+export function decodeResendTagValue(val: string): string {
+  return val.replace(/-([0-9A-FA-F]{2})/g, (_, hex) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+}
+
 export async function sendMail({
   apiKey,
   mailData,
@@ -77,10 +93,11 @@ export function resendEventToDF({
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const email = to[0]!;
 
-  const { userId } = resendEvent.data.tags;
-  if (!userId) {
+  const rawUserId = resendEvent.data.tags.userId;
+  if (!rawUserId) {
     return err(new Error("Missing userId or anonymousId."));
   }
+  const userId = decodeResendTagValue(rawUserId);
   const messageId = uuidv5(`${event}:${email_id}`, workspaceId);
 
   let eventName: InternalEventType;
@@ -109,9 +126,12 @@ export function resendEventToDF({
   }
 
   const timestamp = new Date(created_at).toISOString();
+  const decodedTags = R.mapValues(resendEvent.data.tags, (val) =>
+    typeof val === "string" ? decodeResendTagValue(val) : val,
+  );
   const properties: Record<string, string> = R.merge(
     { email },
-    R.pick(resendEvent.data.tags, MESSAGE_METADATA_FIELDS),
+    R.pick(decodedTags, MESSAGE_METADATA_FIELDS),
   );
   let item: BatchTrackData;
   if (userId) {
