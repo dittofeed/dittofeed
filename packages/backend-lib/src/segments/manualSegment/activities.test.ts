@@ -7,11 +7,15 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { getNewManualSegmentVersion } from "isomorphic-lib/src/segments";
 
 import { submitBatch } from "../../apps/batch";
-import { startQueueWorkflow } from "../../computedProperties/computePropertiesWorkflow/lifecycle";
-import { insert } from "../../db";
+import {
+  startComputePropertiesWorkflow,
+  startQueueWorkflow,
+} from "../../computedProperties/computePropertiesWorkflow/lifecycle";
+import { db, insert } from "../../db";
 import * as schema from "../../db/schema";
 import { CustomActivityInboundInterceptor } from "../../temporal/activityInboundInterceptor";
 import {
+  FeatureNamesEnum,
   ManualSegmentNode,
   SegmentDefinition,
   SegmentNodeType,
@@ -71,6 +75,13 @@ describe("appendToManualSegment", () => {
         name: randomUUID(),
       }),
     );
+    // Exercise these tests in global compute properties mode, matching the
+    // compute-properties queue workflow started above.
+    await db().insert(schema.feature).values({
+      workspaceId: workspace.id,
+      name: FeatureNamesEnum.ComputePropertiesGlobal,
+      enabled: true,
+    });
 
     const now = Date.now();
     const manualSegmentNode: ManualSegmentNode = {
@@ -237,6 +248,13 @@ describe("replaceManualSegment", () => {
         name: randomUUID(),
       }),
     );
+    // Exercise these tests in global compute properties mode, matching the
+    // compute-properties queue workflow started above.
+    await db().insert(schema.feature).values({
+      workspaceId: workspace.id,
+      name: FeatureNamesEnum.ComputePropertiesGlobal,
+      enabled: true,
+    });
 
     const now = Date.now();
     const manualSegmentNode: ManualSegmentNode = {
@@ -295,4 +313,123 @@ describe("replaceManualSegment", () => {
     expect(result).toBe(true);
     expect(mockSubmitBatch.mock.calls.length).toBeGreaterThan(1);
   }, 60000);
+});
+
+describe("when the global computed properties feature is disabled", () => {
+  let workspace: Workspace;
+  let segmentId: string;
+  let originalSubmitBatch: typeof submitBatch;
+  let testEnv: TestWorkflowEnvironment;
+  let activityEnv: MockActivityEnvironment;
+
+  beforeAll(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    originalSubmitBatch = jest.requireActual("../../apps/batch").submitBatch;
+  });
+
+  beforeEach(async () => {
+    testEnv = await TestWorkflowEnvironment.createTimeSkipping();
+    activityEnv = new MockActivityEnvironment(undefined, {
+      interceptors: [
+        (ctx) => ({
+          inbound: new CustomActivityInboundInterceptor(ctx, {
+            workflowClient: testEnv.client.workflow,
+          }),
+        }),
+      ],
+    });
+
+    mockSubmitBatch.mockImplementation(async (...args) => {
+      setTimeout(() => {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        void originalSubmitBatch(...args);
+      }, 3000);
+      return Promise.resolve();
+    });
+
+    workspace = unwrap(
+      await createWorkspace({
+        name: randomUUID(),
+      }),
+    );
+
+    // Without the ComputePropertiesGlobal feature, manual segment recompute
+    // signals the per-workspace compute properties workflow. Start it so the
+    // early signal succeeds.
+    await startComputePropertiesWorkflow({
+      workspaceId: workspace.id,
+      client: testEnv.client.workflow,
+    });
+
+    const now = Date.now();
+    const manualSegmentNode: ManualSegmentNode = {
+      id: "1",
+      type: SegmentNodeType.Manual,
+      version: getNewManualSegmentVersion(now),
+    };
+
+    segmentId = randomUUID();
+    unwrap(
+      await insert({
+        table: schema.segment,
+        values: {
+          id: segmentId,
+          workspaceId: workspace.id,
+          name: randomUUID(),
+          definition: {
+            entryNode: manualSegmentNode,
+            nodes: [],
+          } satisfies SegmentDefinition,
+        },
+      }),
+    );
+
+    const idUserProperty = unwrap(
+      await insert({
+        table: schema.userProperty,
+        values: {
+          workspaceId: workspace.id,
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      }),
+    );
+
+    await insertUserPropertyAssignments([
+      {
+        workspaceId: workspace.id,
+        userId: "user-1",
+        userPropertyId: idUserProperty.id,
+        value: "user-1",
+      },
+    ]);
+  });
+
+  afterEach(async () => {
+    await testEnv.teardown();
+  });
+
+  it("should append users to manual segment via the per-workspace workflow", async () => {
+    const now = Date.now();
+
+    const result = await activityEnv.run(appendToManualSegment, {
+      workspaceId: workspace.id,
+      segmentId,
+      userIds: ["user-1"],
+      now,
+    });
+
+    expect(result).toBe(true);
+
+    const { users } = unwrap(
+      await getUsers({
+        workspaceId: workspace.id,
+        segmentFilter: [segmentId],
+      }),
+    );
+
+    expect(users).toEqual([expect.objectContaining({ id: "user-1" })]);
+  });
 });
