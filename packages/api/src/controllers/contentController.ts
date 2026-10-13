@@ -285,7 +285,10 @@ export default async function contentController(fastify: FastifyInstance) {
         const { journeyId, nodeId } = journeyMetadata;
         await db().transaction(async (tx) => {
           const journey = await tx.query.journey.findFirst({
-            where: eq(schema.journey.id, journeyId),
+            where: and(
+              eq(schema.journey.id, journeyId),
+              eq(schema.journey.workspaceId, request.body.workspaceId),
+            ),
           });
           if (!journey) {
             return;
@@ -310,7 +313,12 @@ export default async function contentController(fastify: FastifyInstance) {
             .set({
               definition: journeyDefinition,
             })
-            .where(eq(schema.journey.id, journeyId));
+            .where(
+              and(
+                eq(schema.journey.id, journeyId),
+                eq(schema.journey.workspaceId, request.body.workspaceId),
+              ),
+            );
         });
       }
       return reply.status(200).send(resource);
