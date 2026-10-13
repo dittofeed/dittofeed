@@ -1,0 +1,28 @@
+<clickhouse>
+  <!--
+    Bound the bundled ClickHouse system logs with TTLs so small self-hosted
+    instances stop growing them without limit and hitting
+    MEMORY_LIMIT_EXCEEDED (code 241). Mounted via config.d in the bundled
+    compose files. Applies to fresh deployments at table creation time;
+    existing deployments must also apply the ALTER ... MODIFY TTL statements
+    from https://github.com/dittofeed/dittofeed/issues/1844 once.
+  -->
+  <text_log>
+    <ttl>event_date + INTERVAL 3 DAY</ttl>
+  </text_log>
+  <metric_log>
+    <ttl>event_date + INTERVAL 3 DAY</ttl>
+  </metric_log>
+  <asynchronous_metric_log>
+    <ttl>event_date + INTERVAL 3 DAY</ttl>
+  </asynchronous_metric_log>
+  <trace_log>
+    <ttl>event_date + INTERVAL 3 DAY</ttl>
+  </trace_log>
+  <processors_profile_log>
+    <ttl>event_date + INTERVAL 3 DAY</ttl>
+  </processors_profile_log>
+  <query_log>
+    <ttl>event_date + INTERVAL 7 DAY</ttl>
+  </query_log>
+</clickhouse>
