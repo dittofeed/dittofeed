@@ -87,6 +87,7 @@ import {
 import { useSegmentStatusMutation } from "../../lib/useSegmentStatusMutation";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
+import { RecomputeNowButton } from "../recomputeNowButton";
 import { RelatedResourceSelect } from "../resourceTable";
 
 export type SegmentsAllowedColumn =
@@ -617,6 +618,7 @@ export function SegmentsTable({
         >
           <Typography variant="h4">Segments</Typography>
           <Stack direction="row" spacing={1} alignItems="center">
+            <RecomputeNowButton />
             <Tooltip title="download user segments" placement="right" arrow>
               <LoadingButton
                 loading={downloadMutation.isPending}

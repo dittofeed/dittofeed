@@ -35,6 +35,7 @@ import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import { EditableNameProps, EditableTitle } from "../editableName/v2";
 import { GreyButton } from "../greyButtonStyle";
 import { InlineDrawer } from "../inlineDrawer";
+import { RecomputeNowButton } from "../recomputeNowButton";
 import { SettingsCommand, SettingsMenu } from "../settingsMenu";
 import UsersTableV2 from "../usersTableV2";
 import SegmentEditor, { SegmentEditorProps } from "./editor";
@@ -363,6 +364,7 @@ export function SegmentEditorV2({
             >
               Unsaved Changes
             </Typography>
+            <RecomputeNowButton segmentId={segment.id} />
             <GreyButton variant="contained" onClick={handleDefinitionSave}>
               Save
             </GreyButton>
