@@ -3,6 +3,7 @@ import Stack from "@mui/material/Stack";
 import Tabs from "@mui/material/Tabs";
 
 import DashboardContent from "../../../components/dashboardContent";
+import { RecomputeNowButton } from "../../../components/recomputeNowButton";
 import TabLink from "../../../components/tabLink";
 
 export default function SegmentLayout({
@@ -20,12 +21,18 @@ export default function SegmentLayout({
   return (
     <DashboardContent>
       <Stack direction="column" sx={{ width: "100%" }}>
-        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ borderBottom: 1, borderColor: "divider", pr: 2 }}
+        >
           <Tabs value={tabValue}>
             <TabLink label="Configure" href={basePath} index={0} />
             <TabLink label="Users" href={`${basePath}/users`} index={1} />
           </Tabs>
-        </Box>
+          <RecomputeNowButton segmentId={segmentId} />
+        </Stack>
         <Box>{children}</Box>
       </Stack>
     </DashboardContent>
