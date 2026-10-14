@@ -510,6 +510,15 @@ export async function getSummarizedData({
       0 as opens,
       0 as clicks,
       sum(toUInt64(has_bounced)) as bounces`;
+  } else if (channel === ChannelType.Webhook) {
+    // Webhooks: a send is either accepted (2xx, MessageSent) or failed
+    // (MessageFailure). Failures are reported as bounces.
+    summaryFields = `
+      sum(toUInt64(has_sent AND NOT has_failed)) as deliveries,
+      sum(toUInt64(has_sent)) as sent,
+      0 as opens,
+      0 as clicks,
+      sum(toUInt64(has_failed)) as bounces`;
   } else {
     // Other channels: only sent messages
     summaryFields = `
@@ -520,16 +529,24 @@ export async function getSummarizedData({
       0 as bounces`;
   }
 
+  // Failed webhook sends have no MessageSent event, so count their
+  // MessageFailure as the send.
+  const sendEventCondition =
+    channel === ChannelType.Webhook
+      ? `(ie.event = '${InternalEventType.MessageSent}' OR (ie.event = '${InternalEventType.MessageFailure}' AND ie.channel_type = '${ChannelType.Webhook}'))`
+      : `ie.event = '${InternalEventType.MessageSent}'`;
+
   const query = `
     WITH sent_messages AS (
       SELECT
-        ie.message_id AS origin_message_id
+        ie.message_id AS origin_message_id,
+        ie.event AS send_event
       FROM internal_events AS ie
       WHERE
         ie.workspace_id = ${workspaceIdParam}
         AND ie.processing_time >= parseDateTimeBestEffort(${qb.addQueryValue(startDate, "String")}, 'UTC')
         AND ie.processing_time <= parseDateTimeBestEffort(${qb.addQueryValue(endDate, "String")}, 'UTC')
-        AND ie.event = '${InternalEventType.MessageSent}'
+        AND ${sendEventCondition}
         AND ie.hidden = false
         ${sentSummaryFilterClauses}
     ),
@@ -557,7 +574,8 @@ export async function getSummarizedData({
         max(se.event IN ('${InternalEventType.EmailDelivered}', '${InternalEventType.SmsDelivered}')) as has_delivered,
         max(se.event = '${InternalEventType.EmailOpened}') as has_opened,
         max(se.event = '${InternalEventType.EmailClicked}') as has_clicked,
-        max(se.event IN ('${InternalEventType.EmailBounced}', '${InternalEventType.SmsFailed}')) as has_bounced
+        max(se.event IN ('${InternalEventType.EmailBounced}', '${InternalEventType.SmsFailed}')) as has_bounced,
+        max(sm.send_event = '${InternalEventType.MessageFailure}') as has_failed
       FROM sent_messages sm
       LEFT JOIN status_events se USING (origin_message_id)
       GROUP BY sm.origin_message_id

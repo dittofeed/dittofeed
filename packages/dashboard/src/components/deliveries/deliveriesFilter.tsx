@@ -348,6 +348,11 @@ export function NewDeliveriesFilterButton({
                       type: DeliveriesFilterCommandType.SelectItem,
                       id: InternalEventType.SmsFailed,
                     },
+                    {
+                      label: "Webhook Failed",
+                      type: DeliveriesFilterCommandType.SelectItem,
+                      id: InternalEventType.MessageFailure,
+                    },
                   ];
                   draft.stage = {
                     type: StageType.SelectItem,

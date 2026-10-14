@@ -1,4 +1,4 @@
-import { Email, Sms } from "@mui/icons-material";
+import { Email, Sms, Webhook } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -226,10 +226,58 @@ export function AnalysisSummaryPanel({
                   SMS
                 </Button>
               )}
+              {(!allowedChannels ||
+                allowedChannels.includes(ChannelType.Webhook)) && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<Webhook />}
+                  onClick={() => onChannelSelect(ChannelType.Webhook)}
+                  disableRipple
+                  sx={{
+                    ...greyButtonStyle,
+                    textTransform: "none",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Webhook
+                </Button>
+              )}
             </Stack>
           </Stack>
         </Stack>
       </Box>
+    );
+  }
+
+  // Webhooks either succeed (2xx) or fail; there are no opens or clicks.
+  if (selectedChannel === ChannelType.Webhook) {
+    return (
+      <Stack
+        direction="row"
+        spacing={1}
+        justifyContent="center"
+        sx={{ py: 0.5 }}
+      >
+        <MetricCard
+          title="SENT"
+          value={summary.sent}
+          isLoading={summaryQuery.isLoading}
+          isPercentage={displayMode === "percentage"}
+        />
+        <MetricCard
+          title="SUCCEEDED"
+          value={summary.deliveries}
+          isLoading={summaryQuery.isLoading}
+          isPercentage={displayMode === "percentage"}
+        />
+        <MetricCard
+          title="FAILED"
+          value={summary.bounces}
+          isLoading={summaryQuery.isLoading}
+          isPercentage={displayMode === "percentage"}
+        />
+      </Stack>
     );
   }
 

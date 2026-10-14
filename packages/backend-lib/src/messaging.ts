@@ -2384,6 +2384,12 @@ export async function sendWebhook({
         type: ChannelType.Webhook,
         code,
         response,
+        to: identifier,
+        // Same as on success: the rendered config, never the secret.
+        request: {
+          ...renderedConfig,
+          headers: renderedConfigHeaders,
+        } satisfies WebhookConfig,
       } satisfies MessageWebhookServiceFailure,
     });
   }

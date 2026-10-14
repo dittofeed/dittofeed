@@ -813,6 +813,66 @@ describe("analysis", () => {
   });
 
   describe("getSummarizedData", () => {
+    it("counts webhook successes and failures when the webhook channel is selected", async () => {
+      const now = Date.now();
+      const base = {
+        workspaceId,
+        journeyId: randomUUID(),
+        nodeId: randomUUID(),
+        runId: randomUUID(),
+        templateId: randomUUID(),
+      };
+      const webhookEvent = (
+        event: InternalEventType,
+        variant: Record<string, unknown>,
+      ): BatchItem => {
+        const messageId = randomUUID();
+        return {
+          userId: randomUUID(),
+          timestamp: new Date(now - 1000).toISOString(),
+          type: EventType.Track,
+          messageId,
+          event,
+          properties: {
+            ...base,
+            messageId,
+            variant: { type: ChannelType.Webhook, ...variant },
+          },
+        };
+      };
+      await submitBatch({
+        workspaceId,
+        data: {
+          batch: [
+            webhookEvent(InternalEventType.MessageSent, {
+              to: "a",
+              request: { url: "https://example.com" },
+              response: { status: 200 },
+            }),
+            webhookEvent(InternalEventType.MessageSent, {
+              to: "b",
+              request: { url: "https://example.com" },
+              response: { status: 201 },
+            }),
+            webhookEvent(InternalEventType.MessageFailure, {
+              code: "ERR_BAD_RESPONSE",
+              response: { status: 500 },
+            }),
+          ],
+        },
+      });
+
+      const result = await getSummarizedData({
+        workspaceId,
+        startDate: new Date(now - 3600000).toISOString(),
+        endDate: new Date(now + 60000).toISOString(),
+        filters: { channel: ChannelType.Webhook },
+      });
+      expect(result.summary.sent).toBe(3);
+      expect(result.summary.deliveries).toBe(2);
+      expect(result.summary.bounces).toBe(1);
+    });
+
     let journeyId: string;
     let templateId: string;
     let userId1: string;
