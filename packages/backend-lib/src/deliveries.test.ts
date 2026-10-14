@@ -1150,6 +1150,86 @@ describe("deliveries", () => {
       });
     });
 
+    describe("when filtering by status with a limit", () => {
+      beforeEach(async () => {
+        const now = Date.now();
+        // Two newer sends without status events, and one older bounced send.
+        const sends = [0, 1, 2].map((i) => ({
+          userId: randomUUID(),
+          messageId: randomUUID(),
+          timestamp: new Date(now - (i + 1) * 60000).toISOString(),
+        }));
+        const events: BatchItem[] = sends.map((send) => ({
+          userId: send.userId,
+          timestamp: send.timestamp,
+          type: EventType.Track,
+          messageId: send.messageId,
+          event: InternalEventType.MessageSent,
+          properties: {
+            workspaceId,
+            journeyId: randomUUID(),
+            nodeId: randomUUID(),
+            runId: randomUUID(),
+            templateId: randomUUID(),
+            messageId: send.messageId,
+            variant: {
+              type: ChannelType.Email,
+              from: "test-from@email.com",
+              to: "test-to@email.com",
+              body: "body",
+              subject: "subject",
+              provider: {
+                type: EmailProviderType.SendGrid,
+              },
+            },
+          },
+        }));
+        const oldest = sends[2];
+        if (!oldest) {
+          throw new Error("missing send");
+        }
+        events.push({
+          userId: oldest.userId,
+          timestamp: new Date(now - 30000).toISOString(),
+          type: EventType.Track,
+          messageId: randomUUID(),
+          event: InternalEventType.EmailBounced,
+          properties: {
+            workspaceId,
+            messageId: oldest.messageId,
+          },
+        });
+        // Distinct processing times: the page of sends is cut by
+        // processing_time, and the bounced send is the oldest.
+        for (const [i, event] of events.entries()) {
+          const processingTime = event.timestamp
+            ? new Date(event.timestamp).getTime()
+            : now - i;
+          // eslint-disable-next-line no-await-in-loop
+          await submitBatch(
+            {
+              workspaceId,
+              data: {
+                batch: [event],
+              },
+            },
+            { processingTime },
+          );
+        }
+      });
+
+      it("returns matching deliveries beyond the first page of sends", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          statuses: [InternalEventType.EmailBounced],
+          limit: 1,
+        });
+        expect(deliveries.items.map((d) => d.status)).toEqual([
+          InternalEventType.EmailBounced,
+        ]);
+      });
+    });
+
     describe("when filtering by user id", () => {
       let userId: string;
       beforeEach(async () => {

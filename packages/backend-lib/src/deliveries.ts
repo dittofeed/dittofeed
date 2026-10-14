@@ -347,10 +347,15 @@ export function buildDeliverySearchQueryBody({
     );
   }
 
+  // Filters applied in the outer query (after joining status events) must
+  // also paginate there; otherwise the inner LIMIT picks a page of sends
+  // first and the outer WHERE drops rows from it, returning short or empty
+  // pages.
   const hasContextOrTriggeringFilters = Boolean(
-    (triggeringProperties &&
-      triggeringProperties.length > 0 &&
-      triggeringPropertiesClauseTrigger !== "1=0") ||
+    (statuses && statuses.length > 0) ||
+      (triggeringProperties &&
+        triggeringProperties.length > 0 &&
+        triggeringPropertiesClauseTrigger !== "1=0") ||
       (contextValues &&
         contextValues.length > 0 &&
         contextValuesClause !== "1=0"),
