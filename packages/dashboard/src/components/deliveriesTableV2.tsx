@@ -19,7 +19,6 @@ import {
 } from "@mui/material";
 import { subMinutes } from "date-fns";
 import {
-  ChannelType,
   DeliveriesAllowedColumn,
   SearchDeliveriesRequest,
   SearchDeliveriesRequestSortBy,
@@ -32,17 +31,16 @@ import { useImmer } from "use-immer";
 import { useInterval } from "usehooks-ts";
 
 import { useDownloadDeliveriesMutation } from "../lib/useDownloadDeliveriesMutation";
+import { useResourcesQuery } from "../lib/useResourcesQuery";
 import {
   DateRangeSelector,
   DateRangeValue,
   TimeOptionId,
 } from "./dateRangeSelector";
 import {
-  getFilterValues,
-  NewDeliveriesFilterButton,
-  SelectedDeliveriesFilters,
-  useDeliveriesFilterState,
-} from "./deliveries/deliveriesFilter";
+  expandDeliveryStatusFilters,
+  getDeliveryFilterFields,
+} from "./deliveries/deliveryFilterFields";
 import { DEFAULT_ALLOWED_COLUMNS } from "./deliveriesTableV2/constants";
 import {
   createDownloadParams,
@@ -54,6 +52,8 @@ import {
 } from "./deliveriesTableV2/deliveriesBody";
 import { GreyButton, greyButtonStyle } from "./greyButtonStyle";
 import { greyMenuItemStyles, greySelectStyles } from "./greyScaleStyles";
+import { AdvancedTableFilter } from "./tableFilters/advancedTableFilter";
+import { useTableFiltersUrlState } from "./tableFilters/useTableFiltersUrlState";
 
 interface State {
   dateRange: DateRangeValue;
@@ -125,6 +125,8 @@ interface DeliveriesTableV2Props {
   autoReloadByDefault?: boolean;
   reloadPeriodMs?: number;
   defaultTimeOption?: TimeOptionId;
+  // URL query param holding the advanced filters.
+  filtersParamName?: string;
 }
 
 export function DeliveriesTableV2({
@@ -141,6 +143,7 @@ export function DeliveriesTableV2({
   reloadPeriodMs = 30000,
   broadcastUriTemplate,
   defaultTimeOption: defaultTimeOptionOverride = defaultTimeOptionId,
+  filtersParamName = "filters",
 }: DeliveriesTableV2Props) {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -156,8 +159,17 @@ export function DeliveriesTableV2({
     },
   });
 
-  const [deliveriesFilterState, setDeliveriesFilterState] =
-    useDeliveriesFilterState();
+  const [advancedFilters, setAdvancedFilters] =
+    useTableFiltersUrlState(filtersParamName);
+  const { data: resources } = useResourcesQuery({ messageTemplates: true });
+  const filterFields = useMemo(
+    () => getDeliveryFilterFields(resources?.messageTemplates ?? []),
+    [resources],
+  );
+  const requestAdvancedFilters = useMemo(
+    () => expandDeliveryStatusFilters(advancedFilters),
+    [advancedFilters],
+  );
   const initialEndDate = useMemo(() => new Date(), []);
   const defaultOption = timeOptions.find(
     (o) => o.id === defaultTimeOptionOverride,
@@ -207,15 +219,6 @@ export function DeliveriesTableV2({
       : null,
   );
 
-  const templateIds = getFilterValues(deliveriesFilterState, "template");
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const channels = getFilterValues(deliveriesFilterState, "channel") as
-    | ChannelType[]
-    | undefined;
-  const to = getFilterValues(deliveriesFilterState, "to");
-  const statuses = getFilterValues(deliveriesFilterState, "status");
-  const from = getFilterValues(deliveriesFilterState, "from");
-
   const deliveriesBodyHookProps = {
     userId,
     groupId,
@@ -223,11 +226,7 @@ export function DeliveriesTableV2({
     triggeringProperties,
     contextValues,
     broadcastId,
-    templateIds,
-    channels,
-    to,
-    statuses,
-    from,
+    advancedFilters: requestAdvancedFilters,
     startDate: state.dateRange.startDate.toISOString(),
     endDate: state.dateRange.endDate.toISOString(),
     sortBy: state.query.sortBy,
@@ -238,25 +237,9 @@ export function DeliveriesTableV2({
   const deliveriesBodyState = useDeliveryBodyState(deliveriesBodyHookProps);
 
   const downloadParams = useMemo(() => {
-    const downloadTemplateIds = getFilterValues(
-      deliveriesFilterState,
-      "template",
-    );
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const downloadChannels = getFilterValues(
-      deliveriesFilterState,
-      "channel",
-    ) as ChannelType[] | undefined;
-    const downloadTo = getFilterValues(deliveriesFilterState, "to");
-    const downloadStatuses = getFilterValues(deliveriesFilterState, "status");
-    const downloadFrom = getFilterValues(deliveriesFilterState, "from");
-
     const params = {
-      templateIds: downloadTemplateIds,
-      channels: downloadChannels,
-      to: downloadTo,
-      statuses: downloadStatuses,
-      from: downloadFrom,
+      advancedFilters:
+        requestAdvancedFilters.length > 0 ? requestAdvancedFilters : undefined,
       startDate: state.dateRange.startDate.toISOString(),
       endDate: state.dateRange.endDate.toISOString(),
       sortBy: state.query.sortBy,
@@ -271,7 +254,7 @@ export function DeliveriesTableV2({
 
     return createDownloadParams(params);
   }, [
-    deliveriesFilterState,
+    requestAdvancedFilters,
     state.dateRange,
     state.query,
     userId,
@@ -363,10 +346,10 @@ export function DeliveriesTableV2({
             sx={{ borderColor: "grey.300" }}
           />
           <Stack direction="row" spacing={1} flex={1} sx={{ height: "100%" }}>
-            <NewDeliveriesFilterButton
-              state={deliveriesFilterState}
-              setState={setDeliveriesFilterState}
-              greyScale
+            <AdvancedTableFilter
+              fields={filterFields}
+              filters={advancedFilters}
+              onChange={setAdvancedFilters}
               buttonProps={{
                 disableRipple: true,
                 sx: {
@@ -374,13 +357,7 @@ export function DeliveriesTableV2({
                   fontWeight: "bold",
                 },
               }}
-            />
-            <SelectedDeliveriesFilters
-              state={deliveriesFilterState}
-              setState={setDeliveriesFilterState}
-              sx={{
-                height: "100%",
-              }}
+              chipSx={{ height: "100%" }}
             />
           </Stack>
           {(state.query.sortBy !== "sentAt" ||

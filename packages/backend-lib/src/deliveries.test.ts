@@ -1148,6 +1148,48 @@ describe("deliveries", () => {
           InternalEventType.EmailBounced,
         ]);
       });
+
+      it("supports advanced status filters", async () => {
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          advancedFilters: [
+            {
+              field: "status",
+              operator: "NotIn",
+              value: [InternalEventType.MessageSent],
+            },
+          ],
+        });
+        expect(deliveries.items.map((d) => d.status).sort()).toEqual(
+          [
+            InternalEventType.EmailBounced,
+            InternalEventType.EmailOpened,
+          ].sort(),
+        );
+      });
+
+      it("paginates advanced status filters after filtering", async () => {
+        const advancedFilters = [
+          {
+            field: "status",
+            operator: "In" as const,
+            value: [InternalEventType.MessageSent],
+          },
+        ];
+        const deliveries = await searchDeliveries({
+          workspaceId,
+          limit: 1,
+          advancedFilters,
+        });
+        expect(deliveries.items.map((d) => d.status)).toEqual([
+          InternalEventType.MessageSent,
+        ]);
+        const count = await searchDeliveriesCount({
+          workspaceId,
+          advancedFilters,
+        });
+        expect(count).toEqual(1);
+      });
     });
 
     describe("when filtering by user id", () => {
@@ -1911,6 +1953,24 @@ describe("deliveries", () => {
           },
         });
       });
+      it("supports advanced contains filters on to", async () => {
+        const contains = await searchDeliveries({
+          workspaceId,
+          advancedFilters: [
+            { field: "to", operator: "Contains", value: "BAD-TO" },
+          ],
+        });
+        expect(contains.items).toHaveLength(1);
+
+        const notContains = await searchDeliveries({
+          workspaceId,
+          advancedFilters: [
+            { field: "to", operator: "NotContains", value: "bad-to" },
+          ],
+        });
+        expect(notContains.items).toHaveLength(2);
+      });
+
       it("returns the correct number of items", async () => {
         const deliveries = await searchDeliveries({
           workspaceId,

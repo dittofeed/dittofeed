@@ -6,6 +6,7 @@ import {
   SEGMENT_ID_HEADER,
   WORKSPACE_ID_HEADER,
 } from "./constants/headers";
+import { TableFilters } from "./tableFilters";
 
 export type Present<T> = T extends undefined | null ? never : T;
 
@@ -5934,6 +5935,7 @@ export const SearchDeliveriesRequest = Type.Object({
       }),
     ),
   ),
+  advancedFilters: Type.Optional(TableFilters),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
