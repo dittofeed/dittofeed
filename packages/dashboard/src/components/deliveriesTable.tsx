@@ -449,7 +449,7 @@ export function DeliveriesTable({
         let subject: string | null | undefined = null;
         let replyTo: string | null | undefined = null;
         if ("variant" in item) {
-          to = item.variant.to;
+          to = item.variant.to ?? null;
           channel = item.variant.type;
           const { variant } = item;
 

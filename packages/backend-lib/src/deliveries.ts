@@ -102,6 +102,10 @@ function appendWhereClause({
     AND ${condition}`;
 }
 
+// Failed webhook sends have no MessageSent event; their send event is the
+// MessageFailure itself, which is final.
+const DELIVERY_STATUS_EXPR = `if(ms.send_event = '${InternalEventType.MessageFailure}', '${InternalEventType.MessageFailure}', if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}'))`;
+
 interface BuildDeliverySearchQueryBodyArgs {
   params: SearchDeliveriesRequest;
   qb: ClickHouseQueryBuilder;
@@ -139,7 +143,7 @@ export function buildDeliverySearchQueryBody({
 
   const messageSendsConditions: string[] = [
     `workspace_id = ${workspaceIdParam}`,
-    `event = '${InternalEventType.MessageSent}'`,
+    `(event = '${InternalEventType.MessageSent}' OR (event = '${InternalEventType.MessageFailure}' AND channel_type = '${ChannelType.Webhook}'))`,
     `hidden = false`,
   ];
 
@@ -374,7 +378,7 @@ export function buildDeliverySearchQueryBody({
   }
 
   const statusesCondition = statuses
-    ? `if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}') IN ${qb.addQueryValue(statuses, "Array(String)")}`
+    ? `${DELIVERY_STATUS_EXPR} IN ${qb.addQueryValue(statuses, "Array(String)")}`
     : "";
   const whereClause = appendWhereClause({
     baseClause: finalWhereClause,
@@ -389,7 +393,8 @@ export function buildDeliverySearchQueryBody({
           processing_time,
           message_id,
           event_time,
-          triggering_message_id
+          triggering_message_id,
+          event as send_event
         FROM internal_events
         WHERE
           ${messageSendsConditions.join(" AND ")}
@@ -556,7 +561,7 @@ ${queryBody.triggeringEventsCte}
         : ""
     }
     SELECT
-      if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}') as last_event,
+      ${DELIVERY_STATUS_EXPR} as last_event,
       uev.properties as properties,
       JSONExtractString(uev.message_raw, 'context') as context,
       if(se.origin_message_id != '', se.max_event_time, ms.event_time) as updated_at,

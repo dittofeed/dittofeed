@@ -341,10 +341,11 @@ interface SmsDelivery extends BaseDelivery {
 interface WebhookDelivery extends BaseDelivery {
   channel: typeof ChannelType.Webhook;
   from?: undefined;
-  to?: undefined;
+  to?: string;
   subject?: undefined;
   replyTo?: undefined;
-  snippet?: undefined;
+  // e.g. "HTTP 200", or a network error code like "ECONNREFUSED".
+  snippet?: string;
 }
 
 type Delivery = EmailDelivery | SmsDelivery | WebhookDelivery;
@@ -800,17 +801,26 @@ export function useDeliveryBodyState({
             to: variant.to,
           };
           break;
-        case ChannelType.Webhook:
+        case ChannelType.Webhook: {
+          const code = "code" in variant ? variant.code : undefined;
+          const httpStatus = variant.response?.status;
           delivery = {
             ...baseDelivery,
             channel: ChannelType.Webhook,
+            to: variant.to,
+            snippet: httpStatus !== undefined ? `HTTP ${httpStatus}` : code,
             body: JSON.stringify(
-              { request: variant.request, response: variant.response },
+              {
+                ...(code ? { error: code } : {}),
+                request: variant.request,
+                response: variant.response,
+              },
               null,
               2,
             ),
           };
           break;
+        }
         default:
           assertUnreachable(variant);
       }

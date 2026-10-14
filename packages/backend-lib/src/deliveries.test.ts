@@ -1841,6 +1841,72 @@ describe("deliveries", () => {
       });
     });
 
+    describe("when a webhook send fails", () => {
+      beforeEach(async () => {
+        const base = {
+          workspaceId,
+          journeyId: randomUUID(),
+          nodeId: randomUUID(),
+          runId: randomUUID(),
+          templateId: randomUUID(),
+        };
+        const events: BatchItem[] = [
+          {
+            userId: randomUUID(),
+            timestamp: new Date(Date.now() - 2000).toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageFailure,
+            properties: {
+              ...base,
+              variant: {
+                type: ChannelType.Webhook,
+                code: "ERR_BAD_RESPONSE",
+                to: "webhook-user",
+                request: { url: "https://example.com/hook", method: "POST" },
+                response: { status: 500, body: { error: "boom" } },
+              },
+            },
+          },
+          {
+            userId: randomUUID(),
+            timestamp: new Date(Date.now() - 1000).toISOString(),
+            type: EventType.Track,
+            messageId: randomUUID(),
+            event: InternalEventType.MessageFailure,
+            properties: {
+              ...base,
+              variant: {
+                type: ChannelType.Email,
+                provider: { type: EmailProviderType.SendGrid },
+              },
+            },
+          },
+        ];
+        await submitBatch({ workspaceId, data: { batch: events } });
+      });
+
+      it("returns the failed webhook with its response, but not failed emails", async () => {
+        const deliveries = await searchDeliveries({ workspaceId });
+        expect(deliveries.items).toHaveLength(1);
+        const [item] = deliveries.items;
+        expect(item?.status).toEqual(InternalEventType.MessageFailure);
+        expect(
+          item && "variant" in item && item.variant.type === ChannelType.Webhook
+            ? item.variant.response?.status
+            : undefined,
+        ).toEqual(500);
+
+        const failedOnly = await searchDeliveries({
+          workspaceId,
+          statuses: [InternalEventType.MessageFailure],
+        });
+        expect(failedOnly.items).toHaveLength(1);
+        const count = await searchDeliveriesCount({ workspaceId });
+        expect(count).toEqual(1);
+      });
+    });
+
     describe("when filtering by to", () => {
       let to1: string;
       let to2: string;

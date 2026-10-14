@@ -4468,6 +4468,9 @@ export const MessageWebhookServiceFailure = Type.Object({
   type: Type.Literal(ChannelType.Webhook),
   code: Type.Optional(Type.String()),
   response: Type.Optional(WebhookResponse),
+  // Recorded so failed webhooks can be inspected like successful ones.
+  to: Type.Optional(Type.String()),
+  request: Type.Optional(WebhookConfig),
 });
 
 export type MessageWebhookServiceFailure = Static<
@@ -4667,6 +4670,15 @@ export const SearchDeliveriesResponseItem = Type.Union([
     Type.Object({
       status: EmailEvent,
       variant: MessageEmailSuccess,
+    }),
+    BaseDeliveryItem,
+  ]),
+  // Listed before the success variant: response serialization uses the first
+  // matching schema, and this one also keeps a failure's error code.
+  Type.Composite([
+    Type.Object({
+      status: Type.String(),
+      variant: MessageWebhookServiceFailure,
     }),
     BaseDeliveryItem,
   ]),
