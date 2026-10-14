@@ -26,6 +26,10 @@ import logger from "./logger";
 import { withSpan } from "./openTelemetry";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import {
+  buildClickHouseTableFilterConditions,
+  ClickHouseTableFilterFields,
+} from "./tableFilters";
+import {
   ChannelType,
   GetDeliveryBodyRequest,
   InternalEventType,
@@ -102,6 +106,23 @@ function appendWhereClause({
     AND ${condition}`;
 }
 
+// Advanced filter fields that map onto columns of the MessageSent event.
+const DELIVERY_SEND_FILTER_FIELDS: ClickHouseTableFilterFields = {
+  template: { expr: "template_id", type: "Enum" },
+  channel: { expr: "channel_type", type: "Enum" },
+  to: { expr: "delivery_to", type: "String" },
+  from: { expr: "delivery_from", type: "String" },
+  userId: { expr: "user_or_anonymous_id", type: "String" },
+};
+
+const DELIVERY_STATUS_EXPR = `if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}')`;
+
+// Status is only known after joining status events, so it is filtered in the
+// outer query.
+const DELIVERY_STATUS_FILTER_FIELDS: ClickHouseTableFilterFields = {
+  status: { expr: DELIVERY_STATUS_EXPR, type: "Enum" },
+};
+
 interface BuildDeliverySearchQueryBodyArgs {
   params: SearchDeliveriesRequest;
   qb: ClickHouseQueryBuilder;
@@ -126,6 +147,7 @@ export function buildDeliverySearchQueryBody({
     broadcastId,
     triggeringProperties: triggeringPropertiesInput,
     contextValues: contextValuesInput,
+    advancedFilters,
   } = params;
 
   const triggeringProperties = triggeringPropertiesInput
@@ -220,6 +242,14 @@ export function buildDeliverySearchQueryBody({
         WHERE is_assigned = true
       )`);
   }
+
+  messageSendsConditions.push(
+    ...buildClickHouseTableFilterConditions({
+      filters: advancedFilters?.filter((f) => f.field !== "status"),
+      fields: DELIVERY_SEND_FILTER_FIELDS,
+      qb,
+    }),
+  );
 
   const statusEventsList = StatusEventsList;
   const statusEventsConditions: string[] = [
@@ -347,10 +377,19 @@ export function buildDeliverySearchQueryBody({
     );
   }
 
+  const advancedStatusConditions = buildClickHouseTableFilterConditions({
+    filters: advancedFilters?.filter((f) => f.field === "status"),
+    fields: DELIVERY_STATUS_FILTER_FIELDS,
+    qb,
+  });
+
+  // Filters applied after the join must paginate in the outer query, otherwise
+  // pages would be cut short by rows the outer WHERE drops.
   const hasContextOrTriggeringFilters = Boolean(
-    (triggeringProperties &&
-      triggeringProperties.length > 0 &&
-      triggeringPropertiesClauseTrigger !== "1=0") ||
+    advancedStatusConditions.length > 0 ||
+      (triggeringProperties &&
+        triggeringProperties.length > 0 &&
+        triggeringPropertiesClauseTrigger !== "1=0") ||
       (contextValues &&
         contextValues.length > 0 &&
         contextValuesClause !== "1=0"),
@@ -374,12 +413,15 @@ export function buildDeliverySearchQueryBody({
   }
 
   const statusesCondition = statuses
-    ? `if(se.origin_message_id != '', se.last_event, '${InternalEventType.MessageSent}') IN ${qb.addQueryValue(statuses, "Array(String)")}`
+    ? `${DELIVERY_STATUS_EXPR} IN ${qb.addQueryValue(statuses, "Array(String)")}`
     : "";
-  const whereClause = appendWhereClause({
+  let whereClause = appendWhereClause({
     baseClause: finalWhereClause,
     condition: statusesCondition,
   });
+  for (const condition of advancedStatusConditions) {
+    whereClause = appendWhereClause({ baseClause: whereClause, condition });
+  }
 
   const messageSendsCteHead = `
       SELECT DISTINCT * FROM (
@@ -808,6 +850,7 @@ export async function searchDeliveries({
   broadcastId,
   triggeringProperties: triggeringPropertiesInput,
   contextValues: contextValuesInput,
+  advancedFilters,
   abortSignal,
 }: SearchDeliveriesRequest & {
   abortSignal?: AbortSignal;
@@ -888,6 +931,7 @@ export async function searchDeliveries({
         broadcastId,
         triggeringProperties: triggeringPropertiesInput,
         contextValues: contextValuesInput,
+        advancedFilters,
       },
       qb: queryBuilder,
     });

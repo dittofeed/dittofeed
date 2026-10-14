@@ -534,6 +534,7 @@ export interface DeliveriesBodyHookProps {
   to?: string[];
   statuses?: string[];
   from?: string[];
+  advancedFilters?: SearchDeliveriesRequest["advancedFilters"];
   startDate: string;
   endDate: string;
   sortBy?: SearchDeliveriesRequestSortBy;
@@ -568,6 +569,7 @@ export function useDeliveryBodyState({
   to,
   statuses,
   from,
+  advancedFilters,
   startDate,
   endDate,
   sortBy = "sentAt",
@@ -588,14 +590,14 @@ export function useDeliveryBodyState({
     cursor: null,
   });
 
-  // Reset pagination when date range or sort changes
+  // Reset pagination when date range, sort, or advanced filters change
   useEffect(() => {
     setState((draft) => {
       if (draft.cursor) {
         draft.cursor = null;
       }
     });
-  }, [startDate, endDate, sortBy, sortDirection, setState]);
+  }, [startDate, endDate, sortBy, sortDirection, advancedFilters, setState]);
 
   const filtersHash = useMemo(
     () =>
@@ -607,8 +609,18 @@ export function useDeliveryBodyState({
         from,
         journeyIds,
         broadcastIds,
+        advancedFilters,
       }),
-    [templateIds, channels, to, statuses, from, journeyIds, broadcastIds],
+    [
+      templateIds,
+      channels,
+      to,
+      statuses,
+      from,
+      journeyIds,
+      broadcastIds,
+      advancedFilters,
+    ],
   );
 
   const resolvedQueryParams = useMemo(() => {
@@ -641,6 +653,10 @@ export function useDeliveryBodyState({
       to,
       statuses: expandedStatuses,
       from,
+      advancedFilters:
+        advancedFilters && advancedFilters.length > 0
+          ? advancedFilters
+          : undefined,
       triggeringProperties,
       contextValues,
       sortBy,
@@ -665,6 +681,7 @@ export function useDeliveryBodyState({
     channels,
     to,
     from,
+    advancedFilters,
     triggeringProperties,
     contextValues,
     sortBy,
