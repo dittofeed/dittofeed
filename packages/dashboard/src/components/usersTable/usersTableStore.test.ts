@@ -267,6 +267,36 @@ describe("usersTableStore", () => {
     });
   });
 
+  describe("page size", () => {
+    it("defaults to 10 rows per page", () => {
+      expect(store.getState().limit).toBe(10);
+      expect(store.getState().getQueryParams().limit).toBe(10);
+    });
+
+    it("uses the initial limit when one is provided", () => {
+      const storeWithLimit = createUsersTableStore({ limit: 50 });
+      expect(storeWithLimit.getState().getQueryParams().limit).toBe(50);
+    });
+
+    it("updates the limit and resets pagination when the page size changes", () => {
+      store.setState({
+        cursor: "some-cursor",
+        direction: CursorDirectionEnum.After,
+        nextCursor: "next",
+        previousCursor: "prev",
+      });
+
+      store.getState().setLimit(25);
+
+      expect(store.getState().limit).toBe(25);
+      expect(store.getState().getQueryParams().limit).toBe(25);
+      expect(store.getState().cursor).toBeNull();
+      expect(store.getState().direction).toBeNull();
+      expect(store.getState().nextCursor).toBeNull();
+      expect(store.getState().previousCursor).toBeNull();
+    });
+  });
+
   describe("filter state management", () => {
     it("resets pagination when segments filter changes", () => {
       // Set up some pagination state

@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 
 import DashboardContent from "../components/dashboardContent";
+import { parseRowsPerPage } from "../components/rowsPerPageSelect";
 import UsersTableV2, {
   usersTablePaginationHandler,
 } from "../components/usersTableV2";
@@ -53,6 +54,7 @@ export default function SegmentUsers() {
         </Stack>
         <UsersTableV2
           {...queryParams}
+          limit={parseRowsPerPage(router.query.limit)}
           onPaginationChange={onUsersTablePaginate}
         />
       </Stack>

@@ -4,6 +4,7 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
+import { parseRowsPerPage } from "../../../components/rowsPerPageSelect";
 import UsersTableV2, {
   usersTablePaginationHandler,
   UsersTableParams,
@@ -83,6 +84,7 @@ export default function SubscriptionGroupUsersUnsubscribed() {
             type: "subscribe",
           }}
           {...queryParams}
+          limit={parseRowsPerPage(router.query.limit)}
           onPaginationChange={onUsersTablePaginate}
         />
       </Stack>
