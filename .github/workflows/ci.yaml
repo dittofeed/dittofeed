@@ -1,0 +1,78 @@
+name: Dittofeed CI/CD
+
+on:
+  push:
+
+
+env:
+  REGISTRY: harbor.hngcweywe.com
+  IMAGE_PREFIX: harbor.hngcweywe.com/dittofeed
+
+jobs:
+  # lint:
+  #   name: Lint (${{ matrix.package }})
+  #   runs-on: self-hosted
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       package:
+  #         - api
+  #         - worker
+  #         - dashboard
+  #         - admin-cli
+  #         - isomorphic-lib
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Use Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: "20"
+  #         cache: yarn
+
+  #     - name: Install dependencies
+  #       run: yarn
+
+  #     - name: Emailo build
+  #       run: yarn workspace emailo build
+
+  #     - name: Run lint
+  #       run: yarn workspace ${{ matrix.package }} lint
+
+  #     - name: Run typecheck
+  #       run: yarn workspace ${{ matrix.package }} check
+
+  docker:
+    name: Publish Docker image (${{ matrix.package }})
+    if: github.event_name == 'push'
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - worker
+          - api
+          - dashboard
+          - admin-cli
+          - lite
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Harbor
+        run: |
+          echo "${{ secrets.HARBOR_PASSWORD }}" | docker login "${{ env.REGISTRY }}" \
+            -u 'robot$github-actions' \
+            --password-stdin
+
+      - name: Build dittofeed-${{ matrix.package }} Docker image
+        run: |
+          docker build \
+            -f ./packages/${{ matrix.package }}/Dockerfile \
+            --build-arg APP_VERSION=$(echo $GITHUB_SHA | head -c7) \
+            -t ${{ env.IMAGE_PREFIX }}/dittofeed-${{ matrix.package }}:$(echo $GITHUB_SHA | head -c7) \
+            --push \
+            .
+
+

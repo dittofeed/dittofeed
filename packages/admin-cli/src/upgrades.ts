@@ -27,6 +27,8 @@ import {
 } from "backend-lib/src/types";
 import {
   CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
+  CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY,
+  CREATE_IDENTIFY_EVENTS_TABLE_QUERY,
   CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
   CREATE_INTERNAL_EVENTS_TABLE_QUERY,
   CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
@@ -1172,4 +1174,237 @@ export async function upgradeV024Pre() {
   await migrateMessageIdIndexToBloomFilter();
   await createUnsubscribedSegmentsForExistingSubscriptionGroups();
   logger().info("Pre-upgrade steps for v0.24.0 completed.");
+}
+
+export async function backfillIdentifyEvents({
+  intervalMinutes = 1440,
+  workspaceIds,
+  startDate: startDateOverride,
+  endDate: endDateOverride,
+  forceFullBackfill = false,
+  limit = 10000,
+  dryRun = false,
+}: {
+  intervalMinutes?: number;
+  workspaceIds?: string[];
+  startDate?: string;
+  endDate?: string;
+  forceFullBackfill?: boolean;
+  limit?: number;
+  dryRun?: boolean;
+}) {
+  logger().info(
+    dryRun
+      ? "Analyzing identify events backfill (dry run)"
+      : "Backfilling identify events",
+  );
+
+  let startDate: Date;
+  if (startDateOverride) {
+    startDate = new Date(startDateOverride);
+  } else if (forceFullBackfill) {
+    const userEventsQb = new ClickHouseQueryBuilder();
+    const userEventsWorkspaceFilter = workspaceIds
+      ? `AND workspace_id IN ${userEventsQb.addQueryValue(workspaceIds, "Array(String)")}`
+      : "";
+    const userEventsResult = await query({
+      query: `SELECT min(processing_time) as min_time FROM user_events_v2 WHERE event_type = 'identify' ${userEventsWorkspaceFilter}`,
+      query_params: userEventsQb.getQueries(),
+      clickhouse_settings: { wait_end_of_query: 1 },
+    });
+    const minTimeResult = await userEventsResult.json<{ min_time: string }>();
+    const minTime = minTimeResult[0]?.min_time;
+    if (
+      !minTime ||
+      minTime === "0000-00-00 00:00:00" ||
+      minTime === "1970-01-01 00:00:00.000"
+    ) {
+      logger().info("No identify events found to backfill");
+      return;
+    }
+    startDate = new Date(`${minTime}Z`);
+  } else {
+    const qb = new ClickHouseQueryBuilder();
+    const workspaceFilter = workspaceIds
+      ? `WHERE workspace_id IN ${qb.addQueryValue(workspaceIds, "Array(String)")}`
+      : "";
+    const maxResult = await query({
+      query: `SELECT max(processing_time) as max_time FROM identify_events_v2 ${workspaceFilter}`,
+      query_params: qb.getQueries(),
+      clickhouse_settings: { wait_end_of_query: 1 },
+    });
+    const maxTimeResult = await maxResult.json<{ max_time: string }>();
+    const maxTime = maxTimeResult[0]?.max_time;
+    if (
+      maxTime &&
+      maxTime !== "0000-00-00 00:00:00" &&
+      maxTime !== "1970-01-01 00:00:00.000"
+    ) {
+      startDate = new Date(`${maxTime}Z`);
+    } else {
+      const userEventsQb = new ClickHouseQueryBuilder();
+      const userEventsWorkspaceFilter = workspaceIds
+        ? `AND workspace_id IN ${userEventsQb.addQueryValue(workspaceIds, "Array(String)")}`
+        : "";
+      const userEventsResult = await query({
+        query: `SELECT min(processing_time) as min_time FROM user_events_v2 WHERE event_type = 'identify' ${userEventsWorkspaceFilter}`,
+        query_params: userEventsQb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+      const minTimeResult = await userEventsResult.json<{ min_time: string }>();
+      const minTime = minTimeResult[0]?.min_time;
+      if (
+        !minTime ||
+        minTime === "0000-00-00 00:00:00" ||
+        minTime === "1970-01-01 00:00:00.000"
+      ) {
+        logger().info("No identify events found to backfill");
+        return;
+      }
+      startDate = new Date(`${minTime}Z`);
+    }
+  }
+
+  const endDate = endDateOverride ? new Date(endDateOverride) : new Date();
+  const intervalMs = intervalMinutes * 60 * 1000;
+  let currentStart = startDate;
+  let totalInserted = 0;
+
+  while (currentStart < endDate) {
+    const currentEnd = new Date(
+      Math.min(currentStart.getTime() + intervalMs, endDate.getTime()),
+    );
+    let offset = 0;
+
+    while (true) {
+      const insertQb = new ClickHouseQueryBuilder();
+      const startTimeParam = insertQb.addQueryValue(
+        currentStart.toISOString(),
+        "String",
+      );
+      const endTimeParam = insertQb.addQueryValue(
+        currentEnd.toISOString(),
+        "String",
+      );
+      const limitParam = insertQb.addQueryValue(limit, "UInt64");
+      const offsetParam = insertQb.addQueryValue(offset, "UInt64");
+      const insertWorkspaceFilter = workspaceIds
+        ? `AND workspace_id IN ${insertQb.addQueryValue(workspaceIds, "Array(String)")}`
+        : "";
+
+      const insertQuery = `
+        INSERT INTO identify_events_v2 (
+          workspace_id,
+          user_or_anonymous_id,
+          user_id,
+          anonymous_id,
+          message_id,
+          properties,
+          event_time,
+          processing_time,
+          hidden
+        )
+        SELECT
+          workspace_id,
+          user_or_anonymous_id,
+          user_id,
+          anonymous_id,
+          message_id,
+          properties,
+          event_time,
+          processing_time,
+          hidden
+        FROM user_events_v2
+        WHERE
+          event_type = 'identify'
+          AND processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
+          AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+          ${insertWorkspaceFilter}
+          AND (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id) NOT IN (
+            SELECT
+              workspace_id,
+              processing_time,
+              user_or_anonymous_id,
+              event_time,
+              message_id
+            FROM identify_events_v2
+            WHERE
+              processing_time >= parseDateTimeBestEffort(${startTimeParam}, 'UTC')
+              AND processing_time < parseDateTimeBestEffort(${endTimeParam}, 'UTC')
+              ${insertWorkspaceFilter}
+          )
+        ORDER BY processing_time
+        LIMIT ${limitParam}
+        OFFSET ${offsetParam}
+      `;
+
+      if (dryRun) {
+        logger().info(
+          {
+            start: currentStart.toISOString(),
+            end: currentEnd.toISOString(),
+            offset,
+          },
+          "Dry run identify events backfill batch",
+        );
+        break;
+      }
+
+      const result = await command({
+        query: insertQuery,
+        query_params: insertQb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+      const writtenRowsString = result.summary?.written_rows;
+      const writtenRows = writtenRowsString ? parseInt(writtenRowsString) : 0;
+      totalInserted += writtenRows;
+      if (writtenRows === 0 || writtenRows < limit) {
+        break;
+      }
+      offset += limit;
+    }
+
+    currentStart = currentEnd;
+  }
+
+  logger().info({ totalInserted }, "Completed identify events backfill");
+}
+
+export async function createIdentifyEventsTable({
+  backfillLimit = 50000,
+  intervalMinutes = 1440,
+}: {
+  backfillLimit?: number;
+  intervalMinutes?: number;
+} = {}) {
+  logger().info("Creating identify events table and materialized view");
+  await command({
+    query: CREATE_IDENTIFY_EVENTS_TABLE_QUERY,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  await command({
+    query: CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
+  logger().info("Backfilling identify events");
+  await backfillIdentifyEvents({
+    forceFullBackfill: true,
+    limit: backfillLimit,
+    intervalMinutes,
+  });
+}
+
+export async function upgradeV025Pre({
+  identifyEventsBackfillLimit = 50000,
+  identifyEventsBackfillIntervalMinutes = 1440,
+}: {
+  identifyEventsBackfillLimit?: number;
+  identifyEventsBackfillIntervalMinutes?: number;
+} = {}) {
+  logger().info("Performing pre-upgrade steps for v0.25.0");
+  await createIdentifyEventsTable({
+    backfillLimit: identifyEventsBackfillLimit,
+    intervalMinutes: identifyEventsBackfillIntervalMinutes,
+  });
+  logger().info("Pre-upgrade steps for v0.25.0 completed.");
 }

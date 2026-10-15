@@ -42,6 +42,47 @@ export const CREATE_INTERNAL_EVENTS_TABLE_QUERY = `
   ORDER BY (workspace_id, processing_time, event, user_or_anonymous_id, message_id);
 `;
 
+export const IDENTIFY_EVENTS_TABLE = "identify_events_v2";
+
+export const CREATE_IDENTIFY_EVENTS_TABLE_QUERY = `
+  CREATE TABLE IF NOT EXISTS ${IDENTIFY_EVENTS_TABLE} (
+    workspace_id LowCardinality(String),
+    user_or_anonymous_id String,
+    user_id String,
+    anonymous_id String,
+    message_id String,
+    properties String,
+    event_time DateTime64(3),
+    processing_time DateTime64(3),
+    hidden Boolean
+  )
+  ENGINE = MergeTree()
+  ORDER BY (
+    workspace_id,
+    processing_time,
+    user_or_anonymous_id,
+    event_time,
+    message_id
+  );
+`;
+
+export const CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY = `
+  CREATE MATERIALIZED VIEW IF NOT EXISTS identify_events_v2_mv
+  TO ${IDENTIFY_EVENTS_TABLE}
+  AS SELECT
+    workspace_id,
+    user_or_anonymous_id,
+    user_id,
+    anonymous_id,
+    message_id,
+    properties,
+    event_time,
+    processing_time,
+    hidden
+  FROM user_events_v2
+  WHERE event_type = 'identify';
+`;
+
 export const CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY = `
   CREATE MATERIALIZED VIEW IF NOT EXISTS internal_events_mv
   TO internal_events
@@ -373,6 +414,7 @@ export async function createUserEventsTables() {
     // example, a segment with N conditions joined with an "And" clause will
     // require N state id's.
     CREATE_COMPUTED_PROPERTY_STATE_V3_TABLE_QUERY,
+    CREATE_IDENTIFY_EVENTS_TABLE_QUERY,
     // This table stores the assignments of computed properties to users, json
     // strings in the case of user properties or booleans in the case of
     // segments.
@@ -558,6 +600,7 @@ export async function createUserEventsTables() {
         assigned_at;
     `,
     CREATE_UPDATED_COMPUTED_PROPERTY_STATE_V3_MV_QUERY,
+    CREATE_IDENTIFY_EVENTS_MATERIALIZED_VIEW_QUERY,
     // Materialized view that populates internal_events table with DF-prefixed track events
     CREATE_INTERNAL_EVENTS_TABLE_MATERIALIZED_VIEW_QUERY,
     ...GROUP_MATERIALIZED_VIEWS,

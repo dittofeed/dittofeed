@@ -906,6 +906,7 @@ export interface SubscriptionManagementTemplateContext {
   hash: string;
   identifier: string;
   identifierKey: string;
+  userId?: string;
   isPreview: boolean;
   /** Form submission result - preferences saved successfully */
   success?: boolean;

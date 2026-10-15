@@ -23,6 +23,7 @@ export interface GenerateSubscriptionPageParams {
   hash: string;
   identifier: string;
   identifierKey: string;
+  userId?: string;
   isPreview: boolean;
   subscriptionChange?: "Subscribe" | "Unsubscribe";
   changedSubscriptionId?: string;
@@ -50,6 +51,7 @@ export async function generateSubscriptionManagementPage(
     hash,
     identifier,
     identifierKey,
+    userId,
     isPreview,
     subscriptionChange,
     changedSubscriptionId,
@@ -101,6 +103,7 @@ export async function generateSubscriptionManagementPage(
     hash,
     identifier,
     identifierKey,
+    userId,
     isPreview,
     subscriptionChange,
     changedSubscriptionName,

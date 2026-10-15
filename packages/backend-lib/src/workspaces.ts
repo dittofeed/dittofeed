@@ -55,10 +55,21 @@ export async function coldStoreWorkspaceEvents({
   // Delete hot data (async deletes)
   logger().info({ workspaceId }, "Cold storage: deleting hot user_events_v2");
   logger().info({ workspaceId }, "Cold storage: deleting hot internal_events");
+  logger().info({ workspaceId }, "Cold storage: deleting hot identify_events_v2");
   await Promise.all([
     chCommand(
       {
         query: `DELETE FROM user_events_v2 WHERE workspace_id = ${ws} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
+        query_params: qb.getQueries(),
+        clickhouse_settings: {
+          max_execution_time: config().clickhouseColdStorageMaxExecutionTime,
+        },
+      },
+      { clickhouseClient: chClient },
+    ),
+    chCommand(
+      {
+        query: `DELETE FROM identify_events_v2 WHERE workspace_id = ${ws} settings mutations_sync = 0, lightweight_deletes_sync = 0;`,
         query_params: qb.getQueries(),
         clickhouse_settings: {
           max_execution_time: config().clickhouseColdStorageMaxExecutionTime,

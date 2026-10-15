@@ -41,12 +41,17 @@ liquid.registerTag("subscription_hidden_fields", {
     const hash = ctx.get(["hash"]) as string;
     const identifier = ctx.get(["identifier"]) as string;
     const identifierKey = ctx.get(["identifierKey"]) as string;
+    const userId = ctx.get(["userId"]) as string | undefined;
     const isPreview = ctx.get(["isPreview"]) as boolean;
 
     let html = `<input type="hidden" name="w" value="${escapeHtml(workspaceId)}">
     <input type="hidden" name="h" value="${escapeHtml(hash)}">
     <input type="hidden" name="i" value="${escapeHtml(identifier)}">
     <input type="hidden" name="ik" value="${escapeHtml(identifierKey)}">`;
+
+    if (userId) {
+      html += `\n    <input type="hidden" name="u" value="${escapeHtml(userId)}">`;
+    }
 
     if (isPreview) {
       html += `\n    <input type="hidden" name="isPreview" value="true">`;
