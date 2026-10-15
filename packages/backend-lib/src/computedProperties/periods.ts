@@ -12,6 +12,7 @@ import {
   SQL,
   sql,
 } from "drizzle-orm";
+import * as R from "remeda";
 import { Overwrite } from "utility-types";
 
 import config from "../config";
@@ -192,6 +193,16 @@ export async function getPeriodsByComputedPropertyId({
   return pbcpp;
 }
 
+/**
+ * Postgres allows at most 65,535 bind parameters per query. ComputedPropertyPeriod
+ * has 9 columns, so a single insert tops out at 7,281 rows (9 * 7,281 < 65,535), and
+ * a workspace with more segments + user properties than that silently corrupts the
+ * wire protocol rather than erroring: node-postgres writes the parameter count as an
+ * unchecked int16, so it wraps modulo 65,536 and the server reads a misaligned frame.
+ * 5,000 rows is 45,000 parameters, 69% of the limit.
+ */
+export const PERIOD_CHUNK_SIZE = 5000;
+
 export async function createPeriods({
   workspaceId,
   userProperties,
@@ -262,24 +273,30 @@ export async function createPeriods({
     (p) => p.computedPropertyId,
   );
   await db().transaction(async (tx) => {
-    await tx
-      .insert(dbComputedPropertyPeriod)
-      .values(newPeriods)
-      .onConflictDoNothing();
+    for (const chunk of R.chunk(newPeriods, PERIOD_CHUNK_SIZE)) {
+      // eslint-disable-next-line no-await-in-loop
+      await tx
+        .insert(dbComputedPropertyPeriod)
+        .values(chunk)
+        .onConflictDoNothing();
+    }
     logger().debug("Deleted periods");
-    await tx
-      .delete(dbComputedPropertyPeriod)
-      .where(
-        and(
-          eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
-          eq(dbComputedPropertyPeriod.step, step),
-          inArray(
-            dbComputedPropertyPeriod.computedPropertyId,
-            insertedComputedPropertyIds,
+    for (const idChunk of R.chunk(
+      insertedComputedPropertyIds,
+      PERIOD_CHUNK_SIZE,
+    )) {
+      // eslint-disable-next-line no-await-in-loop
+      await tx
+        .delete(dbComputedPropertyPeriod)
+        .where(
+          and(
+            eq(dbComputedPropertyPeriod.workspaceId, workspaceId),
+            eq(dbComputedPropertyPeriod.step, step),
+            inArray(dbComputedPropertyPeriod.computedPropertyId, idChunk),
+            lt(dbComputedPropertyPeriod.to, new Date(now - 60 * 1000 * 5)),
           ),
-          lt(dbComputedPropertyPeriod.to, new Date(now - 60 * 1000 * 5)),
-        ),
-      );
+        );
+    }
   });
 }
 
