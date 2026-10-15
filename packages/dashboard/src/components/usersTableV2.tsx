@@ -74,6 +74,7 @@ import { useUsersCountQuery } from "../lib/useUsersCountQuery";
 import { useUsersQuery } from "../lib/useUsersQuery";
 import { GreyButton } from "./greyButtonStyle";
 import { greyTextFieldStyles } from "./greyScaleStyles";
+import { RowsPerPageSelect } from "./rowsPerPageSelect";
 import { SquarePaper } from "./squarePaper";
 import { SortBySelector } from "./usersTable/sortBySelector";
 import { UsersFilterV2 } from "./usersTable/usersFilterV2";
@@ -734,6 +735,7 @@ export function usersTablePaginationHandler(router: NextRouter) {
   const onUsersTablePaginate = ({
     direction,
     cursor,
+    limit,
   }: OnPaginationChangeProps) => {
     const {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -751,6 +753,9 @@ export function usersTablePaginationHandler(router: NextRouter) {
     }
     if (cursor) {
       newQuery.cursor = cursor;
+    }
+    if (limit) {
+      newQuery.limit = String(limit);
     }
     const routerParams = {
       pathname: router.pathname,
@@ -782,7 +787,7 @@ interface Row {
 
 export type OnPaginationChangeProps = Pick<
   GetUsersRequest,
-  "direction" | "cursor"
+  "direction" | "cursor" | "limit"
 >;
 
 export interface OnSortChangeProps {
@@ -838,6 +843,7 @@ function UsersTableInner({
     currentPageUserIds,
     nextCursor,
     previousCursor,
+    limit,
     sortBy,
     sortOrder,
     usersCount,
@@ -856,6 +862,7 @@ function UsersTableInner({
     goToNextPage,
     goToPreviousPage,
     goToFirstPage,
+    setLimit,
     setSortBy,
     setSortOrder,
     setStaticSegments,
@@ -1042,6 +1049,14 @@ function UsersTableInner({
     goToFirstPage();
     onPaginationChange?.({});
   }, [goToFirstPage, onPaginationChange]);
+
+  const handleLimitChange = useCallback(
+    (newLimit: number) => {
+      setLimit(newLimit);
+      onPaginationChange?.({ limit: newLimit });
+    },
+    [setLimit, onPaginationChange],
+  );
 
   const handleRefresh = useCallback(() => {
     usersListQuery.refetch();
@@ -1232,6 +1247,10 @@ function UsersTableInner({
                     </GreyButton>
                   </Stack>
                   <Stack direction="row" spacing={2} alignItems="center">
+                    <RowsPerPageSelect
+                      value={limit}
+                      onChange={handleLimitChange}
+                    />
                     {isLoading ||
                     countQuery.isPending ||
                     countQuery.isFetching ? (

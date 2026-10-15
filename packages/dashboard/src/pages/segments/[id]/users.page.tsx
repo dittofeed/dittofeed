@@ -4,6 +4,7 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
+import { parseRowsPerPage } from "../../../components/rowsPerPageSelect";
 import UsersTableV2, {
   usersTablePaginationHandler,
   UsersTableParams,
@@ -50,6 +51,7 @@ export default function SegmentUsers() {
             <UsersTableV2
               segmentFilter={[segmentId]}
               {...queryParams}
+              limit={parseRowsPerPage(router.query.limit)}
               onPaginationChange={onUsersTablePaginate}
             />
           </>

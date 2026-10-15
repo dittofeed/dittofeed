@@ -88,6 +88,7 @@ import { useSegmentStatusMutation } from "../../lib/useSegmentStatusMutation";
 import { useUpdateSegmentsMutation } from "../../lib/useUpdateSegmentsMutation";
 import { GreyButton, greyButtonStyle } from "../greyButtonStyle";
 import { RelatedResourceSelect } from "../resourceTable";
+import { RowsPerPageSelect } from "../rowsPerPageSelect";
 
 export type SegmentsAllowedColumn =
   | "name"
@@ -788,6 +789,12 @@ export function SegmentsTable({
                       </GreyButton>
                     </Stack>
                     <Stack direction="row" alignItems="center" spacing={2}>
+                      <RowsPerPageSelect
+                        value={pagination.pageSize}
+                        onChange={(pageSize) =>
+                          setPagination({ pageIndex: 0, pageSize })
+                        }
+                      />
                       <Box
                         sx={{
                           height: "100%",

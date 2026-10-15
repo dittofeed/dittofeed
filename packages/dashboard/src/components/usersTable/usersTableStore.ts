@@ -83,6 +83,7 @@ export interface UsersTableActions {
   goToNextPage: () => void;
   goToPreviousPage: () => void;
   goToFirstPage: () => void;
+  setLimit: (limit: number) => void;
 
   // Sort actions
   setSortBy: (sortBy: string | null) => void;
@@ -253,6 +254,17 @@ export function createUsersTableStore(
 
       goToFirstPage: () => {
         set((state) => {
+          state.cursor = null;
+          state.direction = null;
+          state.nextCursor = null;
+          state.previousCursor = null;
+        });
+      },
+
+      setLimit: (limit) => {
+        set((state) => {
+          state.limit = limit;
+          // Reset pagination when page size changes
           state.cursor = null;
           state.direction = null;
           state.nextCursor = null;
