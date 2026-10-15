@@ -338,7 +338,7 @@ export async function buildGetUsersQueriesForDebug(
         ) AS user_properties,
         groupArrayIf(
           (assignments.computed_property_id, assignments.last_segment_value),
-          assignments.type = 'segment'
+          assignments.type = 'segment' AND assignments.last_segment_value = True
         ) AS segments
       FROM (
         SELECT
@@ -909,7 +909,9 @@ export async function getUsers(
 
     interface UserRow {
       user_id: string;
-      segments: [string, string][];
+      // segment_value is a ClickHouse Bool, which JSONEachRow serializes as a
+      // JSON boolean.
+      segments: [string, boolean][];
       user_properties: [string, string][];
     }
 
@@ -931,7 +933,7 @@ export async function getUsers(
         ) AS user_properties,
         groupArrayIf(
           (assignments.computed_property_id, assignments.last_segment_value),
-          assignments.type = 'segment'
+          assignments.type = 'segment' AND assignments.last_segment_value = True
         ) AS segments
       FROM (
         SELECT
@@ -1008,7 +1010,7 @@ export async function getUsers(
         ) AS user_properties,
         groupArrayIf(
           (assignments.computed_property_id, assignments.last_segment_value),
-          assignments.type = 'segment'
+          assignments.type = 'segment' AND assignments.last_segment_value = True
         ) AS segments
       FROM (
         SELECT
@@ -1320,7 +1322,6 @@ export async function getUsers(
       const userSegments: GetUsersResponseItem["segments"] =
         row.segments.flatMap(([id, value]) => {
           const segment = segmentNameById.get(id);
-          // TODO figure out why value is false
           if (!segment) {
             logger().error(
               {
@@ -1333,7 +1334,10 @@ export async function getUsers(
             );
             return [];
           }
-          if (value === "false") {
+          // The query already drops false assignments. This guard is a
+          // backstop, and checks truthiness so it holds whether the value
+          // arrives as false, 0 or null.
+          if (!value) {
             logger().debug(
               {
                 id,

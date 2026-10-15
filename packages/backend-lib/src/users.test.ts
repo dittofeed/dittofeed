@@ -1502,6 +1502,123 @@ describe("users", () => {
       });
     });
 
+    describe("when a user has a false assignment for a segment", () => {
+      let userId: string;
+      let inSegmentId: string;
+
+      beforeEach(async () => {
+        userId = randomUUID();
+        inSegmentId = randomUUID();
+        const notInSegmentId = randomUUID();
+        const definition: SegmentDefinition = {
+          entryNode: {
+            type: SegmentNodeType.Trait,
+            id: "1",
+            path: "trait1",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "value1",
+            },
+          },
+          nodes: [],
+        };
+
+        await Promise.all([
+          insert({
+            table: dbSegment,
+            values: {
+              id: inSegmentId,
+              workspaceId: workspace.id,
+              name: "in segment",
+              updatedAt: new Date(),
+              definition,
+            },
+          }),
+          insert({
+            table: dbSegment,
+            values: {
+              id: notInSegmentId,
+              workspaceId: workspace.id,
+              name: "not in segment",
+              updatedAt: new Date(),
+              definition,
+            },
+          }),
+        ]);
+
+        await insertSegmentAssignments([
+          {
+            userId,
+            inSegment: true,
+            segmentId: inSegmentId,
+            workspaceId: workspace.id,
+          },
+          {
+            userId,
+            inSegment: false,
+            segmentId: notInSegmentId,
+            workspaceId: workspace.id,
+          },
+        ]);
+      });
+
+      it("only lists the segments the user is in", async () => {
+        const result = unwrap(await getUsers({ workspaceId: workspace.id }));
+
+        expect(result.users).toEqual([
+          {
+            id: userId,
+            segments: [{ id: inSegmentId, name: "in segment" }],
+            properties: {},
+          },
+        ]);
+      });
+
+      it("only lists the segments the user is in when sorting by an indexed property", async () => {
+        const ageProperty = unwrap(
+          await insert({
+            table: dbUserProperty,
+            values: {
+              id: randomUUID(),
+              workspaceId: workspace.id,
+              name: "age",
+              updatedAt: new Date(),
+              definition: {
+                type: UserPropertyDefinitionType.Trait,
+                path: "age",
+              },
+            },
+          }),
+        );
+        await insertUserPropertyAssignments([
+          {
+            workspaceId: workspace.id,
+            userPropertyId: ageProperty.id,
+            userId,
+            value: JSON.stringify(30),
+          },
+        ]);
+        await upsertUserPropertyIndex({
+          workspaceId: workspace.id,
+          userPropertyId: ageProperty.id,
+          type: "Number",
+        });
+
+        await sleep(250);
+
+        const result = unwrap(
+          await getUsers({
+            workspaceId: workspace.id,
+            sortBy: ageProperty.id,
+          }),
+        );
+
+        expect(result.users.map((u) => u.segments)).toEqual([
+          [{ id: inSegmentId, name: "in segment" }],
+        ]);
+      });
+    });
+
     describe("when a negativeSegmentFilter is passed", () => {
       let userIds: [string, string, string, string];
       let segmentId1: string;
