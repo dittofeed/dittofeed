@@ -13,6 +13,7 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import MobileStepper from "@mui/material/MobileStepper";
@@ -511,6 +512,17 @@ export default function BroadcastLayout({
             )}
           </Stack>
         </Stack>
+        {broadcast?.config.lastError &&
+          (broadcast.status === "Paused" ||
+            broadcast.status === "Failed" ||
+            broadcast.status === "Running") && (
+            <Alert severity="error" sx={{ mx: 2, mt: 1 }}>
+              {`Send error: ${broadcast.config.lastError.message}`}
+              {broadcast.config.lastError.provider
+                ? ` (${broadcast.config.lastError.provider})`
+                : ""}
+            </Alert>
+          )}
         <Box
           sx={{
             pt: 3,

@@ -25,6 +25,7 @@ const {
   getZonedTimestamp,
   markBroadcastStatus,
   getBroadcastStatus,
+  recordBroadcastLastError,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
 });
@@ -194,6 +195,7 @@ export async function broadcastWorkflowV2({
           nextCursor,
           messagesSent,
           includesNonRetryableError,
+          nonRetryableError,
         }: SendMessagesResponse = await sendMessages({
           workspaceId,
           broadcastId,
@@ -231,8 +233,19 @@ export async function broadcastWorkflowV2({
           logger.info("non-retryable error encountered, pausing broadcast", {
             workspaceId,
             broadcastId,
+            nonRetryableError,
           });
+          if (nonRetryableError) {
+            await recordBroadcastLastError({
+              workspaceId,
+              broadcastId,
+              lastError: nonRetryableError,
+            });
+          }
           await updateStatus("Paused");
+          // Re-enter the loop so we wait on Paused instead of exiting and
+          // incorrectly attempting to mark the broadcast Completed.
+          continue;
         }
 
         let sleepTime = 0;
@@ -397,13 +410,24 @@ export async function broadcastWorkflowV2({
       });
     }
 
-    await updateStatus("Completed");
-
-    logger.info("broadcast completed", {
-      currentTime: new Date().toISOString(),
-      workspaceId,
-      broadcastId,
-    });
+    // Only complete if we are still Running. PauseOnError / cancel paths may
+    // have already transitioned the broadcast out of Running.
+    await refreshStatus();
+    if (status === "Running") {
+      await updateStatus("Completed");
+      logger.info("broadcast completed", {
+        currentTime: new Date().toISOString(),
+        workspaceId,
+        broadcastId,
+      });
+    } else {
+      logger.info("broadcast finished without completing", {
+        currentTime: new Date().toISOString(),
+        workspaceId,
+        broadcastId,
+        status,
+      });
+    }
   } catch (err) {
     if (
       err instanceof ActivityFailure &&
