@@ -27,7 +27,11 @@ export function getDefaultMessageTemplateDefinition(
     case ChannelType.Webhook:
       return DEFAULT_WEBHOOK_DEFINITION;
     case ChannelType.MobilePush:
-      throw new Error("Not implemented");
+      return {
+        type: ChannelType.MobilePush,
+        title: "",
+        body: "",
+      };
     default:
       assertUnreachable(channelType);
   }
