@@ -16,7 +16,7 @@ function getTemplateChannelPath(channel?: ChannelType): string {
     case ChannelType.Sms:
       return "sms";
     case ChannelType.MobilePush:
-      return "mobilepush";
+      return "mobile-push";
     case ChannelType.Webhook:
       return "webhook";
     default:

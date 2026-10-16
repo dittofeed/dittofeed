@@ -6,6 +6,7 @@ import {
   componentConfiguration,
   computedPropertyPeriod,
   defaultEmailProvider,
+  defaultMobilePushProvider,
   defaultSmsProvider,
   emailProvider,
   emailTemplate,
@@ -13,6 +14,7 @@ import {
   integration,
   journey,
   messageTemplate,
+  mobilePushProvider,
   oauthToken,
   secret,
   segment,
@@ -61,6 +63,8 @@ export const workspaceRelations = relations(workspace, ({ many }) => ({
   segments: many(segment),
   defaultSmsProviders: many(defaultSmsProvider),
   smsProviders: many(smsProvider),
+  defaultMobilePushProviders: many(defaultMobilePushProvider),
+  mobilePushProviders: many(mobilePushProvider),
   journeys: many(journey),
   computedPropertyPeriods: many(computedPropertyPeriod),
   adminApiKeys: many(adminApiKey),
@@ -310,6 +314,35 @@ export const smsProviderRelations = relations(smsProvider, ({ one, many }) => ({
     references: [secret.id],
   }),
 }));
+
+export const defaultMobilePushProviderRelations = relations(
+  defaultMobilePushProvider,
+  ({ one }) => ({
+    workspace: one(workspace, {
+      fields: [defaultMobilePushProvider.workspaceId],
+      references: [workspace.id],
+    }),
+    mobilePushProvider: one(mobilePushProvider, {
+      fields: [defaultMobilePushProvider.mobilePushProviderId],
+      references: [mobilePushProvider.id],
+    }),
+  }),
+);
+
+export const mobilePushProviderRelations = relations(
+  mobilePushProvider,
+  ({ one, many }) => ({
+    defaultMobilePushProviders: many(defaultMobilePushProvider),
+    workspace: one(workspace, {
+      fields: [mobilePushProvider.workspaceId],
+      references: [workspace.id],
+    }),
+    secret: one(secret, {
+      fields: [mobilePushProvider.secretId],
+      references: [secret.id],
+    }),
+  }),
+);
 
 export const computedPropertyPeriodRelations = relations(
   computedPropertyPeriod,

@@ -36,6 +36,7 @@ import {
   journey as dbJourney,
   journeyStatus as dbJourneyStatus,
   messageTemplate as dbMessageTemplate,
+  mobilePushProvider as dbMobilePushProvider,
   secret as dbSecret,
   segment as dbSegment,
   segmentAssignment as dbSegmentAssignment,
@@ -95,6 +96,8 @@ export type Integration = InferSelectModel<typeof dbIntegration>;
 export type EmailProvider = InferSelectModel<typeof dbEmailProvider>;
 
 export type SmsProvider = InferSelectModel<typeof dbSmsProvider>;
+
+export type MobilePushProvider = InferSelectModel<typeof dbMobilePushProvider>;
 
 export type MessageTemplate = InferSelectModel<typeof dbMessageTemplate>;
 
@@ -889,11 +892,11 @@ export type WorkspaceQueueItem =
 
 export interface SubscriptionManagementChannel {
   name: string;
-  subscriptions: Array<{
+  subscriptions: {
     id: string;
     name: string;
     isSubscribed: boolean;
-  }>;
+  }[];
 }
 
 export interface SubscriptionManagementTemplateContext {
