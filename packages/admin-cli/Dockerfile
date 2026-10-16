@@ -69,6 +69,11 @@ COPY --from=builder /service/node_modules/typescript ./node_modules/typescript
 COPY --from=builder /service/packages/backend-lib/dist ./packages/backend-lib/dist
 COPY --from=builder /service/packages/backend-lib/src ./packages/backend-lib/src
 COPY --from=builder /service/packages/backend-lib/*.json ./packages/backend-lib/
+# drizzleMigrate() resolves its migrations folder relative to the compiled
+# output (dist -> ../drizzle), so the SQL migrations must ship in the image or
+# `bootstrap`/`migrate` abort with "Migrations folder not found". Not a
+# devDependency - it is required at runtime.
+COPY --from=builder /service/packages/backend-lib/drizzle ./packages/backend-lib/drizzle
 
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/src ./packages/isomorphic-lib/src
