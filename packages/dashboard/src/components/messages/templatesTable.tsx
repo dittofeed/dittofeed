@@ -367,7 +367,10 @@ export default function TemplatesTable({
   messageTemplateConfiguration?: Omit<MessageTemplateConfiguration, "type">;
 }) {
   const universalRouter = useUniversalRouter();
-  const { workspace } = useAppStorePick(["workspace"]);
+  const { workspace, enableMobilePush } = useAppStorePick([
+    "workspace",
+    "enableMobilePush",
+  ]);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -537,7 +540,7 @@ export default function TemplatesTable({
             channelPath = "sms";
             break;
           case ChannelType.MobilePush:
-            channelPath = "mobilepush";
+            channelPath = "mobile-push";
             break;
           case ChannelType.Webhook:
             channelPath = "webhook";
@@ -888,6 +891,7 @@ export default function TemplatesTable({
             <ToggleButton
               value={ChannelType.MobilePush}
               aria-label="Mobile Push"
+              disabled={!enableMobilePush}
             >
               Mobile Push
             </ToggleButton>
