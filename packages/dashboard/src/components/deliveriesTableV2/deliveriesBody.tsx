@@ -81,6 +81,7 @@ import EmailPreviewHeader from "../emailPreviewHeader";
 import { GreyButton } from "../greyButtonStyle";
 import EmailPreviewBody from "../messages/emailPreview";
 import { WebhookPreviewBody } from "../messages/webhookPreview";
+import MobilePushPreviewBody from "../mobilePushPreviewBody";
 import SmsPreviewBody from "../smsPreviewBody";
 import TemplatePreview from "../templatePreview";
 import { DEFAULT_ALLOWED_COLUMNS } from "./constants";
@@ -347,7 +348,20 @@ interface WebhookDelivery extends BaseDelivery {
   snippet?: undefined;
 }
 
-type Delivery = EmailDelivery | SmsDelivery | WebhookDelivery;
+interface MobilePushDelivery extends BaseDelivery {
+  channel: typeof ChannelType.MobilePush;
+  from?: undefined;
+  to?: string;
+  subject?: undefined;
+  replyTo?: undefined;
+  snippet?: string;
+}
+
+type Delivery =
+  | EmailDelivery
+  | SmsDelivery
+  | WebhookDelivery
+  | MobilePushDelivery;
 
 const DeliveriesCountResponseSchema = Type.Object({
   count: Type.Number(),
@@ -811,6 +825,20 @@ export function useDeliveryBodyState({
             ),
           };
           break;
+        case ChannelType.MobilePush: {
+          const messageBody =
+            "body" in variant
+              ? [variant.title, variant.body].filter(Boolean).join("\n")
+              : variant.provider.error ?? "";
+          delivery = {
+            ...baseDelivery,
+            channel: ChannelType.MobilePush,
+            to: "to" in variant ? variant.to : "",
+            snippet: messageBody,
+            body: messageBody,
+          };
+          break;
+        }
         default:
           assertUnreachable(variant);
       }
@@ -1061,6 +1089,10 @@ export function DeliveriesBody({
       case ChannelType.Webhook:
         previewHeader = null;
         previewBody = <WebhookPreviewBody body={previewObject.body} />;
+        break;
+      case ChannelType.MobilePush:
+        previewHeader = null;
+        previewBody = <MobilePushPreviewBody body={previewObject.snippet} />;
         break;
       default:
         assertUnreachable(previewObject);

@@ -18,6 +18,7 @@ import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { defaultEmailDefinition } from "isomorphic-lib/src/email";
+import { defaultMobilePushDefinition } from "isomorphic-lib/src/mobilePush";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { defaultSmsDefinition } from "isomorphic-lib/src/sms";
@@ -269,7 +270,8 @@ export default async function contentController(fastify: FastifyInstance) {
           break;
         }
         case ChannelType.MobilePush: {
-          throw new Error("Mobile push templates unimplemented");
+          definition = defaultMobilePushDefinition();
+          break;
         }
       }
       const result = await upsertMessageTemplate({

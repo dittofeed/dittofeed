@@ -3997,6 +3997,62 @@ export type DefaultSmsProviderResource = Static<
   typeof DefaultSmsProviderResource
 >;
 
+export const FirebaseSecret = Type.Object({
+  type: Type.Literal(MobilePushProviderType.Firebase),
+  serviceAccount: Type.String(),
+});
+
+export type FirebaseSecret = Static<typeof FirebaseSecret>;
+
+export const TestMobilePushSecret = Type.Object({
+  type: Type.Literal(MobilePushProviderType.Test),
+});
+
+export type TestMobilePushSecret = Static<typeof TestMobilePushSecret>;
+
+export const MobilePushProviderSecret = Type.Union([
+  FirebaseSecret,
+  TestMobilePushSecret,
+]);
+
+export type MobilePushProviderSecret = Static<typeof MobilePushProviderSecret>;
+
+export const FirebaseMobilePushProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Optional(Type.Literal(MobilePushProviderType.Firebase)),
+});
+
+export type FirebaseMobilePushProvider = Static<
+  typeof FirebaseMobilePushProvider
+>;
+
+export const TestMobilePushProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Literal(MobilePushProviderType.Test),
+});
+
+export type TestMobilePushProvider = Static<typeof TestMobilePushProvider>;
+
+export const PersistedMobilePushProvider = Type.Union([
+  FirebaseMobilePushProvider,
+  TestMobilePushProvider,
+]);
+
+export type PersistedMobilePushProvider = Static<
+  typeof PersistedMobilePushProvider
+>;
+
+export const DefaultMobilePushProviderResource = Type.Object({
+  workspaceId: Type.String(),
+  mobilePushProviderId: Type.String(),
+});
+
+export type DefaultMobilePushProviderResource = Static<
+  typeof DefaultMobilePushProviderResource
+>;
+
 export const MessageTemplateTestErrorResponse = Type.Object({});
 
 export const SmsTwilioSuccess = Type.Object({
@@ -4040,6 +4096,41 @@ export const MessageSmsSuccess = Type.Composite([
 ]);
 
 export type MessageSmsSuccess = Static<typeof MessageSmsSuccess>;
+
+export const MobilePushFirebaseSuccess = Type.Object({
+  type: Type.Literal(MobilePushProviderType.Firebase),
+  messageId: Type.Optional(Type.String()),
+});
+
+export type MobilePushFirebaseSuccess = Static<
+  typeof MobilePushFirebaseSuccess
+>;
+
+export const MobilePushTestSuccess = Type.Object({
+  type: Type.Literal(MobilePushProviderType.Test),
+});
+
+export type MobilePushTestSuccess = Static<typeof MobilePushTestSuccess>;
+
+export const MobilePushServiceProviderSuccess = Type.Union([
+  MobilePushFirebaseSuccess,
+  MobilePushTestSuccess,
+]);
+
+export type MobilePushServiceProviderSuccess = Static<
+  typeof MobilePushServiceProviderSuccess
+>;
+
+export const MessageMobilePushSuccess = Type.Object({
+  type: Type.Literal(ChannelType.MobilePush),
+  provider: MobilePushServiceProviderSuccess,
+  to: Type.String(),
+  title: Type.String(),
+  body: Type.String(),
+  imageUrl: Type.Optional(Type.String()),
+});
+
+export type MessageMobilePushSuccess = Static<typeof MessageMobilePushSuccess>;
 
 export const EmailTestSuccess = Type.Object({
   type: Type.Literal(EmailProviderType.Test),
@@ -4166,6 +4257,7 @@ export type MessageSkipped = Static<typeof MessageSkipped>;
 export const MessageSendSuccessVariant = Type.Union([
   MessageEmailSuccess,
   MessageSmsSuccess,
+  MessageMobilePushSuccess,
   MessageWebhookSuccess,
 ]);
 
@@ -4464,6 +4556,41 @@ export const MessageSmsServiceFailure = Type.Object({
 
 export type MessageSmsServiceFailure = Static<typeof MessageSmsServiceFailure>;
 
+export const MobilePushFirebaseFailure = Type.Object({
+  type: Type.Literal(MobilePushProviderType.Firebase),
+  messageId: Type.Optional(Type.String()),
+  error: Type.Optional(Type.String()),
+});
+
+export type MobilePushFirebaseFailure = Static<
+  typeof MobilePushFirebaseFailure
+>;
+
+export const MobilePushTestFailure = Type.Object({
+  type: Type.Literal(MobilePushProviderType.Test),
+  error: Type.Optional(Type.String()),
+});
+
+export type MobilePushTestFailure = Static<typeof MobilePushTestFailure>;
+
+export const MobilePushServiceProviderFailure = Type.Union([
+  MobilePushFirebaseFailure,
+  MobilePushTestFailure,
+]);
+
+export type MobilePushServiceProviderFailure = Static<
+  typeof MobilePushServiceProviderFailure
+>;
+
+export const MessageMobilePushServiceFailure = Type.Object({
+  type: Type.Literal(ChannelType.MobilePush),
+  provider: MobilePushServiceProviderFailure,
+});
+
+export type MessageMobilePushServiceFailure = Static<
+  typeof MessageMobilePushServiceFailure
+>;
+
 export const MessageWebhookServiceFailure = Type.Object({
   type: Type.Literal(ChannelType.Webhook),
   code: Type.Optional(Type.String()),
@@ -4477,6 +4604,7 @@ export type MessageWebhookServiceFailure = Static<
 export const MessageServiceFailureVariant = Type.Union([
   MessageEmailServiceFailure,
   MessageSmsServiceFailure,
+  MessageMobilePushServiceFailure,
   MessageWebhookServiceFailure,
 ]);
 
@@ -4660,6 +4788,23 @@ export const SearchDeliveriesResponseItem = Type.Union([
     Type.Object({
       status: Type.String(),
       variant: MessageSmsSuccess,
+    }),
+    BaseDeliveryItem,
+  ]),
+  // Success listed first: response serialization matches the first schema whose
+  // required fields are present, so a failure row (missing to/title/body) still
+  // falls through to the failure variant below.
+  Type.Composite([
+    Type.Object({
+      status: Type.String(),
+      variant: MessageMobilePushSuccess,
+    }),
+    BaseDeliveryItem,
+  ]),
+  Type.Composite([
+    Type.Object({
+      status: Type.String(),
+      variant: MessageMobilePushServiceFailure,
     }),
     BaseDeliveryItem,
   ]),
@@ -5292,6 +5437,16 @@ export const UpsertSmsProviderRequest = Type.Object({
 });
 
 export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
+
+export const UpsertMobilePushProviderRequest = Type.Object({
+  workspaceId: Type.String(),
+  setDefault: Type.Optional(Type.Boolean()),
+  config: MobilePushProviderSecret,
+});
+
+export type UpsertMobilePushProviderRequest = Static<
+  typeof UpsertMobilePushProviderRequest
+>;
 
 export const TombstoneWorkspaceRequest = WorkspaceIdentifier;
 
