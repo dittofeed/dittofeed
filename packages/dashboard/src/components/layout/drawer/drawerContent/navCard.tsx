@@ -5,11 +5,13 @@ import { useMemo } from "react";
 
 import { useAppStorePick } from "../../../../lib/appStore";
 import MainCard from "../../../mainCard";
+import { useThemeMode } from "../../../../themeCustomization/ThemeContext";
 
 // ==============================|| DRAWER CONTENT - NAVIGATION CARD ||============================== //
 
 function NavCard() {
   const { features } = useAppStorePick(["features"]);
+  const { envTheme, mode } = useThemeMode();
   const whiteLabelConfig = useMemo(() => {
     if (!features.WhiteLabel) {
       return null;
@@ -43,7 +45,7 @@ function NavCard() {
   ) : null;
 
   return (
-    <MainCard sx={{ bgcolor: "grey.50", m: 3 }}>
+    <MainCard sx={ mode === "light" ? { bgcolor: "grey.50", m: 3 } : {bgcolor: "grey.800", m: 3 }}>
       <Stack alignItems="center" spacing={2.5} p={2} width="100%">
         {icon}
         <Typography
