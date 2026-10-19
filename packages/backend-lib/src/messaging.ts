@@ -40,7 +40,7 @@ import {
   workspace as dbWorkspace,
 } from "./db/schema";
 import {
-  isAwsEndpoint,
+  resolveSesSendConfig,
   sendMail as sendMailAmazonSes,
   SesMailData,
 } from "./destinations/amazonses";
@@ -1347,56 +1347,26 @@ export async function sendEmail({
         },
       };
 
-      // `||` is intentional below: empty strings (e.g. a cleared settings
-      // field) must be treated as unset.
-      /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-      const accessKeyId = emailProvider.accessKeyId || undefined;
-      const secretAccessKey = emailProvider.secretAccessKey || undefined;
-      const hasStaticCredentials = Boolean(accessKeyId && secretAccessKey);
-      const allowDefaultCredentials =
-        config().amazonSesCredentialsProvider ===
-        AwsCredentialsProvider.DefaultChain;
-      const useDefaultCredentials =
-        !hasStaticCredentials && allowDefaultCredentials;
-      const sesRegion =
-        emailProvider.region ||
-        (useDefaultCredentials ? config().awsDefaultRegion : undefined);
-      const sesEndpoint = emailProvider.endpoint || undefined;
-      /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
-
-      if ((!hasStaticCredentials && !allowDefaultCredentials) || !sesRegion) {
+      const sesConfig = resolveSesSendConfig({
+        settings: emailProvider,
+        allowDefaultCredentials:
+          config().amazonSesCredentialsProvider ===
+          AwsCredentialsProvider.DefaultChain,
+        awsDefaultRegion: config().awsDefaultRegion,
+      });
+      if (sesConfig.isErr()) {
         return err({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: allowDefaultCredentials
-              ? "missing region in AmazonSES config"
-              : "missing accesskey, secret or region in AmazonSES config",
-          },
-        });
-      }
-
-      // When signing with the deployment's own IAM role, never send requests
-      // to a workspace-controlled host.
-      if (useDefaultCredentials && sesEndpoint && !isAwsEndpoint(sesEndpoint)) {
-        return err({
-          type: InternalEventType.BadWorkspaceConfiguration,
-          variant: {
-            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message:
-              "custom AmazonSES endpoint must be an https amazonaws.com endpoint when using the deployment IAM role",
+            message: sesConfig.error,
           },
         });
       }
 
       const result = await sendMailAmazonSes({
         mailData,
-        config: {
-          accessKeyId: hasStaticCredentials ? accessKeyId : undefined,
-          secretAccessKey: hasStaticCredentials ? secretAccessKey : undefined,
-          region: sesRegion,
-          endpoint: sesEndpoint,
-        },
+        config: sesConfig.value,
       });
 
       if (result.isErr()) {

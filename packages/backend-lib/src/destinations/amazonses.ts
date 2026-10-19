@@ -350,7 +350,11 @@ export async function validSNSSignature(payload: AmazonSNSEvent) {
   return ResultAsync.fromPromise(validator.validate(payload), (error) => error);
 }
 
-const AWS_ENDPOINT_HOST_PATTERN = /^([a-z0-9-]+\.)*amazonaws\.com(\.cn)?$/;
+// Only SES API endpoints: public regional (incl. FIPS) and interface VPC
+// endpoints. Deliberately narrower than *.amazonaws.com, which would also match
+// customer-controlled hosts such as API Gateway or S3 bucket domains.
+const AWS_SES_ENDPOINT_HOST_PATTERN =
+  /^(email(-fips)?\.[a-z0-9-]+|vpce-[a-z0-9-]+\.email(-fips)?\.[a-z0-9-]+\.vpce)\.amazonaws\.com(\.cn)?$/;
 
 function isHttpsUrlWithHost(url: string, hostPattern: RegExp): boolean {
   let parsed: URL;
@@ -369,12 +373,83 @@ function isHttpsUrlWithHost(url: string, hostPattern: RegExp): boolean {
 }
 
 /**
- * Only allow HTTPS endpoints on amazonaws.com(.cn). Used when requests are
- * signed with the deployment's own IAM role so that a workspace can't point
- * the client at an arbitrary host and capture role-signed requests.
+ * Only allow HTTPS Amazon SES endpoints. Used when requests are signed with
+ * the deployment's own IAM role so that a workspace can't point the client at
+ * an arbitrary host and capture role-signed requests.
  */
-export function isAwsEndpoint(url: string): boolean {
-  return isHttpsUrlWithHost(url, AWS_ENDPOINT_HOST_PATTERN);
+export function isAwsSesEndpoint(url: string): boolean {
+  return isHttpsUrlWithHost(url, AWS_SES_ENDPOINT_HOST_PATTERN);
+}
+
+export interface AmazonSesProviderSettings {
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  region?: string;
+  endpoint?: string;
+}
+
+/**
+ * Resolves the SES client configuration for a workspace.
+ *
+ * - Static keys (default, unchanged behaviour): accessKeyId, secretAccessKey
+ *   and region are all required; any endpoint is accepted.
+ * - Deployment IAM role (AMAZON_SES_CREDENTIALS_PROVIDER=default and the
+ *   workspace provides no keys): region falls back to AWS_REGION and a custom
+ *   endpoint must be an https Amazon SES endpoint.
+ *
+ * Empty strings (e.g. a cleared settings field) are treated as unset.
+ */
+export function resolveSesSendConfig({
+  settings,
+  allowDefaultCredentials,
+  awsDefaultRegion,
+}: {
+  settings: AmazonSesProviderSettings;
+  allowDefaultCredentials: boolean;
+  awsDefaultRegion?: string;
+}): Result<AmazonSesConfig, string> {
+  /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
+  const accessKeyId = settings.accessKeyId || undefined;
+  const secretAccessKey = settings.secretAccessKey || undefined;
+  const endpoint = settings.endpoint || undefined;
+  const hasStaticCredentials = Boolean(accessKeyId && secretAccessKey);
+  const partialStaticCredentials =
+    !hasStaticCredentials && Boolean(accessKeyId || secretAccessKey);
+
+  if (!allowDefaultCredentials) {
+    if (!hasStaticCredentials || !settings.region) {
+      return err("missing accesskey, secret or region in AmazonSES config");
+    }
+    return ok({
+      accessKeyId,
+      secretAccessKey,
+      region: settings.region,
+      endpoint,
+    });
+  }
+
+  if (partialStaticCredentials) {
+    // Don't silently fall back to the deployment role when a workspace
+    // clearly intended to use its own keys.
+    return err(
+      "AmazonSES config has only one of access key id / secret access key",
+    );
+  }
+  const region =
+    settings.region || (hasStaticCredentials ? undefined : awsDefaultRegion);
+  /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
+  if (!region) {
+    return err("missing region in AmazonSES config");
+  }
+  if (hasStaticCredentials) {
+    return ok({ accessKeyId, secretAccessKey, region, endpoint });
+  }
+  if (endpoint && !isAwsSesEndpoint(endpoint)) {
+    return err(
+      "custom AmazonSES endpoint must be an https Amazon SES endpoint when using the deployment IAM role",
+    );
+  }
+  return ok({ region, endpoint });
 }
 
 const SNS_SUBSCRIBE_URL_HOST_PATTERN =

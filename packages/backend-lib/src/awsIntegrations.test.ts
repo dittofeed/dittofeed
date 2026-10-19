@@ -4,6 +4,7 @@ import {
   S3Client,
   S3ServiceException,
 } from "@aws-sdk/client-s3";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { AwsCredentialsProvider, Config } from "./config";
 
@@ -34,9 +35,10 @@ import {
 // eslint-disable-next-line import/first
 import {
   getSesClient,
-  isAwsEndpoint,
+  isAwsSesEndpoint,
   isValidSnsSubscribeUrl,
   resetSesClients,
+  resolveSesSendConfig,
 } from "./destinations/amazonses";
 
 function s3Error(name: string, httpStatusCode: number, headers = {}) {
@@ -76,16 +78,149 @@ describe("AWS integrations", () => {
     });
   });
 
-  describe("isAwsEndpoint", () => {
+  describe("isAwsSesEndpoint", () => {
     it.each([
       ["https://email.us-west-2.amazonaws.com", true],
-      ["https://vpce-0abc-xyz.email.us-west-2.vpce.amazonaws.com", true],
+      ["https://email-fips.us-east-1.amazonaws.com", true],
       ["https://email.cn-northwest-1.amazonaws.com.cn", true],
+      ["https://vpce-0abc123-xyz.email.us-west-2.vpce.amazonaws.com", true],
       ["http://email.us-west-2.amazonaws.com", false],
       ["https://email.us-west-2.amazonaws.com.evil.com", false],
+      ["https://abc.execute-api.us-east-1.amazonaws.com", false],
+      ["https://attacker-bucket.s3.amazonaws.com", false],
+      ["https://amazonaws.com", false],
       ["https://localhost:4566", false],
     ])("%s -> %s", (url, expected) => {
-      expect(isAwsEndpoint(url)).toBe(expected);
+      expect(isAwsSesEndpoint(url)).toBe(expected);
+    });
+  });
+
+  describe("resolveSesSendConfig", () => {
+    describe("static mode (default, legacy behaviour)", () => {
+      const allowDefaultCredentials = false;
+
+      it("uses workspace keys, region and any custom endpoint", () => {
+        const r = resolveSesSendConfig({
+          settings: {
+            accessKeyId: "AKID",
+            secretAccessKey: "secret",
+            region: "eu-west-1",
+            endpoint: "http://localhost:4566",
+          },
+          allowDefaultCredentials,
+          awsDefaultRegion: "us-west-2",
+        });
+        expect(unwrap(r)).toEqual({
+          accessKeyId: "AKID",
+          secretAccessKey: "secret",
+          region: "eu-west-1",
+          endpoint: "http://localhost:4566",
+        });
+      });
+
+      it.each([
+        [{ secretAccessKey: "s", region: "us-west-2" }],
+        [{ accessKeyId: "a", region: "us-west-2" }],
+        [{ accessKeyId: "a", secretAccessKey: "s" }],
+        [{ accessKeyId: "a", secretAccessKey: "s", region: "" }],
+        [{ accessKeyId: "", secretAccessKey: "", region: "us-west-2" }],
+      ])(
+        "rejects incomplete config %j (no AWS_REGION fallback)",
+        (settings) => {
+          const r = resolveSesSendConfig({
+            settings,
+            allowDefaultCredentials,
+            awsDefaultRegion: "us-west-2",
+          });
+          expect(r.isErr()).toBe(true);
+        },
+      );
+
+      it("treats an empty endpoint as unset", () => {
+        const r = resolveSesSendConfig({
+          settings: {
+            accessKeyId: "a",
+            secretAccessKey: "s",
+            region: "us-west-2",
+            endpoint: "",
+          },
+          allowDefaultCredentials,
+        });
+        expect(unwrap(r).endpoint).toBeUndefined();
+      });
+    });
+
+    describe("default credential chain mode", () => {
+      const allowDefaultCredentials = true;
+
+      it("workspaces with keys keep using them (any endpoint)", () => {
+        const r = resolveSesSendConfig({
+          settings: {
+            accessKeyId: "a",
+            secretAccessKey: "s",
+            region: "eu-west-1",
+            endpoint: "http://localhost:4566",
+          },
+          allowDefaultCredentials,
+          awsDefaultRegion: "us-west-2",
+        });
+        expect(unwrap(r)).toMatchObject({
+          accessKeyId: "a",
+          region: "eu-west-1",
+          endpoint: "http://localhost:4566",
+        });
+      });
+
+      it("uses the role and falls back to AWS_REGION when keys/region are empty", () => {
+        const r = resolveSesSendConfig({
+          settings: { accessKeyId: "", secretAccessKey: "", region: "" },
+          allowDefaultCredentials,
+          awsDefaultRegion: "us-west-2",
+        });
+        expect(unwrap(r)).toEqual({
+          region: "us-west-2",
+          endpoint: undefined,
+        });
+      });
+
+      it("rejects a non-SES endpoint when signing with the role", () => {
+        const r = resolveSesSendConfig({
+          settings: {
+            endpoint: "https://abc.execute-api.us-east-1.amazonaws.com",
+          },
+          allowDefaultCredentials,
+          awsDefaultRegion: "us-west-2",
+        });
+        expect(r.isErr()).toBe(true);
+      });
+
+      it("accepts an SES VPC endpoint when signing with the role", () => {
+        const r = resolveSesSendConfig({
+          settings: {
+            endpoint:
+              "https://vpce-0abc-xyz.email.us-west-2.vpce.amazonaws.com",
+          },
+          allowDefaultCredentials,
+          awsDefaultRegion: "us-west-2",
+        });
+        expect(r.isOk()).toBe(true);
+      });
+
+      it("rejects half-filled keys instead of silently using the role", () => {
+        const r = resolveSesSendConfig({
+          settings: { accessKeyId: "a", region: "us-west-2" },
+          allowDefaultCredentials,
+        });
+        expect(r.isErr()).toBe(true);
+      });
+
+      it("errors when no region is available", () => {
+        const r = resolveSesSendConfig({
+          settings: {},
+          allowDefaultCredentials,
+        });
+        expect(r.isErr()).toBe(true);
+      });
     });
   });
 

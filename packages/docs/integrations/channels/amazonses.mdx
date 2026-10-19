@@ -119,9 +119,11 @@ AMAZON_SES_CREDENTIALS_PROVIDER=default
    `AWS_DEFAULT_REGION` of the Dittofeed process is used.
 
 Workspaces that do provide access keys keep using them. When the deployment role is
-used, a custom endpoint is only accepted if it is an `https://*.amazonaws.com(.cn)`
-endpoint (e.g. an interface VPC endpoint), so role-signed requests are never sent to an
-arbitrary host. Because every workspace
+used, a custom endpoint is only accepted if it is an HTTPS Amazon SES endpoint
+(`email[-fips].<region>.amazonaws.com[.cn]` or an SES interface VPC endpoint
+`vpce-*.email.<region>.vpce.amazonaws.com`), so role-signed requests are never sent to
+an arbitrary host. If a workspace fills in only one of the two key fields, sending fails
+with a configuration error instead of silently using the deployment role. Because every workspace
 would share the deployment's IAM role, this mode is intended for single-tenant
 self-hosted deployments.
 
