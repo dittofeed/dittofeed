@@ -120,6 +120,21 @@ const BaseRawConfigProps = {
   blobStorageBucket: Type.Optional(Type.String()),
   enableBlobStorage: Type.Optional(BoolStr),
   blobStorageRegion: Type.Optional(Type.String()),
+  // "static" (default): use BLOB_STORAGE_ACCESS_KEY_ID / BLOB_STORAGE_SECRET_ACCESS_KEY.
+  // "default": use the AWS SDK default credential provider chain (IRSA, EKS Pod
+  // Identity, ECS task role, EC2 instance profile, env vars, ...).
+  blobStorageCredentialsProvider: Type.Optional(
+    Type.Union([Type.Literal("static"), Type.Literal("default")]),
+  ),
+  blobStorageForcePathStyle: Type.Optional(BoolStr),
+  // "static" (default): Amazon SES requires access keys in the workspace's
+  // email provider settings. "default": when the workspace omits access keys,
+  // fall back to the AWS SDK default credential provider chain (e.g. the
+  // ECS task role / IRSA role of the Dittofeed deployment). Intended for
+  // single-tenant self-hosted deployments on AWS.
+  amazonSesCredentialsProvider: Type.Optional(
+    Type.Union([Type.Literal("static"), Type.Literal("default")]),
+  ),
   // Enable cold storage behavior (store on pause/tombstone, restore on resume/activate)
   enableColdStorage: Type.Optional(BoolStr),
   exportLogsHyperDx: Type.Optional(BoolStr),
@@ -264,6 +279,14 @@ const RawConfig = Type.Union([
 
 type RawConfig = Static<typeof RawConfig>;
 
+export enum AwsCredentialsProvider {
+  StaticKeys = "static",
+  DefaultChain = "default",
+}
+
+// Backwards-compatible alias.
+export const BlobStorageCredentialsProvider = AwsCredentialsProvider;
+
 export type Config = Overwrite<
   RawConfig,
   {
@@ -272,8 +295,11 @@ export type Config = Overwrite<
     authMode: AuthMode;
     blobStorageAccessKeyId: string;
     blobStorageBucket: string;
-    blobStorageEndpoint: string;
-    blobStorageInternalEndpoint: string;
+    blobStorageCredentialsProvider: AwsCredentialsProvider;
+    amazonSesCredentialsProvider: AwsCredentialsProvider;
+    blobStorageEndpoint?: string;
+    blobStorageForcePathStyle: boolean;
+    blobStorageInternalEndpoint?: string;
     blobStorageRegion: string;
     blobStorageSecretAccessKey: string;
     bootstrap: boolean;
@@ -588,13 +614,27 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   const computedPropertiesActivityTaskQueue =
     rawConfig.computedPropertiesActivityTaskQueue ??
     computedPropertiesTaskQueue;
+  const blobStorageCredentialsProvider =
+    rawConfig.blobStorageCredentialsProvider === "default"
+      ? AwsCredentialsProvider.DefaultChain
+      : AwsCredentialsProvider.StaticKeys;
+  const usingAwsDefaultCredentials =
+    blobStorageCredentialsProvider === AwsCredentialsProvider.DefaultChain;
+  // When running against Amazon S3 with the default credential chain, leave
+  // the endpoint unset so the SDK resolves the regional (virtual-hosted style)
+  // endpoint. Otherwise keep the MinIO-friendly local default.
   const blobStorageEndpoint =
-    rawConfig.blobStorageEndpoint ?? "http://localhost:9010";
+    rawConfig.blobStorageEndpoint ??
+    (usingAwsDefaultCredentials ? undefined : "http://localhost:9010");
   const blobStorageInternalEndpoint =
     rawConfig.blobStorageInternalEndpoint ??
     (nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
       ? "http://blob-storage:9000"
       : blobStorageEndpoint);
+  // Path-style addressing is required by MinIO but deprecated by Amazon S3.
+  const blobStorageForcePathStyle = rawConfig.blobStorageForcePathStyle
+    ? rawConfig.blobStorageForcePathStyle === "true"
+    : !usingAwsDefaultCredentials;
 
   const blobStorageBucket = rawConfig.blobStorageBucket ?? "dittofeed";
   const enableColdStorage = rawConfig.enableColdStorage === "true";
@@ -711,7 +751,17 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     blobStorageSecretAccessKey:
       rawConfig.blobStorageSecretAccessKey ?? "password",
     blobStorageBucket,
-    blobStorageRegion: rawConfig.blobStorageRegion ?? "us-east-1",
+    blobStorageCredentialsProvider,
+    blobStorageForcePathStyle,
+    amazonSesCredentialsProvider:
+      rawConfig.amazonSesCredentialsProvider === "default"
+        ? AwsCredentialsProvider.DefaultChain
+        : AwsCredentialsProvider.StaticKeys,
+    blobStorageRegion:
+      rawConfig.blobStorageRegion ??
+      process.env.AWS_REGION ??
+      process.env.AWS_DEFAULT_REGION ??
+      "us-east-1",
     exportLogsHyperDx: rawConfig.exportLogsHyperDx === "true",
     dittofeedTelemetryDisabled:
       rawConfig.dittofeedTelemetryDisabled === "true" ||

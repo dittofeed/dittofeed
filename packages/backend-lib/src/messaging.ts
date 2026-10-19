@@ -64,7 +64,7 @@ import {
   sendGmailEmail,
   SendGmailEmailParams,
 } from "./gmail";
-import config from "./config";
+import config, { AwsCredentialsProvider } from "./config";
 import { renderLiquid } from "./liquid";
 import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import logger from "./logger";
@@ -1346,16 +1346,26 @@ export async function sendEmail({
         },
       };
 
-      if (
-        !emailProvider.accessKeyId ||
-        !emailProvider.secretAccessKey ||
-        !emailProvider.region
-      ) {
+      const hasStaticCredentials = Boolean(
+        emailProvider.accessKeyId && emailProvider.secretAccessKey,
+      );
+      const allowDefaultCredentials =
+        config().amazonSesCredentialsProvider ===
+        AwsCredentialsProvider.DefaultChain;
+      const sesRegion =
+        emailProvider.region ??
+        (allowDefaultCredentials
+          ? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION
+          : undefined);
+
+      if ((!hasStaticCredentials && !allowDefaultCredentials) || !sesRegion) {
         return err({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: "missing accesskey or secret in AmazonSES config",
+            message: allowDefaultCredentials
+              ? "missing region in AmazonSES config"
+              : "missing accesskey, secret or region in AmazonSES config",
           },
         });
       }
@@ -1363,9 +1373,13 @@ export async function sendEmail({
       const result = await sendMailAmazonSes({
         mailData,
         config: {
-          accessKeyId: emailProvider.accessKeyId,
-          secretAccessKey: emailProvider.secretAccessKey,
-          region: emailProvider.region,
+          accessKeyId: hasStaticCredentials
+            ? emailProvider.accessKeyId
+            : undefined,
+          secretAccessKey: hasStaticCredentials
+            ? emailProvider.secretAccessKey
+            : undefined,
+          region: sesRegion,
           endpoint: emailProvider.endpoint,
         },
       });
