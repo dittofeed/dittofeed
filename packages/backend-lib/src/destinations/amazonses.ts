@@ -89,6 +89,9 @@ export function getSesClient(config: AmazonSesConfig): SESv2Client {
   const key = sesClientCacheKey(config);
   const existing = SES_CLIENTS.get(key);
   if (existing) {
+    // LRU: move to the most-recently-used position.
+    SES_CLIENTS.delete(key);
+    SES_CLIENTS.set(key, existing);
     return existing;
   }
   const { accessKeyId, secretAccessKey, region, endpoint } = config;
@@ -104,9 +107,11 @@ export function getSesClient(config: AmazonSesConfig): SESv2Client {
     ...(endpoint && { endpoint }),
   });
   if (SES_CLIENTS.size >= MAX_SES_CLIENTS) {
+    // Evict the least recently used client. We intentionally don't call
+    // destroy() here: a send may still be in flight on it. Idle keep-alive
+    // sockets time out on their own and the client is garbage collected.
     const oldestKey = SES_CLIENTS.keys().next().value;
     if (oldestKey !== undefined) {
-      SES_CLIENTS.get(oldestKey)?.destroy();
       SES_CLIENTS.delete(oldestKey);
     }
   }
@@ -345,10 +350,9 @@ export async function validSNSSignature(payload: AmazonSNSEvent) {
   return ResultAsync.fromPromise(validator.validate(payload), (error) => error);
 }
 
-const SNS_SUBSCRIBE_URL_HOST_PATTERN =
-  /^sns\.[a-z0-9-]+\.amazonaws\.com(\.cn)?$/;
+const AWS_ENDPOINT_HOST_PATTERN = /^([a-z0-9-]+\.)*amazonaws\.com(\.cn)?$/;
 
-export function isValidSnsSubscribeUrl(url: string): boolean {
+function isHttpsUrlWithHost(url: string, hostPattern: RegExp): boolean {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -357,8 +361,27 @@ export function isValidSnsSubscribeUrl(url: string): boolean {
   }
   return (
     parsed.protocol === "https:" &&
-    SNS_SUBSCRIBE_URL_HOST_PATTERN.test(parsed.hostname)
+    parsed.port === "" &&
+    parsed.username === "" &&
+    parsed.password === "" &&
+    hostPattern.test(parsed.hostname)
   );
+}
+
+/**
+ * Only allow HTTPS endpoints on amazonaws.com(.cn). Used when requests are
+ * signed with the deployment's own IAM role so that a workspace can't point
+ * the client at an arbitrary host and capture role-signed requests.
+ */
+export function isAwsEndpoint(url: string): boolean {
+  return isHttpsUrlWithHost(url, AWS_ENDPOINT_HOST_PATTERN);
+}
+
+const SNS_SUBSCRIBE_URL_HOST_PATTERN =
+  /^sns\.[a-z0-9-]+\.amazonaws\.com(\.cn)?$/;
+
+export function isValidSnsSubscribeUrl(url: string): boolean {
+  return isHttpsUrlWithHost(url, SNS_SUBSCRIBE_URL_HOST_PATTERN);
 }
 
 export async function confirmSubscription(

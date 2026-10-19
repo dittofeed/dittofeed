@@ -25,6 +25,7 @@ import { validate as validateUuid } from "uuid";
 
 import { submitBatch } from "./apps/batch";
 import { getObject, storage } from "./blobStorage";
+import config, { AwsCredentialsProvider } from "./config";
 import { MESSAGE_METADATA_FIELDS } from "./constants";
 import { db, TxQueryError, txQueryResult } from "./db";
 import {
@@ -39,6 +40,7 @@ import {
   workspace as dbWorkspace,
 } from "./db/schema";
 import {
+  isAwsEndpoint,
   sendMail as sendMailAmazonSes,
   SesMailData,
 } from "./destinations/amazonses";
@@ -64,9 +66,7 @@ import {
   sendGmailEmail,
   SendGmailEmailParams,
 } from "./gmail";
-import config, { AwsCredentialsProvider } from "./config";
 import { renderLiquid } from "./liquid";
-import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import logger from "./logger";
 import {
   constructUnsubscribeHeaders,
@@ -131,6 +131,7 @@ import {
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 import { getUsers } from "./users";
+import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import { isWorkspaceOccupantType } from "./workspaceOccupantSettings";
 
 export function enrichMessageTemplate({
@@ -1346,17 +1347,22 @@ export async function sendEmail({
         },
       };
 
-      const hasStaticCredentials = Boolean(
-        emailProvider.accessKeyId && emailProvider.secretAccessKey,
-      );
+      // `||` is intentional below: empty strings (e.g. a cleared settings
+      // field) must be treated as unset.
+      /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
+      const accessKeyId = emailProvider.accessKeyId || undefined;
+      const secretAccessKey = emailProvider.secretAccessKey || undefined;
+      const hasStaticCredentials = Boolean(accessKeyId && secretAccessKey);
       const allowDefaultCredentials =
         config().amazonSesCredentialsProvider ===
         AwsCredentialsProvider.DefaultChain;
+      const useDefaultCredentials =
+        !hasStaticCredentials && allowDefaultCredentials;
       const sesRegion =
-        emailProvider.region ??
-        (allowDefaultCredentials
-          ? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION
-          : undefined);
+        emailProvider.region ||
+        (useDefaultCredentials ? config().awsDefaultRegion : undefined);
+      const sesEndpoint = emailProvider.endpoint || undefined;
+      /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
 
       if ((!hasStaticCredentials && !allowDefaultCredentials) || !sesRegion) {
         return err({
@@ -1370,17 +1376,26 @@ export async function sendEmail({
         });
       }
 
+      // When signing with the deployment's own IAM role, never send requests
+      // to a workspace-controlled host.
+      if (useDefaultCredentials && sesEndpoint && !isAwsEndpoint(sesEndpoint)) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message:
+              "custom AmazonSES endpoint must be an https amazonaws.com endpoint when using the deployment IAM role",
+          },
+        });
+      }
+
       const result = await sendMailAmazonSes({
         mailData,
         config: {
-          accessKeyId: hasStaticCredentials
-            ? emailProvider.accessKeyId
-            : undefined,
-          secretAccessKey: hasStaticCredentials
-            ? emailProvider.secretAccessKey
-            : undefined,
+          accessKeyId: hasStaticCredentials ? accessKeyId : undefined,
+          secretAccessKey: hasStaticCredentials ? secretAccessKey : undefined,
           region: sesRegion,
-          endpoint: emailProvider.endpoint,
+          endpoint: sesEndpoint,
         },
       });
 

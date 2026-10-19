@@ -118,7 +118,10 @@ AMAZON_SES_CREDENTIALS_PROVIDER=default
    the access key fields empty. If the region is also left empty, `AWS_REGION` /
    `AWS_DEFAULT_REGION` of the Dittofeed process is used.
 
-Workspaces that do provide access keys keep using them. Because every workspace
+Workspaces that do provide access keys keep using them. When the deployment role is
+used, a custom endpoint is only accepted if it is an `https://*.amazonaws.com(.cn)`
+endpoint (e.g. an interface VPC endpoint), so role-signed requests are never sent to an
+arbitrary host. Because every workspace
 would share the deployment's IAM role, this mode is intended for single-tenant
 self-hosted deployments.
 

@@ -286,9 +286,6 @@ export enum AwsCredentialsProvider {
   DefaultChain = "default",
 }
 
-// Backwards-compatible alias.
-export const BlobStorageCredentialsProvider = AwsCredentialsProvider;
-
 export type Config = Overwrite<
   RawConfig,
   {
@@ -377,6 +374,8 @@ export type Config = Overwrite<
     defaultGetSegmentAndEventDetailsMaxAttempts: number;
   }
 > & {
+  // Region from the standard AWS_REGION / AWS_DEFAULT_REGION env vars, if any.
+  awsDefaultRegion?: string;
   defaultUserEventsTableVersion: string;
   database: string;
   apiBase: string;
@@ -620,6 +619,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     rawConfig.blobStorageCredentialsProvider === "default"
       ? AwsCredentialsProvider.DefaultChain
       : AwsCredentialsProvider.StaticKeys;
+  const awsDefaultRegion =
+    process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? undefined;
   const usingAwsDefaultCredentials =
     blobStorageCredentialsProvider === AwsCredentialsProvider.DefaultChain;
   // When running against Amazon S3 with the default credential chain, leave
@@ -759,13 +760,12 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.amazonSesCredentialsProvider === "default"
         ? AwsCredentialsProvider.DefaultChain
         : AwsCredentialsProvider.StaticKeys,
+    awsDefaultRegion,
     // Only fall back to AWS_REGION in "default" credentials mode so that
     // existing static-key / MinIO deployments keep the previous default.
     blobStorageRegion:
       rawConfig.blobStorageRegion ??
-      (usingAwsDefaultCredentials
-        ? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION
-        : undefined) ??
+      (usingAwsDefaultCredentials ? awsDefaultRegion : undefined) ??
       "us-east-1",
     exportLogsHyperDx: rawConfig.exportLogsHyperDx === "true",
     dittofeedTelemetryDisabled:

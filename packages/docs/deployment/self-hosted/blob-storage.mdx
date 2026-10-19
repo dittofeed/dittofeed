@@ -26,6 +26,7 @@ BLOB_STORAGE_REGION=us-east-1
 ```
 
 We recommend creating a dedicated bucket for Dittofeed to use.
+
 ## Amazon S3 with IAM roles (recommended on AWS)
 
 When running Dittofeed on AWS (Amazon ECS, Amazon EKS or Amazon EC2), we recommend
@@ -44,7 +45,7 @@ BLOB_STORAGE_REGION=us-west-2
 With `BLOB_STORAGE_CREDENTIALS_PROVIDER=default`:
 
 - `BLOB_STORAGE_ACCESS_KEY_ID` / `BLOB_STORAGE_SECRET_ACCESS_KEY` are ignored.
-- `BLOB_STORAGE_ENDPOINT` defaults to the regional Amazon S3 endpoint.
+- `BLOB_STORAGE_ENDPOINT` defaults to the regional Amazon S3 endpoint (you can still set it, e.g. for an S3 interface VPC endpoint).
 - Virtual-hosted–style addressing is used by default. Set
   `BLOB_STORAGE_FORCE_PATH_STYLE=true` to override (required for MinIO).
 - If `BLOB_STORAGE_REGION` is unset, `AWS_REGION` / `AWS_DEFAULT_REGION` is used.

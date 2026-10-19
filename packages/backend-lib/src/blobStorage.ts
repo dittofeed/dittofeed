@@ -14,6 +14,7 @@ import {
 } from "@aws-sdk/client-s3";
 
 import config, { AwsCredentialsProvider } from "./config";
+import logger from "./logger";
 
 let S3_CLIENT: S3Client | null = null;
 
@@ -67,9 +68,7 @@ export function storage(): S3Client {
  * configuration changes.
  */
 export function resetStorageClient() {
-  if (S3_CLIENT) {
-    S3_CLIENT.destroy();
-  }
+  S3_CLIENT?.destroy();
   S3_CLIENT = null;
 }
 
@@ -142,7 +141,27 @@ async function bucketExists(
     // behaviour for existing static-key deployments (BucketAlreadyOwnedByYou
     // is ignored below).
     if (status === 403) {
+      logger().warn(
+        { bucket: bucketName },
+        "HeadBucket returned 403 (missing s3:ListBucket?), falling back to CreateBucket",
+      );
       return false;
+    }
+    // 301: the bucket exists but in a different region. The SDK does not
+    // follow region redirects by default, so surface an actionable error.
+    if (status === 301) {
+      const actualRegion =
+        e instanceof S3ServiceException
+          ? e.$response?.headers["x-amz-bucket-region"]
+          : undefined;
+      throw new Error(
+        `Bucket ${bucketName} is not in the configured region ${
+          config().blobStorageRegion
+        }${
+          actualRegion ? ` (bucket region: ${actualRegion})` : ""
+        }. Set BLOB_STORAGE_REGION accordingly.`,
+        { cause: e },
+      );
     }
     throw e;
   }
@@ -165,19 +184,20 @@ export async function createBucket(
   };
   // Amazon S3 requires a LocationConstraint for every region other than
   // us-east-1, otherwise CreateBucket fails with
-  // IllegalLocationConstraintException.
-  const region = config().blobStorageRegion;
-  if (region && region !== "us-east-1") {
-    const locationConstraint = Object.values(BucketLocationConstraint).find(
-      (c) => c === region,
-    );
-    if (!locationConstraint) {
-      throw new Error(
-        `Unsupported S3 region for bucket creation: ${region}. Create the bucket out-of-band.`,
-      );
-    }
+  // IllegalLocationConstraintException. Only send it when talking to Amazon S3
+  // itself (no custom endpoint): MinIO / R2 / other S3-compatible stores keep
+  // the previous behaviour of a plain CreateBucket call. The region is passed
+  // through as-is (rather than validated against the SDK's enum, which lags
+  // behind newly launched regions) and S3 itself rejects invalid values.
+  const { blobStorageEndpoint, blobStorageRegion } = config();
+  if (
+    !blobStorageEndpoint &&
+    blobStorageRegion &&
+    blobStorageRegion !== "us-east-1"
+  ) {
     input.CreateBucketConfiguration = {
-      LocationConstraint: locationConstraint,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      LocationConstraint: blobStorageRegion as BucketLocationConstraint,
     };
   }
 
