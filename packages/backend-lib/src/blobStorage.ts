@@ -137,6 +137,13 @@ async function bucketExists(
     ) {
       return false;
     }
+    // 403: the credentials may not have s3:ListBucket (which HeadBucket
+    // requires). Fall through to CreateBucket, which preserves the previous
+    // behaviour for existing static-key deployments (BucketAlreadyOwnedByYou
+    // is ignored below).
+    if (status === 403) {
+      return false;
+    }
     throw e;
   }
 }

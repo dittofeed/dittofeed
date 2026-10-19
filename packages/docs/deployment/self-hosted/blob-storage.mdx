@@ -49,6 +49,8 @@ With `BLOB_STORAGE_CREDENTIALS_PROVIDER=default`:
   `BLOB_STORAGE_FORCE_PATH_STYLE=true` to override (required for MinIO).
 - If `BLOB_STORAGE_REGION` is unset, `AWS_REGION` / `AWS_DEFAULT_REGION` is used.
 
+The default `static` mode (`BLOB_STORAGE_ACCESS_KEY_ID` / `BLOB_STORAGE_SECRET_ACCESS_KEY`) is unchanged and remains supported for MinIO, other S3-compatible stores, and environments without IAM roles.
+
 We recommend provisioning the bucket with your infrastructure-as-code tooling
 (with Block Public Access, default encryption and a lifecycle policy). Dittofeed
 checks whether the bucket exists (`HeadBucket`) before attempting to create it,

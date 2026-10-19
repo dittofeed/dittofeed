@@ -37,7 +37,9 @@ const BaseRawConfigProps = {
   clickhouseDatabase: Type.Optional(Type.String()),
   clickhouseUser: Type.String(),
   clickhousePassword: Type.String(),
-  defaultUserJourneyMaxAttempts: Type.Optional(Type.String({ format: "naturalNumber" })),
+  defaultUserJourneyMaxAttempts: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   kafkaBrokers: Type.Optional(Type.String()),
   kafkaUsername: Type.Optional(Type.String()),
   kafkaPassword: Type.Optional(Type.String()),
@@ -757,10 +759,13 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.amazonSesCredentialsProvider === "default"
         ? AwsCredentialsProvider.DefaultChain
         : AwsCredentialsProvider.StaticKeys,
+    // Only fall back to AWS_REGION in "default" credentials mode so that
+    // existing static-key / MinIO deployments keep the previous default.
     blobStorageRegion:
       rawConfig.blobStorageRegion ??
-      process.env.AWS_REGION ??
-      process.env.AWS_DEFAULT_REGION ??
+      (usingAwsDefaultCredentials
+        ? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION
+        : undefined) ??
       "us-east-1",
     exportLogsHyperDx: rawConfig.exportLogsHyperDx === "true",
     dittofeedTelemetryDisabled:
@@ -844,9 +849,12 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.broadcastSendMessagesMaxAttempts,
       5,
     ),
-    defaultUserJourneyMaxAttempts: rawConfig.defaultUserJourneyMaxAttempts !== undefined ? parseInt(
-      rawConfig.defaultUserJourneyMaxAttempts,
-    ) : (nodeEnv === NodeEnvEnum.Test ? 1 : undefined),
+    defaultUserJourneyMaxAttempts:
+      rawConfig.defaultUserJourneyMaxAttempts !== undefined
+        ? parseInt(rawConfig.defaultUserJourneyMaxAttempts)
+        : nodeEnv === NodeEnvEnum.Test
+          ? 1
+          : undefined,
     defaultGetSegmentAndEventDetailsMaxAttempts: parseMaxAttempts(
       rawConfig.defaultGetSegmentAndEventDetailsMaxAttempts,
       nodeEnv === NodeEnvEnum.Test ? 1 : 10,
