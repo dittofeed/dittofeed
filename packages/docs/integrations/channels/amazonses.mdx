@@ -99,6 +99,34 @@ Copy the `access key` and `secret access key`. (Click "Show" to display it).
 
 Enter the access key, secret access key, and region into the appropriate fields in Dittofeed.
 
+### Using IAM roles instead of access keys (self-hosted on AWS)
+
+If you self-host Dittofeed on AWS (Amazon ECS, Amazon EKS or Amazon EC2), you can
+avoid storing long-lived IAM user access keys in Dittofeed by letting it use the
+AWS SDK default credential provider chain (ECS task role, IRSA / EKS Pod Identity,
+EC2 instance profile, ...).
+
+1. Attach the policy above to the IAM role used by your Dittofeed API / worker
+   containers.
+2. Set the following environment variable on the Dittofeed services:
+
+```bash
+AMAZON_SES_CREDENTIALS_PROVIDER=default
+```
+
+3. In the Dittofeed Amazon SES settings, fill in only the **AWS Region** and leave
+   the access key fields empty. If the region is also left empty, `AWS_REGION` /
+   `AWS_DEFAULT_REGION` of the Dittofeed process is used.
+
+Workspaces that do provide access keys keep using them. When the deployment role is
+used, a custom endpoint is only accepted if it is an HTTPS Amazon SES endpoint
+(`email[-fips].<region>.amazonaws.com[.cn]` or an SES interface VPC endpoint
+`vpce-*.email.<region>.vpce.amazonaws.com`), so role-signed requests are never sent to
+an arbitrary host. If a workspace fills in only one of the two key fields, sending fails
+with a configuration error instead of silently using the deployment role. Because every workspace
+would share the deployment's IAM role, this mode is intended for single-tenant
+self-hosted deployments.
+
 ### Setting up event forwarding
 
 Event forwarding allows Amazon SES to foward bounce, delivery, etc notifications to Dittofeed for tracking.

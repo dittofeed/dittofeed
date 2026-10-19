@@ -1,4 +1,4 @@
-import Https from "node:https";
+import { createHash } from "node:crypto";
 
 import {
   MessageTag,
@@ -51,6 +51,81 @@ export type SesMailData = Overwrite<
   attachments?: Mail.Attachment[];
 };
 
+const SES_CLIENTS = new Map<string, SESv2Client>();
+// Bound the cache so that rotating credentials across many workspaces can't
+// grow it without limit.
+const MAX_SES_CLIENTS = 256;
+
+function sesClientCacheKey({
+  accessKeyId,
+  secretAccessKey,
+  region,
+  endpoint,
+}: AmazonSesConfig): string {
+  // Never keep the raw secret in the cache key.
+  return createHash("sha256")
+    .update(
+      JSON.stringify([
+        accessKeyId ?? "",
+        secretAccessKey ?? "",
+        region,
+        endpoint ?? "",
+      ]),
+    )
+    .digest("hex");
+}
+
+/**
+ * Returns a cached SESv2 client for the given configuration. AWS SDK clients
+ * are intended to be long-lived: re-using them keeps HTTP keep-alive
+ * connections warm and avoids re-resolving credentials on every send.
+ *
+ * When no static access keys are supplied the client uses the AWS SDK default
+ * credential provider chain (ECS task role, IRSA / EKS Pod Identity, EC2
+ * instance profile, environment variables, ...), which is the AWS recommended
+ * way to authenticate workloads running on AWS.
+ */
+export function getSesClient(config: AmazonSesConfig): SESv2Client {
+  const key = sesClientCacheKey(config);
+  const existing = SES_CLIENTS.get(key);
+  if (existing) {
+    // LRU: move to the most-recently-used position.
+    SES_CLIENTS.delete(key);
+    SES_CLIENTS.set(key, existing);
+    return existing;
+  }
+  const { accessKeyId, secretAccessKey, region, endpoint } = config;
+  const client = new SESv2Client({
+    region,
+    ...(accessKeyId &&
+      secretAccessKey && {
+        credentials: {
+          accessKeyId,
+          secretAccessKey,
+        },
+      }),
+    ...(endpoint && { endpoint }),
+  });
+  if (SES_CLIENTS.size >= MAX_SES_CLIENTS) {
+    // Evict the least recently used client. We intentionally don't call
+    // destroy() here: a send may still be in flight on it. Idle keep-alive
+    // sockets time out on their own and the client is garbage collected.
+    const oldestKey = SES_CLIENTS.keys().next().value;
+    if (oldestKey !== undefined) {
+      SES_CLIENTS.delete(oldestKey);
+    }
+  }
+  SES_CLIENTS.set(key, client);
+  return client;
+}
+
+export function resetSesClients() {
+  for (const client of SES_CLIENTS.values()) {
+    client.destroy();
+  }
+  SES_CLIENTS.clear();
+}
+
 export async function sendMail({
   config,
   mailData,
@@ -58,15 +133,7 @@ export async function sendMail({
   config: AmazonSesConfig;
   mailData: SesMailData;
 }): Promise<Result<SendEmailCommandOutput, SESv2ServiceException | unknown>> {
-  const { accessKeyId, secretAccessKey, region, endpoint } = config;
-  const client = new SESv2Client({
-    region,
-    credentials: {
-      accessKeyId,
-      secretAccessKey,
-    },
-    ...(endpoint && { endpoint }),
-  });
+  const client = getSesClient(config);
 
   const tags: MessageTag[] | undefined = mailData.tags
     ? Object.entries(mailData.tags).map(([Name, Value]) => ({
@@ -283,15 +350,142 @@ export async function validSNSSignature(payload: AmazonSNSEvent) {
   return ResultAsync.fromPromise(validator.validate(payload), (error) => error);
 }
 
+// Only SES API endpoints: public regional (incl. FIPS) and interface VPC
+// endpoints. Deliberately narrower than *.amazonaws.com, which would also match
+// customer-controlled hosts such as API Gateway or S3 bucket domains.
+const AWS_SES_ENDPOINT_HOST_PATTERN =
+  /^(email(-fips)?\.[a-z0-9-]+|vpce-[a-z0-9-]+\.email(-fips)?\.[a-z0-9-]+\.vpce)\.amazonaws\.com(\.cn)?$/;
+
+function isHttpsUrlWithHost(url: string, hostPattern: RegExp): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  return (
+    parsed.protocol === "https:" &&
+    parsed.port === "" &&
+    parsed.username === "" &&
+    parsed.password === "" &&
+    hostPattern.test(parsed.hostname)
+  );
+}
+
+/**
+ * Only allow HTTPS Amazon SES endpoints. Used when requests are signed with
+ * the deployment's own IAM role so that a workspace can't point the client at
+ * an arbitrary host and capture role-signed requests.
+ */
+export function isAwsSesEndpoint(url: string): boolean {
+  return isHttpsUrlWithHost(url, AWS_SES_ENDPOINT_HOST_PATTERN);
+}
+
+export interface AmazonSesProviderSettings {
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  region?: string;
+  endpoint?: string;
+}
+
+/**
+ * Resolves the SES client configuration for a workspace.
+ *
+ * - Static keys (default, unchanged behaviour): accessKeyId, secretAccessKey
+ *   and region are all required; any endpoint is accepted.
+ * - Deployment IAM role (AMAZON_SES_CREDENTIALS_PROVIDER=default and the
+ *   workspace provides no keys): region falls back to AWS_REGION and a custom
+ *   endpoint must be an https Amazon SES endpoint.
+ *
+ * Empty strings (e.g. a cleared settings field) are treated as unset.
+ */
+export function resolveSesSendConfig({
+  settings,
+  allowDefaultCredentials,
+  awsDefaultRegion,
+}: {
+  settings: AmazonSesProviderSettings;
+  allowDefaultCredentials: boolean;
+  awsDefaultRegion?: string;
+}): Result<AmazonSesConfig, string> {
+  /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
+  const accessKeyId = settings.accessKeyId || undefined;
+  const secretAccessKey = settings.secretAccessKey || undefined;
+  const endpoint = settings.endpoint || undefined;
+  const hasStaticCredentials = Boolean(accessKeyId && secretAccessKey);
+  const partialStaticCredentials =
+    !hasStaticCredentials && Boolean(accessKeyId || secretAccessKey);
+
+  if (!allowDefaultCredentials) {
+    if (!hasStaticCredentials || !settings.region) {
+      return err("missing accesskey, secret or region in AmazonSES config");
+    }
+    return ok({
+      accessKeyId,
+      secretAccessKey,
+      region: settings.region,
+      endpoint,
+    });
+  }
+
+  if (partialStaticCredentials) {
+    // Don't silently fall back to the deployment role when a workspace
+    // clearly intended to use its own keys.
+    return err(
+      "AmazonSES config has only one of access key id / secret access key",
+    );
+  }
+  const region =
+    settings.region || (hasStaticCredentials ? undefined : awsDefaultRegion);
+  /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
+  if (!region) {
+    return err("missing region in AmazonSES config");
+  }
+  if (hasStaticCredentials) {
+    return ok({ accessKeyId, secretAccessKey, region, endpoint });
+  }
+  if (endpoint && !isAwsSesEndpoint(endpoint)) {
+    return err(
+      "custom AmazonSES endpoint must be an https Amazon SES endpoint when using the deployment IAM role",
+    );
+  }
+  return ok({ region, endpoint });
+}
+
+const SNS_SUBSCRIBE_URL_HOST_PATTERN =
+  /^sns\.[a-z0-9-]+\.amazonaws\.com(\.cn)?$/;
+
+export function isValidSnsSubscribeUrl(url: string): boolean {
+  return isHttpsUrlWithHost(url, SNS_SUBSCRIBE_URL_HOST_PATTERN);
+}
+
 export async function confirmSubscription(
   payload: AmazonSNSSubscriptionEvent | AmazonSNSUnsubscribeEvent,
-) {
-  return ResultAsync.fromPromise(
-    new Promise((res) => {
-      Https.get(payload.SubscribeURL, res);
-    }),
-    (error) => error,
-  );
+): Promise<Result<void, Error>> {
+  // Defense in depth against SSRF: even though the payload signature is
+  // verified, only ever call back to an Amazon SNS endpoint over HTTPS.
+  if (!isValidSnsSubscribeUrl(payload.SubscribeURL)) {
+    return err(new Error("Invalid SNS SubscribeURL"));
+  }
+  try {
+    const response = await fetch(payload.SubscribeURL, {
+      method: "GET",
+      redirect: "error",
+      signal: AbortSignal.timeout(10_000),
+    });
+    // Drain the body so the connection can be re-used.
+    await response.text();
+    if (!response.ok) {
+      return err(
+        new Error(
+          `SNS subscription confirmation failed with status ${response.status}`,
+        ),
+      );
+    }
+    return ok(undefined);
+  } catch (e) {
+    return err(e instanceof Error ? e : new Error(String(e)));
+  }
 }
 
 export async function handleSesNotification(

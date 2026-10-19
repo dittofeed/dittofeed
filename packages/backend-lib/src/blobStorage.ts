@@ -1,32 +1,75 @@
 import {
+  BucketLocationConstraint,
   CreateBucketCommand,
+  CreateBucketCommandInput,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadBucketCommand,
   ListObjectsV2Command,
+  ListObjectsV2CommandOutput,
   PutObjectCommand,
   S3Client,
-  ListObjectsV2CommandOutput,
+  S3ClientConfig,
+  S3ServiceException,
 } from "@aws-sdk/client-s3";
 
-import config from "./config";
+import config, { AwsCredentialsProvider } from "./config";
+import logger from "./logger";
 
-export function storage() {
+let S3_CLIENT: S3Client | null = null;
+
+export function buildS3ClientConfig(): S3ClientConfig {
   const {
     blobStorageAccessKeyId,
     blobStorageSecretAccessKey,
     blobStorageEndpoint,
     blobStorageRegion,
+    blobStorageCredentialsProvider,
+    blobStorageForcePathStyle,
   } = config();
-  const s3Client = new S3Client({
-    credentials: {
+
+  const clientConfig: S3ClientConfig = {
+    region: blobStorageRegion,
+    forcePathStyle: blobStorageForcePathStyle,
+  };
+
+  if (blobStorageEndpoint) {
+    clientConfig.endpoint = blobStorageEndpoint;
+  }
+
+  // When using the AWS default credential provider chain we intentionally do
+  // not pass static credentials so that the SDK can resolve short-lived
+  // credentials from IRSA / EKS Pod Identity / ECS task roles / EC2 instance
+  // profiles, and refresh them automatically.
+  if (blobStorageCredentialsProvider === AwsCredentialsProvider.StaticKeys) {
+    clientConfig.credentials = {
       accessKeyId: blobStorageAccessKeyId,
       secretAccessKey: blobStorageSecretAccessKey,
-    },
-    endpoint: blobStorageEndpoint,
-    region: blobStorageRegion,
-    forcePathStyle: true,
-  });
-  return s3Client;
+    };
+  }
+  return clientConfig;
+}
+
+/**
+ * Returns a process-wide S3 client. AWS SDK clients are designed to be
+ * long-lived and re-used: they maintain a keep-alive connection pool and cache
+ * resolved credentials, so creating a new client per request adds avoidable
+ * latency (TLS handshakes, credential resolution) and load on IMDS / STS.
+ */
+export function storage(): S3Client {
+  if (!S3_CLIENT) {
+    S3_CLIENT = new S3Client(buildS3ClientConfig());
+  }
+  return S3_CLIENT;
+}
+
+/**
+ * Exposed for tests and for long-running processes that need to pick up
+ * configuration changes.
+ */
+export function resetStorageClient() {
+  S3_CLIENT?.destroy();
+  S3_CLIENT = null;
 }
 
 export async function putObject(
@@ -70,15 +113,96 @@ export async function getObject(
   return { text };
 }
 
+function getHttpStatusCode(e: unknown): number | undefined {
+  if (e instanceof S3ServiceException) {
+    return e.$metadata.httpStatusCode;
+  }
+  return undefined;
+}
+
+async function bucketExists(
+  client: S3Client,
+  bucketName: string,
+): Promise<boolean> {
+  try {
+    await client.send(new HeadBucketCommand({ Bucket: bucketName }));
+    return true;
+  } catch (e) {
+    const status = getHttpStatusCode(e);
+    if (
+      status === 404 ||
+      (e instanceof Error &&
+        (e.name === "NotFound" || e.name === "NoSuchBucket"))
+    ) {
+      return false;
+    }
+    // 403: the credentials may not have s3:ListBucket (which HeadBucket
+    // requires). Fall through to CreateBucket, which preserves the previous
+    // behaviour for existing static-key deployments (BucketAlreadyOwnedByYou
+    // is ignored below).
+    if (status === 403) {
+      logger().warn(
+        { bucket: bucketName },
+        "HeadBucket returned 403 (missing s3:ListBucket?), falling back to CreateBucket",
+      );
+      return false;
+    }
+    // 301: the bucket exists but in a different region. The SDK does not
+    // follow region redirects by default, so surface an actionable error.
+    if (status === 301) {
+      const actualRegion =
+        e instanceof S3ServiceException
+          ? e.$response?.headers["x-amz-bucket-region"]
+          : undefined;
+      throw new Error(
+        `Bucket ${bucketName} is not in the configured region ${
+          config().blobStorageRegion
+        }${
+          actualRegion ? ` (bucket region: ${actualRegion})` : ""
+        }. Set BLOB_STORAGE_REGION accordingly.`,
+        { cause: e },
+      );
+    }
+    throw e;
+  }
+}
+
 export async function createBucket(
   client: S3Client,
   { bucketName }: { bucketName: string },
 ) {
-  const command = new CreateBucketCommand({
+  // Check for the bucket first. In AWS deployments the bucket is typically
+  // provisioned out-of-band (CloudFormation / CDK / Terraform) and the
+  // application role should only need s3:ListBucket (for HeadBucket), not
+  // s3:CreateBucket.
+  if (await bucketExists(client, bucketName)) {
+    return;
+  }
+
+  const input: CreateBucketCommandInput = {
     Bucket: bucketName,
-  });
+  };
+  // Amazon S3 requires a LocationConstraint for every region other than
+  // us-east-1, otherwise CreateBucket fails with
+  // IllegalLocationConstraintException. Only send it when talking to Amazon S3
+  // itself (no custom endpoint): MinIO / R2 / other S3-compatible stores keep
+  // the previous behaviour of a plain CreateBucket call. The region is passed
+  // through as-is (rather than validated against the SDK's enum, which lags
+  // behind newly launched regions) and S3 itself rejects invalid values.
+  const { blobStorageEndpoint, blobStorageRegion } = config();
+  if (
+    !blobStorageEndpoint &&
+    blobStorageRegion &&
+    blobStorageRegion !== "us-east-1"
+  ) {
+    input.CreateBucketConfiguration = {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      LocationConstraint: blobStorageRegion as BucketLocationConstraint,
+    };
+  }
+
   try {
-    await client.send(command);
+    await client.send(new CreateBucketCommand(input));
   } catch (e) {
     // Ignore if bucket already exists and is owned by us
     if (e instanceof Error && e.name === "BucketAlreadyOwnedByYou") {
@@ -93,7 +217,7 @@ export async function deleteObjectsWithPrefix(
   { prefix }: { prefix: string },
 ) {
   const bucket = config().blobStorageBucket;
-  let continuationToken: string | undefined = undefined;
+  let continuationToken: string | undefined;
   do {
     const listRes: ListObjectsV2CommandOutput = await client.send(
       new ListObjectsV2Command({
@@ -130,7 +254,7 @@ export async function listObjectKeysWithPrefix(
 ): Promise<string[]> {
   const bucket = config().blobStorageBucket;
   const keys: string[] = [];
-  let continuationToken: string | undefined = undefined;
+  let continuationToken: string | undefined;
   do {
     const listRes: ListObjectsV2CommandOutput = await client.send(
       new ListObjectsV2Command({

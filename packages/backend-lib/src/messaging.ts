@@ -25,6 +25,7 @@ import { validate as validateUuid } from "uuid";
 
 import { submitBatch } from "./apps/batch";
 import { getObject, storage } from "./blobStorage";
+import config, { AwsCredentialsProvider } from "./config";
 import { MESSAGE_METADATA_FIELDS } from "./constants";
 import { db, TxQueryError, txQueryResult } from "./db";
 import {
@@ -39,6 +40,7 @@ import {
   workspace as dbWorkspace,
 } from "./db/schema";
 import {
+  resolveSesSendConfig,
   sendMail as sendMailAmazonSes,
   SesMailData,
 } from "./destinations/amazonses";
@@ -64,9 +66,7 @@ import {
   sendGmailEmail,
   SendGmailEmailParams,
 } from "./gmail";
-import config from "./config";
 import { renderLiquid } from "./liquid";
-import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import logger from "./logger";
 import {
   constructUnsubscribeHeaders,
@@ -131,6 +131,7 @@ import {
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 import { getUsers } from "./users";
+import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import { isWorkspaceOccupantType } from "./workspaceOccupantSettings";
 
 export function enrichMessageTemplate({
@@ -1346,28 +1347,26 @@ export async function sendEmail({
         },
       };
 
-      if (
-        !emailProvider.accessKeyId ||
-        !emailProvider.secretAccessKey ||
-        !emailProvider.region
-      ) {
+      const sesConfig = resolveSesSendConfig({
+        settings: emailProvider,
+        allowDefaultCredentials:
+          config().amazonSesCredentialsProvider ===
+          AwsCredentialsProvider.DefaultChain,
+        awsDefaultRegion: config().awsDefaultRegion,
+      });
+      if (sesConfig.isErr()) {
         return err({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: "missing accesskey or secret in AmazonSES config",
+            message: sesConfig.error,
           },
         });
       }
 
       const result = await sendMailAmazonSes({
         mailData,
-        config: {
-          accessKeyId: emailProvider.accessKeyId,
-          secretAccessKey: emailProvider.secretAccessKey,
-          region: emailProvider.region,
-          endpoint: emailProvider.endpoint,
-        },
+        config: sesConfig.value,
       });
 
       if (result.isErr()) {

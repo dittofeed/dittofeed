@@ -26,3 +26,51 @@ BLOB_STORAGE_REGION=us-east-1
 ```
 
 We recommend creating a dedicated bucket for Dittofeed to use.
+
+## Amazon S3 with IAM roles (recommended on AWS)
+
+When running Dittofeed on AWS (Amazon ECS, Amazon EKS or Amazon EC2), we recommend
+using IAM roles instead of long-lived access keys. Set:
+
+```bash
+ENABLE_BLOB_STORAGE=true
+# Use the AWS SDK default credential provider chain (ECS task role,
+# IRSA / EKS Pod Identity, EC2 instance profile, AWS_* env vars, ...)
+BLOB_STORAGE_CREDENTIALS_PROVIDER=default
+BLOB_STORAGE_BUCKET=my-dittofeed-bucket
+BLOB_STORAGE_REGION=us-west-2
+# Leave BLOB_STORAGE_ENDPOINT unset to use the regional Amazon S3 endpoint.
+```
+
+With `BLOB_STORAGE_CREDENTIALS_PROVIDER=default`:
+
+- `BLOB_STORAGE_ACCESS_KEY_ID` / `BLOB_STORAGE_SECRET_ACCESS_KEY` are ignored.
+- `BLOB_STORAGE_ENDPOINT` defaults to the regional Amazon S3 endpoint (you can still set it, e.g. for an S3 interface VPC endpoint).
+- Virtual-hosted–style addressing is used by default. Set
+  `BLOB_STORAGE_FORCE_PATH_STYLE=true` to override (required for MinIO).
+- If `BLOB_STORAGE_REGION` is unset, `AWS_REGION` / `AWS_DEFAULT_REGION` is used.
+
+The default `static` mode (`BLOB_STORAGE_ACCESS_KEY_ID` / `BLOB_STORAGE_SECRET_ACCESS_KEY`) is unchanged and remains supported for MinIO, other S3-compatible stores, and environments without IAM roles.
+
+We recommend provisioning the bucket with your infrastructure-as-code tooling
+(with Block Public Access, default encryption and a lifecycle policy). Dittofeed
+checks whether the bucket exists (`HeadBucket`) before attempting to create it,
+so the application role only needs the following permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::my-dittofeed-bucket"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::my-dittofeed-bucket/*"
+    }
+  ]
+}
+```
