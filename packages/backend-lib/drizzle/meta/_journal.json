@@ -78,6 +78,13 @@
       "when": 1767720758408,
       "tag": "0010_subscription_management_template",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792058709971,
+      "tag": "0011_mysterious_doctor_spectrum",
+      "breakpoints": true
     }
   ]
 }

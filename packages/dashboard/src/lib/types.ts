@@ -8,6 +8,7 @@ import {
   ChannelType,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
+  DefaultMobilePushProviderResource,
   DefaultSmsProviderResource,
   DelayUiNodeProps,
   DelayUiNodeVariant,
@@ -40,6 +41,7 @@ import {
   MessageUiNodeProps,
   PartialSegmentResource,
   PersistedEmailProvider,
+  PersistedMobilePushProvider,
   PersistedSmsProvider,
   RandomCohortUiNodeProps,
   RequestStatus,
@@ -167,6 +169,8 @@ export type AppState = {
   emailProviders: PersistedEmailProvider[];
   defaultSmsProvider: DefaultSmsProviderResource | null;
   smsProviders: PersistedSmsProvider[];
+  defaultMobilePushProvider: DefaultMobilePushProviderResource | null;
+  mobilePushProviders: PersistedMobilePushProvider[];
   dataSourceConfigurations: RequestStatus<
     DataSourceConfigurationResource[],
     Error
@@ -225,6 +229,9 @@ export interface AppActions {
   ) => void;
   setDefaultSmsProvider: (
     defaultSmsProvider: DefaultSmsProviderResource,
+  ) => void;
+  setDefaultMobilePushProvider: (
+    defaultMobilePushProvider: DefaultMobilePushProviderResource,
   ) => void;
   setViewDraft: (viewDraft: boolean) => void;
   setCommandPaletteOpen: (open: boolean) => void;

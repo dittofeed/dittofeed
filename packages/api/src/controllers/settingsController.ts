@@ -5,6 +5,7 @@ import { getOrCreateWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { db, upsert } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { upsertEmailProvider } from "backend-lib/src/messaging/email";
+import { upsertMobilePushProvider } from "backend-lib/src/messaging/mobilePush";
 import { upsertSmsProvider } from "backend-lib/src/messaging/sms";
 import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
@@ -14,6 +15,7 @@ import {
   DataSourceConfigurationResource,
   DataSourceVariantType,
   DefaultEmailProviderResource,
+  DefaultMobilePushProviderResource,
   DefaultSmsProviderResource,
   DeleteDataSourceConfigurationRequest,
   DeleteWriteKeyResource,
@@ -22,10 +24,12 @@ import {
   ListDataSourceConfigurationResponse,
   ListWriteKeyRequest,
   ListWriteKeyResource,
+  PersistedMobilePushProvider,
   PersistedSmsProvider,
   UpsertDataSourceConfigurationResource,
   UpsertDefaultEmailProviderRequest,
   UpsertEmailProviderRequest,
+  UpsertMobilePushProviderRequest,
   UpsertSmsProviderRequest,
   UpsertWriteKeyResource,
   WriteKeyResource,
@@ -207,6 +211,56 @@ export default async function settingsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       await upsertSmsProvider(request.body);
+      return reply.status(201).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/mobile-push-providers",
+    {
+      schema: {
+        description: "Create or update mobile push provider",
+        tags: ["Settings"],
+        body: UpsertMobilePushProviderRequest,
+        response: {
+          201: EmptyResponse,
+          400: BadRequestResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      await upsertMobilePushProvider(request.body);
+      return reply.status(201).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/mobile-push-providers/default",
+    {
+      schema: {
+        description: "Create or update default mobile push provider settings",
+        tags: ["Settings"],
+        body: DefaultMobilePushProviderResource,
+        response: {
+          200: PersistedMobilePushProvider,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, mobilePushProviderId } = request.body;
+
+      await upsert({
+        table: schema.defaultMobilePushProvider,
+        values: {
+          workspaceId,
+          mobilePushProviderId,
+        },
+        target: [schema.defaultMobilePushProvider.workspaceId],
+        set: {
+          mobilePushProviderId,
+        },
+      });
+
       return reply.status(201).send();
     },
   );

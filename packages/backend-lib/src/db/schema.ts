@@ -848,6 +848,75 @@ export const smsProvider = pgTable(
   ],
 );
 
+export const mobilePushProvider = pgTable(
+  "MobilePushProvider",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    secretId: uuid().notNull(),
+    type: text().notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("MobilePushProvider_workspaceId_type_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.type.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "MobilePushProvider_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.secretId],
+      foreignColumns: [secret.id],
+      name: "MobilePushProvider_secretId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
+export const defaultMobilePushProvider = pgTable(
+  "DefaultMobilePushProvider",
+  {
+    workspaceId: uuid().notNull(),
+    mobilePushProviderId: uuid().notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("DefaultMobilePushProvider_workspaceId_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "DefaultMobilePushProvider_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.mobilePushProviderId],
+      foreignColumns: [mobilePushProvider.id],
+      name: "DefaultMobilePushProvider_mobilePushProviderId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
 export const journey = pgTable(
   "Journey",
   {
