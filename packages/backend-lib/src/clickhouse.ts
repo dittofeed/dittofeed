@@ -246,6 +246,96 @@ export function clickhouseDateToIso(dateString: string): string {
   return `${dateString.replace(" ", "T")}Z`;
 }
 
+const LIGHTWEIGHT_DELETES_SYNC_SETTING = "lightweight_deletes_sync";
+const UNKNOWN_SETTING_ERROR_CODE = 115;
+
+// `lightweight_deletes_sync` was added in ClickHouse 24.8. Older servers reject
+// it with UNKNOWN_SETTING, which would make every delete fail. Track whether the
+// server understands the setting so it only has to be stripped once.
+let lightweightDeletesSyncSupported: boolean | null = null;
+
+/**
+ * Removes the `lightweight_deletes_sync` setting from a sql statement, for
+ * ClickHouse servers that predate it. Statements that don't reference the
+ * setting are returned untouched.
+ */
+export function stripUnsupportedClickhouseSettings(statement: string): string {
+  if (!statement.includes(LIGHTWEIGHT_DELETES_SYNC_SETTING)) {
+    return statement;
+  }
+  const withoutSetting = statement
+    // trailing setting: `mutations_sync = 0, lightweight_deletes_sync = 0`
+    .replace(/\s*,\s*lightweight_deletes_sync\s*=\s*[^,;\s]+\s*/gi, "")
+    // leading setting: `lightweight_deletes_sync = 0, mutations_sync = 0`
+    .replace(/\blightweight_deletes_sync\s*=\s*[^,;\s]+\s*,\s*/gi, "")
+    // the setting is the only one
+    .replace(/\s*lightweight_deletes_sync\s*=\s*[^,;\s]+/gi, "");
+  // a settings clause left without any settings is invalid sql
+  return withoutSetting.replace(/\s+settings\s*;?\s*$/i, ";");
+}
+
+export function isUnsupportedClickhouseSettingsError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  if (
+    !("message" in error) ||
+    typeof error.message !== "string" ||
+    !error.message.includes(LIGHTWEIGHT_DELETES_SYNC_SETTING)
+  ) {
+    return false;
+  }
+  if (
+    "code" in error &&
+    String(error.code) === String(UNKNOWN_SETTING_ERROR_CODE)
+  ) {
+    return true;
+  }
+  return "type" in error && error.type === "UNKNOWN_SETTING";
+}
+
+export function resetClickhouseSettingsSupportCache(): void {
+  lightweightDeletesSyncSupported = null;
+}
+
+/**
+ * Executes a sql statement, degrading gracefully when the ClickHouse server is
+ * too old to understand `lightweight_deletes_sync`. The unsupported setting is
+ * stripped and the statement is retried once, and the outcome is cached so
+ * later statements skip it up front.
+ */
+export async function executeWithSettingsFallback<T>({
+  statement: rawStatement,
+  queryId,
+  execute,
+}: {
+  statement: string;
+  queryId: string;
+  execute: (statement: string) => Promise<T>;
+}): Promise<T> {
+  const statement =
+    lightweightDeletesSyncSupported === false
+      ? stripUnsupportedClickhouseSettings(rawStatement)
+      : rawStatement;
+  try {
+    return await execute(statement);
+  } catch (error) {
+    const strippedStatement = stripUnsupportedClickhouseSettings(statement);
+    if (
+      strippedStatement === statement ||
+      !isUnsupportedClickhouseSettingsError(error)
+    ) {
+      throw error;
+    }
+    lightweightDeletesSyncSupported = false;
+    logger().warn(
+      { err: error, queryId },
+      "clickhouse server does not support lightweight_deletes_sync, retrying without it",
+    );
+    return execute(strippedStatement);
+  }
+}
+
 export async function command(
   params: Parameters<ClickHouseClient["command"]>[0],
   {
@@ -266,7 +356,12 @@ export async function command(
       "clickhouse-command",
     );
     try {
-      return await client.command({ query_id: queryId, ...params });
+      return await executeWithSettingsFallback({
+        statement: params.query,
+        queryId,
+        execute: (statement) =>
+          client.command({ query_id: queryId, ...params, query: statement }),
+      });
     } catch (error) {
       logger().error(
         { err: error, queryId },
@@ -297,10 +392,16 @@ export async function query(
       "clickhouse-query",
     );
     try {
-      return await client.query<"JSONEachRow">({
-        query_id: queryId,
-        ...params,
-        format: "JSONEachRow",
+      return await executeWithSettingsFallback({
+        statement: params.query,
+        queryId,
+        execute: (statement) =>
+          client.query<"JSONEachRow">({
+            query_id: queryId,
+            ...params,
+            query: statement,
+            format: "JSONEachRow",
+          }),
       });
     } catch (error) {
       logger().error(
