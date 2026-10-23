@@ -1,5 +1,5 @@
 # Build and run on the same Node.js LTS and Debian release
-FROM node:24.21.0-trixie-slim AS builder
+FROM node:24.22.1-trixie-slim AS builder
 
 # Accept the build argument in the builder stage
 ARG APP_VERSION
@@ -27,7 +27,7 @@ RUN yarn workspace emailo build && \
     rm -rf packages/dashboard/.next/cache
 
 # Production image, copy all the files and run next
-FROM node:24.21.0-trixie-slim AS runner
+FROM node:24.22.1-trixie-slim AS runner
 
 # Redefine the ARG in the production stage
 ARG APP_VERSION

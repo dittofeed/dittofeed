@@ -1,5 +1,5 @@
 # Rebuild the source code only when needed
-FROM node:24.21.0-trixie AS builder
+FROM node:24.22.1-trixie AS builder
 
 # Accept the build argument in the builder stage
 ARG APP_VERSION
