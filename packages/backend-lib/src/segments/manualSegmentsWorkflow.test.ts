@@ -15,9 +15,10 @@ import {
   getQueueStateQuery,
 } from "../computedProperties/computePropertiesQueueWorkflow";
 import { startQueueWorkflow } from "../computedProperties/computePropertiesWorkflow/lifecycle";
-import { insert } from "../db";
+import { db, insert } from "../db";
 import * as schema from "../db/schema";
 import {
+  FeatureNamesEnum,
   ManualSegmentNode,
   SegmentDefinition,
   SegmentNodeType,
@@ -55,6 +56,13 @@ describe("ManualSegmentsWorkflow", () => {
         name: randomUUID(),
       }),
     );
+    // Exercise this test in global compute properties mode, matching the
+    // compute-properties queue workflow started below.
+    await db().insert(schema.feature).values({
+      workspaceId: workspace.id,
+      name: FeatureNamesEnum.ComputePropertiesGlobal,
+      enabled: true,
+    });
     worker = await createWorker({
       testEnv,
       buildId: workspace.id,
