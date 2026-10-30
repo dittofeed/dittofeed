@@ -15244,7 +15244,7 @@ __metadata:
     mjml: "npm:^4.14.1"
     neverthrow: "npm:^6.0.0"
     node-cache: "npm:^5.1.2"
-    nodemailer: "npm:^6.9.7"
+    nodemailer: "npm:^10.0.13"
     p-limit: "npm:^3.1.0"
     p-retry: "npm:^4.6.2"
     pg: "npm:^8.13.1"
@@ -25663,10 +25663,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nodemailer@npm:^6.9.7":
-  version: 6.9.7
-  resolution: "nodemailer@npm:6.9.7"
-  checksum: 10/32b6e6c3f5e0ab6c5fa796934fee397e8b520f6d782fc41d8bd5aaf72a2e757564b8e7e7f7aa02fcf0ba73a83d364bdb923c2dbb76a32ac87a5c628d1bde03df
+"nodemailer@npm:^10.0.13":
+  version: 10.3.1
+  resolution: "nodemailer@npm:10.3.1"
+  checksum: 10/5193882b528ec334d239162d73e5fefc42083c85e95604e8688d10a58fca813843ac6f92cc6f62574602a2ac2e894e4186b24da0e00552d624ce887ccc6b7759
   languageName: node
   linkType: hard
 
