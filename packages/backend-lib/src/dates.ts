@@ -1,9 +1,7 @@
-import { add, getUnixTime } from "date-fns";
-import { getTimezoneOffset, zonedTimeToUtc } from "date-fns-tz";
+import { add } from "date-fns";
 import { find as findTz } from "geo-tz";
 import { DEFAULT_USER_PROPERTY_DELAY_OFFSET_DIRECTION } from "isomorphic-lib/src/constants";
 
-import logger from "./logger";
 import { LocalTimeDelayVariantFields, UserWorkflowTrackEvent } from "./types";
 import { getTrackEventsById } from "./userEvents";
 import {
@@ -26,6 +24,52 @@ function getTimezone({ latLon }: { latLon: string }): string {
     return DEFAULT_TIMEZONE;
   }
   return tz;
+}
+
+const timezoneOffsetFormatCache = new Map<string, Intl.DateTimeFormat>();
+
+// date-fns-tz v2's getTimezoneOffset misreports some zones for hours around
+// their DST transitions (e.g. Australia/Sydney), and sampling the offset
+// once at `now` is wrong when the target sits on the other side of a
+// transition. Resolve the offset at the candidate instant via Intl instead.
+function getTimezoneOffsetAt(timezone: string, at: number): number {
+  let format = timezoneOffsetFormatCache.get(timezone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    });
+    timezoneOffsetFormatCache.set(timezone, format);
+  }
+  const parts = format.formatToParts(new Date(at));
+  const values: Record<string, number> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") {
+      values[part.type] = Number(part.value);
+    }
+  }
+  const partValue = (name: string): number => {
+    const value = values[name];
+    if (value === undefined) {
+      throw new Error(`Missing ${name} in Intl.DateTimeFormat parts`);
+    }
+    return value;
+  };
+  const asUtc = Date.UTC(
+    partValue("year"),
+    partValue("month") - 1,
+    partValue("day"),
+    partValue("hour"),
+    partValue("minute"),
+    partValue("second"),
+  );
+  return asUtc - Math.floor(at / 1000) * 1000;
 }
 
 export function findNextLocalizedTimeInner({
@@ -53,8 +97,8 @@ export function findNextLocalizedTimeInner({
     timezone = DEFAULT_TIMEZONE;
   }
 
-  const offset = getTimezoneOffset(timezone, now);
-  const zoned = offset + now;
+  const initialOffset = getTimezoneOffsetAt(timezone, now);
+  const zoned = initialOffset + now;
 
   let adjusted = new Date(zoned);
   adjusted.setUTCHours(hour, minute, 0, 0);
@@ -64,11 +108,29 @@ export function findNextLocalizedTimeInner({
     : EVERY_DAY_IN_WEEK;
 
   for (let i = 0; i < 8; i++) {
-    const local = adjusted.getTime() - offset;
-    if (
-      adjusted.getTime() > zoned &&
-      allowedDays.has(new Date(local).getUTCDay())
-    ) {
+    // Resolve the offset at the candidate instant and iterate to a fixed
+    // point: when a DST transition falls between `now` and the target, the
+    // offset at the target differs from the offset at `now`.
+    const wall = adjusted.getTime();
+    let offset = initialOffset;
+    let previousOffset: number | undefined;
+    for (let j = 0; j < 4; j++) {
+      const candidateOffset = getTimezoneOffsetAt(timezone, wall - offset);
+      if (candidateOffset === offset) {
+        break;
+      }
+      if (candidateOffset === previousOffset) {
+        // Oscillation means the requested wall time falls inside a
+        // spring-forward gap and does not exist. Shift forward past the
+        // gap, preserving the requested minute (2:30 AM becomes 3:30 AM).
+        offset = Math.min(offset, candidateOffset);
+        break;
+      }
+      previousOffset = offset;
+      offset = candidateOffset;
+    }
+    const local = wall - offset;
+    if (wall > zoned && allowedDays.has(new Date(local).getUTCDay())) {
       return local;
     }
     adjusted = add(adjusted, { days: 1 });
