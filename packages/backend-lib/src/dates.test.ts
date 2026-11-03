@@ -137,6 +137,77 @@ describe("findNextLocalizedTimeInner", () => {
       expect(differenceInHours(result, now)).toBe(16);
     });
 
+    it("resolves the target across a spring-forward transition in America/New_York", () => {
+      // Saturday 2026-03-07, 9 AM EST; the next 8 AM is transition Sunday
+      const now = new Date("2026-03-07T14:00:00.000Z").getTime();
+
+      const result = findNextLocalizedTimeInner({
+        userTimezone: "America/New_York",
+        now,
+        hour: 8,
+      });
+
+      // 8 AM on 2026-03-08 is EDT (UTC-4), i.e. 12:00Z, not 13:00Z
+      expect(result).toBe(Date.UTC(2026, 2, 8, 12, 0, 0));
+    });
+
+    it("resolves the target across a fall-back transition in America/New_York", () => {
+      // Saturday 2026-10-31, 10 AM EDT; the next 8 AM is transition Sunday
+      const now = new Date("2026-10-31T14:00:00.000Z").getTime();
+
+      const result = findNextLocalizedTimeInner({
+        userTimezone: "America/New_York",
+        now,
+        hour: 8,
+      });
+
+      // 8 AM on 2026-11-01 is EST (UTC-5), i.e. 13:00Z, not 12:00Z
+      expect(result).toBe(Date.UTC(2026, 10, 1, 13, 0, 0));
+    });
+
+    it("resolves the target across a spring-forward transition in Australia/Sydney", () => {
+      // Saturday 2026-10-03, 10 PM AEST; the next 8 AM is transition Sunday
+      const now = new Date("2026-10-03T12:00:00.000Z").getTime();
+
+      const result = findNextLocalizedTimeInner({
+        userTimezone: "Australia/Sydney",
+        now,
+        hour: 8,
+      });
+
+      // 8 AM on 2026-10-04 is AEDT (UTC+11), i.e. 2026-10-03 21:00Z
+      expect(result).toBe(Date.UTC(2026, 9, 3, 21, 0, 0));
+    });
+
+    it("resolves the target across a fall-back transition in Australia/Sydney", () => {
+      // Saturday 2026-04-04, 11 PM AEDT; the next 8 AM is transition Sunday
+      const now = new Date("2026-04-04T12:00:00.000Z").getTime();
+
+      const result = findNextLocalizedTimeInner({
+        userTimezone: "Australia/Sydney",
+        now,
+        hour: 8,
+      });
+
+      // 8 AM on 2026-04-05 is AEST (UTC+10), i.e. 2026-04-04 22:00Z
+      expect(result).toBe(Date.UTC(2026, 3, 4, 22, 0, 0));
+    });
+
+    it("shifts a wall time inside a spring-forward gap forward past the gap", () => {
+      // 2:30 AM on 2026-03-08 does not exist in America/New_York
+      const now = new Date("2026-03-07T14:00:00.000Z").getTime();
+
+      const result = findNextLocalizedTimeInner({
+        userTimezone: "America/New_York",
+        now,
+        hour: 2,
+        minute: 30,
+      });
+
+      // The skipped 2:30 AM becomes 3:30 AM EDT (07:30Z), minute preserved
+      expect(result).toBe(Date.UTC(2026, 2, 8, 7, 30, 0));
+    });
+
     it("falls back to UTC when no timezone parameters are provided", () => {
       // Tuesday 2023-12-19, 11 PM UTC
       const now = new Date("2023-12-19T23:00:12.123Z").getTime();
