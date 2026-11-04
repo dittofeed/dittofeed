@@ -1,0 +1,25 @@
+name: dashboard-e2e CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/dashboard-e2e/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/dashboard-e2e/**'
+  workflow_dispatch:
+
+jobs:
+  shared:
+    # The suite itself needs a full stack (dashboard, api, worker, postgres,
+    # clickhouse and temporal), so CI only lints and type checks the specs.
+    # Run them locally with `yarn workspace dashboard-e2e e2e`; see the package
+    # README.
+    uses: ./.github/workflows/shared-workflow.yaml
+    with:
+      package-name: 'dashboard-e2e'
+      run_lint: 'true'
