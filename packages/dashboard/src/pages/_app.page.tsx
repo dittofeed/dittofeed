@@ -1,3 +1,4 @@
+import "simplebar-react/dist/simplebar.min.css";
 import "../styles/globals.css";
 import "../components/rangeCalendar/aria.css";
 import "../styles/time-field-aria.css";
