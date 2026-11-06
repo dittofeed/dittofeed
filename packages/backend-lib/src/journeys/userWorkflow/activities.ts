@@ -53,6 +53,7 @@ import {
   getTrackEventsById as gebi,
 } from "../../userEvents";
 import { findAllUserPropertyAssignments } from "../../userProperties";
+import { retryableWebhookError } from "../../webhookRetry";
 import {
   recordNodeProcessed,
   RecordNodeProcessedParams,
@@ -266,6 +267,11 @@ async function sendMessageInner({
       messageTags,
       ...rest,
     });
+    // A webhook failure that can pass is thrown, so this activity's retries apply (sendMessage's contract).
+    const retryable = retryableWebhookError(result);
+    if (retryable) {
+      throw retryable;
+    }
     return result;
   } catch (senderError) {
     // Check if we're in the final retry attempt
