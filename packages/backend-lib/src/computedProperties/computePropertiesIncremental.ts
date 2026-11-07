@@ -3421,6 +3421,41 @@ export async function computeAssignments({
         ];
 
         if (indexedConfig.length) {
+          const indexSegmentIdParam = qb.addQueryValue(segment.id, "String");
+          const indexStateIdsParam = qb.addQueryValue(
+            indexedConfig.map((c) => c.stateId),
+            "Array(String)",
+          );
+          // The users to re-index are read from updated_computed_property_state,
+          // which a materialized view fills on every insert into
+          // computed_property_state_v3, as buildRecentUpdateSegmentQuery does.
+          // computed_property_state_v3 is an AggregatingMergeTree whose
+          // computed_at is a plain column: a merge that folds a new state row
+          // into an older one with the same key keeps the older computed_at, so
+          // a computed_at filter on the state table itself can miss that update
+          // for good, leaving the index (and the segment) on the old value.
+          const updatedUsersClause = lowerBoundClause
+            ? `and (
+                workspace_id,
+                computed_property_id,
+                state_id,
+                user_id
+              ) in (
+                select
+                  workspace_id,
+                  computed_property_id,
+                  state_id,
+                  user_id
+                from updated_computed_property_state
+                where
+                  workspace_id = ${workspaceIdParam}
+                  and type = 'segment'
+                  and computed_property_id = ${indexSegmentIdParam}
+                  and state_id in ${indexStateIdsParam}
+                  and computed_at <= toDateTime64(${nowSeconds}, 3)
+                  ${lowerBoundClause}
+              )`
+            : "";
           const indexQuery = `
           insert into computed_property_state_index
           select
@@ -3445,13 +3480,10 @@ export async function computeAssignments({
           where
             workspace_id = ${workspaceIdParam}
             and type = 'segment'
-            and computed_property_id = ${qb.addQueryValue(segment.id, "String")}
-            and state_id in ${qb.addQueryValue(
-              indexedConfig.map((c) => c.stateId),
-              "Array(String)",
-            )}
+            and computed_property_id = ${indexSegmentIdParam}
+            and state_id in ${indexStateIdsParam}
             and computed_at <= toDateTime64(${nowSeconds}, 3)
-            ${lowerBoundClause}
+            ${updatedUsersClause}
           group by
             workspace_id,
             type,
