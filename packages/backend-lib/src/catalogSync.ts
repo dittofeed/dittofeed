@@ -1,12 +1,17 @@
-import { and, eq, isNotNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
 import { CatalogFeedFormat, CatalogSyncKind } from "isomorphic-lib/src/catalog";
 import { err, ok, Result } from "neverthrow";
 
+import {
+  announceCatalogItemChanges,
+  CatalogItemChange,
+} from "./catalogAnnouncements";
 import { FeedParseResult, fetchCatalogFeed } from "./catalogFeed";
 import { completeCatalogSync, upsertCatalogItems } from "./catalogs";
 import { db } from "./db";
 import {
   catalog as dbCatalog,
+  catalogItem as dbCatalogItem,
   catalogSyncRun as dbCatalogSyncRun,
 } from "./db/schema";
 import logger from "./logger";
@@ -54,6 +59,128 @@ export interface CatalogSyncOutcome {
   skippedCount: number;
   error?: string;
   syncRunId: string;
+}
+
+/** Price moves smaller than this are rounding noise between two feeds, not a
+ * price change worth an event. */
+const PRICE_EPSILON = 0.005;
+
+export interface ItemSnapshot {
+  itemId: string;
+  title: string | null;
+  parentItemId: string | null;
+  url: string | null;
+  imageUrl: string | null;
+  currency: string | null;
+  price: number | null;
+  inventoryQuantity: number | null;
+  inStock: boolean;
+}
+
+async function snapshotCatalogItems({
+  catalogId,
+  itemIds,
+}: {
+  catalogId: string;
+  itemIds: string[];
+}): Promise<Map<string, ItemSnapshot>> {
+  if (itemIds.length === 0) {
+    return new Map();
+  }
+  const rows = await db()
+    .select({
+      itemId: dbCatalogItem.itemId,
+      title: dbCatalogItem.title,
+      parentItemId: dbCatalogItem.parentItemId,
+      url: dbCatalogItem.url,
+      imageUrl: dbCatalogItem.imageUrl,
+      currency: dbCatalogItem.currency,
+      price: dbCatalogItem.price,
+      inventoryQuantity: dbCatalogItem.inventoryQuantity,
+      inStock: dbCatalogItem.inStock,
+    })
+    .from(dbCatalogItem)
+    .where(
+      and(
+        eq(dbCatalogItem.catalogId, catalogId),
+        inArray(dbCatalogItem.itemId, itemIds),
+      ),
+    );
+  return new Map(rows.map((row) => [row.itemId, row]));
+}
+
+function changesFor({
+  before,
+  after,
+}: {
+  before: ItemSnapshot;
+  after: ItemSnapshot;
+}): CatalogItemChange[] {
+  const base = {
+    itemId: after.itemId,
+    title: after.title ?? undefined,
+    parentItemId: after.parentItemId ?? undefined,
+    url: after.url ?? undefined,
+    imageUrl: after.imageUrl ?? undefined,
+    currency: after.currency ?? undefined,
+    price: after.price ?? undefined,
+    inventoryQuantity: after.inventoryQuantity ?? undefined,
+  };
+
+  const changes: CatalogItemChange[] = [];
+
+  if (
+    before.price !== null &&
+    after.price !== null &&
+    after.price < before.price - PRICE_EPSILON
+  ) {
+    changes.push({ ...base, type: "priceDrop", previousPrice: before.price });
+  }
+
+  // Two ways an item comes back: it was unbuyable and now is, or it went from
+  // zero units to some units while backorders kept it on sale.
+  //
+  // Reported independently of the price drop above: a restock at a lower price
+  // is both pieces of news, and the two audiences are different (waitlist versus
+  // browsers), so collapsing them would silently drop one of them.
+  const wasSoldOut = !before.inStock;
+  const wentFromZeroToPositive =
+    before.inventoryQuantity !== null &&
+    before.inventoryQuantity <= 0 &&
+    after.inventoryQuantity !== null &&
+    after.inventoryQuantity > 0;
+  if ((wasSoldOut && after.inStock) || wentFromZeroToPositive) {
+    changes.push({ ...base, type: "backInStock" });
+  }
+
+  return changes;
+}
+
+/**
+ * Compares the catalog before and after a sync.
+ *
+ * Prices and stock are the only things a feed can change silently, and they are
+ * exactly the things a profile cares about. The comparison is done on rows
+ * rather than on feed payloads because the upsert merges partial records: an
+ * item whose feed entry only carries a price still has its other columns, and
+ * only the stored row tells the truth about what changed.
+ */
+export function detectCatalogItemChanges({
+  before,
+  after,
+}: {
+  before: Map<string, ItemSnapshot>;
+  after: Map<string, ItemSnapshot>;
+}): CatalogItemChange[] {
+  const changes: CatalogItemChange[] = [];
+  for (const [itemId, afterItem] of after) {
+    const beforeItem = before.get(itemId);
+    if (!beforeItem) {
+      continue;
+    }
+    changes.push(...changesFor({ before: beforeItem, after: afterItem }));
+  }
+  return changes;
 }
 
 function feedFormatFrom(value: string | null): CatalogFeedFormat | undefined {
@@ -330,6 +457,20 @@ export async function syncCatalogFromFeed({
     return err({ message, syncRunId });
   }
 
+  const feedItemIds = [
+    ...new Set(
+      parsed.items
+        .map((item) => item.itemId)
+        .filter((itemId): itemId is string => Boolean(itemId)),
+    ),
+  ];
+  // Snapshot before the write: the upsert overwrites the old price and stock, so
+  // afterwards there is nothing left to compare against.
+  const before = await snapshotCatalogItems({
+    catalogId: catalog.id,
+    itemIds: feedItemIds,
+  });
+
   const written = await upsertCatalogItems({
     workspaceId: catalog.workspaceId,
     catalogName: catalog.name,
@@ -386,6 +527,31 @@ export async function syncCatalogFromFeed({
       ),
     )
     .limit(1);
+
+  const after = await snapshotCatalogItems({
+    catalogId: catalog.id,
+    itemIds: feedItemIds,
+  });
+  const changes = detectCatalogItemChanges({ before, after });
+  if (changes.length > 0) {
+    const announced = await announceCatalogItemChanges({
+      workspaceId: catalog.workspaceId,
+      catalogId: catalog.id,
+      changes,
+      now,
+    });
+    logger().info(
+      {
+        catalogId: catalog.id,
+        priceDrops: changes.filter((change) => change.type === "priceDrop")
+          .length,
+        restocks: changes.filter((change) => change.type === "backInStock")
+          .length,
+        ...announced,
+      },
+      "Announced catalog item changes",
+    );
+  }
 
   if (parsed.skipped.length) {
     logger().warn(

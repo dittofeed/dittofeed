@@ -1,5 +1,10 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
+  listCatalogItemInterests,
+  subscribeToCatalogItem,
+  unsubscribeFromCatalogItem,
+} from "backend-lib/src/catalogInterests";
+import {
   completeCatalogSync,
   deleteCatalog,
   deleteCatalogCollection,
@@ -32,12 +37,16 @@ import {
   ReadCatalogCategoriesResponse,
   ReadCatalogCollectionsRequest,
   ReadCatalogCollectionsResponse,
+  ReadCatalogItemInterestsRequest,
+  ReadCatalogItemInterestsResponse,
   ReadCatalogItemsRequest,
   ReadCatalogItemsResponse,
   ReadCatalogsRequest,
   ReadCatalogsResponse,
   ReadCatalogSyncRunsRequest,
   ReadCatalogSyncRunsResponse,
+  SubscribeCatalogItemRequest,
+  SubscribeCatalogItemResponse,
   SyncCatalogRequest,
   SyncCatalogResponse,
   UpsertCatalogCollectionResource,
@@ -263,6 +272,93 @@ export default async function catalogsController(fastify: FastifyInstance) {
         return reply.status(errorStatus(result.error)).send(result.error);
       }
       return reply.status(200).send({ runs: result.value });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/interests",
+    {
+      schema: {
+        description:
+          "List what one profile has done with the items of a catalog: views, carts, purchases and restock subscriptions.",
+        tags: ["Catalogs"],
+        querystring: ReadCatalogItemInterestsRequest,
+        response: {
+          200: ReadCatalogItemInterestsResponse,
+          ...errorResponses,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, catalogName, userId, limit } = request.query;
+      const result = await listCatalogItemInterests({
+        workspaceId,
+        catalogName,
+        userId,
+        limit,
+      });
+      if (result.isErr()) {
+        return reply.status(errorStatus(result.error)).send(result.error);
+      }
+      return reply.status(200).send({ interests: result.value });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/items/subscribe",
+    {
+      schema: {
+        description:
+          "Subscribe a profile to a restock notification for one catalog item.",
+        tags: ["Catalogs"],
+        body: SubscribeCatalogItemRequest,
+        response: {
+          200: SubscribeCatalogItemResponse,
+          ...errorResponses,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, catalogName, userId, itemId } = request.body;
+      const result = await subscribeToCatalogItem({
+        workspaceId,
+        catalogName,
+        userId,
+        itemId,
+      });
+      if (result.isErr()) {
+        return reply.status(errorStatus(result.error)).send(result.error);
+      }
+      return reply.status(200).send({ subscribed: true, itemId });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/items/subscribe",
+    {
+      schema: {
+        description:
+          "Remove a restock subscription so the profile is not notified again.",
+        tags: ["Catalogs"],
+        body: SubscribeCatalogItemRequest,
+        response: {
+          200: SubscribeCatalogItemResponse,
+          ...errorResponses,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, catalogName, userId, itemId } = request.body;
+      const result = await unsubscribeFromCatalogItem({
+        workspaceId,
+        catalogName,
+        userId,
+        itemId,
+      });
+      if (result.isErr()) {
+        return reply.status(errorStatus(result.error)).send(result.error);
+      }
+      return reply.status(200).send({ subscribed: false, itemId });
     },
   );
 

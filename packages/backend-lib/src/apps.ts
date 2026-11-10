@@ -4,10 +4,12 @@ import { submitBatch, SubmitBatchOptions } from "./apps/batch";
 import { persistFiles } from "./apps/files";
 import { splitGroupEvents } from "./apps/group";
 import { submitTrack } from "./apps/track";
+import { recordCatalogItemInterests } from "./catalogInterests";
 import {
   triggerEventEntryJourneys,
   TriggerEventEntryJourneysOptions,
 } from "./journeys";
+import logger from "./logger";
 import {
   BatchItem,
   EventType,
@@ -18,6 +20,22 @@ import {
   TrackData,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
+
+/**
+ * Catalog interest is a side effect of tracking, never a reason for it to fail.
+ *
+ * A workspace that has not created a catalog yet still sends `$items` in its
+ * ecommerce events; that must be a no-op, not a 500 on the ingest endpoint.
+ */
+async function recordInterestsBestEffort(
+  input: Parameters<typeof recordCatalogItemInterests>[0],
+) {
+  try {
+    await recordCatalogItemInterests(input);
+  } catch (error) {
+    logger().error({ err: error }, "Failed to record catalog item interest");
+  }
+}
 
 export async function submitIdentify({
   workspaceId,
@@ -70,6 +88,15 @@ export async function submitTrackWithTriggers({
     },
   });
 
+  const trackedUserId = "userId" in data ? data.userId : data.anonymousId;
+  await recordInterestsBestEffort({
+    workspaceId,
+    userId: trackedUserId,
+    event: data.event,
+    properties,
+    timestamp: data.timestamp,
+  });
+
   let userOrAnonymousId: string | null = null;
   if ("userId" in data) {
     userOrAnonymousId = data.userId;
@@ -116,6 +143,30 @@ export async function submitBatchWithTriggers({
     batch,
   };
   await submitBatch({ workspaceId, data });
+
+  // Interest rows are derived from the same payloads, so a batch that carries
+  // item references records them in one extra statement per item rather than
+  // one per message.
+  const interestInputs = data.batch.flatMap((message) => {
+    if (message.type !== EventType.Track) {
+      return [];
+    }
+    const userId = "userId" in message ? message.userId : message.anonymousId;
+    return [
+      {
+        workspaceId,
+        userId,
+        event: message.event,
+        properties: message.properties,
+        timestamp: message.timestamp,
+      },
+    ];
+  });
+  await Promise.all(
+    interestInputs.map((input) =>
+      recordInterestsBestEffort(input).catch(() => undefined),
+    ),
+  );
 
   const triggers: TriggerEventEntryJourneysOptions[] = data.batch.flatMap(
     (message) => {
