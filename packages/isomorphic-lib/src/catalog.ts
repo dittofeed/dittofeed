@@ -717,3 +717,79 @@ export const DeleteCatalogItemsResponse = Type.Object({
 export type DeleteCatalogItemsResponse = Static<
   typeof DeleteCatalogItemsResponse
 >;
+
+/**
+ * What a profile did with a catalog item.
+ *
+ * The first three are inferred from tracking calls that carry item references;
+ * `backInStock` is an explicit subscription. Kept as separate rows so a restock
+ * notification does not overwrite a purchase signal, and so a price drop can
+ * target viewers and carters without re-notifying buyers.
+ */
+export enum CatalogInterestKind {
+  Viewed = "viewed",
+  Cart = "cart",
+  Purchased = "purchased",
+  BackInStock = "backInStock",
+}
+
+export const CatalogInterestKindSchema = Type.Enum(CatalogInterestKind);
+
+export const CatalogItemInterestResource = Type.Object({
+  itemId: Type.String(),
+  kind: CatalogInterestKindSchema,
+  eventCount: Type.Number(),
+  lastEventAt: Type.Number(),
+  /** Back-in-stock only: when the restock was announced, if it was. */
+  notifiedAt: Type.Optional(Type.Number()),
+});
+
+export type CatalogItemInterestResource = Static<
+  typeof CatalogItemInterestResource
+>;
+
+export const ReadCatalogItemInterestsRequest = Type.Object({
+  workspaceId: Type.String(),
+  catalogName: Type.String(),
+  userId: Type.String(),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
+});
+
+export type ReadCatalogItemInterestsRequest = Static<
+  typeof ReadCatalogItemInterestsRequest
+>;
+
+export const ReadCatalogItemInterestsResponse = Type.Object({
+  interests: Type.Array(CatalogItemInterestResource),
+});
+
+export type ReadCatalogItemInterestsResponse = Static<
+  typeof ReadCatalogItemInterestsResponse
+>;
+
+/**
+ * Subscribe a profile to a restock notification for one item.
+ *
+ * Idempotent: subscribing twice keeps one row and clears the previous
+ * notification marker, so a user who asks again after a restock is notified
+ * again next time.
+ */
+export const SubscribeCatalogItemRequest = Type.Object({
+  workspaceId: Type.String(),
+  catalogName: Type.String(),
+  userId: Type.String(),
+  itemId: Type.String(),
+});
+
+export type SubscribeCatalogItemRequest = Static<
+  typeof SubscribeCatalogItemRequest
+>;
+
+export const SubscribeCatalogItemResponse = Type.Object({
+  subscribed: Type.Boolean(),
+  itemId: Type.String(),
+});
+
+export type SubscribeCatalogItemResponse = Static<
+  typeof SubscribeCatalogItemResponse
+>;

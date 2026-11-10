@@ -1359,9 +1359,7 @@ export const catalogSyncRun = pgTable(
     deletedCount: integer().notNull().default(0),
     skippedCount: integer().notNull().default(0),
     error: text(),
-    startedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
-      .notNull(),
+    startedAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     finishedAt: timestamp({ precision: 3, mode: "date" }),
   },
   (table) => [
@@ -1381,6 +1379,84 @@ export const catalogSyncRun = pgTable(
       columns: [table.catalogId],
       foreignColumns: [catalog.id],
       name: "CatalogSyncRun_catalogId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
+/**
+ * What a user did with a catalog item.
+ *
+ * Catalogs alone cannot address anyone: a price drop or a restock only matters
+ * to the users who looked at, carted, or subscribed to that item. This table is
+ * the join between catalog rows and profiles.
+ *
+ * Rows are written from inbound tracking calls that carry an item reference
+ * (`$items` / `$item_id`), and from the explicit back-in-stock subscription
+ * endpoints. Nothing here is derived from the catalog sync.
+ */
+export const catalogItemInterest = pgTable(
+  "CatalogItemInterest",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    catalogId: uuid().notNull(),
+    /**
+     * `user_or_anonymous_id` of the profile, i.e. the id the event arrived with.
+     * Not a foreign key: events are accepted before a user row exists.
+     */
+    userId: text().notNull(),
+    itemId: text().notNull(),
+    kind: text().notNull(),
+    /** How many events of this kind mentioned the item. */
+    eventCount: integer().notNull().default(1),
+    lastEventAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    /**
+     * Back-in-stock only: when the restock was announced. Used so one restock
+     * notifies each subscriber once, without deleting the subscription.
+     */
+    notifiedAt: timestamp({ precision: 3, mode: "date" }),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("CatalogItemInterest_catalogId_userId_itemId_kind_key").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast().op("text_ops"),
+      table.itemId.asc().nullsLast().op("text_ops"),
+      table.kind.asc().nullsLast().op("text_ops"),
+    ),
+    // Price drop fan-out: everyone interested in a given item.
+    index("CatalogItemInterest_catalogId_itemId_kind_idx").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.itemId.asc().nullsLast().op("text_ops"),
+      table.kind.asc().nullsLast().op("text_ops"),
+    ),
+    // Answering "what does this user care about", for the interest list endpoint.
+    index("CatalogItemInterest_catalogId_userId_idx").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "CatalogItemInterest_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.catalogId],
+      foreignColumns: [catalog.id],
+      name: "CatalogItemInterest_catalogId_fkey",
     })
       .onUpdate("cascade")
       .onDelete("cascade"),

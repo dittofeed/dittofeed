@@ -92,6 +92,13 @@
       "when": 1794313409946,
       "tag": "0012_catalog_feed_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794317986362,
+      "tag": "0013_catalog_interests",
+      "breakpoints": true
     }
   ]
 }
