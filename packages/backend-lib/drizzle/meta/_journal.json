@@ -78,6 +78,13 @@
       "when": 1767720758408,
       "tag": "0010_subscription_management_template",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794309427765,
+      "tag": "0011_catalog_module",
+      "breakpoints": true
     }
   ]
 }
