@@ -25,6 +25,8 @@ import { validate as validateUuid } from "uuid";
 
 import { submitBatch } from "./apps/batch";
 import { getObject, storage } from "./blobStorage";
+import { loadCatalogsForTemplates } from "./catalogs";
+import config from "./config";
 import { MESSAGE_METADATA_FIELDS } from "./constants";
 import { db, TxQueryError, txQueryResult } from "./db";
 import {
@@ -64,9 +66,7 @@ import {
   sendGmailEmail,
   SendGmailEmailParams,
 } from "./gmail";
-import config from "./config";
 import { renderLiquid } from "./liquid";
-import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import logger from "./logger";
 import {
   constructUnsubscribeHeaders,
@@ -131,6 +131,7 @@ import {
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 import { getUsers } from "./users";
+import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import { isWorkspaceOccupantType } from "./workspaceOccupantSettings";
 
 export function enrichMessageTemplate({
@@ -917,6 +918,35 @@ export async function sendEmail({
     secrets[SecretNames.ViewInBrowser] = viewInBrowserSecret;
   }
 
+  const emailTemplates = {
+    from: {
+      contents: messageTemplateDefinition.from,
+    },
+    subject: {
+      contents: messageTemplateDefinition.subject,
+    },
+    body: {
+      contents: emailBody,
+      mjml: true,
+    },
+    replyTo: {
+      contents: messageTemplateDefinition.replyTo,
+    },
+    name: {
+      contents: messageTemplateDefinition.name,
+    },
+    cc: {
+      contents: messageTemplateDefinition.cc,
+    },
+    bcc: {
+      contents: messageTemplateDefinition.bcc,
+    },
+  };
+  const catalogs = await loadCatalogsForTemplates({
+    workspaceId,
+    templates: R.mapValues(emailTemplates, (template) => template.contents),
+  });
+
   const renderedValuesResult = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
@@ -925,30 +955,8 @@ export async function sendEmail({
     tags: messageTags,
     isPreview,
     messageId: messageTags?.messageId,
-    templates: {
-      from: {
-        contents: messageTemplateDefinition.from,
-      },
-      subject: {
-        contents: messageTemplateDefinition.subject,
-      },
-      body: {
-        contents: emailBody,
-        mjml: true,
-      },
-      replyTo: {
-        contents: messageTemplateDefinition.replyTo,
-      },
-      name: {
-        contents: messageTemplateDefinition.name,
-      },
-      cc: {
-        contents: messageTemplateDefinition.cc,
-      },
-      bcc: {
-        contents: messageTemplateDefinition.bcc,
-      },
-    },
+    catalogs,
+    templates: emailTemplates,
     secrets: Object.keys(secrets).length > 0 ? secrets : undefined,
   });
 
@@ -1033,6 +1041,13 @@ export async function sendEmail({
       workspaceId,
       tags: messageTags,
       isPreview,
+      catalogs: await loadCatalogsForTemplates({
+        workspaceId,
+        templates: R.mapValues(
+          headersToRender,
+          (template) => template.contents,
+        ),
+      }),
       templates: headersToRender,
     });
     if (renderedCustomHeaders.isErr()) {
@@ -1863,6 +1878,12 @@ export async function sendSms(
     workspaceId,
     tags: messageTags,
     isPreview,
+    catalogs: await loadCatalogsForTemplates({
+      workspaceId,
+      templates: {
+        body: messageTemplateDefinition.body,
+      },
+    }),
     templates: {
       body: {
         contents: messageTemplateDefinition.body,
@@ -2243,6 +2264,12 @@ export async function sendWebhook({
     secrets,
     tags: messageTags,
     isPreview,
+    catalogs: await loadCatalogsForTemplates({
+      workspaceId,
+      templates: {
+        body: messageTemplateDefinition.body,
+      },
+    }),
     templates: {
       body: {
         contents: messageTemplateDefinition.body,

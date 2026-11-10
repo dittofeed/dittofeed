@@ -1,6 +1,15 @@
 /* eslint-disable no-underscore-dangle */
+import { CatalogItemAttributes } from "isomorphic-lib/src/catalog";
 import { SecretNames } from "isomorphic-lib/src/constants";
-import { Liquid } from "liquidjs";
+import { isObject } from "isomorphic-lib/src/objects";
+import {
+  Context,
+  Emitter,
+  Liquid,
+  TagToken,
+  Template,
+  TopLevelToken,
+} from "liquidjs";
 import MarkdownIt from "markdown-it";
 import mjml2html from "mjml";
 
@@ -237,6 +246,79 @@ liquidEngine.registerTag("view_in_browser_url", {
   },
 });
 
+interface CatalogCollectionTagState {
+  collectionName: string;
+  variableName: string;
+  templates: Template[];
+}
+
+const catalogCollectionTagState = new WeakMap<
+  object,
+  CatalogCollectionTagState
+>();
+
+const CATALOG_COLLECTION_ARG_PATTERN =
+  /^(?:"([^"]+)"|'([^']+)')\s+as\s+([A-Za-z_][A-Za-z0-9_]*)$/;
+
+/**
+ * Renders the items of a catalog collection.
+ *
+ *   {% catalog_collection "BestSellerShoes" as items %}
+ *     {% for item in items %}{{ item.title }}{% endfor %}
+ *   {% endcatalog_collection %}
+ *
+ * Collection items are preloaded from the database before rendering and passed
+ * in on the render scope as `catalogs`, keyed by collection name. Unknown
+ * collections render as an empty list so that a missing collection never breaks
+ * a send.
+ */
+liquidEngine.registerTag("catalog_collection", {
+  parse(tagToken: TagToken, remainTokens: TopLevelToken[]) {
+    const match = CATALOG_COLLECTION_ARG_PATTERN.exec(tagToken.args.trim());
+    if (!match) {
+      throw new Error(
+        `Invalid catalog_collection tag. Expected {% catalog_collection "CollectionName" as items %}, received: {% catalog_collection ${tagToken.args} %}`,
+      );
+    }
+    const collectionName = match[1] ?? match[2];
+    const variableName = match[3];
+    if (!collectionName || !variableName) {
+      throw new Error(
+        `Invalid catalog_collection tag arguments: {% catalog_collection ${tagToken.args} %}`,
+      );
+    }
+    const templates: Template[] = [];
+    const stream = this.liquid.parser
+      .parseStream(remainTokens)
+      .on(`tag:endcatalog_collection`, () => {
+        stream.stop();
+      })
+      .on("template", (tpl: Template) => {
+        templates.push(tpl);
+      });
+    stream.start();
+    catalogCollectionTagState.set(this, {
+      collectionName,
+      variableName,
+      templates,
+    });
+  },
+  *render(ctx: Context, emitter: Emitter) {
+    const state = catalogCollectionTagState.get(this);
+    if (!state) {
+      return;
+    }
+    const catalogsScope = ctx.get(["catalogs"]);
+    const catalogs = isObject(catalogsScope) ? catalogsScope : {};
+    const items = Array.isArray(catalogs[state.collectionName])
+      ? catalogs[state.collectionName]
+      : [];
+    ctx.push({ [state.variableName]: items });
+    yield this.liquid.renderer.renderTemplates(state.templates, ctx, emitter);
+    ctx.pop();
+  },
+});
+
 const MJML_NOT_PRESENT_ERROR =
   "Check that your structure is correct and enclosed in <mjml> tags";
 
@@ -253,6 +335,8 @@ export interface RenderLiquidOptions {
   isPreview?: boolean;
   showAllChannels?: boolean;
   messageId?: string;
+  // Preloaded catalog collection items, keyed by collection name.
+  catalogs?: Record<string, CatalogItemAttributes[]>;
 }
 
 export function renderLiquid({
@@ -266,6 +350,7 @@ export function renderLiquid({
   tags,
   isPreview = false,
   messageId,
+  catalogs = {},
 }: RenderLiquidOptions): string {
   if (!template?.length) {
     return "";
@@ -281,6 +366,7 @@ export function renderLiquid({
     tags: tags ?? {},
     is_preview: isPreview,
     message_id: messageId,
+    catalogs,
   }) as string;
   if (!mjml) {
     return liquidRendered;

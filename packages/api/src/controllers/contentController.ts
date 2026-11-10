@@ -1,4 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { loadCatalogsForTemplates } from "backend-lib/src/catalogs";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { deleteMessageTemplate } from "backend-lib/src/journeys";
@@ -128,17 +129,22 @@ export default async function contentController(fastify: FastifyInstance) {
         identifierKey = CHANNEL_IDENTIFIERS[channel];
       }
 
-      const responseContents: RenderMessageTemplateResponse["contents"] =
-        R.mapValues(contents, (content) => {
-          let value: RenderMessageTemplateResponseContent;
-          let template: string;
+      const templateStrings: Record<string, string | undefined> = {};
+      Object.entries(contents).forEach(([key, content]) => {
+        templateStrings[key] =
+          content.type === RenderMessageTemplateType.Emailo
+            ? toMjml({ content: content.value, mode: "render" })
+            : content.value;
+      });
+      const catalogs = await loadCatalogsForTemplates({
+        workspaceId,
+        templates: templateStrings,
+      });
 
-          if (content.type !== RenderMessageTemplateType.Emailo) {
-            template = content.value;
-          } else {
-            const mjml = toMjml({ content: content.value, mode: "render" });
-            template = mjml;
-          }
+      const responseContents: RenderMessageTemplateResponse["contents"] =
+        R.mapValues(contents, (content, key) => {
+          let value: RenderMessageTemplateResponseContent;
+          const template = templateStrings[String(key)] ?? "";
           const options: RenderLiquidOptions = {
             workspaceId,
             subscriptionGroupId,
@@ -146,6 +152,7 @@ export default async function contentController(fastify: FastifyInstance) {
             identifierKey,
             secrets: templateSecrets,
             template,
+            catalogs,
             mjml:
               content.type === RenderMessageTemplateType.Mjml ||
               content.type === RenderMessageTemplateType.Emailo,
