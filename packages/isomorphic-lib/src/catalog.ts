@@ -35,6 +35,16 @@ export enum CatalogSourceType {
 
 export const CatalogSourceTypeSchema = Type.Enum(CatalogSourceType);
 
+/** Wire format of a pulled feed. */
+export enum CatalogFeedFormat {
+  /** A JSON array, or an object with an `items` array. */
+  Json = "json",
+  /** Google Shopping RSS, Atom, or any XML with the same element names. */
+  Xml = "xml",
+}
+
+export const CatalogFeedFormatSchema = Type.Enum(CatalogFeedFormat);
+
 /** Whether a row is a parent product or one of its purchasable variants. */
 export enum CatalogItemType {
   Product = "product",
@@ -259,6 +269,14 @@ export const CatalogResource = Type.Object({
   lastSyncedAt: Type.Optional(Type.Number()),
   lastPriceSyncedAt: Type.Optional(Type.Number()),
   lastInventorySyncedAt: Type.Optional(Type.Number()),
+  /** Present when the catalog is pulled from a feed. */
+  sourceUrl: Type.Optional(Type.String()),
+  feedFormat: Type.Optional(CatalogFeedFormatSchema),
+  syncIntervalMinutes: Type.Number(),
+  syncEnabled: Type.Boolean(),
+  /** Epoch millis of the next scheduled pull, absent for API catalogs. */
+  nextSyncAt: Type.Optional(Type.Number()),
+  consecutiveFailures: Type.Number(),
   createdAt: Type.Number(),
   updatedAt: Type.Number(),
 });
@@ -284,6 +302,17 @@ export const UpsertCatalogResource = Type.Object({
   /** ISO 4217 code used to format prices when no item overrides it. */
   currency: Type.Optional(Type.String({ minLength: 3, maxLength: 3 })),
   locale: Type.Optional(Type.String({ minLength: 2, maxLength: 35 })),
+  /**
+   * Feed location. Setting it implies `sourceType: feed` unless the caller says
+   * otherwise, and schedules the first pull immediately.
+   */
+  sourceUrl: Type.Optional(Type.String({ minLength: 1, maxLength: 2048 })),
+  feedFormat: Type.Optional(CatalogFeedFormatSchema),
+  /** How often to re-pull. Six hours matches the common feed refresh cadence. */
+  syncIntervalMinutes: Type.Optional(
+    Type.Integer({ minimum: 15, maximum: 10080 }),
+  ),
+  syncEnabled: Type.Optional(Type.Boolean()),
 });
 
 export type UpsertCatalogResource = Static<typeof UpsertCatalogResource>;
@@ -435,6 +464,33 @@ export const CompleteCatalogSyncResponse = Type.Object({
 export type CompleteCatalogSyncResponse = Static<
   typeof CompleteCatalogSyncResponse
 >;
+
+/**
+ * Pull a feed-sourced catalog now instead of waiting for the scheduler. Used by
+ * operators after a feed change, and by tests.
+ */
+export const SyncCatalogRequest = Type.Object({
+  workspaceId: Type.String(),
+  catalogName: Type.String(),
+});
+
+export type SyncCatalogRequest = Static<typeof SyncCatalogRequest>;
+
+export const SyncCatalogResponse = Type.Object({
+  syncRunId: Type.String(),
+  status: Type.Union([
+    Type.Literal("ok"),
+    Type.Literal("partial"),
+    Type.Literal("failed"),
+  ]),
+  upsertedCount: Type.Number(),
+  archivedCount: Type.Number(),
+  skippedCount: Type.Number(),
+  /** Present when the sync failed, e.g. the feed returned a 404. */
+  error: Type.Optional(Type.String()),
+});
+
+export type SyncCatalogResponse = Static<typeof SyncCatalogResponse>;
 
 export const DeleteCatalogItemsRequest = Type.Object({
   workspaceId: Type.String(),
@@ -622,6 +678,20 @@ export const PreviewCatalogCollectionResponse = Type.Object({
 export type PreviewCatalogCollectionResponse = Static<
   typeof PreviewCatalogCollectionResponse
 >;
+
+/**
+ * Wire shape for an unsuccessful catalog request. Deliberately looser than
+ * `CatalogError`: a request that fails schema validation is serialized with this
+ * schema too, and its code is Fastify's own (e.g. `FST_ERR_VALIDATION`). Typing
+ * the response against the narrow domain codes turns those 400s into 500s.
+ */
+export const CatalogErrorResponse = Type.Object({
+  message: Type.String(),
+  code: Type.Optional(Type.String()),
+  statusCode: Type.Optional(Type.Number()),
+});
+
+export type CatalogErrorResponse = Static<typeof CatalogErrorResponse>;
 
 export const CatalogError = Type.Object({
   message: Type.String(),

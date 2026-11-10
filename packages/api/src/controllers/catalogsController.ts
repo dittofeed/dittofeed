@@ -15,9 +15,11 @@ import {
   upsertCatalogCollection,
   upsertCatalogItems,
 } from "backend-lib/src/catalogs";
+import { syncCatalog } from "backend-lib/src/catalogSync";
 import { FastifyInstance } from "fastify";
 import {
   CatalogError,
+  CatalogErrorResponse,
   CompleteCatalogSyncRequest,
   CompleteCatalogSyncResponse,
   DeleteCatalogCollectionRequest,
@@ -36,6 +38,8 @@ import {
   ReadCatalogsResponse,
   ReadCatalogSyncRunsRequest,
   ReadCatalogSyncRunsResponse,
+  SyncCatalogRequest,
+  SyncCatalogResponse,
   UpsertCatalogCollectionResource,
   UpsertCatalogCollectionResponse,
   UpsertCatalogItemsRequest,
@@ -46,9 +50,9 @@ import {
 import { EmptyResponse } from "isomorphic-lib/src/types";
 
 const errorResponses = {
-  400: CatalogError,
-  404: CatalogError,
-  409: CatalogError,
+  400: CatalogErrorResponse,
+  404: CatalogErrorResponse,
+  409: CatalogErrorResponse,
 };
 
 function errorStatus(error: CatalogError): 400 | 404 | 409 {
@@ -120,13 +124,27 @@ export default async function catalogsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { workspaceId, name, sourceType, currency, locale } = request.body;
+      const {
+        workspaceId,
+        name,
+        sourceType,
+        currency,
+        locale,
+        sourceUrl,
+        feedFormat,
+        syncIntervalMinutes,
+        syncEnabled,
+      } = request.body;
       const result = await upsertCatalog({
         workspaceId,
         name,
         sourceType,
         currency,
         locale,
+        sourceUrl,
+        feedFormat,
+        syncIntervalMinutes,
+        syncEnabled,
       });
       if (result.isErr()) {
         return reply.status(errorStatus(result.error)).send(result.error);
@@ -303,6 +321,34 @@ export default async function catalogsController(fastify: FastifyInstance) {
       });
       if (result.isErr()) {
         return reply.status(errorStatus(result.error)).send(result.error);
+      }
+      return reply.status(200).send(result.value);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/items/sync",
+    {
+      schema: {
+        description:
+          "Pull a feed-sourced catalog now instead of waiting for the scheduler. Fetches `sourceUrl`, upserts the items, and archives items the feed no longer carries. A failed pull leaves the catalog untouched and marks it stale.",
+        tags: ["Catalogs"],
+        body: SyncCatalogRequest,
+        response: {
+          200: SyncCatalogResponse,
+          ...errorResponses,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, catalogName } = request.body;
+      const result = await syncCatalog({ workspaceId, catalogName });
+      if (result.isErr()) {
+        const code: CatalogError["code"] =
+          result.error.code === "notFound" ? "notFound" : "invalid";
+        return reply
+          .status(code === "notFound" ? 404 : 400)
+          .send({ code, message: result.error.message });
       }
       return reply.status(200).send(result.value);
     },
