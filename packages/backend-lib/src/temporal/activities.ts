@@ -1,4 +1,5 @@
 export * from "../broadcasts/activities";
+export * from "../catalogSyncActivities";
 export * from "../computedProperties/computePropertiesWorkflow/activities";
 export { getFeature } from "../features";
 export * from "../integrations/hubspot/activities";

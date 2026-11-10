@@ -146,6 +146,17 @@ const BaseRawConfigProps = {
   computePropertiesSchedulerQueueRestartDelay: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  // How often the catalog feed scheduler polls for due catalogs, in ms.
+  catalogSyncSchedulerInterval: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  // How many poll iterations run before the scheduler continues as new, which
+  // keeps the workflow's history bounded.
+  catalogSyncSchedulerIterations: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
+  // How many catalogs one poll will pull.
+  catalogSyncBatchSize: Type.Optional(Type.String({ format: "naturalNumber" })),
   overrideDir: Type.Optional(Type.String()),
   enableAdditionalDashboardSettings: Type.Optional(BoolStr),
   additionalDashboardSettingsPath: Type.Optional(Type.String()),
@@ -292,6 +303,9 @@ export type Config = Overwrite<
     computePropertiesQueueConcurrency: number;
     computePropertiesSchedulerInterval: number;
     computePropertiesSchedulerQueueRestartDelay: number;
+    catalogSyncSchedulerInterval: number;
+    catalogSyncSchedulerIterations: number;
+    catalogSyncBatchSize: number;
     computePropertiesWorkflowTaskTimeout: number;
     defaultUserJourneyMaxAttempts?: number;
     dashboardUrl: string;
@@ -737,6 +751,15 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.computePropertiesSchedulerQueueRestartDelay
         ? parseInt(rawConfig.computePropertiesSchedulerQueueRestartDelay)
         : 30 * 1000,
+    catalogSyncSchedulerInterval: rawConfig.catalogSyncSchedulerInterval
+      ? parseInt(rawConfig.catalogSyncSchedulerInterval)
+      : 60 * 1000,
+    catalogSyncSchedulerIterations: rawConfig.catalogSyncSchedulerIterations
+      ? parseInt(rawConfig.catalogSyncSchedulerIterations)
+      : 500,
+    catalogSyncBatchSize: rawConfig.catalogSyncBatchSize
+      ? parseInt(rawConfig.catalogSyncBatchSize)
+      : 25,
     enableAdditionalDashboardSettings:
       rawConfig.enableAdditionalDashboardSettings === "true",
     useGlobalComputedProperties:

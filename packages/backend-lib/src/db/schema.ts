@@ -1154,6 +1154,21 @@ export const catalog = pgTable(
     lastSyncedAt: timestamp({ precision: 3, mode: "date" }),
     lastPriceSyncedAt: timestamp({ precision: 3, mode: "date" }),
     lastInventorySyncedAt: timestamp({ precision: 3, mode: "date" }),
+    /**
+     * Where to pull the feed from. Only set for `sourceType = feed`; catalogs
+     * pushed through the API leave it null and are synced by the caller.
+     */
+    sourceUrl: text(),
+    /** `json` or `xml`, sniffed from the response when unset. */
+    feedFormat: text(),
+    /** How often the scheduler re-pulls this feed. */
+    syncIntervalMinutes: integer().notNull().default(360),
+    /** Operators can pause a feed without deleting the catalog. */
+    syncEnabled: boolean().notNull().default(true),
+    /** When the scheduler should look at this catalog again. */
+    nextSyncAt: timestamp({ precision: 3, mode: "date" }),
+    /** Drives exponential backoff after repeated feed failures. */
+    consecutiveFailures: integer().notNull().default(0),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
       .defaultNow()
@@ -1165,6 +1180,11 @@ export const catalog = pgTable(
       "btree",
       table.workspaceId.asc().nullsLast().op("uuid_ops"),
       table.name.asc().nullsLast().op("text_ops"),
+    ),
+    index("Catalog_syncEnabled_nextSyncAt_idx").using(
+      "btree",
+      table.syncEnabled.asc().nullsLast().op("bool_ops"),
+      table.nextSyncAt.asc().nullsLast().op("timestamp_ops"),
     ),
     foreignKey({
       columns: [table.workspaceId],

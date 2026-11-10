@@ -85,6 +85,13 @@
       "when": 1794309427765,
       "tag": "0011_catalog_module",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794313409946,
+      "tag": "0012_catalog_feed_sync",
+      "breakpoints": true
     }
   ]
 }

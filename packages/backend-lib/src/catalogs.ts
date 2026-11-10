@@ -14,6 +14,7 @@ import {
 import {
   CatalogCategoryResource,
   CatalogCollectionDefinition,
+  CatalogFeedFormat,
   CatalogFilter,
   CatalogFilterOperatorType,
   CatalogInventoryPolicy,
@@ -130,6 +131,11 @@ const SYNC_STATUS_BY_VALUE: Record<string, CatalogSyncStatus | undefined> = {
   ok: CatalogSyncStatus.Ok,
   partial: CatalogSyncStatus.Partial,
   failed: CatalogSyncStatus.Failed,
+};
+
+const FEED_FORMAT_BY_VALUE: Record<string, CatalogFeedFormat | undefined> = {
+  json: CatalogFeedFormat.Json,
+  xml: CatalogFeedFormat.Xml,
 };
 
 const SYNC_KIND_BY_VALUE: Record<string, CatalogSyncKind | undefined> = {
@@ -937,6 +943,14 @@ function toCatalogResource(
     lastSyncedAt: row.lastSyncedAt?.getTime(),
     lastPriceSyncedAt: row.lastPriceSyncedAt?.getTime(),
     lastInventorySyncedAt: row.lastInventorySyncedAt?.getTime(),
+    sourceUrl: row.sourceUrl ?? undefined,
+    feedFormat: row.feedFormat
+      ? FEED_FORMAT_BY_VALUE[row.feedFormat] ?? undefined
+      : undefined,
+    syncIntervalMinutes: row.syncIntervalMinutes,
+    syncEnabled: row.syncEnabled,
+    nextSyncAt: row.nextSyncAt?.getTime(),
+    consecutiveFailures: row.consecutiveFailures,
     createdAt: row.createdAt.getTime(),
     updatedAt: row.updatedAt.getTime(),
   };
@@ -1023,28 +1037,53 @@ export async function upsertCatalog({
   sourceType,
   currency,
   locale,
+  sourceUrl,
+  feedFormat,
+  syncIntervalMinutes,
+  syncEnabled,
 }: {
   workspaceId: string;
   name: string;
   sourceType?: string;
   currency?: string;
   locale?: string;
+  sourceUrl?: string;
+  feedFormat?: string;
+  syncIntervalMinutes?: number;
+  syncEnabled?: boolean;
 }): Promise<Result<CatalogResource, CatalogError>> {
+  // A feed URL is what makes a catalog pullable, so it decides the source type
+  // unless the caller is explicit. Setting it also schedules the first pull
+  // right away rather than one interval from now.
+  const resolvedSourceType =
+    sourceType ?? (sourceUrl ? CatalogSourceType.Feed : undefined);
   const rows = await db()
     .insert(dbCatalog)
     .values({
       workspaceId,
       name,
-      sourceType: sourceType ?? "api",
+      sourceType: resolvedSourceType ?? CatalogSourceType.Api,
       currency: currency ?? "USD",
       locale,
+      sourceUrl,
+      feedFormat,
+      ...(syncIntervalMinutes ? { syncIntervalMinutes } : {}),
+      ...(syncEnabled === undefined ? {} : { syncEnabled }),
+      nextSyncAt: sourceUrl ? new Date() : undefined,
     })
     .onConflictDoUpdate({
       target: [dbCatalog.workspaceId, dbCatalog.name],
       set: {
-        ...(sourceType ? { sourceType } : {}),
+        ...(resolvedSourceType ? { sourceType: resolvedSourceType } : {}),
         ...(currency ? { currency } : {}),
         ...(locale ? { locale } : {}),
+        ...(sourceUrl === undefined ? {} : { sourceUrl }),
+        ...(feedFormat ? { feedFormat } : {}),
+        ...(syncIntervalMinutes ? { syncIntervalMinutes } : {}),
+        ...(syncEnabled === undefined ? {} : { syncEnabled }),
+        ...(sourceUrl
+          ? { nextSyncAt: new Date(), consecutiveFailures: 0 }
+          : {}),
         updatedAt: new Date(),
       },
     })
