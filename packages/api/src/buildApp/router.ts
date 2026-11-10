@@ -6,6 +6,7 @@ import { FastifyInstance } from "fastify";
 import analysisController from "../controllers/analysisController";
 import apiKeyController from "../controllers/apiKeyController";
 import broadcastsController from "../controllers/broadcastsController";
+import catalogsController from "../controllers/catalogsController";
 import componentConfigurationsController from "../controllers/componentConfigurationsController";
 import computedPropertiesController from "../controllers/computedPropertiesController";
 import contentController from "../controllers/contentController";
@@ -53,6 +54,7 @@ export default async function router(
       await Promise.all([
         f.register(analysisController, { prefix: "/analysis" }),
         f.register(contentController, { prefix: "/content" }),
+        f.register(catalogsController, { prefix: "/catalogs" }),
         f.register(eventsController, { prefix: "/events" }),
         f.register(journeysController, { prefix: "/journeys" }),
         f.register(secretsController, { prefix: "/secrets" }),
@@ -123,6 +125,7 @@ export default async function router(
         f.register(segmentsController, { prefix: "/segments" }),
         f.register(journeysController, { prefix: "/journeys" }),
         f.register(contentController, { prefix: "/content" }),
+        f.register(catalogsController, { prefix: "/catalogs" }),
         f.register(subscriptionGroupsController, {
           prefix: "/subscription-groups",
         }),
