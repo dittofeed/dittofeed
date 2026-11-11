@@ -54,6 +54,23 @@ export const dbRoleType = pgEnum("DBRoleType", [
   "Author",
   "Viewer",
 ]);
+export const piiFieldScope = pgEnum("PiiFieldScope", [
+  "UserProperty",
+  "EventProperty",
+  "Column",
+]);
+export const piiCategory = pgEnum("PiiCategory", [
+  "Email",
+  "Phone",
+  "Name",
+  "Address",
+  "GovernmentId",
+  "Financial",
+  "DateOfBirth",
+  "IpAddress",
+  "DeviceId",
+  "Other",
+]);
 export const dbSubscriptionGroupType = pgEnum("DBSubscriptionGroupType", [
   "OptIn",
   "OptOut",
@@ -484,6 +501,9 @@ export const workspaceMemberRole = pgTable(
     workspaceId: uuid().notNull(),
     workspaceMemberId: uuid().notNull(),
     role: dbRoleType().default("Viewer").notNull(),
+    // Orthogonal to `role`: whether this member may view raw PII values. When
+    // false, every registered PII field is rendered as MASKED.
+    unmaskPii: boolean().default(false).notNull(),
     createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp({ precision: 3, mode: "date" })
       .defaultNow()
@@ -1141,5 +1161,82 @@ export const subscriptionManagementTemplate = pgTable(
     })
       .onUpdate("cascade")
       .onDelete("cascade"),
+  ],
+);
+
+export const piiField = pgTable(
+  "PiiField",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    // Which logical dataset the field belongs to.
+    scope: piiFieldScope().notNull(),
+    // User property name, event property path, or "Table.column".
+    name: text().notNull(),
+    category: piiCategory().default("Other").notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("PiiField_workspaceId_scope_name_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.scope.asc().nullsLast().op("enum_ops"),
+      table.name.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "PiiField_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
+export const piiAccessAudit = pgTable(
+  "PiiAccessAudit",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    // Null for system / embedded occupants.
+    workspaceMemberId: uuid(),
+    // e.g. "ViewUsers", "ViewEvents", "DownloadDeliveries".
+    action: text().notNull(),
+    scope: piiFieldScope().notNull(),
+    fieldName: text().notNull(),
+    // Ids of the records whose plaintext was returned, capped by the writer.
+    resourceIds: jsonb().notNull(),
+    recordCount: integer().notNull(),
+    filter: jsonb(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("PiiAccessAudit_workspaceId_createdAt_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.createdAt.asc().nullsLast().op("timestamp_ops"),
+    ),
+    index("PiiAccessAudit_workspaceMemberId_idx").using(
+      "btree",
+      table.workspaceMemberId.asc().nullsLast().op("uuid_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "PiiAccessAudit_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.workspaceMemberId],
+      foreignColumns: [workspaceMember.id],
+      name: "PiiAccessAudit_workspaceMemberId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("set null"),
   ],
 );

@@ -13,12 +13,15 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
+  FormControlLabel,
+  Checkbox,
   IconButton,
   InputLabel,
   Menu,
@@ -82,6 +85,9 @@ function PermissionDialog({
   const [role, setRole] = useState<Role>(
     memberWithRole?.roles[0]?.role || RoleEnum.Admin,
   );
+  const [unmaskPii, setUnmaskPii] = useState(
+    memberWithRole?.roles[0]?.unmaskPii ?? false,
+  );
 
   const createMutation = useCreatePermissionMutation({
     onSuccess: () => {
@@ -125,11 +131,13 @@ function PermissionDialog({
       updateMutation.mutate({
         email: memberWithRole.member.email,
         role,
+        unmaskPii,
       });
     } else {
       createMutation.mutate({
         email,
         role,
+        unmaskPii,
       });
     }
   };
@@ -160,6 +168,19 @@ function PermissionDialog({
               <MenuItem value={RoleEnum.Admin}>Admin</MenuItem>
             </Select>
           </FormControl>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={unmaskPii}
+                onChange={(e) => setUnmaskPii(e.target.checked)}
+              />
+            }
+            label="Unmask PII (查看 PII 明文)"
+          />
+          <Typography variant="caption" color="text.secondary">
+            When disabled, every registered PII field is displayed as MASKED.
+            Enabling this records plaintext access in the PII audit log.
+          </Typography>
         </Box>
       </DialogContent>
       <DialogActions>
@@ -274,6 +295,26 @@ function TimeCell({
 
 interface RoleCellProps {
   roles: WorkspaceMemberWithRoles["roles"];
+}
+
+function PiiAccessCell({ roles }: RoleCellProps) {
+  const unmaskPii = roles.some((role) => role.unmaskPii);
+  return (
+    <Tooltip
+      title={
+        unmaskPii
+          ? "This member can view plaintext PII values. Their access is recorded in the PII audit log."
+          : "PII values are displayed as MASKED for this member."
+      }
+    >
+      <Chip
+        size="small"
+        label={unmaskPii ? "Plaintext" : "Masked"}
+        color={unmaskPii ? "warning" : "default"}
+        variant={unmaskPii ? "filled" : "outlined"}
+      />
+    </Tooltip>
+  );
 }
 
 function RoleCell({ roles }: RoleCellProps) {
@@ -438,6 +479,14 @@ export function PermissionsTable() {
     [],
   );
 
+  const renderPiiAccessCell = useCallback(
+    // eslint-disable-next-line react/no-unused-prop-types
+    ({ row }: { row: { original: WorkspaceMemberWithRoles } }) => (
+      <PiiAccessCell roles={row.original.roles} />
+    ),
+    [],
+  );
+
   const data = useMemo(() => {
     return permissionsData?.memberRoles ?? [];
   }, [permissionsData]);
@@ -457,6 +506,12 @@ export function PermissionsTable() {
         cell: renderRoleCell,
       },
       {
+        id: "piiAccess",
+        header: "PII Access",
+        accessorFn: (row) => (row.roles.some((role) => role.unmaskPii) ? 1 : 0),
+        cell: renderPiiAccessCell,
+      },
+      {
         id: "createdAt",
         header: "Created At",
         accessorKey: "member.createdAt",
@@ -470,7 +525,7 @@ export function PermissionsTable() {
         enableSorting: false,
       },
     ],
-    [renderEmailCell, renderRoleCell],
+    [renderEmailCell, renderRoleCell, renderPiiAccessCell],
   );
 
   const table = useReactTable({

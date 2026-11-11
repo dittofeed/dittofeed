@@ -74,6 +74,7 @@ import { useUsersCountQuery } from "../lib/useUsersCountQuery";
 import { useUsersQuery } from "../lib/useUsersQuery";
 import { GreyButton } from "./greyButtonStyle";
 import { greyTextFieldStyles } from "./greyScaleStyles";
+import { isPiiMaskedValue, PiiMaskedChip } from "./piiMask";
 import { SquarePaper } from "./squarePaper";
 import { SortBySelector } from "./usersTable/sortBySelector";
 import { UsersFilterV2 } from "./usersTable/usersFilterV2";
@@ -165,13 +166,17 @@ function UserIdCell({
   );
 }
 
-function EmailCell({ email }: { email: string }) {
+function EmailCell({ email, masked }: { email: string; masked?: boolean }) {
   const [showCopied, setShowCopied] = React.useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(email);
     setShowCopied(true);
   };
+
+  if (isPiiMaskedValue(email, masked)) {
+    return <PiiMaskedChip />;
+  }
 
   return (
     <>
@@ -407,8 +412,8 @@ const userIdCellRenderer = ({
 const emailCellRenderer = ({
   row,
 }: {
-  row: { original: { id: string; email: string } };
-}) => <EmailCell email={row.original.email} />;
+  row: { original: { id: string; email: string; emailMasked?: boolean } };
+}) => <EmailCell email={row.original.email} masked={row.original.emailMasked} />;
 
 const segmentsCellRenderer = ({
   row,
@@ -418,8 +423,10 @@ const segmentsCellRenderer = ({
 
 const sortPropertyCellRenderer = ({
   getValue,
+  row,
 }: {
   getValue: () => unknown;
+  row?: { original: { sortPropertyMasked?: boolean } };
 }) => {
   const value = getValue();
   if (value === null || value === undefined) {
@@ -428,6 +435,9 @@ const sortPropertyCellRenderer = ({
         —
       </Typography>
     );
+  }
+  if (isPiiMaskedValue(value, row?.original.sortPropertyMasked)) {
+    return <PiiMaskedChip />;
   }
   return <Typography variant="body2">{String(value)}</Typography>;
 };
@@ -773,11 +783,13 @@ export interface SubscriptionGroupAction {
 interface Row {
   id: string;
   email: string;
+  emailMasked?: boolean;
   segments: {
     id: string;
     name: string;
   }[];
   sortPropertyValue?: string | number | boolean | null;
+  sortPropertyMasked?: boolean;
 }
 
 export type OnPaginationChangeProps = Pick<
@@ -939,17 +951,21 @@ function UsersTableInner({
       }
 
       let email = "";
+      let emailMasked = false;
       let sortPropertyValue: string | number | boolean | null | undefined;
+      let sortPropertyMasked = false;
 
       for (const propId in user.properties) {
         const prop = user.properties[propId];
         if (prop && prop.name.toLowerCase() === "email") {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           email = prop.value as string;
+          emailMasked = prop.piiMasked === true;
         }
         if (sortBy && propId === sortBy && prop) {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           sortPropertyValue = prop.value as string | number | boolean | null;
+          sortPropertyMasked = prop.piiMasked === true;
         }
       }
 
@@ -957,8 +973,10 @@ function UsersTableInner({
         {
           id: user.id,
           email,
+          emailMasked,
           segments: user.segments,
           sortPropertyValue,
+          sortPropertyMasked,
         },
       ];
     });

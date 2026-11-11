@@ -147,6 +147,8 @@ export type AppState = {
   workspace: RequestStatus<WorkspaceResource, Error>;
   member: WorkspaceMemberResource | null;
   memberRoles: WorkspaceMemberRoleResource[];
+  // Whether the signed-in member may view plaintext PII in this workspace.
+  unmaskPii: boolean;
   drawerOpen: boolean;
   segments: RequestStatus<PartialSegmentResource[], Error>;
   broadcasts: BroadcastResource[];
