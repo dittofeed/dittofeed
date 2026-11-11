@@ -1,5 +1,6 @@
 import {
   boolean,
+  customType,
   foreignKey,
   index,
   integer,
@@ -12,6 +13,23 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+/**
+ * Prices are stored as `numeric` so that sums and comparisons are exact.
+ * postgres-js hands `numeric` back as a string, which would leak into every
+ * caller, so the mapping converts at the boundary.
+ */
+export const moneyAmount = customType<{ data: number; driverData: string }>({
+  dataType() {
+    return "numeric(14, 4)";
+  },
+  fromDriver(value) {
+    return Number(value);
+  },
+  toDriver(value) {
+    return String(value);
+  },
+});
 
 export const computedPropertyType = pgEnum("ComputedPropertyType", [
   "Segment",
@@ -1111,6 +1129,334 @@ export const userPropertyIndex = pgTable(
       columns: [table.userPropertyId],
       foreignColumns: [userProperty.id],
       name: "UserPropertyIndex_userPropertyId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
+export const catalog = pgTable(
+  "Catalog",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    name: text().notNull(),
+    /** `api` for items pushed by the customer, `feed` for a pulled feed. */
+    sourceType: text().notNull().default("api"),
+    /** ISO 4217, used when an item does not carry its own currency. */
+    currency: text().notNull().default("USD"),
+    locale: text(),
+    /**
+     * Health of the most recent sync. Surfaced to operators so a stale catalog
+     * is visible rather than silently rendering yesterday's prices.
+     */
+    syncStatus: text().notNull().default("never"),
+    lastSyncedAt: timestamp({ precision: 3, mode: "date" }),
+    lastPriceSyncedAt: timestamp({ precision: 3, mode: "date" }),
+    lastInventorySyncedAt: timestamp({ precision: 3, mode: "date" }),
+    /**
+     * Where to pull the feed from. Only set for `sourceType = feed`; catalogs
+     * pushed through the API leave it null and are synced by the caller.
+     */
+    sourceUrl: text(),
+    /** `json` or `xml`, sniffed from the response when unset. */
+    feedFormat: text(),
+    /** How often the scheduler re-pulls this feed. */
+    syncIntervalMinutes: integer().notNull().default(360),
+    /** Operators can pause a feed without deleting the catalog. */
+    syncEnabled: boolean().notNull().default(true),
+    /** When the scheduler should look at this catalog again. */
+    nextSyncAt: timestamp({ precision: 3, mode: "date" }),
+    /** Drives exponential backoff after repeated feed failures. */
+    consecutiveFailures: integer().notNull().default(0),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("Catalog_workspaceId_name_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.name.asc().nullsLast().op("text_ops"),
+    ),
+    index("Catalog_syncEnabled_nextSyncAt_idx").using(
+      "btree",
+      table.syncEnabled.asc().nullsLast().op("bool_ops"),
+      table.nextSyncAt.asc().nullsLast().op("timestamp_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "Catalog_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
+/**
+ * Products and variants in one table. `itemId` is the external id the commerce
+ * platform uses, so it is unique per catalog. A variant points at its product
+ * through `parentItemId`.
+ *
+ * Products carry rollups over their variants (`priceMin`, `priceMax`,
+ * `inventoryTotal`, `variantCount`) so a collection such as "in stock shoes,
+ * most expensive first" stays a single-table scan instead of a self join.
+ */
+export const catalogItem = pgTable(
+  "CatalogItem",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    catalogId: uuid().notNull(),
+    /** External id: the product or variant id in the source system. */
+    itemId: text().notNull(),
+    itemType: text().notNull().default("product"),
+    parentItemId: text(),
+    title: text(),
+    description: text(),
+    url: text(),
+    imageUrl: text(),
+    brand: text(),
+    price: moneyAmount(),
+    compareAtPrice: moneyAmount(),
+    currency: text(),
+    inventoryQuantity: integer(),
+    /** `deny` blocks the sale when out of stock, `continue` allows backorder. */
+    inventoryPolicy: text(),
+    /** Buyable now: in stock, or out of stock but backorderable. */
+    inStock: boolean().notNull().default(true),
+    status: text().notNull().default("published"),
+    categories: text().array(),
+    tags: text().array(),
+    /** Product rollups, recomputed when any child variant changes. */
+    priceMin: moneyAmount(),
+    priceMax: moneyAmount(),
+    inventoryTotal: integer(),
+    variantCount: integer(),
+    /** Fields with no typed column. Collection filters can address these. */
+    attributes: jsonb().notNull().default({}),
+    // Generation marker used by bulk catalog syncs. Items are written with the
+    // sync's id and stale generations are pruned once the sync completes.
+    syncId: text(),
+    /**
+     * Last sync that mentioned this item. An item that stops being mentioned
+     * is stale; it is only removed once the grace period passes, so a partial
+     * feed cannot delete a catalog.
+     */
+    lastSeenAt: timestamp({ precision: 3, mode: "date" }),
+    deletedAt: timestamp({ precision: 3, mode: "date" }),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("CatalogItem_catalogId_itemId_key").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.itemId.asc().nullsLast().op("text_ops"),
+    ),
+    index("CatalogItem_workspaceId_idx").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+    ),
+    // Supports `Contains` on array attributes (`attributes @> '[...]'`) without
+    // falling back to a sequential scan. Attribute path lookups (`#>>`) are
+    // still evaluated per row, so collections should filter on a small number
+    // of indexed attributes.
+    index("CatalogItem_attributes_idx").using("gin", table.attributes),
+    index("CatalogItem_catalogId_syncId_idx").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.syncId.asc().nullsLast().op("text_ops"),
+    ),
+    // The default collection filter (`published`, in stock) plus a price sort
+    // is the hot path for product blocks.
+    index("CatalogItem_catalogId_status_price_idx").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.status.asc().nullsLast().op("text_ops"),
+      table.price.asc().nullsLast().op("numeric_ops"),
+    ),
+    // Listing the variants of a product.
+    index("CatalogItem_catalogId_parentItemId_idx").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.parentItemId.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "CatalogItem_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.catalogId],
+      foreignColumns: [catalog.id],
+      name: "CatalogItem_catalogId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
+export const catalogCollection = pgTable(
+  "CatalogCollection",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    name: text().notNull(),
+    catalogId: uuid().notNull(),
+    definition: jsonb().notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("CatalogCollection_workspaceId_name_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.name.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "CatalogCollection_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.catalogId],
+      foreignColumns: [catalog.id],
+      name: "CatalogCollection_catalogId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
+/**
+ * One row per sync call. Used to answer "is this catalog actually fresh", and
+ * to give a failing feed somewhere to report why.
+ */
+export const catalogSyncRun = pgTable(
+  "CatalogSyncRun",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    catalogId: uuid().notNull(),
+    kind: text().notNull(),
+    syncId: text(),
+    status: text().notNull().default("running"),
+    upsertedCount: integer().notNull().default(0),
+    deletedCount: integer().notNull().default(0),
+    skippedCount: integer().notNull().default(0),
+    error: text(),
+    startedAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    finishedAt: timestamp({ precision: 3, mode: "date" }),
+  },
+  (table) => [
+    index("CatalogSyncRun_catalogId_startedAt_idx").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.startedAt.desc().nullsLast().op("timestamp_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "CatalogSyncRun_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.catalogId],
+      foreignColumns: [catalog.id],
+      name: "CatalogSyncRun_catalogId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
+/**
+ * What a user did with a catalog item.
+ *
+ * Catalogs alone cannot address anyone: a price drop or a restock only matters
+ * to the users who looked at, carted, or subscribed to that item. This table is
+ * the join between catalog rows and profiles.
+ *
+ * Rows are written from inbound tracking calls that carry an item reference
+ * (`$items` / `$item_id`), and from the explicit back-in-stock subscription
+ * endpoints. Nothing here is derived from the catalog sync.
+ */
+export const catalogItemInterest = pgTable(
+  "CatalogItemInterest",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    catalogId: uuid().notNull(),
+    /**
+     * `user_or_anonymous_id` of the profile, i.e. the id the event arrived with.
+     * Not a foreign key: events are accepted before a user row exists.
+     */
+    userId: text().notNull(),
+    itemId: text().notNull(),
+    kind: text().notNull(),
+    /** How many events of this kind mentioned the item. */
+    eventCount: integer().notNull().default(1),
+    lastEventAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    /**
+     * Back-in-stock only: when the restock was announced. Used so one restock
+     * notifies each subscriber once, without deleting the subscription.
+     */
+    notifiedAt: timestamp({ precision: 3, mode: "date" }),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("CatalogItemInterest_catalogId_userId_itemId_kind_key").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast().op("text_ops"),
+      table.itemId.asc().nullsLast().op("text_ops"),
+      table.kind.asc().nullsLast().op("text_ops"),
+    ),
+    // Price drop fan-out: everyone interested in a given item.
+    index("CatalogItemInterest_catalogId_itemId_kind_idx").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.itemId.asc().nullsLast().op("text_ops"),
+      table.kind.asc().nullsLast().op("text_ops"),
+    ),
+    // Answering "what does this user care about", for the interest list endpoint.
+    index("CatalogItemInterest_catalogId_userId_idx").using(
+      "btree",
+      table.catalogId.asc().nullsLast().op("uuid_ops"),
+      table.userId.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "CatalogItemInterest_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+    foreignKey({
+      columns: [table.catalogId],
+      foreignColumns: [catalog.id],
+      name: "CatalogItemInterest_catalogId_fkey",
     })
       .onUpdate("cascade")
       .onDelete("cascade"),

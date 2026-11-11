@@ -11,6 +11,7 @@ import {
   MenuBookOutlined,
   PeopleOutlined,
   PersonOutlined,
+  StorefrontOutlined,
 } from "@mui/icons-material";
 
 import { MenuItemGroup } from "./types";
@@ -70,6 +71,22 @@ const menuItems: { items: MenuItemGroup[] } = {
           url: "/broadcasts",
           icon: CampaignOutlined,
           description: "Broadcast one off messages to users.",
+        },
+      ],
+    },
+    {
+      id: "content",
+      title: "Content",
+      type: "group",
+      children: [
+        {
+          id: "catalogs",
+          title: "Catalogs",
+          type: "item",
+          url: "/catalogs",
+          icon: StorefrontOutlined,
+          description:
+            "Manage the products and variants that messages can render.",
         },
       ],
     },

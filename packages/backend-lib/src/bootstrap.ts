@@ -16,6 +16,7 @@ import { getOrCreateWriteKey } from "./auth";
 import { createBucket, storage } from "./blobStorage";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
+import { startCatalogSyncScheduler } from "./catalogSyncLifecycle";
 import {
   startComputePropertiesWorkflow,
   startComputePropertiesWorkflowGlobal,
@@ -503,6 +504,7 @@ export async function bootstrapWorkspace({
   if (config().bootstrapWorker) {
     await bootstrapComputeProperties({ workspaceId });
     await startGlobalCron();
+    await startCatalogSyncScheduler();
   }
   return { workspaceId };
 }
