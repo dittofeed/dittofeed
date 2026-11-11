@@ -3,6 +3,7 @@ import { writeToString } from "@fast-csv/format";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import { arrayDefault } from "isomorphic-lib/src/arrays";
+import { PII_MASKED } from "isomorphic-lib/src/pii";
 import { ok, Result } from "neverthrow";
 import { sortBy } from "remeda";
 
@@ -19,6 +20,7 @@ import {
 } from "./db/schema";
 import { kafkaProducer } from "./kafka";
 import logger from "./logger";
+import { maskJsonString, PiiPolicy } from "./pii";
 import {
   DownloadEventsRequest,
   EventType,
@@ -26,6 +28,7 @@ import {
   GetPropertiesResponse,
   InternalEventType,
   JSONValue,
+  PiiFieldScopeEnum,
   UserEvent,
   UserWorkflowTrackEvent,
   WriteMode,
@@ -872,7 +875,10 @@ export async function findUserIdsByUserProperty({
   return result;
 }
 
-export async function buildEventsFile(params: DownloadEventsRequest): Promise<{
+export async function buildEventsFile(
+  params: DownloadEventsRequest,
+  options: { policy?: PiiPolicy; apply?: boolean } = {},
+): Promise<{
   fileName: string;
   fileContent: string;
 }> {
@@ -883,17 +889,42 @@ export async function buildEventsFile(params: DownloadEventsRequest): Promise<{
     offset: undefined,
   });
 
+  const { policy, apply = true } = options;
+  const maskJson = (value: string) => {
+    if (!policy || !value) {
+      return value;
+    }
+    return maskJsonString({
+      json: value,
+      policy,
+      scope: PiiFieldScopeEnum.EventProperty,
+      apply,
+    }).value;
+  };
+  const maskColumn = (column: string, value: string) => {
+    if (
+      !policy ||
+      !apply ||
+      !policy.byScope[PiiFieldScopeEnum.Column].has(column)
+    ) {
+      return value;
+    }
+    return PII_MASKED;
+  };
+
   // Transform events to CSV format
   const csvData = events.map((event) => ({
     messageId: event.message_id,
     eventType: event.event_type,
     event: event.event,
-    userId: event.user_id || "",
-    anonymousId: event.anonymous_id || "",
+    userId: maskColumn("userevents.userid", event.user_id || ""),
+    anonymousId: maskColumn("userevents.anonymousid", event.anonymous_id || ""),
     processingTime: event.processing_time,
     eventTime: event.event_time,
-    traits: event.event_type === EventType.Identify ? event.properties : "",
-    properties: event.event_type === EventType.Identify ? "" : event.properties,
+    traits:
+      event.event_type === EventType.Identify ? maskJson(event.properties) : "",
+    properties:
+      event.event_type === EventType.Identify ? "" : maskJson(event.properties),
   }));
 
   // Define CSV headers

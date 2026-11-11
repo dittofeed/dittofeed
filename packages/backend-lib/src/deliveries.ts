@@ -1,6 +1,7 @@
 import { writeToString } from "@fast-csv/format";
 import { Static, Type } from "@sinclair/typebox";
 import { format } from "date-fns";
+import { PII_MASKED } from "isomorphic-lib/src/pii";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
@@ -951,6 +952,7 @@ export async function searchDeliveries({
 
 export async function buildDeliveriesFile(
   request: Omit<SearchDeliveriesRequest, "limit" | "cursor">,
+  options: { maskUserId?: boolean } = {},
 ): Promise<{
   fileName: string;
   fileContent: string;
@@ -965,7 +967,7 @@ export async function buildDeliveriesFile(
     updatedAt: delivery.updatedAt,
     journeyId: delivery.journeyId || "",
     broadcastId: delivery.broadcastId || "",
-    userId: delivery.userId,
+    userId: options.maskUserId ? PII_MASKED : delivery.userId,
     isAnonymous: delivery.isAnonymous ? "true" : "false",
     originMessageId: delivery.originMessageId,
     triggeringMessageId: delivery.triggeringMessageId || "",

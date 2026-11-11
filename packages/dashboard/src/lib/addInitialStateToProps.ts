@@ -44,6 +44,7 @@ export function addInitialStateToProps<
     },
     member: dfContext.member,
     memberRoles: dfContext.memberRoles,
+    unmaskPii: dfContext.unmaskPii,
     signoutUrl,
     trackDashboard,
     dashboardWriteKey,

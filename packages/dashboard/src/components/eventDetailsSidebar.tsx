@@ -34,10 +34,16 @@ import {
 } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
+import { PII_MASKED } from "isomorphic-lib/src/pii";
 import Link from "next/link";
 import React, { useMemo, useState } from "react";
 
 import { EventResources } from "../lib/types";
+import {
+  containsMaskedValue,
+  isPiiMaskedValue,
+  PiiMaskedChip,
+} from "./piiMask";
 
 interface SelectedEvent {
   messageId: string;
@@ -79,6 +85,21 @@ function CopyableField({
           {label}
         </Typography>
         <Typography color="text.disabled">—</Typography>
+      </Box>
+    );
+  }
+
+  if (isPiiMaskedValue(value)) {
+    return (
+      <Box sx={{ mb: 1 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ mb: 0.25, display: "block" }}
+        >
+          {label}
+        </Typography>
+        <PiiMaskedChip />
       </Box>
     );
   }
@@ -223,6 +244,19 @@ function EventDetailsSidebar({
       }
     }
     return "";
+  }, [selectedEvent?.traits]);
+
+  const traitsContainMaskedPii = useMemo(() => {
+    const raw = selectedEvent?.traits;
+    if (!raw) {
+      return false;
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return containsMaskedValue(parsed);
+    } catch {
+      return raw.includes(PII_MASKED);
+    }
   }, [selectedEvent?.traits]);
 
   const getEventTypeColor = (eventType: string) => {
@@ -468,6 +502,7 @@ function EventDetailsSidebar({
               sx={{
                 flex: 1,
                 display: "flex",
+                flexDirection: "column",
                 minHeight: 0,
                 "& .cm-editor": {
                   fontSize: "0.7rem",
@@ -477,36 +512,43 @@ function EventDetailsSidebar({
                 },
               }}
             >
-              <ReactCodeMirror
-                value={formattedTraits}
-                readOnly
-                height="100%"
-                basicSetup={{
-                  lineNumbers: true,
-                  foldGutter: true,
-                  dropCursor: false,
-                  allowMultipleSelections: false,
-                }}
-                extensions={[
-                  codeMirrorJson(),
-                  linter(jsonParseLinter()),
-                  EditorView.lineWrapping,
-                  EditorView.theme({
-                    "&": {
-                      fontFamily:
-                        "Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
-                    },
-                    ".cm-content": {
-                      padding: "8px",
-                    },
-                    ".cm-gutters": {
-                      backgroundColor: theme.palette.grey[50],
-                      borderRight: `1px solid ${theme.palette.divider}`,
-                    },
-                  }),
-                  lintGutter(),
-                ]}
-              />
+              {traitsContainMaskedPii && (
+                <Box sx={{ px: 1, py: 0.5 }}>
+                  <PiiMaskedChip />
+                </Box>
+              )}
+              <Box sx={{ flex: 1, display: "flex", minHeight: 0 }}>
+                <ReactCodeMirror
+                  value={formattedTraits}
+                  readOnly
+                  height="100%"
+                  basicSetup={{
+                    lineNumbers: true,
+                    foldGutter: true,
+                    dropCursor: false,
+                    allowMultipleSelections: false,
+                  }}
+                  extensions={[
+                    codeMirrorJson(),
+                    linter(jsonParseLinter()),
+                    EditorView.lineWrapping,
+                    EditorView.theme({
+                      "&": {
+                        fontFamily:
+                          "Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+                      },
+                      ".cm-content": {
+                        padding: "8px",
+                      },
+                      ".cm-gutters": {
+                        backgroundColor: theme.palette.grey[50],
+                        borderRight: `1px solid ${theme.palette.divider}`,
+                      },
+                    }),
+                    lintGutter(),
+                  ]}
+                />
+              </Box>
             </Box>
           )}
         </Box>

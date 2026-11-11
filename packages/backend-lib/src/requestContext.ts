@@ -170,6 +170,7 @@ export async function findAndCreateRoles(
       role: r.role,
       workspaceMemberId: member.id,
       workspaceName: workspace.name,
+      unmaskPii: r.unmaskPii,
     };
   });
 
@@ -386,6 +387,9 @@ export async function getMultiTenantRequestContext({
       parentWorkspaceId: workspace.parentWorkspaceId ?? undefined,
     },
     memberRoles,
+    unmaskPii:
+      memberRoles.find((r) => r.workspaceId === workspace.id)?.unmaskPii ??
+      false,
   });
 }
 
@@ -415,8 +419,10 @@ async function getAnonymousRequestContext(): Promise<RequestContextResult> {
         workspaceName: workspace.name,
         workspaceMemberId: "anonymous",
         role: "Admin",
+        unmaskPii: false,
       },
     ],
+    unmaskPii: false,
   });
 }
 
