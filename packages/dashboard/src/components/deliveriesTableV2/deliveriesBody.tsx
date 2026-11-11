@@ -47,19 +47,15 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
-  BroadcastResourceAllVersions,
-  BroadcastResourceVersionEnum,
   BroadcastStepKeys,
   ChannelType,
   CompletionStatus,
   DeliveriesAllowedColumn,
   JSONValue,
-  MinimalJourneysResource,
   SearchDeliveriesRequest,
   SearchDeliveriesRequestSortBy,
   SearchDeliveriesRequestSortByEnum,
   SearchDeliveriesResponse,
-  SearchDeliveriesResponseItem,
   SortDirection,
   SortDirectionEnum,
 } from "isomorphic-lib/src/types";
@@ -84,6 +80,7 @@ import { WebhookPreviewBody } from "../messages/webhookPreview";
 import SmsPreviewBody from "../smsPreviewBody";
 import TemplatePreview from "../templatePreview";
 import { DEFAULT_ALLOWED_COLUMNS } from "./constants";
+import { getOrigin } from "./getOrigin";
 
 function getSortByLabel(sortBy: SearchDeliveriesRequestSortBy): string {
   switch (sortBy) {
@@ -354,51 +351,6 @@ const DeliveriesCountResponseSchema = Type.Object({
 });
 
 type DeliveriesCountResponse = Static<typeof DeliveriesCountResponseSchema>;
-
-function getOrigin({
-  journeys,
-  broadcasts,
-  item,
-}: {
-  item: SearchDeliveriesResponseItem;
-  journeys: MinimalJourneysResource[];
-  broadcasts: BroadcastResourceAllVersions[];
-}): Pick<Delivery, "originId" | "originType" | "originName"> | null {
-  for (const broadcast of broadcasts) {
-    if (
-      (!broadcast.version ||
-        broadcast.version === BroadcastResourceVersionEnum.V1) &&
-      broadcast.journeyId &&
-      broadcast.journeyId === item.journeyId
-    ) {
-      return {
-        originId: broadcast.id,
-        originType: "broadcast",
-        originName: broadcast.name,
-      };
-    }
-    if (
-      broadcast.version === BroadcastResourceVersionEnum.V2 &&
-      broadcast.messageTemplateId === item.templateId
-    ) {
-      return {
-        originId: broadcast.id,
-        originType: "broadcastV2",
-        originName: broadcast.name,
-      };
-    }
-  }
-  for (const journey of journeys) {
-    if (journey.id === item.journeyId) {
-      return {
-        originId: journey.id,
-        originType: "journey",
-        originName: journey.name,
-      };
-    }
-  }
-  return null;
-}
 
 export interface DeliveriesBodyState {
   previewMessageId: string | null;
