@@ -305,4 +305,74 @@ describe("renderWithUserProperties", () => {
       expect(rendered).toContain("h=");
     });
   });
+
+  describe("catalog_collection tag", () => {
+    const workspaceId = "024f3d0a-8eee-11ed-a1eb-0242ac120002";
+    const catalogs = {
+      BestSellerShoes: [
+        { itemId: "sku-1", title: "Court Shoe", price: 39 },
+        { itemId: "sku-2", title: "Ankle Boot", price: 59 },
+      ],
+    };
+
+    it("renders the items of a collection", () => {
+      const rendered = renderLiquid({
+        template: `{% catalog_collection "BestSellerShoes" as items %}{% for item in items %}{{ item.title }}:{{ item.price }};{% endfor %}{% endcatalog_collection %}`,
+        workspaceId,
+        userProperties: {},
+        catalogs,
+      });
+      expect(rendered.trim()).toEqual("Court Shoe:39;Ankle Boot:59;");
+    });
+
+    it("exposes the item count", () => {
+      const rendered = renderLiquid({
+        template: `{% catalog_collection "BestSellerShoes" as items %}{{ items.size }}{% endcatalog_collection %}`,
+        workspaceId,
+        userProperties: {},
+        catalogs,
+      });
+      expect(rendered.trim()).toEqual("2");
+    });
+
+    it("renders nothing when the collection is unknown", () => {
+      const rendered = renderLiquid({
+        template: `{% catalog_collection "Missing" as items %}{% for item in items %}x{% endfor %}{% endcatalog_collection %}`,
+        workspaceId,
+        userProperties: {},
+        catalogs,
+      });
+      expect(rendered.trim()).toEqual("");
+    });
+
+    it("renders nothing when no catalogs are supplied", () => {
+      const rendered = renderLiquid({
+        template: `{% catalog_collection "BestSellerShoes" as items %}{% for item in items %}x{% endfor %}{% endcatalog_collection %}`,
+        workspaceId,
+        userProperties: {},
+      });
+      expect(rendered.trim()).toEqual("");
+    });
+
+    it("only scopes the variable inside the block", () => {
+      const rendered = renderLiquid({
+        template: `{% catalog_collection "BestSellerShoes" as items %}{% endcatalog_collection %}{% if items %}leaked{% else %}clean{% endif %}`,
+        workspaceId,
+        userProperties: {},
+        catalogs,
+      });
+      expect(rendered.trim()).toEqual("clean");
+    });
+
+    it("rejects a malformed tag", () => {
+      expect(() =>
+        renderLiquid({
+          template: `{% catalog_collection BestSellerShoes %}{% endcatalog_collection %}`,
+          workspaceId,
+          userProperties: {},
+          catalogs,
+        }),
+      ).toThrow(/Invalid catalog_collection tag/);
+    });
+  });
 });

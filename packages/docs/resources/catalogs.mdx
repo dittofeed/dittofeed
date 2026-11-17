@@ -1,0 +1,104 @@
+---
+title: "Catalogs"
+description: "Sync products, variants and inventory, and render them in templates."
+---
+
+A catalog is a list of products and their variants, each with a price, an inventory count and a status. Templates read catalogs through collections: saved queries with filters, sorting and a limit.
+
+## Collections
+
+A collection is defined once and referenced by name from any template:
+
+```liquid
+{% catalog_collection "BestSellers" as items %}
+  {% for item in items %}
+    {{ item.title }} — {{ item.price }}
+  {% endfor %}
+{% endcatalog_collection %}
+```
+
+`items` is an array of catalog items, and `items.size` is available for conditional blocks. The variable is scoped to the block: templates that reference a collection which does not exist render an empty list rather than failing the send.
+
+Each item exposes:
+
+| Field                 | Description                                          |
+| --------------------- | ---------------------------------------------------- |
+| `id`                  | Stable external id (SKU, product id)                 |
+| `title`               | Display name                                         |
+| `description`         | Long description                                     |
+| `url`                 | Product page                                         |
+| `imageUrl`            | Primary image                                        |
+| `price`               | Price of this item                                   |
+| `priceMin`/`priceMax` | Price range across the variants of a product         |
+| `inventoryQuantity`   | Units on hand                                        |
+| `inStock`             | `true` when the item is purchasable                  |
+| `categories`          | Category names                                       |
+| `tags`                | Tag names                                            |
+| `attributes`          | Arbitrary additional properties from the source feed |
+| `variants`            | For a product, its variants                          |
+
+Products aggregate their variants: `priceMin`, `priceMax`, `inventoryTotal`, `variantCount` and `inStock` are recomputed whenever a variant changes, so a template can render one row per product without knowing the catalog is variant-level.
+
+Collections are preloaded before a template renders, so the Liquid engine stays synchronous and performs no I/O mid-render. A collection definition is cached for a few seconds, which lets a broadcast render the same query many times without re-running it.
+
+## Creating a collection
+
+Collections are managed from **Content → Catalogs → _catalog_ → Collections**. A collection has:
+
+- a name, used by the `catalog_collection` tag
+- an optional filter (field, operator, value), combined with `and`/`or`
+- a sort field and direction
+- a limit, capped at 500
+- optionally, a grouping that splits the results into several lists
+
+## Syncing
+
+Catalogs are populated from a feed URL. The feed is polled on a schedule, and the catalog shows how old each part of its data is.
+
+A sync is split into three channels, because price and inventory change on their own schedule and often without touching the item's `updated_at`:
+
+- **items**: creates and updates items, and archives items the feed no longer mentions
+- **price**: updates the price of items that already exist
+- **inventory**: updates the inventory of items that already exist
+
+The `price` and `inventory` channels never create or delete items; ids they do not recognise are reported as skipped. Each channel records when it last succeeded, so a catalog can show that prices are an hour old while the item list is a day old.
+
+Feeds are polled on a schedule with exponential backoff, capped at 24 hours. A failed fetch, or a feed that parses to zero items, leaves the existing catalog untouched rather than archiving it.
+
+Accepted feed formats:
+
+- a JSON array of items
+- a JSON object with an `items` array
+- Google Shopping RSS
+- Atom
+
+Items can also be pushed directly with `PUT /api/admin/catalogs/items`. Large pushes can be split into chunks that share a `syncId` and are finished with `POST /api/admin/catalogs/items/complete`; anything the sync did not mention is archived rather than deleted.
+
+Archived items are hidden from rendering and queries by default, and are purged after a grace period. A partial feed therefore cannot silently break a live template or historical metrics.
+
+## Journeys
+
+Two events are emitted when catalog data changes, and can be used as journey entry nodes:
+
+| Event                    | Triggered when                                          |
+| ------------------------ | ------------------------------------------------------- |
+| `$catalog_price_drop`    | An item's price falls below its previous price          |
+| `$catalog_back_in_stock` | An item's inventory returns above the restock threshold |
+
+Both events carry the item that changed, so a message can render the product that triggered it.
+
+Users are associated with items by sending `$items` on any event. The property accepts either a list of items or a single item with an `item_id` (or a `sku`), which is what most ecommerce integrations already send:
+
+```json
+{
+  "userId": "user-123",
+  "event": "Order Completed",
+  "properties": {
+    "$items": [{ "item_id": "SKU-1", "quantity": 1 }]
+  }
+}
+```
+
+Interest is only recorded for items that exist in a workspace's catalog. `$catalog_price_drop` and `$catalog_back_in_stock` themselves do not record interest, so a user who is notified about a product does not re-enter the audience they were just notified from.
+
+A user who has already bought an item is excluded from its price-drop audience, and a restock notice is sent once per item per user.

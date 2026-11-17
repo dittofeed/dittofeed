@@ -166,6 +166,7 @@
                 ]
               },
               "resources/workspaces",
+              "resources/catalogs",
               "resources/subscription-groups",
               "resources/user-properties",
               {
