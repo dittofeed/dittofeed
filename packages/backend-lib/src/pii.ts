@@ -27,47 +27,47 @@ export const PII_COLUMN_CATALOG: {
   {
     name: "WorkspaceMember.email",
     category: "Email",
-    description: "登录邮箱",
+    description: "Sign-in email address",
   },
   {
     name: "WorkspaceMember.name",
     category: "Name",
-    description: "成员姓名",
+    description: "Member full name",
   },
   {
     name: "WorkspaceMember.nickname",
     category: "Name",
-    description: "成员昵称",
+    description: "Member nickname",
   },
   {
     name: "WorkspaceMember.image",
     category: "Other",
-    description: "成员头像 URL",
+    description: "Member avatar URL",
   },
   {
     name: "UserPropertyAssignment.value",
     category: "Other",
-    description: "用户属性值（ClickHouse 中的具体取值）",
+    description: "User property value, as stored in ClickHouse",
   },
   {
     name: "UserEvents.userId",
     category: "Other",
-    description: "事件上的用户标识",
+    description: "User identifier attached to events",
   },
   {
     name: "UserEvents.anonymousId",
     category: "Other",
-    description: "事件上的匿名标识",
+    description: "Anonymous identifier attached to events",
   },
   {
     name: "Deliveries.to",
     category: "Email",
-    description: "投递收件人（邮箱或手机号）",
+    description: "Delivery recipient, an email address or phone number",
   },
   {
     name: "Deliveries.userId",
     category: "Other",
-    description: "投递记录上的用户标识",
+    description: "User identifier on delivery records",
   },
 ];
 

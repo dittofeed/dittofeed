@@ -175,7 +175,7 @@ function PermissionDialog({
                 onChange={(e) => setUnmaskPii(e.target.checked)}
               />
             }
-            label="Unmask PII (查看 PII 明文)"
+            label="Unmask PII (view plaintext)"
           />
           <Typography variant="caption" color="text.secondary">
             When disabled, every registered PII field is displayed as MASKED.
