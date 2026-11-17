@@ -41,6 +41,7 @@ import { useImmer } from "use-immer";
 import { validate } from "uuid";
 
 import EmailEditor from "../../../components/messages/emailEditor";
+import MobilePushEditor from "../../../components/messages/mobilePushEditor";
 import SmsEditor from "../../../components/messages/smsEditor";
 import WebhookEditor from "../../../components/messages/webhookEditor";
 import SubscriptionGroupAutocomplete from "../../../components/subscriptionGroupAutocomplete";
@@ -170,6 +171,7 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
       broadcasts,
       upsertTemplate,
       messages,
+      enableMobilePush,
     } = useAppStorePick([
       "apiBase",
       "journeys",
@@ -179,6 +181,7 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
       "setJourneyUpdateRequest",
       "messages",
       "broadcasts",
+      "enableMobilePush",
     ]);
     const messageNode = getBroadcastMessageNode(journeyId, journeys);
     const [subscriptionGroupId, setSubscriptionGroupId] = useState<
@@ -345,7 +348,15 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
         );
         break;
       case ChannelType.MobilePush:
-        throw new Error("MobilePush not implemented");
+        templateEditor = (
+          <MobilePushEditor
+            disabled={disabled}
+            hideTitle
+            hidePublisher
+            templateId={templateId}
+          />
+        );
+        break;
       case ChannelType.Webhook:
         templateEditor = (
           <WebhookEditor
@@ -388,7 +399,7 @@ const BroadcastTemplateInner: NextPage<BroadcastTemplateProps> =
           <MenuItem value={ChannelType.Webhook}>
             {CHANNEL_NAMES[ChannelType.Webhook]}
           </MenuItem>
-          <MenuItem disabled value={ChannelType.MobilePush}>
+          <MenuItem disabled={!enableMobilePush} value={ChannelType.MobilePush}>
             {CHANNEL_NAMES[ChannelType.MobilePush]}
           </MenuItem>
         </Select>

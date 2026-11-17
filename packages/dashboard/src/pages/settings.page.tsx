@@ -6,6 +6,7 @@ import {
   InfoOutlined,
   Key,
   Mail,
+  NotificationsOutlined,
   SimCardDownload,
   SmsOutlined,
   Webhook,
@@ -35,6 +36,7 @@ import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { db } from "backend-lib/src/db";
 import * as schema from "backend-lib/src/db/schema";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
+import { getOrCreateMobilePushProviders } from "backend-lib/src/messaging/mobilePush";
 import { getOrCreateSmsProviders } from "backend-lib/src/messaging/sms";
 import { getSecretAvailability } from "backend-lib/src/secrets";
 import { toSegmentResource } from "backend-lib/src/segments";
@@ -43,6 +45,7 @@ import { and, eq } from "drizzle-orm";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
   EMAIL_PROVIDER_TYPE_TO_SECRET_NAME,
+  MOBILE_PUSH_PROVIDER_TYPE_TO_SECRET_NAME,
   SecretNames,
   SMS_PROVIDER_TYPE_TO_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
@@ -53,12 +56,14 @@ import {
   CompletionStatus,
   DataSourceVariantType,
   DefaultEmailProviderResource,
+  DefaultMobilePushProviderResource,
   DefaultSmsProviderResource,
   EmailProviderType,
   EmptyResponse,
   EphemeralRequestStatus,
   IntegrationResource,
   IntegrationType,
+  MobilePushProviderType,
   PartialSegmentResource,
   SmsProviderType,
   SmtpSecretKey,
@@ -219,6 +224,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       segments,
       smsProviders,
       defaultSmsProviderRecord,
+      mobilePushProviders,
+      defaultMobilePushProviderRecord,
       secretAvailability,
       adminApiKeys,
     ] = await Promise.all([
@@ -245,12 +252,17 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       db().query.defaultSmsProvider.findFirst({
         where: eq(schema.defaultSmsProvider.workspaceId, workspaceId),
       }),
+      getOrCreateMobilePushProviders({ workspaceId }),
+      db().query.defaultMobilePushProvider.findFirst({
+        where: eq(schema.defaultMobilePushProvider.workspaceId, workspaceId),
+      }),
       getSecretAvailability({
         workspaceId,
         names: [
           SecretNames.Webhook,
           ...Object.values(EMAIL_PROVIDER_TYPE_TO_SECRET_NAME),
           ...Object.values(SMS_PROVIDER_TYPE_TO_SECRET_NAME),
+          ...Object.values(MOBILE_PUSH_PROVIDER_TYPE_TO_SECRET_NAME),
         ],
       }),
       getAdminApiKeys({ workspaceId }),
@@ -287,6 +299,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     serverInitialState.subscriptionGroups = subscriptionGroupResources;
     serverInitialState.defaultSmsProvider = defaultSmsProviderRecord;
     serverInitialState.smsProviders = smsProviders;
+    serverInitialState.defaultMobilePushProvider =
+      defaultMobilePushProviderRecord;
+    serverInitialState.mobilePushProviders = mobilePushProviders;
     serverInitialState.adminApiKeys = adminApiKeys;
 
     return {
@@ -302,6 +317,7 @@ const settingsSectionIds = {
   segmentSource: "segment-source",
   emailChannel: "email-channel",
   smsChannel: "sms-channel",
+  mobilePushChannel: "mobile-push-channel",
   webhookChannel: "webhook-channel",
   subscription: "subscriptions",
   authentication: "authentication",
@@ -351,6 +367,15 @@ function getMenuItems(authMode: string | undefined): MenuItemGroup[] {
           icon: SmsOutlined,
           description:
             "Configure email settings, including the email provider credentials.",
+        },
+        {
+          id: "mobile-push",
+          title: "Mobile Push",
+          type: "item",
+          url: `/settings#${settingsSectionIds.mobilePushChannel}`,
+          icon: NotificationsOutlined,
+          description:
+            "Configure mobile push settings, including the Firebase provider credentials.",
         },
         {
           id: "webhook",
@@ -1396,6 +1421,137 @@ function DefaultSmsConfig() {
   );
 }
 
+function DefaultMobilePushConfig() {
+  const {
+    mobilePushProviders,
+    apiBase,
+    workspace,
+    defaultMobilePushProvider,
+    setDefaultMobilePushProvider,
+  } = useAppStorePick([
+    "apiBase",
+    "workspace",
+    "mobilePushProviders",
+    "defaultMobilePushProvider",
+    "setDefaultMobilePushProvider",
+  ]);
+  const [{ defaultProvider, defaultProviderRequest }, setState] = useImmer<{
+    defaultProvider: string | null;
+    defaultProviderRequest: EphemeralRequestStatus<Error>;
+  }>({
+    defaultProvider: defaultMobilePushProvider?.mobilePushProviderId ?? null,
+    defaultProviderRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+  });
+
+  const apiHandler = (mobilePushProviderId: string) => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return;
+    }
+    apiRequestHandlerFactory({
+      request: defaultProviderRequest,
+      setRequest: (request) => {
+        setState((state) => {
+          state.defaultProviderRequest = request;
+        });
+      },
+      responseSchema: EmptyResponse,
+      onSuccessNotice: "Set default mobile push configuration.",
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to set default mobile push configuration.`,
+      setResponse: () => {
+        if (!defaultProvider) {
+          return;
+        }
+        setDefaultMobilePushProvider({
+          workspaceId: workspace.value.id,
+          mobilePushProviderId: defaultProvider,
+        });
+      },
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/settings/mobile-push-providers/default`,
+        data: {
+          workspaceId: workspace.value.id,
+          mobilePushProviderId,
+        } satisfies DefaultMobilePushProviderResource,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+  };
+
+  const options = mobilePushProviders.map((ep) => {
+    let name: string;
+    const { type } = ep;
+    switch (type) {
+      case MobilePushProviderType.Firebase:
+        name = "Firebase";
+        break;
+      case MobilePushProviderType.Test:
+        name = "Test";
+        break;
+      default:
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        assertUnreachable(type as never, "Unknown mobile push provider");
+    }
+    return {
+      value: ep.id,
+      label: name,
+    };
+  });
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "default-mobile-push-section",
+          fieldGroups: [
+            {
+              id: "default-mobile-push-fields",
+              name: "Default Mobile Push Configuration",
+              fields: [
+                {
+                  id: "default-mobile-push-provider",
+                  type: "select",
+                  fieldProps: {
+                    label: "Default Mobile Push Provider",
+                    value: defaultProvider ?? "",
+                    onChange: (value) => {
+                      setState((state) => {
+                        state.defaultProvider = value;
+                      });
+                    },
+                    options,
+                    helperText:
+                      "In order to use mobile push, at least 1 mobile push provider must be configured.",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    >
+      <Button
+        variant="contained"
+        disabled={!defaultProvider}
+        sx={{
+          alignSelf: {
+            xs: "start",
+            sm: "end",
+          },
+        }}
+        onClick={() => apiHandler(defaultProvider ?? "")}
+      >
+        Save
+      </Button>
+    </Fields>
+  );
+}
+
 function Twilios() {
   const secretAvailability = useSecretAvailability();
   return (
@@ -1599,6 +1755,18 @@ function SmsChannelConfig() {
   );
 }
 
+function MobilePushChannelConfig() {
+  return (
+    <>
+      <SectionSubHeader
+        id={settingsSectionIds.mobilePushChannel}
+        title="Mobile Push"
+      />
+      <DefaultMobilePushConfig />
+    </>
+  );
+}
+
 function WebhookChannelConfig() {
   return (
     <>
@@ -1619,6 +1787,7 @@ function MessageChannelsConfig() {
       <SectionHeader title="Message Channels" />
       <EmailChannelConfig />
       <SmsChannelConfig />
+      <MobilePushChannelConfig />
       <WebhookChannelConfig />
     </Stack>
   );

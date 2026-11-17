@@ -20,6 +20,7 @@ import {
   KnownBatchTrackData,
   MessageSendSuccess,
   MessageSendSuccessVariant,
+  MobilePushProviderType,
   SmsProviderType,
 } from "./types";
 import { createWorkspace } from "./workspaces";
@@ -2473,6 +2474,36 @@ describe("deliveries", () => {
       };
       const result = parseSearchDeliveryRow(row);
       expect(result).not.toBeNull();
+    });
+
+    it("accepts a MobilePush success variant without stripping its fields", () => {
+      const variant = {
+        type: ChannelType.MobilePush,
+        provider: { type: MobilePushProviderType.Test },
+        to: "tok-1",
+        title: "Hi",
+        body: "Your order has shipped.",
+        imageUrl: "https://example.com/img.png",
+      };
+      const row: SearchDeliveryRow = {
+        sent_at: "2023-08-01 01:41:18.585",
+        updated_at: "2023-08-01 01:41:18.585",
+        last_event: "DFInternalMessageSent",
+        origin_message_id: randomUUID(),
+        user_or_anonymous_id: randomUUID(),
+        workspace_id: randomUUID(),
+        is_anonymous: 0,
+        properties: JSON.stringify({
+          journeyId: randomUUID(),
+          nodeId: randomUUID(),
+          runId: randomUUID(),
+          templateId: randomUUID(),
+          variant,
+        }),
+      };
+      const result = parseSearchDeliveryRow(row);
+      expect(result).not.toBeNull();
+      expect(result).toMatchObject({ variant });
     });
   });
   describe("getDeliveryBody", () => {

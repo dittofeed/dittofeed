@@ -4,6 +4,7 @@ import {
   EmailProviderType,
   InternalEventType,
   JourneyNodeType,
+  MobilePushProviderType,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
@@ -33,6 +34,7 @@ export enum SecretNames {
   Webhook = "webhook-channel",
   SmsTestProvider = "SmsTestProvider",
   EmailTestProvider = "EmailTestProvider",
+  FcmTestProvider = "FcmTestProvider",
   ViewInBrowser = "view-in-browser-key",
 }
 
@@ -46,6 +48,14 @@ export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<SmsProviderType, string> =
     [SmsProviderType.SignalWire]: SecretNames.SignalWire,
     [SmsProviderType.Test]: SecretNames.SmsTestProvider,
   };
+
+export const MOBILE_PUSH_PROVIDER_TYPE_TO_SECRET_NAME: Record<
+  MobilePushProviderType,
+  string
+> = {
+  [MobilePushProviderType.Firebase]: SecretNames.Fcm,
+  [MobilePushProviderType.Test]: SecretNames.FcmTestProvider,
+};
 
 export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
   WorkspaceWideEmailProviders,

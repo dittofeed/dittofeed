@@ -41,6 +41,8 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         emailProviders: [],
         defaultSmsProvider: null,
         smsProviders: [],
+        defaultMobilePushProvider: null,
+        mobilePushProviders: [],
         traits: [],
         properties: {},
         getTraitsRequest: {
@@ -560,6 +562,10 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setDefaultSmsProvider: (smsProvider) =>
           set((state) => {
             state.defaultSmsProvider = smsProvider;
+          }),
+        setDefaultMobilePushProvider: (mobilePushProvider) =>
+          set((state) => {
+            state.defaultMobilePushProvider = mobilePushProvider;
           }),
         setViewDraft: (viewDraft) =>
           set((state) => {

@@ -266,7 +266,7 @@ function NameCell({ row, getValue }: CellContext<Row, unknown>) {
         channelPath = "sms";
         break;
       case ChannelType.MobilePush:
-        channelPath = "mobilepush";
+        channelPath = "mobile-push";
         break;
       case ChannelType.Webhook:
         channelPath = "webhook";
@@ -537,7 +537,7 @@ export default function TemplatesTable({
             channelPath = "sms";
             break;
           case ChannelType.MobilePush:
-            channelPath = "mobilepush";
+            channelPath = "mobile-push";
             break;
           case ChannelType.Webhook:
             channelPath = "webhook";

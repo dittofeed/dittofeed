@@ -449,13 +449,18 @@ export function DeliveriesTable({
         let subject: string | null | undefined = null;
         let replyTo: string | null | undefined = null;
         if ("variant" in item) {
-          to = item.variant.to;
+          to = "to" in item.variant ? item.variant.to ?? null : null;
           channel = item.variant.type;
           const { variant } = item;
 
           if (variant.type === ChannelType.Webhook) {
             const { request, response } = variant;
             body = JSON.stringify({ request, response }, null, 2);
+          } else if (variant.type === ChannelType.MobilePush) {
+            body =
+              "body" in variant
+                ? [variant.title, variant.body].filter(Boolean).join("\n")
+                : variant.provider.error ?? null;
           } else {
             body = variant.body;
           }

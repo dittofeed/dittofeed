@@ -25,13 +25,16 @@ import { validate as validateUuid } from "uuid";
 
 import { submitBatch } from "./apps/batch";
 import { getObject, storage } from "./blobStorage";
+import config from "./config";
 import { MESSAGE_METADATA_FIELDS } from "./constants";
 import { db, TxQueryError, txQueryResult } from "./db";
 import {
   defaultEmailProvider as dbDefaultEmailProvider,
+  defaultMobilePushProvider as dbDefaultMobilePushProvider,
   defaultSmsProvider as dbDefaultSmsProvider,
   emailProvider as dbEmailProvider,
   messageTemplate as dbMessageTemplate,
+  mobilePushProvider as dbMobilePushProvider,
   secret as dbSecret,
   smsProvider as dbSmsProvider,
   subscriptionGroup as dbSubscriptionGroup,
@@ -42,6 +45,7 @@ import {
   sendMail as sendMailAmazonSes,
   SesMailData,
 } from "./destinations/amazonses";
+import { sendNotification } from "./destinations/fcm";
 import { sendMail as sendMailMailchimp } from "./destinations/mailchimp";
 import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import {
@@ -64,9 +68,7 @@ import {
   sendGmailEmail,
   SendGmailEmailParams,
 } from "./gmail";
-import config from "./config";
 import { renderLiquid } from "./liquid";
-import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import logger from "./logger";
 import {
   constructUnsubscribeHeaders,
@@ -94,6 +96,7 @@ import {
   EmailProviderType,
   EmailProviderTypeSchema,
   EventType,
+  FirebaseSecret,
   InternalEventType,
   KnownBatchTrackData,
   MessageSendFailure,
@@ -107,6 +110,8 @@ import {
   MessageTemplateTestRequest,
   MessageWebhookServiceFailure,
   MessageWebhookSuccess,
+  MobilePushProvider,
+  MobilePushProviderSecret,
   MobilePushProviderType,
   NonRetryableMessageSendFailure,
   ParsedWebhookBody,
@@ -131,6 +136,7 @@ import {
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 import { getUsers } from "./users";
+import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import { isWorkspaceOccupantType } from "./workspaceOccupantSettings";
 
 export function enrichMessageTemplate({
@@ -657,6 +663,65 @@ async function getSmsProvider({
   return getSmsProviderForWorkspace({
     workspaceId: parentWorkspaceId,
     providerOverride,
+  });
+}
+
+async function getMobilePushProviderForWorkspace({
+  provider,
+  workspaceId,
+}: {
+  workspaceId: string;
+  provider?: MobilePushProviderType;
+}): Promise<(MobilePushProvider & { secret: Secret | null }) | null> {
+  if (provider) {
+    const mobilePushProvider = await db().query.mobilePushProvider.findFirst({
+      where: and(
+        eq(dbMobilePushProvider.workspaceId, workspaceId),
+        eq(dbMobilePushProvider.type, provider),
+      ),
+      with: {
+        secret: true,
+      },
+    });
+    return mobilePushProvider ?? null;
+  }
+  const defaultProvider = await db().query.defaultMobilePushProvider.findFirst({
+    where: eq(dbDefaultMobilePushProvider.workspaceId, workspaceId),
+    with: {
+      mobilePushProvider: {
+        with: {
+          secret: true,
+        },
+      },
+    },
+  });
+  return defaultProvider?.mobilePushProvider ?? null;
+}
+
+async function getMobilePushProvider({
+  provider,
+  workspaceId,
+}: {
+  workspaceId: string;
+  provider?: MobilePushProviderType;
+}): Promise<(MobilePushProvider & { secret: Secret | null }) | null> {
+  const mobilePushProvider = await getMobilePushProviderForWorkspace({
+    workspaceId,
+    provider,
+  });
+  if (mobilePushProvider) {
+    return mobilePushProvider;
+  }
+  const workspace = await db().query.workspace.findFirst({
+    where: eq(dbWorkspace.id, workspaceId),
+  });
+  const parentWorkspaceId = workspace?.parentWorkspaceId;
+  if (!parentWorkspaceId) {
+    return null;
+  }
+  return getMobilePushProviderForWorkspace({
+    workspaceId: parentWorkspaceId,
+    provider,
   });
 }
 
@@ -2170,6 +2235,212 @@ export async function sendSms(
   }
 }
 
+export async function sendMobilePush(
+  params: Omit<SendMessageParametersMobilePush, "channel">,
+): Promise<BackendMessageSendResult> {
+  const {
+    workspaceId,
+    templateId,
+    userPropertyAssignments,
+    subscriptionGroupDetails,
+    useDraft,
+    provider,
+    messageTags,
+    isPreview,
+  } = params;
+  const [getSendModelsResult, mobilePushProvider] = await Promise.all([
+    getSendMessageModels({
+      workspaceId,
+      templateId,
+      channel: ChannelType.MobilePush,
+      useDraft,
+      subscriptionGroupDetails,
+    }),
+    getMobilePushProvider({
+      workspaceId,
+      // Provider override has to be nullable to be compatible with JSON schema
+      provider: provider ?? undefined,
+    }),
+  ]);
+  if (getSendModelsResult.isErr()) {
+    return err(getSendModelsResult.error);
+  }
+  const { messageTemplateDefinition } = getSendModelsResult.value;
+
+  if (!mobilePushProvider?.secret) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageServiceProviderNotFound,
+      },
+    });
+  }
+  const mobilePushConfig = mobilePushProvider.secret.configValue;
+
+  const parsedConfigResult = schemaValidateWithErr(
+    mobilePushConfig,
+    MobilePushProviderSecret,
+  );
+  if (parsedConfigResult.isErr()) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+        message: parsedConfigResult.error.message,
+      },
+    });
+  }
+
+  if (messageTemplateDefinition.type !== ChannelType.MobilePush) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateMisconfigured,
+        message: "message template is not a mobile push template",
+      },
+    });
+  }
+  const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.MobilePush];
+
+  const renderedValuesResult = renderValues({
+    userProperties: userPropertyAssignments,
+    identifierKey,
+    subscriptionGroupId: subscriptionGroupDetails?.id,
+    workspaceId,
+    tags: messageTags,
+    isPreview,
+    templates: {
+      title: {
+        contents: messageTemplateDefinition.title,
+      },
+      body: {
+        contents: messageTemplateDefinition.body,
+      },
+      imageUrl: {
+        contents: messageTemplateDefinition.imageUrl,
+      },
+    },
+  });
+
+  if (renderedValuesResult.isErr()) {
+    const { error, field } = renderedValuesResult.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+
+  const rawIdentifier = userPropertyAssignments[identifierKey];
+  let identifier: string | null;
+  switch (typeof rawIdentifier) {
+    case "string":
+      identifier = rawIdentifier;
+      break;
+    case "number":
+      identifier = String(rawIdentifier);
+      break;
+    default:
+      identifier = null;
+      break;
+  }
+
+  if (!identifier) {
+    return err({
+      type: InternalEventType.MessageSkipped,
+      variant: {
+        type: MessageSkippedType.MissingIdentifier,
+        identifierKey,
+      },
+    });
+  }
+  const title = renderedValuesResult.value.title ?? "";
+  const body = renderedValuesResult.value.body ?? "";
+  const { imageUrl } = renderedValuesResult.value;
+  const to = identifier;
+
+  switch (mobilePushProvider.type) {
+    case MobilePushProviderType.Firebase: {
+      const configResult = schemaValidateWithErr(
+        parsedConfigResult.value,
+        FirebaseSecret,
+      );
+      if (configResult.isErr()) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: configResult.error.message,
+          },
+        });
+      }
+
+      const result = await sendNotification({
+        key: configResult.value.serviceAccount,
+        token: to,
+        notification: {
+          title,
+          body,
+          ...(imageUrl ? { imageUrl } : {}),
+        },
+      });
+
+      if (result.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.MobilePush,
+            provider: {
+              type: MobilePushProviderType.Firebase,
+              error: result.error.message,
+            },
+          },
+        });
+      }
+
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.MobilePush,
+          provider: {
+            type: MobilePushProviderType.Firebase,
+            messageId: result.value,
+          },
+          to,
+          title,
+          body,
+          ...(imageUrl ? { imageUrl } : {}),
+        },
+      });
+    }
+    case MobilePushProviderType.Test:
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.MobilePush,
+          provider: {
+            type: MobilePushProviderType.Test,
+          },
+          to,
+          title,
+          body,
+          ...(imageUrl ? { imageUrl } : {}),
+        },
+      });
+    default: {
+      return err({
+        type: InternalEventType.BadWorkspaceConfiguration,
+        variant: {
+          type: BadWorkspaceConfigurationType.MessageServiceProviderNotFound,
+        },
+      });
+    }
+  }
+}
+
 export async function sendWebhook({
   workspaceId,
   templateId,
@@ -2418,7 +2689,7 @@ export async function sendMessage(
       case ChannelType.Sms:
         return sendSms(params);
       case ChannelType.MobilePush:
-        throw new Error("not implemented");
+        return sendMobilePush(params);
       case ChannelType.Webhook:
         return sendWebhook(params);
     }
