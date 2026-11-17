@@ -91,6 +91,7 @@ import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
 import { PermissionsTable } from "../components/permissionsTable";
+import { PiiSettings } from "../components/piiSettings";
 import WebhookSecretTable from "../components/webhookSecretTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
@@ -310,6 +311,7 @@ const settingsSectionIds = {
   hubspotIntegration: "hubspot-integration",
   workspaceMetadata: "workspace-metadata",
   permissions: "permissions",
+  pii: "pii",
 } as const;
 
 function getMenuItems(authMode: string | undefined): MenuItemGroup[] {
@@ -440,6 +442,15 @@ function getMenuItems(authMode: string | undefined): MenuItemGroup[] {
           url: `/settings#${settingsSectionIds.permissions}`,
           icon: Key,
           description: "Manage workspace member roles and permissions.",
+        },
+        {
+          id: "privacy-pii",
+          title: "Privacy / PII",
+          type: "item",
+          url: `/settings#${settingsSectionIds.pii}`,
+          icon: Key,
+          description:
+            "Mark PII fields and review plaintext access audit logs.",
         },
       ],
       url: `/settings#${settingsSectionIds.permissions}`,
@@ -2335,6 +2346,23 @@ function PermissionsSettings() {
   );
 }
 
+function PiiSettingsSection() {
+  const { authMode } = useAppStorePick(["authMode"]);
+  if (authMode !== "multi-tenant") {
+    return null;
+  }
+  return (
+    <Stack spacing={3}>
+      <SectionHeader
+        id={settingsSectionIds.pii}
+        title="Privacy / PII"
+        description="Mark personal data fields and audit plaintext access."
+      />
+      <PiiSettings />
+    </Stack>
+  );
+}
+
 function SettingsContents() {
   const { inTransition } = useAppStorePick(["inTransition"]);
   if (inTransition) {
@@ -2348,6 +2376,7 @@ function SettingsContents() {
       <SubscriptionManagementSettings />
       <IntegrationSettings />
       <PermissionsSettings />
+      <PiiSettingsSection />
       <Metadata />
     </>
   );

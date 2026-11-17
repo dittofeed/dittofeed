@@ -42,6 +42,7 @@ import { useAppStore } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import { EventResources } from "../lib/types";
 import EventDetailsSidebar from "./eventDetailsSidebar";
+import { isPiiMaskedValue, PiiMaskedChip } from "./piiMask";
 
 interface EventsState {
   pageSize: number;
@@ -267,17 +268,20 @@ export function EventsTable({
     {
       field: "userId",
       headerName: "User Id",
-      renderCell: ({ value }: GridRenderCellParams) => (
-        <LinkCell href={`/users/${value}`} title={value}>
-          <Box
-            sx={{
-              fontFamily: "monospace",
-            }}
-          >
-            {value}
-          </Box>
-        </LinkCell>
-      ),
+      renderCell: ({ value }: GridRenderCellParams) =>
+        isPiiMaskedValue(value) ? (
+          <PiiMaskedChip />
+        ) : (
+          <LinkCell href={`/users/${value}`} title={value}>
+            <Box
+              sx={{
+                fontFamily: "monospace",
+              }}
+            >
+              {value}
+            </Box>
+          </LinkCell>
+        ),
     },
     {
       field: "eventType",

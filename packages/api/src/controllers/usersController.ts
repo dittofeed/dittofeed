@@ -1,4 +1,9 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import {
+  getPiiPolicy,
+  maskUserProperties,
+  recordPiiAccess,
+} from "backend-lib/src/pii";
 import { getUserSubscriptions } from "backend-lib/src/subscriptionGroups";
 import {
   BadRequestResponse,
@@ -9,9 +14,12 @@ import {
   GetUsersResponse,
   GetUserSubscriptionsRequest,
   GetUserSubscriptionsResponse,
+  PiiFieldScopeEnum,
 } from "backend-lib/src/types";
 import { deleteUsers, getUsers, getUsersCount } from "backend-lib/src/users";
 import { FastifyInstance } from "fastify";
+
+import { canUnmaskPii, getRequestMemberId } from "../buildApp/authorization";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function usersController(fastify: FastifyInstance) {
@@ -36,8 +44,33 @@ export default async function usersController(fastify: FastifyInstance) {
         });
       }
       const { users, nextCursor, previousCursor, userCount } = result.value;
+      const policy = await getPiiPolicy(request.body.workspaceId);
+      const unmaskPii = canUnmaskPii(request);
+      const maskedFieldNames = new Set<string>();
+      const presentedUsers = users.map((user) => {
+        const masked = maskUserProperties({
+          properties: user.properties,
+          policy,
+          apply: !unmaskPii,
+        });
+        for (const fieldName of masked.maskedFieldNames) {
+          maskedFieldNames.add(fieldName);
+        }
+        return { ...user, properties: masked.properties };
+      });
+      await recordPiiAccess({
+        viewer: {
+          workspaceId: request.body.workspaceId,
+          workspaceMemberId: getRequestMemberId(request),
+          unmaskPii,
+        },
+        action: "ViewUsers",
+        scope: PiiFieldScopeEnum.UserProperty,
+        fields: maskedFieldNames,
+        resourceIds: presentedUsers.map((user) => user.id),
+      });
       return reply.status(200).send({
-        users,
+        users: presentedUsers,
         nextCursor,
         previousCursor,
         userCount,

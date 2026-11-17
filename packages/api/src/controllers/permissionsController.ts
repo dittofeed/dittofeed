@@ -16,6 +16,8 @@ import {
   WorkspaceMemberRoleResource,
 } from "isomorphic-lib/src/types";
 
+import { isWorkspaceAdmin } from "../buildApp/authorization";
+
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function permissionsController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
@@ -46,11 +48,15 @@ export default async function permissionsController(fastify: FastifyInstance) {
         response: {
           201: WorkspaceMemberRoleResource,
           400: EmptyResponse,
+          403: EmptyResponse,
           404: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       try {
         const role = await createWorkspaceMemberRole(request.body);
         return reply.status(201).send(role);
@@ -77,11 +83,15 @@ export default async function permissionsController(fastify: FastifyInstance) {
         body: UpdateWorkspaceMemberRoleRequest,
         response: {
           200: WorkspaceMemberRoleResource,
+          403: EmptyResponse,
           404: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       try {
         const role = await updateWorkspaceMemberRole(request.body);
         return reply.status(200).send(role);
@@ -103,11 +113,15 @@ export default async function permissionsController(fastify: FastifyInstance) {
         body: DeleteWorkspaceMemberRoleRequest,
         response: {
           204: EmptyResponse,
+          403: EmptyResponse,
           404: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const success = await deleteWorkspaceMemberRole(request.body);
       if (!success) {
         return reply.status(404).send();

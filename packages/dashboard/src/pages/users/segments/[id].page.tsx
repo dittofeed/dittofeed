@@ -16,6 +16,7 @@ import { SubtleHeader } from "../../../components/headers";
 import { ResourceListItemButton } from "../../../components/resourceList";
 import { UserLayout } from "../../../components/userLayout";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
+import { maskUsersForViewer } from "../../../lib/pii";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
 
@@ -46,7 +47,11 @@ export const getServerSideProps: GetServerSideProps<
     throw new Error("Unable to retrieve user");
   }
 
-  const [user] = usersResult.value.users;
+  const [user] = await maskUsersForViewer({
+    users: usersResult.value.users,
+    dfContext,
+    action: "ViewUserSegments",
+  });
 
   if (!user) {
     return { notFound: true };

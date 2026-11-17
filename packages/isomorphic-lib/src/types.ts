@@ -2793,6 +2793,8 @@ const GetUsersResponseItem = Type.Object({
     Type.Object({
       name: Type.String(),
       value: Type.Any(),
+      // True when the value was replaced with the PII mask placeholder.
+      piiMasked: Type.Optional(Type.Boolean()),
     }),
   ),
   segments: Type.Array(
@@ -2899,6 +2901,7 @@ export const WorkspaceMemberRoleResource = Type.Object({
   workspaceMemberId: Type.String(),
   workspaceId: Type.String(),
   workspaceName: Type.String(),
+  unmaskPii: Type.Boolean(),
 });
 
 export type WorkspaceMemberRoleResource = Static<
@@ -2909,6 +2912,7 @@ export const CreateWorkspaceMemberRoleRequest = Type.Object({
   workspaceId: Type.String(),
   email: Type.String(),
   role: Role,
+  unmaskPii: Type.Optional(Type.Boolean()),
 });
 
 export type CreateWorkspaceMemberRoleRequest = Static<
@@ -2918,7 +2922,8 @@ export type CreateWorkspaceMemberRoleRequest = Static<
 export const UpdateWorkspaceMemberRoleRequest = Type.Object({
   workspaceId: Type.String(),
   email: Type.String(),
-  role: Role,
+  role: Type.Optional(Role),
+  unmaskPii: Type.Optional(Type.Boolean()),
 });
 
 export type UpdateWorkspaceMemberRoleRequest = Static<
@@ -2957,6 +2962,124 @@ export type GetWorkspaceMemberRolesResponse = Static<
   typeof GetWorkspaceMemberRolesResponse
 >;
 
+export const PiiFieldScopeEnum = {
+  UserProperty: "UserProperty",
+  EventProperty: "EventProperty",
+  Column: "Column",
+} as const;
+
+export type PiiFieldScope =
+  (typeof PiiFieldScopeEnum)[keyof typeof PiiFieldScopeEnum];
+export const PiiFieldScope = Type.Enum(PiiFieldScopeEnum);
+
+export const PiiCategoryEnum = {
+  Email: "Email",
+  Phone: "Phone",
+  Name: "Name",
+  Address: "Address",
+  GovernmentId: "GovernmentId",
+  Financial: "Financial",
+  DateOfBirth: "DateOfBirth",
+  IpAddress: "IpAddress",
+  DeviceId: "DeviceId",
+  Other: "Other",
+} as const;
+
+export type PiiCategory =
+  (typeof PiiCategoryEnum)[keyof typeof PiiCategoryEnum];
+export const PiiCategory = Type.Enum(PiiCategoryEnum);
+
+export const PiiFieldResource = Type.Object({
+  id: Type.String(),
+  scope: PiiFieldScope,
+  name: Type.String(),
+  category: PiiCategory,
+  createdAt: Type.String(),
+  updatedAt: Type.String(),
+});
+
+export type PiiFieldResource = Static<typeof PiiFieldResource>;
+
+export const GetPiiFieldsRequest = Type.Object({
+  workspaceId: Type.String(),
+  scope: Type.Optional(PiiFieldScope),
+});
+
+export type GetPiiFieldsRequest = Static<typeof GetPiiFieldsRequest>;
+
+export const GetPiiFieldsResponse = Type.Object({
+  fields: Type.Array(PiiFieldResource),
+});
+
+export type GetPiiFieldsResponse = Static<typeof GetPiiFieldsResponse>;
+
+export const CreatePiiFieldRequest = Type.Object({
+  workspaceId: Type.String(),
+  scope: PiiFieldScope,
+  name: Type.String({ minLength: 1 }),
+  category: Type.Optional(PiiCategory),
+});
+
+export type CreatePiiFieldRequest = Static<typeof CreatePiiFieldRequest>;
+
+export const CreatePiiFieldsRequest = Type.Object({
+  workspaceId: Type.String(),
+  fields: Type.Array(
+    Type.Object({
+      scope: PiiFieldScope,
+      name: Type.String({ minLength: 1 }),
+      category: Type.Optional(PiiCategory),
+    }),
+  ),
+});
+
+export type CreatePiiFieldsRequest = Static<typeof CreatePiiFieldsRequest>;
+
+export const UpdatePiiFieldRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+  category: Type.Optional(PiiCategory),
+});
+
+export type UpdatePiiFieldRequest = Static<typeof UpdatePiiFieldRequest>;
+
+export const DeletePiiFieldRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+});
+
+export type DeletePiiFieldRequest = Static<typeof DeletePiiFieldRequest>;
+
+export const PiiAccessAuditResource = Type.Object({
+  id: Type.String(),
+  workspaceMemberId: Type.Optional(Type.String()),
+  action: Type.String(),
+  scope: PiiFieldScope,
+  fieldName: Type.String(),
+  resourceIds: Type.Array(Type.String()),
+  recordCount: Type.Number(),
+  createdAt: Type.String(),
+});
+
+export type PiiAccessAuditResource = Static<typeof PiiAccessAuditResource>;
+
+export const GetPiiAccessAuditRequest = Type.Object({
+  workspaceId: Type.String(),
+  limit: Type.Optional(Type.Number()),
+  cursor: Type.Optional(Type.String()),
+});
+
+export type GetPiiAccessAuditRequest = Static<typeof GetPiiAccessAuditRequest>;
+
+export const GetPiiAccessAuditResponse = Type.Object({
+  audits: Type.Array(PiiAccessAuditResource),
+  nextCursor: Type.Optional(Type.String()),
+});
+
+export type GetPiiAccessAuditResponse = Static<
+  typeof GetPiiAccessAuditResponse
+>;
+
 export interface DFRequestContext {
   workspace: WorkspaceResource & {
     type: WorkspaceTypeApp;
@@ -2964,6 +3087,8 @@ export interface DFRequestContext {
   };
   member: WorkspaceMemberResource;
   memberRoles: WorkspaceMemberRoleResource[];
+  // Whether the current member may view raw PII values in this workspace.
+  unmaskPii: boolean;
 }
 
 export const UserSubscriptionResource = Type.Object({

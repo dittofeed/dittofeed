@@ -90,6 +90,13 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
     request.requestContext.set("workspace", workspace);
     request.requestContext.set("member", member);
     request.requestContext.set("memberRoles", memberRoles);
+    // Only the role for the workspace being addressed grants the plaintext
+    // permission; roles from sibling workspaces must not leak into it.
+    request.requestContext.set(
+      "unmaskPii",
+      memberRoles.find((role) => role.workspaceId === workspace.id)
+        ?.unmaskPii ?? false,
+    );
     return null;
   });
 });

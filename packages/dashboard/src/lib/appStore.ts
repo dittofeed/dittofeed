@@ -33,6 +33,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         secretAvailability: [],
         member: null,
         memberRoles: [],
+        unmaskPii: false,
         dataSourceConfigurations: {
           type: CompletionStatus.NotStarted,
         },

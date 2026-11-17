@@ -1,5 +1,10 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
+  getPiiPolicy,
+  maskUserEvent,
+  recordPiiAccess,
+} from "backend-lib/src/pii";
+import {
   DownloadEventsRequest,
   GetEventsRequest,
   GetEventsResponse,
@@ -8,6 +13,7 @@ import {
   GetPropertiesResponse,
   GetTraitsRequest,
   GetTraitsResponse,
+  PiiFieldScopeEnum,
 } from "backend-lib/src/types";
 import {
   buildEventsFile,
@@ -16,6 +22,8 @@ import {
   findTrackProperties,
 } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
+
+import { canUnmaskPii, getRequestMemberId } from "../buildApp/authorization";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function eventsController(fastify: FastifyInstance) {
@@ -69,8 +77,31 @@ export default async function eventsController(fastify: FastifyInstance) {
           };
         },
       );
+
+      const policy = await getPiiPolicy(request.query.workspaceId);
+      const unmaskPii = canUnmaskPii(request);
+      const maskedFieldNames = new Set<string>();
+      const presentedEvents = events.map((event) => {
+        const masked = maskUserEvent({ event, policy, apply: !unmaskPii });
+        for (const fieldName of masked.maskedFieldNames) {
+          maskedFieldNames.add(fieldName);
+        }
+        return masked.event;
+      });
+      await recordPiiAccess({
+        viewer: {
+          workspaceId: request.query.workspaceId,
+          workspaceMemberId: getRequestMemberId(request),
+          unmaskPii,
+        },
+        action: "ViewEvents",
+        scope: PiiFieldScopeEnum.EventProperty,
+        fields: maskedFieldNames,
+        resourceIds: presentedEvents.map((event) => event.messageId),
+      });
+
       return reply.status(200).send({
-        events,
+        events: presentedEvents,
         count,
       });
     },
@@ -130,7 +161,23 @@ export default async function eventsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { fileName, fileContent } = await buildEventsFile(request.query);
+      const policy = await getPiiPolicy(request.query.workspaceId);
+      const unmaskPii = canUnmaskPii(request);
+      const { fileName, fileContent } = await buildEventsFile(request.query, {
+        policy,
+        apply: !unmaskPii,
+      });
+      await recordPiiAccess({
+        viewer: {
+          workspaceId: request.query.workspaceId,
+          workspaceMemberId: getRequestMemberId(request),
+          unmaskPii,
+        },
+        action: "DownloadEvents",
+        scope: PiiFieldScopeEnum.EventProperty,
+        fields: policy.byScope[PiiFieldScopeEnum.EventProperty],
+        resourceIds: [],
+      });
 
       return reply
         .header("Content-Disposition", `attachment; filename=${fileName}`)

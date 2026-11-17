@@ -33,6 +33,7 @@ export async function getWorkspaceMemberRoles({
         workspaceMemberId: schema.workspaceMemberRole.workspaceMemberId,
         workspaceId: schema.workspaceMemberRole.workspaceId,
         workspaceName: schema.workspace.name,
+        unmaskPii: schema.workspaceMemberRole.unmaskPii,
       },
     })
     .from(schema.workspaceMemberRole)
@@ -82,6 +83,7 @@ export async function createWorkspaceMemberRole({
   workspaceId,
   email: providedEmail,
   role,
+  unmaskPii = false,
 }: CreateWorkspaceMemberRoleRequest): Promise<WorkspaceMemberRoleResource> {
   const email = providedEmail.trim();
   const workspace = await db().query.workspace.findFirst({
@@ -129,6 +131,7 @@ export async function createWorkspaceMemberRole({
     workspaceId,
     workspaceMemberId: workspaceMember.id,
     role,
+    unmaskPii,
   });
 
   return {
@@ -136,6 +139,7 @@ export async function createWorkspaceMemberRole({
     workspaceMemberId: workspaceMember.id,
     workspaceId,
     workspaceName: workspace.name,
+    unmaskPii,
   };
 }
 
@@ -143,6 +147,7 @@ export async function updateWorkspaceMemberRole({
   workspaceId,
   email,
   role,
+  unmaskPii,
 }: UpdateWorkspaceMemberRoleRequest): Promise<WorkspaceMemberRoleResource> {
   const workspace = await db().query.workspace.findFirst({
     where: eq(schema.workspace.id, workspaceId),
@@ -173,7 +178,10 @@ export async function updateWorkspaceMemberRole({
 
   await db()
     .update(schema.workspaceMemberRole)
-    .set({ role })
+    .set({
+      ...(role !== undefined ? { role } : {}),
+      ...(unmaskPii !== undefined ? { unmaskPii } : {}),
+    })
     .where(
       and(
         eq(schema.workspaceMemberRole.workspaceId, workspaceId),
@@ -182,10 +190,11 @@ export async function updateWorkspaceMemberRole({
     );
 
   return {
-    role,
+    role: role ?? existingRole.role,
     workspaceMemberId: workspaceMember.id,
     workspaceId,
     workspaceName: workspace.name,
+    unmaskPii: unmaskPii ?? existingRole.unmaskPii,
   };
 }
 

@@ -7,11 +7,19 @@ import {
 } from "backend-lib/src/deliveries";
 import logger from "backend-lib/src/logger";
 import {
+  getPiiPolicy,
+  maskDeliveryItem,
+  recordPiiAccess,
+} from "backend-lib/src/pii";
+import {
   DownloadDeliveriesRequest,
+  PiiFieldScopeEnum,
   SearchDeliveriesRequest,
   SearchDeliveriesResponse,
 } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
+
+import { canUnmaskPii, getRequestMemberId } from "../buildApp/authorization";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function deliveriesController(fastify: FastifyInstance) {
@@ -45,7 +53,32 @@ export default async function deliveriesController(fastify: FastifyInstance) {
         ...request.query,
         abortSignal: controller.signal,
       });
-      return reply.status(200).send(deliveries);
+      const policy = await getPiiPolicy(request.query.workspaceId);
+      const unmaskPii = canUnmaskPii(request);
+      const maskedFieldNames = new Set<string>();
+      const items = deliveries.items.map((item) => {
+        const masked = maskDeliveryItem({
+          item,
+          policy,
+          apply: !unmaskPii,
+        });
+        for (const fieldName of masked.maskedFieldNames) {
+          maskedFieldNames.add(fieldName);
+        }
+        return masked.item;
+      });
+      await recordPiiAccess({
+        viewer: {
+          workspaceId: request.query.workspaceId,
+          workspaceMemberId: getRequestMemberId(request),
+          unmaskPii,
+        },
+        action: "ViewDeliveries",
+        scope: PiiFieldScopeEnum.Column,
+        fields: maskedFieldNames,
+        resourceIds: items.map((item) => item.originMessageId),
+      });
+      return reply.status(200).send({ ...deliveries, items });
     },
   );
 
@@ -100,9 +133,28 @@ export default async function deliveriesController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const policy = await getPiiPolicy(request.query.workspaceId);
+      const unmaskPii = canUnmaskPii(request);
+      const columns = policy.byScope[PiiFieldScopeEnum.Column];
       const { fileName, fileContent } = await buildDeliveriesFile(
         request.query,
+        {
+          maskUserId: !unmaskPii && columns.has("deliveries.userid"),
+        },
       );
+      await recordPiiAccess({
+        viewer: {
+          workspaceId: request.query.workspaceId,
+          workspaceMemberId: getRequestMemberId(request),
+          unmaskPii,
+        },
+        action: "DownloadDeliveries",
+        scope: PiiFieldScopeEnum.Column,
+        fields: ["Deliveries.userId"].filter((field) =>
+          columns.has(field.toLowerCase()),
+        ),
+        resourceIds: [],
+      });
       return reply
         .header("Content-Disposition", `attachment; filename=${fileName}`)
         .type("text/csv")

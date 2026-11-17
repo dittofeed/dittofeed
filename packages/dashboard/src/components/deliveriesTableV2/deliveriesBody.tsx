@@ -81,6 +81,7 @@ import EmailPreviewHeader from "../emailPreviewHeader";
 import { GreyButton } from "../greyButtonStyle";
 import EmailPreviewBody from "../messages/emailPreview";
 import { WebhookPreviewBody } from "../messages/webhookPreview";
+import { isPiiMaskedValue, PiiMaskedChip } from "../piiMask";
 import SmsPreviewBody from "../smsPreviewBody";
 import TemplatePreview from "../templatePreview";
 import { DEFAULT_ALLOWED_COLUMNS } from "./constants";
@@ -240,6 +241,9 @@ function LinkCell({
 
   if (!value) {
     return null;
+  }
+  if (isPiiMaskedValue(value)) {
+    return <PiiMaskedChip />;
   }
   return (
     <Tooltip title={value} placement="bottom-start">
@@ -470,6 +474,10 @@ function UserIdCell({ value }: { value: string }) {
     navigator.clipboard.writeText(value);
     setShowCopied(true);
   };
+
+  if (isPiiMaskedValue(value)) {
+    return <PiiMaskedChip />;
+  }
 
   return (
     <>
