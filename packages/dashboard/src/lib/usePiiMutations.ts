@@ -56,11 +56,7 @@ export function useUpdatePiiFieldMutation() {
   const baseApiUrl = useBaseApiUrl();
   const invalidate = usePiiInvalidate();
 
-  return useMutation<
-    void,
-    AxiosError,
-    { id: string; category: PiiCategory }
-  >({
+  return useMutation<void, AxiosError, { id: string; category: PiiCategory }>({
     mutationFn: async ({ id, category }) => {
       if (workspace.type !== CompletionStatus.Successful) {
         throw new Error("Workspace not available");

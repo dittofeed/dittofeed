@@ -413,7 +413,9 @@ const emailCellRenderer = ({
   row,
 }: {
   row: { original: { id: string; email: string; emailMasked?: boolean } };
-}) => <EmailCell email={row.original.email} masked={row.original.emailMasked} />;
+}) => (
+  <EmailCell email={row.original.email} masked={row.original.emailMasked} />
+);
 
 const segmentsCellRenderer = ({
   row,

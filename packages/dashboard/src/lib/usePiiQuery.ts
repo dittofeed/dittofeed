@@ -59,7 +59,10 @@ export function usePiiFieldsQuery(
   };
 
   return useQuery({
-    queryKey: [PII_FIELDS_QUERY_KEY, { workspaceId: workspaceId ?? "", scope }] as const,
+    queryKey: [
+      PII_FIELDS_QUERY_KEY,
+      { workspaceId: workspaceId ?? "", scope },
+    ] as const,
     queryFn,
     enabled: !!workspaceId,
     ...options,
@@ -124,7 +127,10 @@ export function usePiiAuditQuery(
   };
 
   return useQuery({
-    queryKey: [PII_AUDIT_QUERY_KEY, { workspaceId: workspaceId ?? "" }] as const,
+    queryKey: [
+      PII_AUDIT_QUERY_KEY,
+      { workspaceId: workspaceId ?? "" },
+    ] as const,
     queryFn,
     enabled: !!workspaceId,
     ...options,

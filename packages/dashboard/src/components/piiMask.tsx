@@ -25,6 +25,10 @@ export function isPiiMaskedValue(value: unknown, masked?: boolean): boolean {
   return masked === true || value === PII_MASKED;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 /**
  * True when any leaf of a parsed JSON structure is the mask placeholder. Used
  * to flag partially masked documents such as event traits.
@@ -36,10 +40,8 @@ export function containsMaskedValue(value: unknown): boolean {
   if (Array.isArray(value)) {
     return value.some(containsMaskedValue);
   }
-  if (value !== null && typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).some(
-      containsMaskedValue,
-    );
+  if (isPlainObject(value)) {
+    return Object.values(value).some(containsMaskedValue);
   }
   return false;
 }

@@ -121,7 +121,9 @@ function PiiAuditTable() {
         <TableBody>
           {audits.map((audit) => (
             <TableRow key={audit.id}>
-              <TableCell>{new Date(audit.createdAt).toLocaleString()}</TableCell>
+              <TableCell>
+                {new Date(audit.createdAt).toLocaleString()}
+              </TableCell>
               <TableCell>{audit.action}</TableCell>
               <TableCell>
                 <Chip size="small" label={audit.fieldName} />
@@ -264,6 +266,31 @@ function PiiScopeEditor({ scope }: { scope: PiiFieldScope }) {
   );
 }
 
+function PiiScopeEditorReadOnly({ scope }: { scope: PiiFieldScope }) {
+  const fieldsQuery = usePiiFieldsQuery(scope);
+  const fields = fieldsQuery.data?.fields ?? [];
+  if (fieldsQuery.isLoading) {
+    return <CircularProgress size={20} />;
+  }
+  return (
+    <Stack direction="row" spacing={1} flexWrap="wrap">
+      {fields.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          No fields marked as PII.
+        </Typography>
+      ) : (
+        fields.map((field) => (
+          <Chip
+            key={field.id}
+            size="small"
+            label={`${field.name} · ${field.category}`}
+          />
+        ))
+      )}
+    </Stack>
+  );
+}
+
 export function PiiSettings() {
   const [scope, setScope] = useState<PiiFieldScope>(
     PiiFieldScopeEnum.UserProperty,
@@ -278,8 +305,7 @@ export function PiiSettings() {
     workspace.type === CompletionStatus.Successful &&
     memberRoles.some(
       (role) =>
-        role.workspaceId === workspace.value.id &&
-        role.role === RoleEnum.Admin,
+        role.workspaceId === workspace.value.id && role.role === RoleEnum.Admin,
     );
 
   return (
@@ -323,27 +349,6 @@ export function PiiSettings() {
           Single-tenant deployments always mask PII because there are no member
           roles to grant plaintext access to.
         </Alert>
-      )}
-    </Stack>
-  );
-}
-
-function PiiScopeEditorReadOnly({ scope }: { scope: PiiFieldScope }) {
-  const fieldsQuery = usePiiFieldsQuery(scope);
-  const fields = fieldsQuery.data?.fields ?? [];
-  if (fieldsQuery.isLoading) {
-    return <CircularProgress size={20} />;
-  }
-  return (
-    <Stack direction="row" spacing={1} flexWrap="wrap">
-      {fields.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
-          No fields marked as PII.
-        </Typography>
-      ) : (
-        fields.map((field) => (
-          <Chip key={field.id} size="small" label={`${field.name} · ${field.category}`} />
-        ))
       )}
     </Stack>
   );
