@@ -11,7 +11,8 @@
   "scripts": {
     "admin": "yarn workspace admin-cli cli \"$@\"",
     "test:file": "./scripts/test-to-file.sh",
-    "test:temporal": "jest --selectProjects backend-lib --group=temporal"
+    "test:temporal": "jest --selectProjects backend-lib --group=temporal",
+    "e2e": "yarn workspace dashboard-e2e e2e"
   },
   "license": "MIT",
   "devDependencies": {
