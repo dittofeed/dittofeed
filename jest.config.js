@@ -83,6 +83,7 @@ const config = {
       roots: ["<rootDir>/packages/api/src"],
       globalTeardown: "<rootDir>/packages/backend-lib/test/globalTeardown.ts",
       globalSetup: "<rootDir>/packages/backend-lib/test/globalSetup.ts",
+      setupFiles: ["<rootDir>/packages/api/test/env.ts"],
       setupFilesAfterEnv: [
         "<rootDir>/packages/backend-lib/test/setup.ts",
         "jest-expect-message",

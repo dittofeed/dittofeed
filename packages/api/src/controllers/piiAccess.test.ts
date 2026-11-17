@@ -36,10 +36,10 @@ import buildApp from "../buildApp";
  * the fastify preHandler, workspace authorization, controllers and database.
  *
  * Requires a multi-tenant environment, because the member-level `unmaskPii`
- * permission is only resolved for authenticated members. Run with:
- *
- *   AUTH_MODE=multi-tenant AUTH_PROVIDER=test jest --selectProjects api \
- *     --testPathPattern piiAccess
+ * permission is only resolved for authenticated members. The api jest project
+ * sets `AUTH_MODE=multi-tenant` and `AUTH_PROVIDER=test` for every api test
+ * through `packages/api/test/env.ts`, so no extra environment is needed when
+ * running the suite locally or in CI.
  */
 
 const signer = createSigner({ algorithm: "none" });
