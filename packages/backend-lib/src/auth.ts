@@ -24,7 +24,19 @@ const decoder = createDecoder();
 
 export function decodeJwtHeader(header: string): OpenIdProfile | null {
   const bearerToken = header.replace("Bearer ", "");
-  const decoded: unknown | null = bearerToken ? decoder(bearerToken) : null;
+  if (!bearerToken) {
+    return null;
+  }
+
+  let decoded: unknown;
+  try {
+    decoded = decoder(bearerToken);
+  } catch {
+    // Decoding throws on tokens that aren't well formed JWTs, e.g. an admin API
+    // key sent as a bearer token. Treat those as "not authenticated" instead of
+    // letting the exception surface as a 500.
+    return null;
+  }
 
   if (!decoded) {
     return null;

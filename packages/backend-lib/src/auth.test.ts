@@ -4,11 +4,64 @@ import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { toBase64 } from "isomorphic-lib/src/encode";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { getOrCreateWriteKey, validateWriteKey } from "./auth";
+import { decodeJwtHeader, getOrCreateWriteKey, validateWriteKey } from "./auth";
 import { db } from "./db";
 import { secret as dbSecret } from "./db/schema";
 import { Workspace } from "./types";
 import { createWorkspace } from "./workspaces";
+
+function base64UrlJson(value: unknown): string {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+function buildToken(payload: unknown): string {
+  return [
+    base64UrlJson({ alg: "none", typ: "JWT" }),
+    base64UrlJson(payload),
+    "signature",
+  ].join(".");
+}
+
+describe("decodeJwtHeader", () => {
+  it("should decode a well formed token", () => {
+    const token = buildToken({
+      sub: "member-1",
+      email: "member@example.com",
+      email_verified: "true",
+    });
+    expect(decodeJwtHeader(`Bearer ${token}`)).toEqual({
+      sub: "member-1",
+      email: "member@example.com",
+      email_verified: "true",
+    });
+  });
+
+  it("should accept a token without the bearer prefix", () => {
+    const token = buildToken({
+      sub: "member-1",
+      email: "member@example.com",
+      email_verified: true,
+    });
+    expect(decodeJwtHeader(token)).toMatchObject({
+      email: "member@example.com",
+    });
+  });
+
+  it("should return null for a token that is not a jwt", () => {
+    expect(() => decodeJwtHeader("Bearer not-a-jwt")).not.toThrow();
+    expect(decodeJwtHeader("Bearer not-a-jwt")).toBeNull();
+  });
+
+  it("should return null for an empty header", () => {
+    expect(decodeJwtHeader("Bearer ")).toBeNull();
+    expect(decodeJwtHeader("")).toBeNull();
+  });
+
+  it("should return null when required claims are missing", () => {
+    const token = buildToken({ sub: "member-1" });
+    expect(decodeJwtHeader(`Bearer ${token}`)).toBeNull();
+  });
+});
 
 describe("validateWriteKey", () => {
   let workspace: Workspace;
