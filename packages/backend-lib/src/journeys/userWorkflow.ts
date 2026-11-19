@@ -43,6 +43,10 @@ import {
   WaitForNode,
   WaitForSegmentChild,
 } from "../types";
+import {
+  messageNodeVariantLabel,
+  pickMessageNodeVariant,
+} from "./messageNodeVariants";
 import { SendParamsV2 } from "./userWorkflow/activities";
 import { GetSegmentAssignmentVersion } from "./userWorkflow/types";
 
@@ -881,16 +885,27 @@ export async function userJourneyWorkflow(
         };
 
         let variant: RenameKey<MessageVariant, "type", "channel">;
-        switch (currentNode.variant.type) {
+        // A node under test sends the arm this recipient was assigned to, which
+        // is stable across replays and re-entries. A node without arms sends its
+        // plain `variant`, so existing journeys are untouched.
+        const selectedVariant = pickMessageNodeVariant({
+          variants: currentNode.variants,
+          workspaceId,
+          journeyId,
+          nodeId: currentNode.id,
+          userId,
+        });
+        const senderVariant = selectedVariant?.variant ?? currentNode.variant;
+        switch (senderVariant.type) {
           case ChannelType.Email: {
             variant = {
-              ...omit(currentNode.variant, ["type"]),
-              channel: currentNode.variant.type,
+              ...omit(senderVariant, ["type"]),
+              channel: senderVariant.type,
             };
             break;
           }
           case ChannelType.Sms: {
-            const { providerOverride, senderOverride } = currentNode.variant;
+            const { providerOverride, senderOverride } = senderVariant;
 
             let smsProviderOverride: SmsProviderOverride;
             switch (providerOverride) {
@@ -916,23 +931,23 @@ export async function userJourneyWorkflow(
             const smsVariant: RenameKey<SmsMessageVariant, "type", "channel"> =
               {
                 ...smsProviderOverride,
-                templateId: currentNode.variant.templateId,
-                channel: currentNode.variant.type,
+                templateId: senderVariant.templateId,
+                channel: senderVariant.type,
               };
             variant = smsVariant;
             break;
           }
           case ChannelType.Webhook: {
             variant = {
-              ...omit(currentNode.variant, ["type"]),
-              channel: currentNode.variant.type,
+              ...omit(senderVariant, ["type"]),
+              channel: senderVariant.type,
             };
             break;
           }
           case ChannelType.MobilePush: {
             variant = {
-              ...omit(currentNode.variant, ["type"]),
-              channel: currentNode.variant.type,
+              ...omit(senderVariant, ["type"]),
+              channel: senderVariant.type,
             };
             break;
           }
@@ -947,6 +962,10 @@ export async function userJourneyWorkflow(
         };
         if (currentNode.retryCount) {
           sendMesssageParams.retryCount = currentNode.retryCount;
+        }
+        if (selectedVariant) {
+          sendMesssageParams.variantName =
+            messageNodeVariantLabel(selectedVariant);
         }
         if (props.version === UserJourneyWorkflowVersion.V3) {
           sendMesssageParams.eventIds = Array.from(keyedEventIds);

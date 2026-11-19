@@ -155,6 +155,11 @@ export type SendParamsV2 = BaseSendParams & {
   eventIds?: string[];
   isHidden?: boolean;
   retryCount?: number;
+  /**
+   * Label of the message A/B arm this send belongs to. Recorded in the message
+   * tags, so the arm shows up in the events and the provider's custom args.
+   */
+  variantName?: string;
 };
 
 export type SendParamsInner = SendParamsV2 & {
@@ -184,6 +189,7 @@ async function sendMessageInner({
   events,
   sender,
   retryCount,
+  variantName,
   ...rest
 }: SendParamsInner): Promise<SendMessageInnerResult> {
   let context: Record<string, JSONValue>[] | undefined;
@@ -253,6 +259,9 @@ async function sendMessageInner({
   };
   if (rest.triggeringMessageId) {
     messageTags.triggeringMessageId = rest.triggeringMessageId;
+  }
+  if (variantName) {
+    messageTags.variantName = variantName;
   }
 
   try {
