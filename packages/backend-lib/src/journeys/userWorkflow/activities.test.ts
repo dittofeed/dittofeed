@@ -236,6 +236,29 @@ describe("user workflows activity test", () => {
           "should have sent a message with the AnyOf user property calculated from the events",
         ).toHaveLength(1);
       });
+
+      it("records the A/B arm in the message tags", async () => {
+        const sendMessage = sendMessageFactory(senderMock);
+        const result = await sendMessage({
+          journeyId,
+          workspaceId,
+          userId: user1Id,
+          messageId: randomUUID(),
+          runId: randomUUID(),
+          nodeId: randomUUID(),
+          channel: ChannelType.Email,
+          templateId,
+          eventIds: [eventId],
+          variantName: "Control",
+        });
+        expect(result, "message to be sent").toBe(true);
+        expect(senderMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            messageTags: expect.objectContaining({ variantName: "Control" }),
+          }),
+        );
+      });
     });
   });
 });

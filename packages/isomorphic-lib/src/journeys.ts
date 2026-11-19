@@ -184,6 +184,11 @@ export function getMessageTemplates(
   for (const node of definition.nodes) {
     if (node.type === JourneyNodeType.MessageNode) {
       subscribedMessageTemplates.add(node.variant.templateId);
+      // Every arm of an A/B test references its own template, so the journey
+      // depends on all of them and not only on the unused base variant.
+      for (const arm of node.variants ?? []) {
+        subscribedMessageTemplates.add(arm.variant.templateId);
+      }
     }
   }
   return subscribedMessageTemplates;

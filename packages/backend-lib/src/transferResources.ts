@@ -299,6 +299,17 @@ function mapJourneyBodyNode({
             node.variant.templateId,
           ),
         },
+        variants: node.variants?.map((arm) => ({
+          ...arm,
+          variant: {
+            ...arm.variant,
+            templateId: getWithDefault(
+              "template",
+              templateMap,
+              arm.variant.templateId,
+            ),
+          },
+        })),
       } satisfies MessageNode;
     case JourneyNodeType.SegmentSplitNode: {
       const { variant } = node;

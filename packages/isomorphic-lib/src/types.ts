@@ -1164,13 +1164,42 @@ export const MessageVariant = Type.Union([
 
 export type MessageVariant = Static<typeof MessageVariant>;
 
+/**
+ * One arm of a message A/B test. A node with several variants shows each
+ * recipient exactly one of them, chosen by a hash of the recipient so that the
+ * same person always sees the same arm.
+ */
+export const MessageNodeVariant = Type.Object({
+  id: Type.String(),
+  name: Type.Optional(Type.String()),
+  /**
+   * Relative share of recipients this arm gets. Weights are normalized, so
+   * `[1, 1]` is an even split and `[90, 10]` is not. A node whose weights sum
+   * to zero falls back to an even split rather than sending nothing.
+   */
+  weight: Type.Number({ description: "Relative share of recipients." }),
+  variant: MessageVariant,
+});
+
+export type MessageNodeVariant = Static<typeof MessageNodeVariant>;
+
 export const MessageNode = Type.Object(
   {
     ...BaseNode,
     type: Type.Literal(JourneyNodeType.MessageNode),
     name: Type.Optional(Type.String()),
     subscriptionGroupId: Type.Optional(Type.String()),
+    /**
+     * The message sent when the node is not testing variants. Kept required so
+     * existing journeys, and code that reads `variant` directly, keep working;
+     * `variants` takes precedence when it is present and non-empty.
+     */
     variant: MessageVariant,
+    /**
+     * Arms of an A/B test over the message. When present, one arm is chosen per
+     * recipient and sent instead of `variant`.
+     */
+    variants: Type.Optional(Type.Array(MessageNodeVariant)),
     child: Type.String(),
     syncProperties: Type.Optional(Type.Boolean()),
     skipOnFailure: Type.Optional(Type.Boolean()),
