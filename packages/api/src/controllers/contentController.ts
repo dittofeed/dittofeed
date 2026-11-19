@@ -10,6 +10,12 @@ import {
   testTemplate,
   upsertMessageTemplate,
 } from "backend-lib/src/messaging";
+import {
+  deleteSnippet,
+  listSnippets,
+  loadSnippetsForTemplates,
+  upsertSnippet,
+} from "backend-lib/src/snippets";
 import { Secret } from "backend-lib/src/types";
 import { randomUUID } from "crypto";
 import { and, eq, inArray, SQL } from "drizzle-orm";
@@ -30,11 +36,14 @@ import {
   ChannelType,
   DefaultEmailProviderResource,
   DeleteMessageTemplateRequest,
+  DeleteSnippetRequest,
   EmailContentsType,
   EmailProviderType,
   EmptyResponse,
   GetMessageTemplatesRequest,
   GetMessageTemplatesResponse,
+  GetSnippetsRequest,
+  GetSnippetsResponse,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
@@ -51,8 +60,10 @@ import {
   RenderMessageTemplateType,
   ResetMessageTemplateResource,
   SmsProviderType,
+  SnippetResource,
   UpsertMessageTemplateResource,
   UpsertMessageTemplateValidationError,
+  UpsertSnippetResource,
   WebhookSecret,
 } from "isomorphic-lib/src/types";
 import { DEFAULT_WEBHOOK_DEFINITION } from "isomorphic-lib/src/webhook";
@@ -128,17 +139,26 @@ export default async function contentController(fastify: FastifyInstance) {
         identifierKey = CHANNEL_IDENTIFIERS[channel];
       }
 
-      const responseContents: RenderMessageTemplateResponse["contents"] =
-        R.mapValues(contents, (content) => {
-          let value: RenderMessageTemplateResponseContent;
-          let template: string;
+      // Emailo content is MJML and has to be compiled before it is rendered.
+      const templateStrings: Record<string, string | undefined> = R.mapValues(
+        contents,
+        (content) =>
+          content.type !== RenderMessageTemplateType.Emailo
+            ? content.value
+            : toMjml({ content: content.value, mode: "render" }),
+      );
 
-          if (content.type !== RenderMessageTemplateType.Emailo) {
-            template = content.value;
-          } else {
-            const mjml = toMjml({ content: content.value, mode: "render" });
-            template = mjml;
-          }
+      // Resolved once for every field of this preview, so a snippet shared by
+      // two fields of the same template is loaded once.
+      const snippets = await loadSnippetsForTemplates({
+        workspaceId,
+        templates: templateStrings,
+      });
+
+      const responseContents: RenderMessageTemplateResponse["contents"] =
+        R.mapValues(contents, (content, key) => {
+          let value: RenderMessageTemplateResponseContent;
+          const template = templateStrings[String(key)] ?? "";
           const options: RenderLiquidOptions = {
             workspaceId,
             subscriptionGroupId,
@@ -146,6 +166,7 @@ export default async function contentController(fastify: FastifyInstance) {
             identifierKey,
             secrets: templateSecrets,
             template,
+            snippets,
             mjml:
               content.type === RenderMessageTemplateType.Mjml ||
               content.type === RenderMessageTemplateType.Emailo,
@@ -651,6 +672,72 @@ export default async function contentController(fastify: FastifyInstance) {
           message: "Failed to send batch messages",
         });
       }
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/snippets",
+    {
+      schema: {
+        description: "Get snippets.",
+        tags: ["Content"],
+        querystring: GetSnippetsRequest,
+        response: {
+          200: GetSnippetsResponse,
+          500: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, ids } = request.query;
+      const snippets = await listSnippets({ workspaceId, ids });
+      return reply.status(200).send({ snippets });
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/snippets",
+    {
+      schema: {
+        description: "Create or update a snippet.",
+        tags: ["Content"],
+        body: UpsertSnippetResource,
+        response: {
+          200: SnippetResource,
+          400: BaseMessageResponse,
+          500: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const result = await upsertSnippet(request.body);
+      if (result.isErr()) {
+        return reply.status(400).send({ message: result.error.message });
+      }
+      return reply.status(200).send(result.value);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/snippets",
+    {
+      schema: {
+        description: "Delete a snippet.",
+        tags: ["Content"],
+        body: DeleteSnippetRequest,
+        response: {
+          204: EmptyResponse,
+          404: BaseMessageResponse,
+          500: BaseMessageResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const deleted = await deleteSnippet(request.body);
+      if (!deleted) {
+        return reply.status(404).send({ message: "Snippet not found" });
+      }
+      return reply.status(204).send();
     },
   );
 }

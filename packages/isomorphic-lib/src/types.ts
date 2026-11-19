@@ -1999,6 +1999,65 @@ export type DeleteMessageTemplateRequest = Static<
   typeof DeleteMessageTemplateRequest
 >;
 
+/**
+ * A reusable Liquid fragment shared by templates. Snippets are addressed by
+ * name inside a template with `{% snippet "name" %}` (optionally with keyword
+ * arguments), and are the Dittofeed counterpart of Iterable snippets and Braze
+ * content blocks.
+ */
+export const SnippetResource = Type.Object(
+  {
+    id: Type.String(),
+    workspaceId: Type.String(),
+    name: Type.String(),
+    description: Type.Optional(Type.String()),
+    body: Type.String(),
+    createdAt: Type.Number(),
+    updatedAt: Type.Number(),
+  },
+  { $id: "SnippetResource" },
+);
+export type SnippetResource = Static<typeof SnippetResource>;
+
+export const UpsertSnippetResource = Type.Object(
+  {
+    workspaceId: Type.String(),
+    id: Type.Optional(Type.String()),
+    name: Type.String(),
+    description: Type.Optional(Type.String()),
+    body: Type.String(),
+  },
+  { $id: "UpsertSnippetResource" },
+);
+export type UpsertSnippetResource = Static<typeof UpsertSnippetResource>;
+
+export const GetSnippetsRequest = Type.Object(
+  {
+    workspaceId: Type.String(),
+    ids: Type.Optional(Type.Array(Type.String())),
+  },
+  { $id: "GetSnippetsRequest" },
+);
+export type GetSnippetsRequest = Static<typeof GetSnippetsRequest>;
+
+export const GetSnippetsResponse = Type.Object({
+  snippets: Type.Array(SnippetResource),
+});
+export type GetSnippetsResponse = Static<typeof GetSnippetsResponse>;
+
+export const DeleteSnippetRequest = Type.Object(
+  { workspaceId: Type.String(), id: Type.String() },
+  { $id: "DeleteSnippetRequest" },
+);
+export type DeleteSnippetRequest = Static<typeof DeleteSnippetRequest>;
+
+/**
+ * Names of the snippets a single template pulls in, and which snippet names a
+ * `{% snippet %}` tag can resolve to.
+ */
+export const SnippetReference = Type.Object({ name: Type.String() });
+export type SnippetReference = Static<typeof SnippetReference>;
+
 export enum CompletionStatus {
   NotStarted = "NotStarted",
   InProgress = "InProgress",

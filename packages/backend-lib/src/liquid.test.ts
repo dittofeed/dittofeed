@@ -305,4 +305,153 @@ describe("renderWithUserProperties", () => {
       expect(rendered).toContain("h=");
     });
   });
+
+  describe("snippet tag", () => {
+    const workspaceId = "024f3d0a-8eee-11ed-a1eb-0242ac120002";
+
+    it("renders the body of a named snippet", () => {
+      const rendered = renderLiquid({
+        template: `{% snippet "header" %}`,
+        workspaceId,
+        userProperties: {},
+        snippets: { header: "<h1>Shop</h1>" },
+      });
+      expect(rendered.trim()).toEqual("<h1>Shop</h1>");
+    });
+
+    it("renders the snippet against the same user scope", () => {
+      const rendered = renderLiquid({
+        template: `{% snippet "greeting" %}`,
+        workspaceId,
+        userProperties: { name: "Max" },
+        snippets: { greeting: "Hello {{ user.name }}" },
+      });
+      expect(rendered.trim()).toEqual("Hello Max");
+    });
+
+    it("exposes keyword arguments to the snippet and keeps them out of the caller", () => {
+      const rendered = renderLiquid({
+        template: `{% snippet "card", title: "Court Shoe" %}|{% if title %}leaked{% else %}clean{% endif %}`,
+        workspaceId,
+        userProperties: {},
+        snippets: { card: "<b>{{ title }}</b>" },
+      });
+      expect(rendered.trim()).toEqual("<b>Court Shoe</b>|clean");
+    });
+
+    it("lets an argument shadow the caller's variable without leaking back", () => {
+      const rendered = renderLiquid({
+        template: `{% snippet "card", name: "inner" %}|{{ user.name }}`,
+        workspaceId,
+        userProperties: { name: "outer" },
+        snippets: { card: "{{ user.name }}|{{ name }}" },
+      });
+      expect(rendered.trim()).toEqual("outer|inner|outer");
+    });
+
+    it("renders a snippet that includes another snippet", () => {
+      const rendered = renderLiquid({
+        template: `{% snippet "page" %}`,
+        workspaceId,
+        userProperties: {},
+        snippets: {
+          page: `[{% snippet "header" %}]`,
+          header: "HEADER",
+        },
+      });
+      expect(rendered.trim()).toEqual("[HEADER]");
+    });
+
+    it("renders the same snippet twice with different arguments", () => {
+      const rendered = renderLiquid({
+        template: `{% snippet "item", name: "a" %}{% snippet "item", name: "b" %}`,
+        workspaceId,
+        userProperties: {},
+        snippets: { item: "{{ name }};" },
+      });
+      expect(rendered.trim()).toEqual("a;b;");
+    });
+
+    it("renders a snippet inside a loop", () => {
+      const rendered = renderLiquid({
+        template: `{% for item in user.items %}{% snippet "row", item: item %}{% endfor %}`,
+        workspaceId,
+        userProperties: { items: [{ title: "Court Shoe" }] },
+        snippets: { row: "{{ item.title }};" },
+      });
+      expect(rendered.trim()).toEqual("Court Shoe;");
+    });
+
+    it("renders nothing when the snippet is unknown", () => {
+      const rendered = renderLiquid({
+        template: `[{% snippet "missing" %}]`,
+        workspaceId,
+        userProperties: {},
+        snippets: { header: "HEADER" },
+      });
+      expect(rendered.trim()).toEqual("[]");
+    });
+
+    it("renders nothing when no snippets are supplied", () => {
+      const rendered = renderLiquid({
+        template: `[{% snippet "header" %}]`,
+        workspaceId,
+        userProperties: {},
+      });
+      expect(rendered.trim()).toEqual("[]");
+    });
+
+    it("rejects a snippet that includes itself", () => {
+      expect(() =>
+        renderLiquid({
+          template: `{% snippet "a" %}`,
+          workspaceId,
+          userProperties: {},
+          snippets: { a: `{% snippet "a" %}` },
+        }),
+      ).toThrow(/includes itself/);
+    });
+
+    it("rejects a cycle that spans more than one snippet", () => {
+      expect(() =>
+        renderLiquid({
+          template: `{% snippet "a" %}`,
+          workspaceId,
+          userProperties: {},
+          snippets: {
+            a: `{% snippet "b" %}`,
+            b: `{% snippet "a" %}`,
+          },
+        }),
+      ).toThrow(/includes itself/);
+    });
+
+    it("rejects nesting deeper than the configured maximum", () => {
+      expect(() =>
+        renderLiquid({
+          template: `{% snippet "a" %}`,
+          workspaceId,
+          userProperties: {},
+          snippets: {
+            a: `{% snippet "b" %}`,
+            b: `{% snippet "c" %}`,
+            c: `{% snippet "d" %}`,
+            d: `{% snippet "e" %}`,
+            e: `{% snippet "f" %}`,
+            f: "leaf",
+          },
+        }),
+      ).toThrow(/maximum snippet depth/);
+    });
+
+    it("renders the body without a compiled-at-first-use leak between names", () => {
+      const rendered = renderLiquid({
+        template: `{% snippet "a" %}{% snippet "b" %}`,
+        workspaceId,
+        userProperties: {},
+        snippets: { a: "A", b: "A" },
+      });
+      expect(rendered.trim()).toEqual("AA");
+    });
+  });
 });
