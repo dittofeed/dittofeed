@@ -1,5 +1,4 @@
 import { Static, TSchema } from "@sinclair/typebox";
-import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import {
   WorkspaceStatusDbEnum,
   WorkspaceTypeAppEnum,
@@ -17,6 +16,44 @@ import {
 import { v4 as uuidv4 } from "uuid";
 
 import buildApp from "../buildApp";
+
+/**
+ * `/api/content/*` resolves its workspace from the request context, not from an
+ * admin API key, so these tests need a signed-in identity. Pin the auth mode to
+ * `multi-tenant` so the context is derived from a session token; the default
+ * (`anonymous`) instead reads `workspace.findFirst()`, which returns whichever
+ * workspace happens to be first in the database and turns every request into a
+ * 403 "workspace id does not match".
+ */
+jest.mock("backend-lib/src/config", () => {
+  const actual = jest.requireActual<typeof import("backend-lib/src/config")>(
+    "backend-lib/src/config",
+  );
+  return {
+    __esModule: true,
+    default: jest.fn(() => ({
+      ...actual.default(),
+      authMode: "multi-tenant",
+      authProvider: "test",
+    })),
+  };
+});
+
+function base64UrlJson(value: unknown): string {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+/**
+ * `decodeJwtHeader` decodes the token without verifying its signature, so a
+ * well-formed payload is enough to authenticate a test request.
+ */
+function signSessionToken(claims: { sub: string; email: string }): string {
+  return [
+    base64UrlJson({ alg: "none", typ: "JWT" }),
+    base64UrlJson({ ...claims, email_verified: "true" }),
+    "test-signature",
+  ].join(".");
+}
 
 function parseBody<S extends TSchema>(body: string, schema: S): Static<S> {
   return unwrap(schemaValidateWithErr(JSON.parse(body), schema));
@@ -46,21 +83,26 @@ describe("snippets", () => {
   beforeAll(async () => {
     app = await buildApp();
     workspaceId = uuidv4();
+    // The domain has to be unique per run: a signed-in member automatically
+    // joins every active workspace matching their email domain, and the oldest
+    // matching role wins, so a shared domain would let a workspace left over
+    // from an earlier run capture the session.
+    const domain = `ws-${workspaceId}.example.com`;
     unwrap(
       await createWorkspace({
         id: workspaceId,
         name: `workspace-${workspaceId}`,
-        domain: "example.com",
+        domain,
         type: WorkspaceTypeAppEnum.Root,
         status: WorkspaceStatusDbEnum.Active,
         updatedAt: new Date(),
         createdAt: new Date(),
       }),
     );
-    const adminKey = unwrap(
-      await createAdminApiKey({ workspaceId, name: "snippets" }),
-    );
-    authorization = `Bearer ${adminKey.apiKey}`;
+    authorization = `Bearer ${signSessionToken({
+      sub: `member-${workspaceId}`,
+      email: `e2e@${domain}`,
+    })}`;
   });
 
   afterAll(async () => {
