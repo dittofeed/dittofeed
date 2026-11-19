@@ -66,6 +66,11 @@ import {
 } from "./gmail";
 import config from "./config";
 import { renderLiquid } from "./liquid";
+import {
+  BASELINE_LOCALE,
+  messageTemplateLocaleCandidates,
+  normalizeLocale,
+} from "./messageTemplateLocale";
 import { storeEmailForViewInBrowser } from "./viewInBrowser";
 import logger from "./logger";
 import {
@@ -129,7 +134,7 @@ import {
   WebhookResponse,
   WebhookSecret,
 } from "./types";
-import { UserPropertyAssignments } from "./userProperties";
+import { assignmentAsString, UserPropertyAssignments } from "./userProperties";
 import { getUsers } from "./users";
 import { isWorkspaceOccupantType } from "./workspaceOccupantSettings";
 
@@ -140,6 +145,7 @@ export function enrichMessageTemplate({
   definition,
   draft,
   updatedAt,
+  locale,
 }: Overwrite<
   MessageTemplate,
   {
@@ -171,6 +177,9 @@ export function enrichMessageTemplate({
     workspaceId,
     type,
     updatedAt: Number(updatedAt),
+    // Omitted for the baseline template, which is what a workspace that never
+    // localizes anything has, so the field stays optional for its clients.
+    ...(locale ? { locale } : {}),
     ...(enrichedDefinition.value
       ? { definition: enrichedDefinition.value }
       : {}),
@@ -184,10 +193,16 @@ export async function findMessageTemplate({
   id,
   workspaceId,
   channel,
+  locale,
 }: {
   id: string;
   workspaceId: string;
   channel: ChannelType;
+  /**
+   * The recipient's locale. The template stored for it, or for the closest
+   * prefix of it, wins over the baseline; omitted means "use the baseline".
+   */
+  locale?: string | null;
 }): Promise<Result<MessageTemplateResource | null, Error>> {
   if (!validateUuid(id)) {
     logger().info({ id, channel }, "Invalid message template id");
@@ -203,10 +218,26 @@ export async function findMessageTemplate({
     return ok(null);
   }
 
-  return enrichMessageTemplate(template).map((t) => {
-    const definition = t.draft ?? t.definition ?? null;
-    return definition && definition.type === channel ? t : null;
+  const candidates = await messageTemplateLocaleCandidates({
+    workspaceId,
+    template,
+    locale,
   });
+  // The first candidate that is a template of the requested channel wins. A
+  // translation of the wrong channel is skipped rather than reported, so a
+  // partially localized workspace still renders the other channels.
+  for (const candidate of candidates) {
+    const enriched = enrichMessageTemplate(candidate);
+    if (enriched.isErr()) {
+      return err(enriched.error);
+    }
+    const t = enriched.value;
+    const definition = t.draft ?? t.definition ?? null;
+    if (definition && definition.type === channel) {
+      return ok(t);
+    }
+  }
+  return ok(null);
 }
 
 function doesRequireDraftReset({
@@ -239,6 +270,22 @@ export async function upsertMessageTemplate(
       type: UpsertMessageTemplateValidationErrorType.IdError,
       message: "Invalid message template id, must be a valid v4 UUID",
     });
+  }
+
+  // An absent locale means "leave the stored one alone", not "move it to the
+  // baseline": a caller updating a translation's body does not repeat its
+  // locale, and silently reassigning it would overwrite the baseline instead.
+  let requestedLocale: string | undefined;
+  if (data.locale !== undefined) {
+    const normalized = normalizeLocale(data.locale);
+    if (!normalized && data.locale.trim().length > 0) {
+      return err({
+        type: UpsertMessageTemplateValidationErrorType.InvalidLocale,
+        message: `"${data.locale}" is not a valid locale tag; expected a lower case BCP-47 tag such as "en", "en-us" or "zh-hant-hk"`,
+        locale: data.locale,
+      });
+    }
+    requestedLocale = normalized ?? BASELINE_LOCALE;
   }
 
   // Validate identifierKey if specified for Email/SMS templates only
@@ -276,6 +323,12 @@ export async function upsertMessageTemplate(
         findFirstConditions.push(eq(dbMessageTemplate.id, data.id));
       } else {
         findFirstConditions.push(eq(dbMessageTemplate.name, data.name));
+        // The locale is part of the identity of a template that is addressed by
+        // name, so writing "welcome" in `zh` creates a translation instead of
+        // replacing the baseline.
+        findFirstConditions.push(
+          eq(dbMessageTemplate.locale, requestedLocale ?? BASELINE_LOCALE),
+        );
       }
       const existingTemplate = await tx.query.messageTemplate.findFirst({
         where: and(...findFirstConditions),
@@ -291,6 +344,7 @@ export async function upsertMessageTemplate(
               definition: data.definition,
               draft: data.draft,
               resourceType: data.resourceType,
+              locale: requestedLocale ?? BASELINE_LOCALE,
             })
             .returning(),
         );
@@ -339,6 +393,7 @@ export async function upsertMessageTemplate(
             definition: data.definition,
             draft: requiresDraftReset ? null : data.draft,
             resourceType: data.resourceType,
+            locale: requestedLocale ?? existingTemplate.locale,
           })
           .where(eq(dbMessageTemplate.id, existingTemplate.id))
           .returning(),
@@ -389,13 +444,25 @@ export async function upsertMessageTemplate(
 export async function findMessageTemplates({
   workspaceId,
   includeInternal,
+  locale,
 }: {
   workspaceId: string;
   includeInternal?: boolean;
+  /** Only return the versions stored under this locale. */
+  locale?: string;
 }): Promise<MessageTemplateResource[]> {
   const conditions: SQL[] = [eq(dbMessageTemplate.workspaceId, workspaceId)];
   if (!includeInternal) {
     conditions.push(eq(dbMessageTemplate.resourceType, "Declarative"));
+  }
+  if (locale !== undefined) {
+    const normalized = normalizeLocale(locale);
+    if (!normalized && locale.trim().length > 0) {
+      return [];
+    }
+    conditions.push(
+      eq(dbMessageTemplate.locale, normalized ?? BASELINE_LOCALE),
+    );
   }
   const messageTemplates = await db().query.messageTemplate.findMany({
     where: and(...conditions),
@@ -409,12 +476,14 @@ async function getSendMessageModels({
   channel,
   subscriptionGroupDetails,
   useDraft,
+  locale,
 }: {
   workspaceId: string;
   templateId: string;
   channel: ChannelType;
   subscriptionGroupDetails?: Omit<SubscriptionGroupDetails, "name">;
   useDraft?: boolean;
+  locale?: string | null;
 }): Promise<
   Result<
     {
@@ -445,6 +514,7 @@ async function getSendMessageModels({
       id: templateId,
       workspaceId,
       channel,
+      locale,
     }),
     db().query.secret.findFirst({
       where: and(
@@ -864,6 +934,7 @@ export async function sendEmail({
         channel: ChannelType.Email,
         useDraft,
         subscriptionGroupDetails,
+        locale: assignmentAsString(userPropertyAssignments, "locale"),
       }),
       getEmailProvider({
         workspaceId,
@@ -1807,6 +1878,7 @@ export async function sendSms(
       channel: ChannelType.Sms,
       useDraft,
       subscriptionGroupDetails,
+      locale: assignmentAsString(userPropertyAssignments, "locale"),
     }),
     getSmsProvider({
       workspaceId,
@@ -2189,6 +2261,7 @@ export async function sendWebhook({
       channel: ChannelType.Webhook,
       useDraft,
       subscriptionGroupDetails,
+      locale: assignmentAsString(userPropertyAssignments, "locale"),
     }),
     db().query.secret.findFirst({
       where: and(

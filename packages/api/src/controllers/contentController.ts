@@ -5,6 +5,10 @@ import { deleteMessageTemplate } from "backend-lib/src/journeys";
 import { renderLiquid, RenderLiquidOptions } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import {
+  BASELINE_LOCALE,
+  normalizeLocale,
+} from "backend-lib/src/messageTemplateLocale";
+import {
   batchMessageUsers,
   enrichMessageTemplate,
   testTemplate,
@@ -196,6 +200,15 @@ export default async function contentController(fastify: FastifyInstance) {
       if (request.query.resourceType) {
         conditions.push(
           eq(schema.messageTemplate.resourceType, request.query.resourceType),
+        );
+      }
+      if (request.query.locale !== undefined) {
+        const normalized = normalizeLocale(request.query.locale);
+        if (!normalized && request.query.locale.trim().length > 0) {
+          return reply.status(200).send({ templates: [] });
+        }
+        conditions.push(
+          eq(schema.messageTemplate.locale, normalized ?? BASELINE_LOCALE),
         );
       }
       const templateModels = await db().query.messageTemplate.findMany({

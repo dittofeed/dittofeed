@@ -202,6 +202,10 @@ const BaseRawConfigProps = {
   defaultGetSegmentAndEventDetailsMaxAttempts: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  // The locale a workspace renders in when a recipient has no locale of their
+  // own, and the last locale tried before the locale-less baseline template.
+  // Lower case BCP-47.
+  defaultLocale: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -347,6 +351,7 @@ export type Config = Overwrite<
     clickhouseColdStorageMaxExecutionTime?: number;
     broadcastSendMessagesMaxAttempts: number;
     defaultGetSegmentAndEventDetailsMaxAttempts: number;
+    defaultLocale: string;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -801,6 +806,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.defaultGetSegmentAndEventDetailsMaxAttempts,
       nodeEnv === NodeEnvEnum.Test ? 1 : 10,
     ),
+    defaultLocale: rawConfig.defaultLocale ?? "en",
   };
 
   return parsedConfig;

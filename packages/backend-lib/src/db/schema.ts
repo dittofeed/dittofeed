@@ -586,12 +586,18 @@ export const messageTemplate = pgTable(
       .notNull(),
     resourceType: dbResourceType().default("Declarative").notNull(),
     draft: jsonb(),
+    // BCP-47 tag, lower cased. The empty string is the locale-less baseline a
+    // workspace starts with, and the row every other locale falls back to. It is
+    // not null because a unique index does not constrain nulls, which would
+    // allow several baselines under the same name.
+    locale: text().default("").notNull(),
   },
   (table) => [
-    uniqueIndex("MessageTemplate_workspaceId_name_key").using(
+    uniqueIndex("MessageTemplate_workspaceId_name_locale_key").using(
       "btree",
-      table.workspaceId.asc().nullsLast().op("uuid_ops"), // Change from text_ops
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
       table.name.asc().nullsLast().op("text_ops"),
+      table.locale.asc().nullsLast().op("text_ops"),
     ),
     foreignKey({
       columns: [table.workspaceId],

@@ -1861,6 +1861,12 @@ const MessageTemplateResourceProperties = {
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(MessageTemplateResourceDraft),
   updatedAt: Type.Number(),
+  /**
+   * The BCP-47 tag this version of the template is written in, lower cased.
+   * Omitted for the baseline template, which is the version every other locale
+   * falls back to.
+   */
+  locale: Type.Optional(Type.String()),
 } as const;
 
 export const MessageTemplateResource = Type.Object(
@@ -1885,6 +1891,12 @@ export const UpsertMessageTemplateResource = Type.Object({
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(Nullable(MessageTemplateResourceDraft)),
   resourceType: Type.Optional(ResourceType),
+  /**
+   * The BCP-47 tag to store this version under. Omitted keeps whatever the
+   * template already has, and creates the baseline template when the name is
+   * new. Two versions share a name and differ only by locale.
+   */
+  locale: Type.Optional(Type.String()),
 });
 
 export type UpsertMessageTemplateResource = Static<
@@ -1895,6 +1907,7 @@ export enum UpsertMessageTemplateValidationErrorType {
   IdError = "IdError",
   UniqueConstraintViolation = "UniqueConstraintViolation",
   InvalidIdentifierKey = "InvalidIdentifierKey",
+  InvalidLocale = "InvalidLocale",
 }
 
 export const UniqueConstraintViolationError = Type.Object({
@@ -1925,10 +1938,19 @@ export type InvalidIdentifierKeyError = Static<
   typeof InvalidIdentifierKeyError
 >;
 
+export const InvalidLocaleError = Type.Object({
+  type: Type.Literal(UpsertMessageTemplateValidationErrorType.InvalidLocale),
+  message: Type.String(),
+  locale: Type.String(),
+});
+
+export type InvalidLocaleError = Static<typeof InvalidLocaleError>;
+
 export const UpsertMessageTemplateValidationError = Type.Union([
   UniqueConstraintViolationError,
   IdErrorMessageTemplateViolation,
   InvalidIdentifierKeyError,
+  InvalidLocaleError,
 ]);
 
 export type UpsertMessageTemplateValidationError = Static<
@@ -1940,6 +1962,11 @@ export const GetMessageTemplatesRequest = Type.Object(
     workspaceId: Type.String(),
     ids: Type.Optional(Type.Array(Type.String())),
     resourceType: Type.Optional(ResourceType),
+    /**
+     * Only return the versions stored under this locale. Omitted returns every
+     * locale of every template, which is what the dashboard lists.
+     */
+    locale: Type.Optional(Type.String()),
   },
   {
     $id: "GetMessageTemplatesRequest",
