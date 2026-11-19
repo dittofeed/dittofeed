@@ -38,6 +38,10 @@ const BaseRawConfigProps = {
   clickhouseUser: Type.String(),
   clickhousePassword: Type.String(),
   defaultUserJourneyMaxAttempts: Type.Optional(Type.String({ format: "naturalNumber" })),
+  // How deep `{% snippet %}` tags may nest. A snippet that includes another
+  // snippet counts as two levels; a cycle is rejected once it passes this limit
+  // instead of overflowing the stack.
+  snippetMaxDepth: Type.Optional(Type.String({ format: "naturalNumber" })),
   kafkaBrokers: Type.Optional(Type.String()),
   kafkaUsername: Type.Optional(Type.String()),
   kafkaPassword: Type.Optional(Type.String()),
@@ -294,6 +298,7 @@ export type Config = Overwrite<
     computePropertiesSchedulerQueueRestartDelay: number;
     computePropertiesWorkflowTaskTimeout: number;
     defaultUserJourneyMaxAttempts?: number;
+    snippetMaxDepth: number;
     dashboardUrl: string;
     databaseParams: Record<string, string>;
     databaseUrl: string;
@@ -797,6 +802,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     defaultUserJourneyMaxAttempts: rawConfig.defaultUserJourneyMaxAttempts !== undefined ? parseInt(
       rawConfig.defaultUserJourneyMaxAttempts,
     ) : (nodeEnv === NodeEnvEnum.Test ? 1 : undefined),
+    snippetMaxDepth: rawConfig.snippetMaxDepth
+      ? parseInt(rawConfig.snippetMaxDepth)
+      : 5,
     defaultGetSegmentAndEventDetailsMaxAttempts: parseMaxAttempts(
       rawConfig.defaultGetSegmentAndEventDetailsMaxAttempts,
       nodeEnv === NodeEnvEnum.Test ? 1 : 10,

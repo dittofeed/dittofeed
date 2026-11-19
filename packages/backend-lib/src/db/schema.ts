@@ -603,6 +603,36 @@ export const messageTemplate = pgTable(
   ],
 );
 
+export const messageTemplateSnippet = pgTable(
+  "MessageTemplateSnippet",
+  {
+    id: uuid().primaryKey().defaultRandom().notNull(),
+    workspaceId: uuid().notNull(),
+    name: text().notNull(),
+    description: text(),
+    body: text().notNull(),
+    createdAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp({ precision: 3, mode: "date" })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("MessageTemplateSnippet_workspaceId_name_key").using(
+      "btree",
+      table.workspaceId.asc().nullsLast().op("uuid_ops"),
+      table.name.asc().nullsLast().op("text_ops"),
+    ),
+    foreignKey({
+      columns: [table.workspaceId],
+      foreignColumns: [workspace.id],
+      name: "MessageTemplateSnippet_workspaceId_fkey",
+    })
+      .onUpdate("cascade")
+      .onDelete("cascade"),
+  ],
+);
+
 export const integration = pgTable(
   "Integration",
   {

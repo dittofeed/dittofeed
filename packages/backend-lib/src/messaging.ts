@@ -73,6 +73,7 @@ import {
   UnsubscribeHeaders,
 } from "./messaging/email";
 import { withSpan } from "./openTelemetry";
+import { loadSnippetsForTemplates } from "./snippets";
 import {
   getSubscriptionGroupDetails,
   getSubscriptionGroupsWithAssignments,
@@ -917,6 +918,21 @@ export async function sendEmail({
     secrets[SecretNames.ViewInBrowser] = viewInBrowserSecret;
   }
 
+  // Resolved once for the whole message: the body and the custom headers share
+  // the same snippets, and a broadcast must not query per template.
+  const snippets = await loadSnippetsForTemplates({
+    workspaceId,
+    templates: {
+      from: messageTemplateDefinition.from,
+      subject: messageTemplateDefinition.subject,
+      body: emailBody,
+      replyTo: messageTemplateDefinition.replyTo,
+      name: messageTemplateDefinition.name,
+      cc: messageTemplateDefinition.cc,
+      bcc: messageTemplateDefinition.bcc,
+    },
+  });
+
   const renderedValuesResult = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
@@ -950,6 +966,7 @@ export async function sendEmail({
       },
     },
     secrets: Object.keys(secrets).length > 0 ? secrets : undefined,
+    snippets,
   });
 
   if (renderedValuesResult.isErr()) {
@@ -1034,6 +1051,7 @@ export async function sendEmail({
       tags: messageTags,
       isPreview,
       templates: headersToRender,
+      snippets,
     });
     if (renderedCustomHeaders.isErr()) {
       const { error, field } = renderedCustomHeaders.error;
@@ -1868,6 +1886,10 @@ export async function sendSms(
         contents: messageTemplateDefinition.body,
       },
     },
+    ...(await loadSnippetsForTemplates({
+      workspaceId,
+      templates: { body: messageTemplateDefinition.body },
+    })),
   });
 
   if (renderedValuesResult.isErr()) {
@@ -2248,6 +2270,10 @@ export async function sendWebhook({
         contents: messageTemplateDefinition.body,
       },
     },
+    ...(await loadSnippetsForTemplates({
+      workspaceId,
+      templates: { body: messageTemplateDefinition.body },
+    })),
   });
   if (renderedBody.isErr()) {
     const { error, field } = renderedBody.error;

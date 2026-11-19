@@ -5,6 +5,7 @@ import MarkdownIt from "markdown-it";
 import mjml2html from "mjml";
 
 import config from "./config";
+import { snippetTag } from "./liquidSnippetTag";
 import logger from "./logger";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { MessageTags, SubscriptionChange } from "./types";
@@ -237,6 +238,17 @@ liquidEngine.registerTag("view_in_browser_url", {
   },
 });
 
+/**
+ * Renders a reusable snippet, the shared fragment of the content module.
+ *
+ *   {% snippet "header" %}
+ *   {% snippet "product-card", title: item.title %}
+ *
+ * Snippet bodies are preloaded per send (`loadSnippetsForTemplates`) and passed
+ * in on the render scope as `snippets`, keyed by name.
+ */
+liquidEngine.registerTag("snippet", snippetTag);
+
 const MJML_NOT_PRESENT_ERROR =
   "Check that your structure is correct and enclosed in <mjml> tags";
 
@@ -253,6 +265,9 @@ export interface RenderLiquidOptions {
   isPreview?: boolean;
   showAllChannels?: boolean;
   messageId?: string;
+  // Preloaded snippet bodies, keyed by name. Resolved per send by
+  // `loadSnippetsForTemplates`.
+  snippets?: Record<string, string>;
 }
 
 export function renderLiquid({
@@ -266,6 +281,7 @@ export function renderLiquid({
   tags,
   isPreview = false,
   messageId,
+  snippets = {},
 }: RenderLiquidOptions): string {
   if (!template?.length) {
     return "";
@@ -281,6 +297,9 @@ export function renderLiquid({
     tags: tags ?? {},
     is_preview: isPreview,
     message_id: messageId,
+    snippets,
+    // Mutable during the render so a snippet cycle is caught by the tag.
+    snippet_stack: [],
   }) as string;
   if (!mjml) {
     return liquidRendered;
