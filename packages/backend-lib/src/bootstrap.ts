@@ -15,8 +15,8 @@ import { submitBatch } from "./apps/batch";
 import { getOrCreateWriteKey } from "./auth";
 import { createBucket, storage } from "./blobStorage";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
-import { createClickhouseDb } from "./clickhouse";
 import { startCatalogSyncScheduler } from "./catalogSyncLifecycle";
+import { createClickhouseDb } from "./clickhouse";
 import {
   startComputePropertiesWorkflow,
   startComputePropertiesWorkflowGlobal,
