@@ -1339,9 +1339,7 @@ export const catalogSyncRun = pgTable(
     deletedCount: integer().notNull().default(0),
     skippedCount: integer().notNull().default(0),
     error: text(),
-    startedAt: timestamp({ precision: 3, mode: "date" })
-      .defaultNow()
-      .notNull(),
+    startedAt: timestamp({ precision: 3, mode: "date" }).defaultNow().notNull(),
     finishedAt: timestamp({ precision: 3, mode: "date" }),
   },
   (table) => [
