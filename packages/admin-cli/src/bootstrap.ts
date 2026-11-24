@@ -11,7 +11,7 @@ export const BOOTSTRAP_OPTIONS = {
     type: "string",
     alias: "d",
     describe:
-      "The email domain to authorize. All users with the provided email domain will be able to access the workspace. Example: -d=example.com",
+      "The email domain(s) to authorize. All users with the provided email domain will be able to access the workspace. Separate multiple domains with commas. Example: -d=example.com,subsidiary.com",
   },
   "workspace-type": {
     type: "string",

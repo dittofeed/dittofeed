@@ -73,6 +73,46 @@ describe("requestContext", () => {
           expect(result.value.memberRoles[0]?.role).toEqual(RoleEnum.Admin);
         });
       });
+
+      describe("when the workspace lists multiple email domains", () => {
+        it("auto-joins a user whose domain is listed after the first", async () => {
+          const otherDomain = `${randomUUID()}.com`;
+          await db()
+            .insert(dbWorkspace)
+            .values({
+              name: randomUUID(),
+              domain: `${otherDomain}, ${emailDomain.toUpperCase()}`,
+            });
+          const result = await getMultiTenantRequestContext({
+            authorizationToken: header,
+            authProvider: "some-provider",
+          });
+          if (result.isErr()) {
+            throw new Error(result.error.type);
+          }
+          expect(result.value.memberRoles).toHaveLength(1);
+          expect(result.value.workspace).not.toBeNull();
+        });
+
+        it("does not auto-join a user whose domain is not listed", async () => {
+          await db()
+            .insert(dbWorkspace)
+            .values({
+              name: randomUUID(),
+              domain: `${randomUUID()}.com,${randomUUID()}.com`,
+            });
+          const result = await getMultiTenantRequestContext({
+            authorizationToken: header,
+            authProvider: "some-provider",
+          });
+          if (result.isOk()) {
+            throw new Error("Expected error");
+          }
+          expect(result.error.type).toEqual(
+            RequestContextErrorType.NotOnboarded,
+          );
+        });
+      });
     });
   });
   describe("findAndCreateRoles", () => {

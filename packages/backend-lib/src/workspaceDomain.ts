@@ -38,3 +38,26 @@ export function isValidWorkspaceDomain(domain: string): boolean {
 
   return DOMAIN_REGEX.test(lowerDomain);
 }
+
+/**
+ * Workspaces can be joined through more than one email domain, e.g. a parent
+ * company domain and a subsidiary domain. The workspace domain column stores
+ * them as a comma separated list, so every read should go through this parser
+ * instead of comparing against the raw column value.
+ */
+export function parseWorkspaceDomains(
+  value: string | null | undefined,
+): string[] {
+  if (!value) return [];
+  const domains = value
+    .split(/[,\s]+/)
+    .map((domain) => domain.trim().toLowerCase())
+    .filter((domain) => domain.length > 0);
+  return [...new Set(domains)];
+}
+
+export function isValidWorkspaceDomainList(value: string): boolean {
+  const domains = parseWorkspaceDomains(value);
+  if (domains.length === 0) return false;
+  return domains.every((domain) => isValidWorkspaceDomain(domain));
+}

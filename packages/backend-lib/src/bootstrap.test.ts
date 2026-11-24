@@ -50,5 +50,29 @@ describe("bootstrap", () => {
         }),
       );
     });
+
+    it("normalizes a list of domains before storing it", async () => {
+      const workspaceName = randomUUID();
+      const result = unwrap(
+        await bootstrapPostgres({
+          workspaceName,
+          workspaceDomain: " Example.com , subsidiary.com, example.com",
+        }),
+      );
+      expect(result.domain).toBe("example.com,subsidiary.com");
+    });
+
+    it("should reject a list containing an invalid domain", async () => {
+      const workspaceResult = await bootstrapPostgres({
+        workspaceName: randomUUID(),
+        workspaceDomain: "example.com,gmail.com",
+      });
+      if (workspaceResult.isOk()) {
+        throw new Error("expected to fail with validation error");
+      }
+      expect(workspaceResult.error.type).toBe(
+        CreateWorkspaceErrorType.InvalidDomain,
+      );
+    });
   });
 });

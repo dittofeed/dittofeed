@@ -1,5 +1,5 @@
 import { SpanStatusCode } from "@opentelemetry/api";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { IncomingHttpHeaders } from "http";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok } from "neverthrow";
@@ -52,7 +52,7 @@ interface RolesWithWorkspace {
 export async function findAndCreateRoles(
   member: WorkspaceMember,
 ): Promise<RolesWithWorkspace> {
-  const domain = member.email?.split("@")[1];
+  const domain = member.email?.split("@")[1]?.toLowerCase();
   // Stored domains may predate validation. Never grant access through a public
   // email provider, but continue honoring explicit workspace memberships.
   const autoJoinDomain =
@@ -73,7 +73,9 @@ export async function findAndCreateRoles(
         eq(dbWorkspace.status, WorkspaceStatusDbEnum.Active),
         or(
           eq(dbWorkspaceMemberRole.workspaceMemberId, member.id),
-          autoJoinDomain ? eq(dbWorkspace.domain, autoJoinDomain) : undefined,
+          autoJoinDomain
+            ? sql`${autoJoinDomain} = ANY(string_to_array(replace(lower(${dbWorkspace.domain}), ' ', ''), ','))`
+            : undefined,
         ),
       ),
     );

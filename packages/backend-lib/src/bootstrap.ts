@@ -62,7 +62,10 @@ import {
   createUserEventsTables,
   dropKafkaTables,
 } from "./userEvents/clickhouse";
-import { isValidWorkspaceDomain } from "./workspaceDomain";
+import {
+  isValidWorkspaceDomainList,
+  parseWorkspaceDomains,
+} from "./workspaceDomain";
 import { upsertWorkspace } from "./workspaces/createWorkspace";
 
 export async function bootstrapPostgres({
@@ -91,11 +94,13 @@ export async function bootstrapPostgres({
     },
     "Upserting workspace.",
   );
-  if (workspaceDomain && !isValidWorkspaceDomain(workspaceDomain)) {
+  if (workspaceDomain && !isValidWorkspaceDomainList(workspaceDomain)) {
     return err({
       type: CreateWorkspaceErrorType.InvalidDomain,
     });
   }
+  const normalizedWorkspaceDomain =
+    workspaceDomain && parseWorkspaceDomains(workspaceDomain).join(",");
   let workspace: Workspace;
   if (existingWorkspace) {
     workspace = existingWorkspace;
@@ -108,7 +113,7 @@ export async function bootstrapPostgres({
     }
     const workspaceResult = await upsertWorkspace({
       name: workspaceName,
-      domain: workspaceDomain,
+      domain: normalizedWorkspaceDomain,
       type: workspaceType,
       externalId: workspaceExternalId,
     });
