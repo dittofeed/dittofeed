@@ -11,6 +11,8 @@ import {
   EmptyResponse,
 } from "isomorphic-lib/src/types";
 
+import { isWorkspaceAdmin } from "../buildApp/authorization";
+
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function apiKeyController(
   fastify: DittofeedFastifyInstance,
@@ -24,11 +26,15 @@ export default async function apiKeyController(
         body: CreateAdminApiKeyRequest,
         response: {
           200: CreateAdminApiKeyResponse,
+          403: EmptyResponse,
           409: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const adminApiKey = await createAdminApiKey(request.body);
       if (adminApiKey.isErr()) {
         return reply.status(409).send();
@@ -54,10 +60,14 @@ export default async function apiKeyController(
         querystring: DeleteAdminApiKeyRequest,
         response: {
           204: EmptyResponse,
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const { id, workspaceId }: DeleteAdminApiKeyRequest = request.query;
       await db()
         .delete(schema.adminApiKey)

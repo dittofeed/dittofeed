@@ -13,6 +13,8 @@ import {
   UpsertSecretRequest,
 } from "isomorphic-lib/src/types";
 
+import { isWorkspaceAdmin } from "../buildApp/authorization";
+
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function secretsController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
@@ -64,10 +66,14 @@ export default async function secretsController(fastify: FastifyInstance) {
         body: UpsertSecretRequest,
         response: {
           204: EmptyResponse,
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const { workspaceId, name, value, configValue } = request.body;
       await db().transaction(async (pTx) => {
         const secret = await pTx.query.secret.findFirst({
@@ -125,10 +131,14 @@ export default async function secretsController(fastify: FastifyInstance) {
         tags: ["Secrets"],
         response: {
           204: EmptyResponse,
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const { workspaceId, id } = request.query;
       const result = await db()
         .delete(schema.secret)

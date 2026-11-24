@@ -12,6 +12,7 @@ import {
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import {
+  Alert,
   Autocomplete,
   Box,
   Button,
@@ -60,6 +61,7 @@ import {
   IntegrationResource,
   IntegrationType,
   PartialSegmentResource,
+  RoleEnum,
   SmsProviderType,
   SmtpSecretKey,
   SyncIntegration,
@@ -207,8 +209,25 @@ function SectionSubHeader({
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
-    const { workspace } = dfContext;
+    const { workspace, memberRoles } = dfContext;
     const workspaceId = workspace.id;
+
+    const isAdmin = memberRoles.some(
+      (role) =>
+        role.workspaceId === workspaceId && role.role === RoleEnum.Admin,
+    );
+    if (!isAdmin) {
+      // Non-admins can't read or change workspace settings, so skip loading
+      // them. This also avoids lazily creating provider records and keys on
+      // behalf of a viewer.
+      return {
+        props: addInitialStateToProps({
+          dfContext,
+          serverInitialState: {},
+          props: {},
+        }),
+      };
+    }
 
     const [
       emailProviders,
@@ -2336,9 +2355,34 @@ function PermissionsSettings() {
 }
 
 function SettingsContents() {
-  const { inTransition } = useAppStorePick(["inTransition"]);
+  const { inTransition, memberRoles, workspace } = useAppStorePick([
+    "inTransition",
+    "workspace",
+    "memberRoles",
+  ]);
   if (inTransition) {
     return null;
+  }
+  const isAdmin =
+    workspace.type === CompletionStatus.Successful &&
+    memberRoles.some(
+      (role) =>
+        role.workspaceId === workspace.value.id && role.role === RoleEnum.Admin,
+    );
+  if (!isAdmin) {
+    return (
+      <Stack spacing={2}>
+        <SectionHeader
+          id={settingsSectionIds.workspaceMetadata}
+          title="Settings"
+          description="Workspace configuration."
+        />
+        <Alert severity="info">
+          Only workspace admins can view or change workspace settings. Ask a
+          workspace admin to grant you the Admin role.
+        </Alert>
+      </Stack>
+    );
   }
   return (
     <>

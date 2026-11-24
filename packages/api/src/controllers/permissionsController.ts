@@ -1,4 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { Type } from "@sinclair/typebox";
 import {
   createWorkspaceMemberRole,
   deleteWorkspaceMemberRole,
@@ -15,6 +16,8 @@ import {
   UpdateWorkspaceMemberRoleRequest,
   WorkspaceMemberRoleResource,
 } from "isomorphic-lib/src/types";
+
+import { isWorkspaceAdmin } from "../buildApp/authorization";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function permissionsController(fastify: FastifyInstance) {
@@ -46,11 +49,15 @@ export default async function permissionsController(fastify: FastifyInstance) {
         response: {
           201: WorkspaceMemberRoleResource,
           400: EmptyResponse,
+          403: EmptyResponse,
           404: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       try {
         const role = await createWorkspaceMemberRole(request.body);
         return reply.status(201).send(role);
@@ -77,17 +84,30 @@ export default async function permissionsController(fastify: FastifyInstance) {
         body: UpdateWorkspaceMemberRoleRequest,
         response: {
           200: WorkspaceMemberRoleResource,
+          400: Type.Object({ message: Type.String() }),
+          403: EmptyResponse,
           404: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       try {
         const role = await updateWorkspaceMemberRole(request.body);
         return reply.status(200).send(role);
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
           return reply.status(404).send();
+        }
+        if (
+          error instanceof Error &&
+          error.message.includes("last workspace admin")
+        ) {
+          return reply
+            .status(400)
+            .send({ message: "Cannot remove the last workspace admin" });
         }
         throw error;
       }
@@ -103,16 +123,33 @@ export default async function permissionsController(fastify: FastifyInstance) {
         body: DeleteWorkspaceMemberRoleRequest,
         response: {
           204: EmptyResponse,
+          400: Type.Object({ message: Type.String() }),
+          403: EmptyResponse,
           404: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
-      const success = await deleteWorkspaceMemberRole(request.body);
-      if (!success) {
-        return reply.status(404).send();
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
       }
-      return reply.status(204).send();
+      try {
+        const success = await deleteWorkspaceMemberRole(request.body);
+        if (!success) {
+          return reply.status(404).send();
+        }
+        return reply.status(204).send();
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message.includes("last workspace admin")
+        ) {
+          return reply
+            .status(400)
+            .send({ message: "Cannot remove the last workspace admin" });
+        }
+        throw error;
+      }
     },
   );
 }

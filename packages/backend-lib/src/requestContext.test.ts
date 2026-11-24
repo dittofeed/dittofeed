@@ -62,7 +62,7 @@ describe("requestContext", () => {
             domain: emailDomain,
           });
         });
-        it("succeeds and creates a role for the user", async () => {
+        it("succeeds and creates a read-only role for the user", async () => {
           const result = await getMultiTenantRequestContext({
             authorizationToken: header,
             authProvider: "some-provider",
@@ -70,7 +70,7 @@ describe("requestContext", () => {
           if (result.isErr()) {
             throw new Error(result.error.type);
           }
-          expect(result.value.memberRoles[0]?.role).toEqual(RoleEnum.Admin);
+          expect(result.value.memberRoles[0]?.role).toEqual(RoleEnum.Viewer);
         });
       });
     });

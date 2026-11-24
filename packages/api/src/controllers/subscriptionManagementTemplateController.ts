@@ -8,6 +8,7 @@ import {
 } from "backend-lib/src/subscriptionManagementTemplateCrud";
 import { FastifyInstance } from "fastify";
 
+import { isWorkspaceAdmin } from "../buildApp/authorization";
 import { getWorkspaceId } from "../workspace";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -81,6 +82,9 @@ export default async function subscriptionManagementTemplateController(
           401: Type.Object({
             message: Type.String(),
           }),
+          403: Type.Object({
+            message: Type.String(),
+          }),
         },
       },
     },
@@ -90,6 +94,9 @@ export default async function subscriptionManagementTemplateController(
         return reply.status(401).send({ message: "Unauthorized" });
       }
       const workspaceId = workspaceIdResult.value;
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send({ message: "Forbidden" });
+      }
 
       const { template } = request.body;
 
@@ -125,6 +132,9 @@ export default async function subscriptionManagementTemplateController(
           401: Type.Object({
             message: Type.String(),
           }),
+          403: Type.Object({
+            message: Type.String(),
+          }),
           404: Type.Object({
             message: Type.String(),
           }),
@@ -137,6 +147,9 @@ export default async function subscriptionManagementTemplateController(
         return reply.status(401).send({ message: "Unauthorized" });
       }
       const workspaceId = workspaceIdResult.value;
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send({ message: "Forbidden" });
+      }
 
       const result = await deleteSubscriptionManagementTemplate({
         workspaceId,

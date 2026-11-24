@@ -23,6 +23,7 @@ import {
   OpenIdProfile,
   RequestContextErrorType,
   RequestContextResult,
+  RoleEnum,
   Workspace,
   WorkspaceMember,
   WorkspaceMemberResource,
@@ -91,7 +92,10 @@ export async function findAndCreateRoles(
             .values({
               workspaceId: w.Workspace.id,
               workspaceMemberId: member.id,
-              role: "Admin",
+              // Members who join through their email domain start as viewers.
+              // Admins can promote them from the permissions table, or an
+              // operator can run `admin-cli onboard-user`.
+              role: RoleEnum.Viewer,
             })
             .onConflictDoNothing()
             .returning(),

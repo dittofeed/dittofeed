@@ -31,6 +31,8 @@ import {
   WriteKeyResource,
 } from "isomorphic-lib/src/types";
 
+import { isWorkspaceAdmin } from "../buildApp/authorization";
+
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function settingsController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
@@ -74,10 +76,14 @@ export default async function settingsController(fastify: FastifyInstance) {
           400: Type.Object({
             error: Type.String(),
           }),
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const { workspaceId, variant } = request.body;
 
       let resource: DataSourceConfigurationResource;
@@ -125,10 +131,14 @@ export default async function settingsController(fastify: FastifyInstance) {
         querystring: DeleteDataSourceConfigurationRequest,
         response: {
           204: EmptyResponse,
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const { workspaceId, type } = request.query;
       switch (type) {
         case DataSourceVariantType.SegmentIO: {
@@ -151,10 +161,14 @@ export default async function settingsController(fastify: FastifyInstance) {
         body: DefaultSmsProviderResource,
         response: {
           200: PersistedSmsProvider,
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const { workspaceId, smsProviderId } = request.body;
 
       await upsert({
@@ -183,10 +197,14 @@ export default async function settingsController(fastify: FastifyInstance) {
         response: {
           201: EmptyResponse,
           400: BadRequestResponse,
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       await upsertEmailProvider(request.body);
       return reply.status(201).send();
     },
@@ -202,10 +220,14 @@ export default async function settingsController(fastify: FastifyInstance) {
         response: {
           201: EmptyResponse,
           400: BadRequestResponse,
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       await upsertSmsProvider(request.body);
       return reply.status(201).send();
     },
@@ -221,10 +243,14 @@ export default async function settingsController(fastify: FastifyInstance) {
         response: {
           201: EmptyResponse,
           400: BadRequestResponse,
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const { workspaceId, fromAddress } = request.body;
       let resource: DefaultEmailProviderResource;
       if ("emailProviderId" in request.body) {
@@ -268,10 +294,14 @@ export default async function settingsController(fastify: FastifyInstance) {
         body: UpsertWriteKeyResource,
         response: {
           200: WriteKeyResource,
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const { workspaceId, writeKeyName } = request.body;
 
       await getOrCreateWriteKey({
@@ -311,10 +341,14 @@ export default async function settingsController(fastify: FastifyInstance) {
         body: DeleteWriteKeyResource,
         response: {
           204: EmptyResponse,
+          403: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
+      if (!isWorkspaceAdmin(request)) {
+        return reply.status(403).send();
+      }
       const { workspaceId, writeKeyName } = request.body;
       const result = await db()
         .delete(schema.secret)

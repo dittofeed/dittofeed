@@ -5,6 +5,7 @@ import {
   DeleteWorkspaceMemberRoleRequest,
   GetWorkspaceMemberRolesRequest,
   GetWorkspaceMemberRolesResponse,
+  RoleEnum,
   UpdateWorkspaceMemberRoleRequest,
   WorkspaceMemberRoleResource,
   WorkspaceMemberWithRoles,
@@ -139,6 +140,21 @@ export async function createWorkspaceMemberRole({
   };
 }
 
+const LAST_ADMIN_ERROR = "Cannot remove the last workspace admin";
+
+async function countWorkspaceAdmins(workspaceId: string): Promise<number> {
+  const admins = await db()
+    .select({ workspaceMemberId: schema.workspaceMemberRole.workspaceMemberId })
+    .from(schema.workspaceMemberRole)
+    .where(
+      and(
+        eq(schema.workspaceMemberRole.workspaceId, workspaceId),
+        eq(schema.workspaceMemberRole.role, RoleEnum.Admin),
+      ),
+    );
+  return admins.length;
+}
+
 export async function updateWorkspaceMemberRole({
   workspaceId,
   email,
@@ -171,6 +187,13 @@ export async function updateWorkspaceMemberRole({
     throw new Error("Member role not found");
   }
 
+  if (existingRole.role === RoleEnum.Admin && role !== RoleEnum.Admin) {
+    const adminCount = await countWorkspaceAdmins(workspaceId);
+    if (adminCount <= 1) {
+      throw new Error(LAST_ADMIN_ERROR);
+    }
+  }
+
   await db()
     .update(schema.workspaceMemberRole)
     .set({ role })
@@ -199,6 +222,20 @@ export async function deleteWorkspaceMemberRole({
 
   if (!workspaceMember) {
     return false;
+  }
+
+  const existingRole = await db().query.workspaceMemberRole.findFirst({
+    where: and(
+      eq(schema.workspaceMemberRole.workspaceId, workspaceId),
+      eq(schema.workspaceMemberRole.workspaceMemberId, workspaceMember.id),
+    ),
+  });
+
+  if (existingRole?.role === RoleEnum.Admin) {
+    const adminCount = await countWorkspaceAdmins(workspaceId);
+    if (adminCount <= 1) {
+      throw new Error(LAST_ADMIN_ERROR);
+    }
   }
 
   const result = await db()
