@@ -53,7 +53,7 @@ import {
   WorkspaceMemberWithRoles,
 } from "isomorphic-lib/src/types";
 import { enqueueSnackbar } from "notistack";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 
 import { noticeAnchorOrigin } from "../lib/notices";
@@ -82,6 +82,18 @@ function PermissionDialog({
   const [role, setRole] = useState<Role>(
     memberWithRole?.roles[0]?.role || RoleEnum.Admin,
   );
+
+  // The dialog stays mounted while closed, so its state has to be re-seeded
+  // from the selected member each time it opens. Otherwise "Edit" would show
+  // an empty email and the default role.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open && !wasOpen.current) {
+      setEmail(memberWithRole?.member.email ?? "");
+      setRole(memberWithRole?.roles[0]?.role ?? RoleEnum.Admin);
+    }
+    wasOpen.current = open;
+  }, [open, memberWithRole]);
 
   const createMutation = useCreatePermissionMutation({
     onSuccess: () => {
